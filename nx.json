@@ -1,0 +1,109 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/eslint.config.mjs",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/**/*.stories.@(js|jsx|ts|tsx|mdx)",
+      "!{projectRoot}/.storybook/**/*"
+    ],
+    "sharedGlobals": []
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/js/typescript",
+      "options": {
+        "typecheck": { "targetName": "typecheck" },
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.lib.json",
+          "buildDepsName": "build-deps",
+          "watchDepsName": "watch-deps"
+        }
+      }
+    },
+    {
+      "plugin": "@nx/playwright/plugin",
+      "options": { "targetName": "e2e" }
+    },
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": { "targetName": "lint" }
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test",
+        "ciTargetName": "test-ci",
+        "testMode": "run"
+      }
+    }
+  ],
+  "analytics": false,
+  "targetDefaults": {
+    "@angular/build:application": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "@angular/build:unit-test": {
+      "cache": true,
+      "inputs": ["default", "^production"]
+    },
+    "@nx/angular:package": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "@nx/angular:unit-test": {
+      "cache": true,
+      "inputs": ["default", "^production"]
+    },
+    "@nx/eslint:lint": {
+      "cache": true,
+      "inputs": ["default", "^default", "{workspaceRoot}/eslint.config.mjs"]
+    },
+    "build-storybook": {
+      "cache": true,
+      "inputs": ["default", "^production", "{projectRoot}/.storybook/**/*"]
+    },
+    "test": { "dependsOn": ["^build"] }
+  },
+  "generators": {
+    "@nx/angular:application": {
+      "e2eTestRunner": "playwright",
+      "linter": "eslint",
+      "standalone": true,
+      "strict": true,
+      "style": "css",
+      "unitTestRunner": "vitest-angular"
+    },
+    "@nx/angular:library": {
+      "linter": "eslint",
+      "standalone": true,
+      "strict": true,
+      "style": "css",
+      "unitTestRunner": "vitest-angular"
+    },
+    "@nx/angular:component": {
+      "changeDetection": "OnPush",
+      "style": "css"
+    }
+  },
+  "release": {
+    "groups": {
+      "andes": {
+        "projects": ["tokens", "ui", "testing"],
+        "projectsRelationship": "independent",
+        "versionPlans": true,
+        "changelog": { "projectChangelogs": true }
+      }
+    },
+    "version": {
+      "preVersionCommand": "pnpm nx run-many -t build"
+    }
+  }
+}

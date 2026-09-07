@@ -1,0 +1,48 @@
+:root,
+[data-andes-theme='light'] {
+  color-scheme: light;
+
+  --andes-color-canvas: #f5f7fa;
+  --andes-color-surface: #ffffff;
+  --andes-color-surface-muted: #eef2f6;
+  --andes-color-text: #17202a;
+  --andes-color-text-muted: #52616f;
+  --andes-color-border: #d7dee5;
+  --andes-color-border-strong: #aebbc7;
+  --andes-color-action-primary: #075985;
+  --andes-color-action-primary-hover: #0c4a6e;
+  --andes-color-on-action: #ffffff;
+  --andes-color-danger: #b42318;
+  --andes-color-danger-hover: #912018;
+  --andes-color-focus: #38bdf8;
+
+  --andes-font-family-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --andes-font-size-xs: 0.75rem;
+  --andes-font-size-sm: 0.875rem;
+  --andes-font-size-md: 1rem;
+  --andes-font-size-lg: 1.125rem;
+  --andes-font-size-xl: 1.5rem;
+  --andes-font-weight-medium: 500;
+  --andes-font-weight-semibold: 600;
+  --andes-line-height-tight: 1.25;
+  --andes-line-height-normal: 1.5;
+
+  --andes-space-1: 0.25rem;
+  --andes-space-2: 0.5rem;
+  --andes-space-3: 0.75rem;
+  --andes-space-4: 1rem;
+  --andes-space-5: 1.25rem;
+  --andes-space-6: 1.5rem;
+  --andes-space-8: 2rem;
+  --andes-space-10: 2.5rem;
+
+  --andes-radius-sm: 0.25rem;
+  --andes-radius-md: 0.5rem;
+  --andes-radius-lg: 0.75rem;
+  --andes-shadow-sm: 0 1px 2px rgb(15 23 42 / 8%);
+  --andes-shadow-md: 0 10px 28px rgb(15 23 42 / 10%);
+  --andes-focus-ring: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-focus) 42%, transparent);
+}

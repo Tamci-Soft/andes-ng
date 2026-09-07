@@ -1,0 +1,25 @@
+@import '@andes-ng/tokens/theme.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--andes-color-canvas);
+  color: var(--andes-color-text);
+  font-family: var(--andes-font-family-sans);
+}
+
+body {
+  margin: 0;
+  min-inline-size: 20rem;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

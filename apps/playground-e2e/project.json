@@ -1,0 +1,9 @@
+{
+  "name": "playground-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/playground-e2e/src",
+  "implicitDependencies": ["playground"],
+  "tags": ["type:e2e", "scope:playground"],
+  "targets": {}
+}

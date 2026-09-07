@@ -1,0 +1,107 @@
+{
+  "name": "ui",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/ui/src",
+  "prefix": "andes",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "manifestRootsToUpdate": ["dist/{projectRoot}"],
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    }
+  },
+  "tags": ["type:ui", "scope:ui"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "project": "packages/ui/ng-package.json",
+        "tsConfig": "packages/ui/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "packages/ui/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false
+      }
+    },
+    "lint": {
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/.eslintrc.json",
+        "{workspaceRoot}/.eslintignore",
+        "{workspaceRoot}/eslint.config.mjs",
+        "{workspaceRoot}/tools/eslint-rules/**/*",
+        {
+          "externalDependencies": ["eslint"]
+        }
+      ]
+    },
+    "storybook": {
+      "executor": "@storybook/angular:start-storybook",
+      "options": {
+        "port": 4400,
+        "configDir": "packages/ui/.storybook",
+        "browserTarget": "ui:build-storybook",
+        "compodoc": false,
+        "styles": ["packages/tokens/src/theme.css"]
+      },
+      "configurations": {
+        "ci": {
+          "quiet": true
+        }
+      }
+    },
+    "build-storybook": {
+      "executor": "@storybook/angular:build-storybook",
+      "outputs": ["{options.outputDir}"],
+      "options": {
+        "outputDir": "dist/storybook/ui",
+        "configDir": "packages/ui/.storybook",
+        "browserTarget": "ui:build-storybook",
+        "compodoc": false,
+        "styles": ["packages/tokens/src/theme.css"]
+      },
+      "configurations": {
+        "ci": {
+          "quiet": true
+        }
+      }
+    },
+    "test-storybook": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "test-storybook -c packages/ui/.storybook --url=http://localhost:4400"
+      }
+    },
+    "static-storybook": {
+      "executor": "@nx/web:file-server",
+      "dependsOn": ["build-storybook"],
+      "options": {
+        "buildTarget": "ui:build-storybook",
+        "staticFilePath": "dist/storybook/ui",
+        "spa": true
+      },
+      "configurations": {
+        "ci": {
+          "buildTarget": "ui:build-storybook:ci"
+        }
+      }
+    }
+  }
+}

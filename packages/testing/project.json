@@ -1,0 +1,56 @@
+{
+  "name": "testing",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/testing/src",
+  "prefix": "andes",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "manifestRootsToUpdate": ["dist/{projectRoot}"],
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    }
+  },
+  "tags": ["type:testing", "scope:testing"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:package",
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "project": "packages/testing/ng-package.json",
+        "tsConfig": "packages/testing/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "packages/testing/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false
+      }
+    },
+    "lint": {
+      "inputs": [
+        "default",
+        "^default",
+        "{workspaceRoot}/.eslintrc.json",
+        "{workspaceRoot}/.eslintignore",
+        "{workspaceRoot}/eslint.config.mjs",
+        "{workspaceRoot}/tools/eslint-rules/**/*",
+        {
+          "externalDependencies": ["eslint"]
+        }
+      ]
+    }
+  }
+}

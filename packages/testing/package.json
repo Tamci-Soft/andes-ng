@@ -1,0 +1,8 @@
+{
+  "name": "@andes-ng/testing",
+  "version": "0.0.1",
+  "description": "Testing helpers for Andes NG components.",
+  "license": "MIT",
+  "publishConfig": { "access": "public" },
+  "sideEffects": false
+}
