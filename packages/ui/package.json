@@ -12,7 +12,7 @@
     "rxjs": ">=7.8.0 <8.0.0"
   },
   "dependencies": {
-    "@andes-ng/tokens": "workspace:^",
+    "@andes-ng/tokens": "^0.0.1",
     "@spartan-ng/brain": "^1.4.1",
     "clsx": "^2.1.1",
     "tailwindcss": "^4.3.3",

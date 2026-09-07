@@ -201,7 +201,7 @@ importers:
   packages/ui:
     dependencies:
       '@andes-ng/tokens':
-        specifier: workspace:^
+        specifier: ^0.0.1
         version: link:../tokens
       '@angular/cdk':
         specifier: '>=22.1.0 <23.0.0'

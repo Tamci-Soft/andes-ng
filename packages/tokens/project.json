@@ -11,6 +11,7 @@
       "options": {
         "main": "packages/tokens/src/index.ts",
         "outputPath": "packages/tokens/dist",
+        "rootDir": "packages/tokens/src",
         "tsConfig": "packages/tokens/tsconfig.lib.json",
         "generatePackageJson": false,
         "assets": [
