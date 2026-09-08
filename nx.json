@@ -26,10 +26,6 @@
       }
     },
     {
-      "plugin": "@nx/playwright/plugin",
-      "options": { "targetName": "e2e" }
-    },
-    {
       "plugin": "@nx/eslint/plugin",
       "options": { "targetName": "lint" }
     },
@@ -51,6 +47,7 @@
     },
     "@angular/build:unit-test": {
       "cache": true,
+      "dependsOn": ["^build"],
       "inputs": ["default", "^production"]
     },
     "@nx/angular:package": {
@@ -60,6 +57,7 @@
     },
     "@nx/angular:unit-test": {
       "cache": true,
+      "dependsOn": ["^build"],
       "inputs": ["default", "^production"]
     },
     "@nx/eslint:lint": {

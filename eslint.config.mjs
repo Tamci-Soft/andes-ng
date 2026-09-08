@@ -26,10 +26,6 @@ export default [
               onlyDependOnLibsWithTags: ['type:ui', 'type:tokens'],
             },
             {
-              sourceTag: 'type:e2e',
-              onlyDependOnLibsWithTags: ['type:app'],
-            },
-            {
               sourceTag: 'type:ui',
               onlyDependOnLibsWithTags: ['type:tokens'],
             },
