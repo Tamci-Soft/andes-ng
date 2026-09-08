@@ -14,12 +14,18 @@ Publish semantic CSS Custom Properties from `@andes-ng/tokens/theme.css`. Angula
 
 Tailwind CSS 4 may be used by documentation or product applications, but Tailwind directives, utility generation and `@source` configuration are not part of the Andes runtime styling contract. Andes will not implement a PrimeNG-style dynamic theme engine initially. Token changes are public API changes governed by semantic versioning.
 
+## Current state
+
+The stylesheet entry point is in place and packaged: `packages/tokens/src/theme.css` is copied to `packages/tokens/dist/theme.css` and exposed through the `./theme.css` export, and `apps/playground` imports it the way a consumer would. The naming contract is fixed by `ANDES_TOKEN_PREFIX` (`--andes-`) and `ANDES_THEME_ATTRIBUTE` (`data-andes-theme`).
+
+The token catalogue itself is still empty. Because token names are public API under semantic versioning, they will be defined together with the first component foundations rather than guessed ahead of them.
+
 ## Consequences
 
 - Consumers can use Andes with or without Tailwind.
 - Styling works from published package artifacts rather than source scanning.
 - Product branding is constrained to documented token overrides instead of internal selectors.
-- Light/dark and brand theme orchestration remain future work; the first release defines a light semantic token set only.
+- Light/dark and brand theme orchestration remain future work; the first release will define a light semantic token set only.
 
 ## Sources
 

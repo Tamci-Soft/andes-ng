@@ -3,9 +3,9 @@
 ## Local development
 
 1. Use the Node and pnpm versions declared by the repository.
-2. Run `corepack enable`, `pnpm install` and `pnpm exec playwright install chromium`.
+2. Run `corepack enable` and `pnpm install`.
 3. Run `pnpm storybook` for component work or `pnpm playground` for consumer integration.
-4. Before opening a pull request, run `pnpm format:check`, `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm build:storybook` and `pnpm nx e2e playground-e2e`.
+4. Before opening a pull request, run `pnpm format:check`, `pnpm lint`, `pnpm test`, `pnpm build` and `pnpm build:storybook`.
 
 ## Component contract
 

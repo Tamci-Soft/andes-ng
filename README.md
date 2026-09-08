@@ -15,6 +15,8 @@ Andes NG is an open-source Angular design system for dense, enterprise applicati
 
 Storybook is configured on `packages/ui`; there is intentionally no `apps/docs` yet.
 
+**No component, token or test helper has been implemented yet.** The three packages build, pack and release, but their entry points are empty on purpose: this repository is currently the workspace setup, and the public API begins with the first component.
+
 ## Requirements
 
 - Node.js 22.12 or newer
@@ -46,21 +48,15 @@ Import tokens once in the consumer application's global CSS:
 @import '@andes-ng/tokens/theme.css';
 ```
 
-Then import standalone components only from the Andes public entry point:
-
-```ts
-import { AndesButton } from '@andes-ng/ui';
-```
-
-```html
-<button andesButton type="button">Guardar</button>
-```
+Standalone components will be imported only from the Andes public entry point, `@andes-ng/ui`. That entry point exports nothing yet.
 
 Consumers do not import `@spartan-ng/brain` or its selectors. Brain is an internal behavioral dependency. Andes does not require Tailwind configuration or Tailwind-generated CSS, although Brain currently causes Tailwind-related packages to exist in the installation graph. See [ADR 0004](docs/adr/0004-spartan-brain-behind-andes-adapters.md).
 
 ## Architecture decisions
 
 Accepted decisions live in [`docs/adr`](docs/adr/README.md). Changes to package contracts, styling, dependency boundaries or release policy require a new ADR that supersedes the previous one.
+
+For a contributor-oriented explanation of the package boundaries, design tokens, Spartan Brain and dependency terminology, see [the component architecture glossary](docs/component-architecture-glossary.md).
 
 ## Contributing
 
