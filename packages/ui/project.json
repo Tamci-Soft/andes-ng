@@ -82,26 +82,6 @@
           "quiet": true
         }
       }
-    },
-    "test-storybook": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "test-storybook -c packages/ui/.storybook --url=http://localhost:4400"
-      }
-    },
-    "static-storybook": {
-      "executor": "@nx/web:file-server",
-      "dependsOn": ["build-storybook"],
-      "options": {
-        "buildTarget": "ui:build-storybook",
-        "staticFilePath": "dist/storybook/ui",
-        "spa": true
-      },
-      "configurations": {
-        "ci": {
-          "buildTarget": "ui:build-storybook:ci"
-        }
-      }
     }
   }
 }

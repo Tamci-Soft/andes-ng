@@ -11,11 +11,17 @@ export default [
       '@nx/dependency-checks': [
         'error',
         {
+          // The package declares its peers and Brain ahead of the first
+          // component, so the ADR 0004 contract stays reserved. Until a
+          // component imports them, every entry here is intentionally
+          // declared without being used.
           ignoredDependencies: [
             '@andes-ng/tokens',
             '@angular/cdk',
             '@angular/common',
+            '@angular/core',
             '@angular/forms',
+            '@spartan-ng/brain',
             'clsx',
             'rxjs',
             'tailwindcss',
