@@ -1,15 +1,14 @@
+/*
+ * Imported the way a consumer application would import it. This keeps the
+ * `@andes-ng/tokens/theme.css` export resolvable from the workspace, even
+ * while the token catalogue itself is still empty.
+ */
 @import '@andes-ng/tokens/theme.css';
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-}
-
-html {
-  background: var(--andes-color-canvas);
-  color: var(--andes-color-text);
-  font-family: var(--andes-font-family-sans);
 }
 
 body {

@@ -5,6 +5,7 @@
   "prefix": "andes",
   "sourceRoot": "apps/playground/src",
   "tags": ["type:app", "scope:playground"],
+  "implicitDependencies": ["tokens"],
   "targets": {
     "build": {
       "executor": "@angular/build:application",
