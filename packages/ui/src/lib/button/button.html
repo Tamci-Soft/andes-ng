@@ -1,0 +1,11 @@
+<button
+  brnButton
+  [disabled]="isDisabled()"
+  [attr.aria-busy]="loading() || null"
+  [class]="classes()"
+>
+  @if (loading()) {
+  <span class="andes-button__spinner" aria-hidden="true"></span>
+  }
+  <ng-content />
+</button>
