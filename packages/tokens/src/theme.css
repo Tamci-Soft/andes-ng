@@ -5,9 +5,43 @@
  *
  *   @import '@andes-ng/tokens/theme.css';
  *
- * The token catalogue (`--andes-*` custom properties for color, typography,
- * spacing, radii, elevation and focus) will be introduced together with the
- * first component foundations. Token names are public API and follow semantic
- * versioning, so the catalogue is deliberately empty until those decisions are
- * made. See docs/adr/0003-css-custom-properties-as-the-styling-contract.md.
+ * See docs/adr/0003-css-custom-properties-as-the-styling-contract.md.
  */
+
+:root {
+  --andes-color-primary: #2563eb;
+  --andes-color-primary-hover: #1d4ed8;
+  --andes-color-primary-active: #1e40af;
+  --andes-color-primary-foreground: #ffffff;
+
+  --andes-color-secondary: #e5e7eb;
+  --andes-color-secondary-hover: #d1d5db;
+  --andes-color-secondary-active: #9ca3af;
+  --andes-color-secondary-foreground: #111827;
+
+  --andes-color-danger: #dc2626;
+  --andes-color-danger-hover: #b91c1c;
+  --andes-color-danger-active: #991b1b;
+  --andes-color-danger-foreground: #ffffff;
+
+  --andes-color-accent: #f3f4f6;
+  --andes-color-accent-hover: #e5e7eb;
+  --andes-color-accent-foreground: #111827;
+
+  --andes-color-border: #d1d5db;
+  --andes-color-background: #ffffff;
+
+  --andes-color-focus-ring: #2563eb;
+
+  --andes-font-family: system-ui, sans-serif;
+  --andes-font-weight-medium: 500;
+
+  --andes-radius-md: 0.375rem;
+  --andes-radius-full: 9999px;
+
+  --andes-space-1: 0.25rem;
+  --andes-space-2: 0.5rem;
+  --andes-space-3: 0.75rem;
+  --andes-space-4: 1rem;
+  --andes-space-5: 1.25rem;
+}
