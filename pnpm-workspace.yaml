@@ -8,7 +8,18 @@ allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
   esbuild: true
+  lefthook: true
   lmdb: true
   msgpackr-extract: true
   nx: true
   unrs-resolver: true
+blockExoticSubdeps: true
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - 'nx'
+  - '@nx/*'
+trustPolicy: no-downgrade
+
+overrides:
+  'smol-toml@<1.7.1': '>=1.8.0'
+  'webpack-dev-middleware@>=7.4.6 <8.0.0': '7.4.5'
