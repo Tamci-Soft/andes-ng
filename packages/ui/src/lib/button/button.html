@@ -1,11 +1,21 @@
-<button
-  brnButton
-  [disabled]="isDisabled()"
-  [attr.aria-busy]="loading() || null"
-  [class]="classes()"
->
-  @if (loading()) {
-  <span class="andes-button__spinner" aria-hidden="true"></span>
+@if (href(); as hrefValue) {
+  <a brnButton [disabled]="isDisabled()" [attr.href]="isDisabled() ? null : hrefValue" [class]="classes()">
+    <ng-container *ngTemplateOutlet="content" />
+  </a>
+} @else {
+  <button brnButton [disabled]="isDisabled()" [attr.aria-busy]="visibleLoading() || null" [class]="classes()">
+    <ng-container *ngTemplateOutlet="content" />
+  </button>
+}
+
+<ng-template #content>
+  @if (visibleLoading()) {
+    <span class="andes-button__spinner" aria-hidden="true"></span>
+  } @else {
+    <ng-content select="[slot=icon-start]" />
   }
   <ng-content />
-</button>
+  @if (!visibleLoading()) {
+    <ng-content select="[slot=icon-end]" />
+  }
+</ng-template>

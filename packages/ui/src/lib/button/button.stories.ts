@@ -11,10 +11,13 @@ const meta: Meta<AndesButton> = {
       control: 'select',
       options: ['primary', 'secondary', 'danger', 'outline', 'ghost', 'link'],
     },
-    size: { control: 'select', options: ['sm', 'md', 'lg', 'icon'] },
+    size: { control: 'select', options: ['xs', 'sm', 'md', 'lg', 'icon-sm', 'icon', 'icon-lg'] },
     shape: { control: 'select', options: ['default', 'full'] },
     disabled: { control: 'boolean' },
     loading: { control: 'boolean' },
+    loadingDelay: { control: 'number' },
+    fullWidth: { control: 'boolean' },
+    href: { control: 'text' },
   },
   args: {
     variant: 'primary',
@@ -22,10 +25,12 @@ const meta: Meta<AndesButton> = {
     shape: 'default',
     disabled: false,
     loading: false,
+    loadingDelay: 0,
+    fullWidth: false,
   },
   render: (args) => ({
     props: args,
-    template: `<andes-button [variant]="variant" [size]="size" [shape]="shape" [disabled]="disabled" [loading]="loading">Save</andes-button>`,
+    template: `<andes-button [variant]="variant" [size]="size" [shape]="shape" [disabled]="disabled" [loading]="loading" [loadingDelay]="loadingDelay" [fullWidth]="fullWidth" [href]="href">Save</andes-button>`,
   }),
 };
 
@@ -69,15 +74,48 @@ export const Pill: Story = {
   args: { shape: 'full' },
 };
 
+export const FullWidth: Story = {
+  args: { fullWidth: true },
+  render: (args) => ({
+    props: args,
+    template: `<div style="width: 320px;"><andes-button [variant]="variant" [fullWidth]="fullWidth">Save</andes-button></div>`,
+  }),
+};
+
+export const AsLink: Story = {
+  args: { href: 'https://andes-ng.dev' },
+};
+
+export const WithIcons: Story = {
+  render: (args) => ({
+    props: args,
+    template: `
+      <div style="display: flex; gap: 1rem;">
+        <andes-button [variant]="variant">
+          <span slot="icon-start">←</span>
+          Back
+        </andes-button>
+        <andes-button [variant]="variant">
+          Next
+          <span slot="icon-end">→</span>
+        </andes-button>
+      </div>
+    `,
+  }),
+};
+
 export const Sizes: Story = {
   render: (args) => ({
     props: args,
     template: `
       <div style="display: flex; align-items: center; gap: 1rem;">
+        <andes-button size="xs" [variant]="variant">Extra small</andes-button>
         <andes-button size="sm" [variant]="variant">Small</andes-button>
         <andes-button size="md" [variant]="variant">Medium</andes-button>
         <andes-button size="lg" [variant]="variant">Large</andes-button>
+        <andes-button size="icon-sm" [variant]="variant">+</andes-button>
         <andes-button size="icon" [variant]="variant">+</andes-button>
+        <andes-button size="icon-lg" [variant]="variant">+</andes-button>
       </div>
     `,
   }),

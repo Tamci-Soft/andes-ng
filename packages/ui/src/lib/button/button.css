@@ -1,12 +1,15 @@
 .andes-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--andes-space-2);
+  overflow: hidden;
   border-radius: var(--andes-radius-md);
   border: 1px solid transparent;
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
+  text-decoration: none;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -19,7 +22,8 @@
   outline-offset: 2px;
 }
 
-.andes-button:disabled {
+.andes-button:disabled,
+.andes-button[data-disabled] {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -28,7 +32,18 @@
   border-radius: var(--andes-radius-full);
 }
 
+.andes-button--full-width {
+  display: flex;
+  width: 100%;
+}
+
 /* Sizes */
+
+.andes-button--xs {
+  height: 1.75rem;
+  padding-inline: var(--andes-space-2);
+  font-size: 0.75rem;
+}
 
 .andes-button--sm {
   height: 2rem;
@@ -48,9 +63,21 @@
   font-size: 1.125rem;
 }
 
+.andes-button--icon-sm {
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+}
+
 .andes-button--icon {
   height: 2.5rem;
   width: 2.5rem;
+  padding: 0;
+}
+
+.andes-button--icon-lg {
+  height: 3rem;
+  width: 3rem;
   padding: 0;
 }
 
@@ -61,11 +88,11 @@
   color: var(--andes-color-primary-foreground);
 }
 
-.andes-button--primary:hover:not(:disabled) {
+.andes-button--primary:hover:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-primary-hover);
 }
 
-.andes-button--primary:active:not(:disabled) {
+.andes-button--primary:active:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-primary-active);
 }
 
@@ -74,11 +101,11 @@
   color: var(--andes-color-secondary-foreground);
 }
 
-.andes-button--secondary:hover:not(:disabled) {
+.andes-button--secondary:hover:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-secondary-hover);
 }
 
-.andes-button--secondary:active:not(:disabled) {
+.andes-button--secondary:active:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-secondary-active);
 }
 
@@ -87,11 +114,11 @@
   color: var(--andes-color-danger-foreground);
 }
 
-.andes-button--danger:hover:not(:disabled) {
+.andes-button--danger:hover:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-danger-hover);
 }
 
-.andes-button--danger:active:not(:disabled) {
+.andes-button--danger:active:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-danger-active);
 }
 
@@ -101,7 +128,7 @@
   color: var(--andes-color-accent-foreground);
 }
 
-.andes-button--outline:hover:not(:disabled) {
+.andes-button--outline:hover:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-accent);
 }
 
@@ -110,7 +137,7 @@
   color: var(--andes-color-accent-foreground);
 }
 
-.andes-button--ghost:hover:not(:disabled) {
+.andes-button--ghost:hover:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-accent);
 }
 
@@ -119,9 +146,10 @@
   color: var(--andes-color-primary);
   padding-inline: 0;
   height: auto;
+  overflow: visible;
 }
 
-.andes-button--link:hover:not(:disabled) {
+.andes-button--link:hover:not(:disabled):not([data-disabled]) {
   text-decoration: underline;
 }
 
@@ -144,5 +172,24 @@
 @keyframes andes-button-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Ripple */
+
+.andes-button__ripple {
+  position: absolute;
+  border-radius: var(--andes-radius-full);
+  background-color: currentcolor;
+  opacity: 0.25;
+  transform: scale(0);
+  animation: andes-button-ripple 0.5s ease-out;
+  pointer-events: none;
+}
+
+@keyframes andes-button-ripple {
+  to {
+    transform: scale(1.6);
+    opacity: 0;
   }
 }
