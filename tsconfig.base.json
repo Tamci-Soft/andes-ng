@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "customConditions": ["@andes-ng/source"],
+    "declarationMap": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "lib": ["es2022", "dom"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022",
+    "types": ["*"],
+    "paths": {
+      "@andes-ng/testing": ["./packages/testing/src/index.ts"],
+      "@andes-ng/tokens": ["./packages/tokens/src/index.ts"],
+      "@andes-ng/ui": ["./packages/ui/src/index.ts"]
+    }
+  }
+}

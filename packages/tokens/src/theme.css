@@ -1,0 +1,13 @@
+/*
+ * Public CSS entry point for Andes NG design tokens.
+ *
+ * Consumers import this file once from their global stylesheet:
+ *
+ *   @import '@andes-ng/tokens/theme.css';
+ *
+ * The token catalogue (`--andes-*` custom properties for color, typography,
+ * spacing, radii, elevation and focus) will be introduced together with the
+ * first component foundations. Token names are public API and follow semantic
+ * versioning, so the catalogue is deliberately empty until those decisions are
+ * made. See docs/adr/0003-css-custom-properties-as-the-styling-contract.md.
+ */

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    { "path": "./apps/playground" },
+    { "path": "./packages/testing" },
+    { "path": "./packages/tokens" },
+    { "path": "./packages/ui" }
+  ],
+  "compilerOptions": {}
+}
