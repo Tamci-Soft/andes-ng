@@ -1,0 +1,9 @@
+# Schema reference: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+blank_issues_enabled: false
+contact_links:
+  - name: Security or secret exposure
+    url: https://github.com/Tamci-Soft/andes-ng/blob/main/.github/SECURITY.md
+    about: For security issues, follow SECURITY.md — do not open a public Issue.
+  - name: General questions
+    url: mailto:jhosepmyrgutierrezsoto@gmail.com
+    about: For general questions not covered by a template, contact the maintainers directly.

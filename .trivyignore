@@ -1,0 +1,1 @@
+# CVE IDs to exclude from Trivy scans, one per line, with a reason — currently empty, nothing suppressed.
