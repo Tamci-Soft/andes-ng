@@ -1,0 +1,30 @@
+# Normalize line endings for everything Git considers text.
+# https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings
+* text=auto eol=lf
+
+*.ts        text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.sh        text eol=lf
+
+# Binary — never diff or convert
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.pdf       binary
+*.zip       binary
+
+# Generated/lockfiles — collapse in the GitHub PR diff view
+# https://github.com/github-linguist/linguist/blob/main/docs/overrides.md
+pnpm-lock.yaml     linguist-generated=true

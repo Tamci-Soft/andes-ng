@@ -60,4 +60,4 @@ For a contributor-oriented explanation of the package boundaries, design tokens,
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change. This project is available under the [MIT License](LICENSE).
+Read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a change. This project is available under the [MIT License](LICENSE).
