@@ -7,6 +7,23 @@
 3. Run `pnpm storybook` for component work or `pnpm playground` for consumer integration.
 4. Before opening a pull request, run `pnpm format:check`, `pnpm lint`, `pnpm test`, `pnpm build` and `pnpm build:storybook`.
 
+## Branch Structure
+
+We follow **Gitflow**, matching `pegi-web`:
+
+| Branch                  | Purpose                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `main`                  | Production-ready. Only merged from `develop` (tagged, published releases). |
+| `develop`               | Integration branch. All features merge here first.                         |
+| `feature/<description>` | New component, token, or capability.                                       |
+| `bugfix/<description>`  | Fix for a bug found during development.                                    |
+| `hotfix/<description>`  | Urgent fix branched from `main` (then merged back to `main` + `develop`).  |
+| `release/<version>`     | Stabilization before a release (branched from `develop`).                  |
+
+Only these prefixes are used, including for chore-type work — a `chore` commit still lives on a
+`feature/<description>` branch, never a `chore/` branch. Every PR targets `develop`, never `main`
+directly, except `hotfix/*`.
+
 ## Component contract
 
 - Public names use the `Andes` class prefix and `andes` selector prefix.
