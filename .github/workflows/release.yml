@@ -1,0 +1,57 @@
+name: Release
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Preview version/changelog/publish without changing anything'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || 'false' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+          cache: true
+
+      - run: pnpm install --frozen-lockfile
+      - run: npm i -g npm@^11.5.1 # floor for trusted publishing (OIDC)
+
+      - run: git config user.name 'github-actions[bot]'
+      - run: git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - run: pnpm exec nx release --skip-publish --dry-run=${{ env.DRY_RUN }}
+
+      # nx release --skip-publish commits and tags locally but does not push (verified empirically
+      # against nx 23.2.0 — no --git-push equivalent exists on the combined command).
+      - if: env.DRY_RUN != 'true'
+        run: git push --follow-tags
+
+      - run: pnpm exec nx release publish --dry-run=${{ env.DRY_RUN }}
+        env:
+          # Remove once each package has a trusted publisher configured on npmjs.com — a package
+          # must already exist there before it can be added (docs.npmjs.com/trusted-publishers).
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
