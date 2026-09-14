@@ -20,19 +20,9 @@ minimumReleaseAgeExclude:
   - '@nx/*'
 trustPolicy: no-downgrade
 
-# Real, currently-active advisory in nx's own dependency chain — GHSA-7w5x-hrqm-74c2 (DoS via
-# malformed TOML). Fixed upstream in smol-toml 1.7.1+; nx hasn't bumped its own pin yet, so force
-# the patched version across the tree until it does.
-#
-# webpack-dev-middleware pinned below 7.4.6 deliberately, not as a version preference — pnpm's own
-# trust-check flagged 7.4.6 as a "High-risk trust downgrade" (published to the abandoned 7.x line
-# a full year after the last 7.4.5, hours after the actively-developed 8.x line shipped 8.3.0; a
-# known dependency-hijack pattern). Verified this package is only reachable through the deprecated
-# @angular-devkit/build-webpack path (nothing this workspace actually runs uses webpack — builds
-# and the dev server are both esbuild/@angular-build-based), so nothing here executes it either
-# way, but pinning to the last version with a clean publish history (7.4.5) avoids installing the
-# flagged one rather than silently trusting it. Revisit if @angular/cli ever re-publishes a
-# legitimate 7.4.6+ with normal trust evidence restored.
+# GHSA-7w5x-hrqm-74c2 (nx's own dependency chain); nx hasn't bumped its pin yet.
+# webpack-dev-middleware@7.4.6 failed pnpm's trust check (published to an abandoned line a year
+# after the last release, no trust evidence) — pinned to 7.4.5 rather than trusting it.
 overrides:
   'smol-toml@<1.7.1': '>=1.8.0'
   'webpack-dev-middleware@>=7.4.6 <8.0.0': '7.4.5'

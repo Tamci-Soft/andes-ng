@@ -43,8 +43,7 @@ jobs:
           deleted=0
           kept=0
 
-          # origin/main is needed for the git-ancestry fallback below (only reached when a
-          # merged branch has no PR record at all).
+          # Needed for the git-ancestry fallback below (a merged branch with no PR record).
           git fetch origin main --quiet
 
           {
@@ -108,10 +107,7 @@ jobs:
               continue
             fi
 
-            # Merge status comes from PR data first — this is correct for squash and rebase
-            # merges (both allowed in this repo's settings), which rewrite commit SHAs and
-            # break git ancestry. git ancestry is only a fallback for a merge with no PR
-            # record, and only detects a true merge-commit merge.
+            # PR data first (correct for squash/rebase merges); git ancestry is only a fallback.
             merged_at=$(echo "$prs_json" | jq -r \
               'map(select(.merged_at != null)) | sort_by(.merged_at) | last | .merged_at // empty')
             merge_source="PR merged_at"
