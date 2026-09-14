@@ -1,7 +1,12 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { AndesButton, AndesButtonShape, AndesButtonSize, AndesButtonVariant } from './button';
+import {
+  AndesButton,
+  AndesButtonShape,
+  AndesButtonSize,
+  AndesButtonVariant,
+} from './button';
 
 @Component({
   imports: [AndesButton],
@@ -32,7 +37,9 @@ describe('AndesButton', () => {
   function createHost() {
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
-    const button = fixture.nativeElement.querySelector('button, a') as HTMLButtonElement & HTMLAnchorElement;
+    const button = fixture.nativeElement.querySelector(
+      'button, a',
+    ) as HTMLButtonElement & HTMLAnchorElement;
     return { fixture, button };
   }
 
@@ -60,21 +67,27 @@ describe('AndesButton', () => {
     expect(button.classList).toContain('andes-button--lg');
   });
 
-  it.each(['outline', 'ghost', 'link'] as const)('supports the %s variant', (variant) => {
-    const { fixture, button } = createHost();
-    fixture.componentInstance.variant.set(variant);
-    fixture.detectChanges();
+  it.each(['outline', 'ghost', 'link'] as const)(
+    'supports the %s variant',
+    (variant) => {
+      const { fixture, button } = createHost();
+      fixture.componentInstance.variant.set(variant);
+      fixture.detectChanges();
 
-    expect(button.classList).toContain(`andes-button--${variant}`);
-  });
+      expect(button.classList).toContain(`andes-button--${variant}`);
+    },
+  );
 
-  it.each(['xs', 'icon-sm', 'icon', 'icon-lg'] as const)('supports the %s size', (size) => {
-    const { fixture, button } = createHost();
-    fixture.componentInstance.size.set(size);
-    fixture.detectChanges();
+  it.each(['xs', 'icon-sm', 'icon', 'icon-lg'] as const)(
+    'supports the %s size',
+    (size) => {
+      const { fixture, button } = createHost();
+      fixture.componentInstance.size.set(size);
+      fixture.detectChanges();
 
-    expect(button.classList).toContain(`andes-button--${size}`);
-  });
+      expect(button.classList).toContain(`andes-button--${size}`);
+    },
+  );
 
   it('applies a pill shape', () => {
     const { fixture, button } = createHost();
@@ -181,7 +194,9 @@ describe('AndesButton', () => {
   it('projects icon-start and icon-end content', () => {
     @Component({
       imports: [AndesButton],
-      template: `<andes-button><span slot="icon-start">←</span>Back</andes-button>`,
+      template: `<andes-button
+        ><span slot="icon-start">←</span>Back</andes-button
+      >`,
     })
     class IconHost {}
 

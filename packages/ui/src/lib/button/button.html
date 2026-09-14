@@ -1,9 +1,14 @@
 @if (href(); as hrefValue) {
-  <a brnButton [disabled]="isDisabled()" [attr.href]="isDisabled() ? null : hrefValue" [class]="classes()">
+  <a
+    andesButtonPrimitive
+    [disabled]="isDisabled()"
+    [attr.href]="isDisabled() ? null : hrefValue"
+    [class]="classes()"
+  >
     <ng-container *ngTemplateOutlet="content" />
   </a>
 } @else {
-  <button brnButton [disabled]="isDisabled()" [attr.aria-busy]="visibleLoading() || null" [class]="classes()">
+  <button andesButtonPrimitive [disabled]="isDisabled()" [attr.aria-busy]="visibleLoading() || null" [class]="classes()">
     <ng-container *ngTemplateOutlet="content" />
   </button>
 }

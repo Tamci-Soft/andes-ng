@@ -1,4 +1,4 @@
-import { BrnButtonImports } from '@spartan-ng/brain/button';
+import { AndesButtonPrimitive } from '@andes-ng/primitives';
 import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -13,15 +13,17 @@ import {
 } from '@angular/core';
 import clsx from 'clsx';
 
-export type AndesButtonVariant = 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'link';
-export type AndesButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'icon-sm' | 'icon' | 'icon-lg';
+export type AndesButtonVariant =
+  'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'link';
+export type AndesButtonSize =
+  'xs' | 'sm' | 'md' | 'lg' | 'icon-sm' | 'icon' | 'icon-lg';
 export type AndesButtonShape = 'default' | 'full';
 
 const RIPPLE_DURATION_MS = 500;
 
 @Component({
   selector: 'andes-button',
-  imports: [BrnButtonImports, NgTemplateOutlet],
+  imports: [AndesButtonPrimitive, NgTemplateOutlet],
   templateUrl: './button.html',
   styleUrl: './button.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,7 +47,9 @@ export class AndesButton {
   protected readonly visibleLoading = signal(false);
   private loadingTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
-  protected readonly isDisabled = computed(() => this.disabled() || this.visibleLoading());
+  protected readonly isDisabled = computed(
+    () => this.disabled() || this.visibleLoading(),
+  );
 
   protected readonly classes = computed(() =>
     clsx(
@@ -69,7 +73,10 @@ export class AndesButton {
         return;
       }
 
-      this.loadingTimeoutId = setTimeout(() => this.visibleLoading.set(true), delay);
+      this.loadingTimeoutId = setTimeout(
+        () => this.visibleLoading.set(true),
+        delay,
+      );
       onCleanup(() => clearTimeout(this.loadingTimeoutId));
     });
   }
@@ -79,7 +86,9 @@ export class AndesButton {
       return;
     }
 
-    const host = this.elementRef.nativeElement.querySelector('[brnbutton]') as HTMLElement | null;
+    const host = this.elementRef.nativeElement.querySelector(
+      '[andesbuttonprimitive]',
+    ) as HTMLElement | null;
     if (!host) {
       return;
     }
@@ -90,8 +99,16 @@ export class AndesButton {
     this.renderer.addClass(ripple, 'andes-button__ripple');
     this.renderer.setStyle(ripple, 'width', `${size}px`);
     this.renderer.setStyle(ripple, 'height', `${size}px`);
-    this.renderer.setStyle(ripple, 'left', `${event.clientX - rect.left - size / 2}px`);
-    this.renderer.setStyle(ripple, 'top', `${event.clientY - rect.top - size / 2}px`);
+    this.renderer.setStyle(
+      ripple,
+      'left',
+      `${event.clientX - rect.left - size / 2}px`,
+    );
+    this.renderer.setStyle(
+      ripple,
+      'top',
+      `${event.clientY - rect.top - size / 2}px`,
+    );
     this.renderer.appendChild(host, ripple);
 
     setTimeout(() => ripple.remove(), RIPPLE_DURATION_MS);

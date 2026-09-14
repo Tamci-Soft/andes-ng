@@ -7,7 +7,9 @@ describe('AndesButtonPrimitive', () => {
   describe('on a button element', () => {
     @Component({
       imports: [AndesButtonPrimitive],
-      template: `<button andesButtonPrimitive [disabled]="disabled()">Save</button>`,
+      template: `<button andesButtonPrimitive [disabled]="disabled()">
+        Save
+      </button>`,
     })
     class ButtonHost {
       readonly disabled = signal(false);
@@ -16,7 +18,9 @@ describe('AndesButtonPrimitive', () => {
     function createHost() {
       const fixture = TestBed.createComponent(ButtonHost);
       fixture.detectChanges();
-      const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      const button = fixture.nativeElement.querySelector(
+        'button',
+      ) as HTMLButtonElement;
       return { fixture, button };
     }
 
@@ -41,7 +45,12 @@ describe('AndesButtonPrimitive', () => {
   describe('on an anchor element', () => {
     @Component({
       imports: [AndesButtonPrimitive],
-      template: `<a andesButtonPrimitive href="https://andes-ng.dev" [disabled]="disabled()">Save</a>`,
+      template: `<a
+        andesButtonPrimitive
+        href="https://andes-ng.dev"
+        [disabled]="disabled()"
+        >Save</a
+      >`,
     })
     class AnchorHost {
       readonly disabled = signal(false);
@@ -50,7 +59,9 @@ describe('AndesButtonPrimitive', () => {
     function createHost() {
       const fixture = TestBed.createComponent(AnchorHost);
       fixture.detectChanges();
-      const anchor = fixture.nativeElement.querySelector('a') as HTMLAnchorElement;
+      const anchor = fixture.nativeElement.querySelector(
+        'a',
+      ) as HTMLAnchorElement;
       return { fixture, anchor };
     }
 

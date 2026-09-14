@@ -11,7 +11,10 @@ const meta: Meta<AndesButton> = {
       control: 'select',
       options: ['primary', 'secondary', 'danger', 'outline', 'ghost', 'link'],
     },
-    size: { control: 'select', options: ['xs', 'sm', 'md', 'lg', 'icon-sm', 'icon', 'icon-lg'] },
+    size: {
+      control: 'select',
+      options: ['xs', 'sm', 'md', 'lg', 'icon-sm', 'icon', 'icon-lg'],
+    },
     shape: { control: 'select', options: ['default', 'full'] },
     disabled: { control: 'boolean' },
     loading: { control: 'boolean' },
