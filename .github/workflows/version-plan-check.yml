@@ -1,0 +1,26 @@
+name: Version plan check
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  plan-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
+
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+          cache: true
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx release plan:check
