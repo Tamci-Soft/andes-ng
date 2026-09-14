@@ -94,7 +94,7 @@
   "release": {
     "groups": {
       "andes": {
-        "projects": ["tokens", "ui", "testing"],
+        "projects": ["tokens", "primitives", "ui", "testing"],
         "projectsRelationship": "independent",
         "versionPlans": true,
         "changelog": { "projectChangelogs": true }

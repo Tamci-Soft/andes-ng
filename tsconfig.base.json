@@ -18,6 +18,7 @@
     "target": "es2022",
     "types": ["*"],
     "paths": {
+      "@andes-ng/primitives": ["./packages/primitives/src/index.ts"],
       "@andes-ng/testing": ["./packages/testing/src/index.ts"],
       "@andes-ng/tokens": ["./packages/tokens/src/index.ts"],
       "@andes-ng/ui": ["./packages/ui/src/index.ts"]

@@ -1,0 +1,14 @@
+{
+  "name": "@andes-ng/primitives",
+  "version": "0.0.1",
+  "description": "Andes NG's own behavior primitives: accessible, unstyled Angular directives.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@angular/core": ">=22.1.0 <23.0.0",
+    "rxjs": ">=7.8.0 <8.0.0"
+  },
+  "sideEffects": false
+}
