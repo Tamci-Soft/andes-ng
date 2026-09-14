@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "description": "Accessible Angular components for the Andes NG design system.",
   "license": "MIT",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@angular/cdk": ">=22.1.0 <23.0.0",
     "@angular/common": ">=22.1.0 <23.0.0",
