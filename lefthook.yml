@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: false
+  commands:
+    lint:
+      glob: '**/*.{ts,html}'
+      run: 'pnpm exec eslint --fix {staged_files}'
+    format:
+      glob: '**/*.{ts,html,css,scss,json}'
+      run: 'pnpm exec prettier --write {staged_files}'
+
+commit-msg:
+  commands:
+    commitlint:
+      run: 'pnpm exec commitlint --edit {1}'
