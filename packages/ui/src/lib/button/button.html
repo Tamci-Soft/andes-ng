@@ -1,26 +1,31 @@
 @if (href(); as hrefValue) {
-  <a
-    andesButtonPrimitive
-    [disabled]="isDisabled()"
-    [attr.href]="isDisabled() ? null : hrefValue"
-    [class]="classes()"
-  >
-    <ng-container *ngTemplateOutlet="content" />
-  </a>
+<a
+  andesButtonPrimitive
+  [disabled]="isDisabled()"
+  [attr.href]="isDisabled() ? null : hrefValue"
+  [class]="classes()"
+>
+  <ng-container *ngTemplateOutlet="content" />
+</a>
 } @else {
-  <button andesButtonPrimitive [disabled]="isDisabled()" [attr.aria-busy]="visibleLoading() || null" [class]="classes()">
-    <ng-container *ngTemplateOutlet="content" />
-  </button>
+<button
+  andesButtonPrimitive
+  [disabled]="isDisabled()"
+  [attr.aria-busy]="visibleLoading() || null"
+  [class]="classes()"
+>
+  <ng-container *ngTemplateOutlet="content" />
+</button>
 }
 
 <ng-template #content>
   @if (visibleLoading()) {
-    <span class="andes-button__spinner" aria-hidden="true"></span>
+  <span class="andes-button__spinner" aria-hidden="true"></span>
   } @else {
-    <ng-content select="[slot=icon-start]" />
+  <ng-content select="[slot=icon-start]" />
   }
   <ng-content />
   @if (!visibleLoading()) {
-    <ng-content select="[slot=icon-end]" />
+  <ng-content select="[slot=icon-end]" />
   }
 </ng-template>
