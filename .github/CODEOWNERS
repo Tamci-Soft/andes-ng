@@ -1,0 +1,16 @@
+# CODEOWNERS — Andes NG. Format: <pattern>  @<github-username>
+
+# ─── Global fallback ────────────────────────────────────────────────────────
+*                                                   @jhosepmyr
+
+# ─── Build, CI/CD, governance ───────────────────────────────────────────────
+/package.json                                       @jhosepmyr
+/nx.json                                            @jhosepmyr
+/tsconfig.base.json                                 @jhosepmyr
+/eslint.config.mjs                                  @jhosepmyr
+/.github/                                           @jhosepmyr
+/docs/                                              @jhosepmyr
+
+# ─── Workspace projects ──────────────────────────────────────────────────────
+/apps/                                              @jhosepmyr
+/packages/                                          @jhosepmyr

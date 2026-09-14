@@ -1,0 +1,52 @@
+name: Feature request
+description: Propose a new component, token, or capability
+title: 'feat: <short description>'
+labels: ['enhancement']
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I searched open and closed issues to confirm this hasn't already been requested
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What consumer need does this address?
+    validations:
+      required: true
+  - type: dropdown
+    id: context
+    attributes:
+      label: Package / area
+      options:
+        - tokens
+        - ui
+        - testing
+        - playground
+        - storybook
+        - docs / adr
+        - build / ci
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: For a new component, describe its public API (selector, inputs, outputs) and which Spartan Brain primitive (if any) it wraps.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - Given ...
+        - When ...
+        - Then ...
+    validations:
+      required: false
+
+# Schema: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms
