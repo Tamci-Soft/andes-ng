@@ -12,14 +12,21 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          filter: tree:0
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+
+      # actions/checkout only fetches the tested ref's history, not a resolvable local `main`
+      # ref — nx format:check/affected need one. nx-set-shas resolves NX_BASE/NX_HEAD correctly for
+      # both push and pull_request events and exports them for every later step in this job.
+      - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
+
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
+          runtime: node@22
+          cache: true
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint

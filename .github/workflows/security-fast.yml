@@ -1,0 +1,61 @@
+name: Security (fast — every push/PR)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gitleaks:
+    name: Secrets scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" \
+            zricethezav/gitleaks@sha256:b109bc5f8f76a38196a3e413704fc5b9e3c32360bce4e4b603bd6f45b3721dbb \
+            detect --source=/repo --no-git=false --redact --exit-code=1
+
+  semgrep:
+    name: SAST scan (Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run Semgrep
+        run: |
+          docker run --rm -v "$PWD:/src" \
+            semgrep/semgrep@sha256:155f999d01d02b33aa5a8db9186eb20dcd0154ce1a0ac6fce8d80674d0ace235 \
+            semgrep scan --config=auto --config=p/javascript --config=p/typescript \
+              --config=p/eslint-plugin-security --error /src
+
+  trivy-fs:
+    name: Dependency scan (Trivy — filesystem)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run Trivy (filesystem)
+        run: |
+          # --include-dev-deps: publishable packages' own runtime deps are thin (Spartan Brain,
+          # clsx); most of the graph is devDependencies (Nx, Storybook, build tooling).
+          docker run --rm -v "$PWD:/repo" \
+            aquasec/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
+            fs --exit-code 1 --severity HIGH,CRITICAL --include-dev-deps \
+              --ignorefile /repo/.trivyignore /repo
+
+  pnpm-audit:
+    name: Dependency scan (pnpm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+          cache: true
+      - run: pnpm audit --audit-level=high

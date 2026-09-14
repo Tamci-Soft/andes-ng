@@ -1,0 +1,32 @@
+name: Security (scheduled — dependency re-check)
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  pnpm-audit:
+    name: pnpm audit (full re-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+          cache: true
+      - run: pnpm audit --audit-level=high
+
+  osv-scanner:
+    name: OSV-Scanner (full re-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run OSV-Scanner
+        run: |
+          docker run --rm -v "$PWD:/repo" \
+            ghcr.io/google/osv-scanner@sha256:8108ae94eadea5a02c9bec6e646909d5b790b44bd62d7f5b7f0b1d6d0ffc7734 \
+            scan source -r /repo
+
+  # No base-image-scan job here (unlike pegi-web) — Andes NG has no Dockerfile/base image to scan;
+  # it ships npm packages, not a deployed container.
