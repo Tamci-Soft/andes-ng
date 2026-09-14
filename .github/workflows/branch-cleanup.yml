@@ -43,7 +43,7 @@ jobs:
           deleted=0
           kept=0
 
-          git fetch origin main --quiet
+          git fetch origin main develop --quiet
 
           {
             echo "## Branch cleanup — $(date -u +'%Y-%m-%d %H:%M UTC')"
@@ -54,8 +54,9 @@ jobs:
             fi
             echo "Rules: delete a merged branch \`\${MERGED_GRACE_DAYS}\`+ days after it merged;"
             echo "delete an unmerged branch after \`\${STALE_DAYS}\`+ days with no new commits;"
-            echo "never touch \`main\`, any branch with an open PR, or any branch whose PR"
-            echo "(open or closed) carries the \`$PROTECT_LABEL\` label."
+            echo "never touch \`main\`, \`develop\`, \`release/**\`, \`hotfix/**\`, any branch with an"
+            echo "open PR, or any branch whose PR (open or closed) carries the"
+            echo "\`$PROTECT_LABEL\` label."
             echo
             echo "| Branch | Decision | Reason | Detail |"
             echo "|---|---|---|---|"
@@ -78,11 +79,18 @@ jobs:
           while IFS= read -r branch; do
             [ -z "$branch" ] && continue
 
-            if [ "$branch" = "main" ]; then
-              row "$branch" "Kept" "Always exempt" "protected base branch"
-              kept=$((kept + 1))
-              continue
-            fi
+            case "$branch" in
+              main|develop)
+                row "$branch" "Kept" "Always exempt" "protected Gitflow base branch"
+                kept=$((kept + 1))
+                continue
+                ;;
+              release/*|hotfix/*)
+                row "$branch" "Kept" "Always exempt" "Gitflow release/hotfix branch"
+                kept=$((kept + 1))
+                continue
+                ;;
+            esac
 
             prs_json=$(gh api "repos/$REPO/pulls" -f "head=$OWNER:$branch" -f state=all --jq '.' 2>/dev/null || echo '[]')
 
@@ -111,7 +119,8 @@ jobs:
             if [ -z "$merged_at" ]; then
               git fetch origin "refs/heads/$branch:refs/remotes/origin/$branch" --quiet 2>/dev/null || true
               if git rev-parse --verify -q "refs/remotes/origin/$branch" >/dev/null 2>&1; then
-                if git merge-base --is-ancestor "refs/remotes/origin/$branch" origin/main 2>/dev/null; then
+                if git merge-base --is-ancestor "refs/remotes/origin/$branch" origin/develop 2>/dev/null \
+                  || git merge-base --is-ancestor "refs/remotes/origin/$branch" origin/main 2>/dev/null; then
                   merged_at=$(git log -1 --format=%cI "refs/remotes/origin/$branch")
                   merge_source="git-ancestry fallback (merge-commit only, no PR record found)"
                 fi
