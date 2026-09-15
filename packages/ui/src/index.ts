@@ -4,6 +4,7 @@ export { AndesSkeleton } from './lib/skeleton/skeleton';
 export type { AndesSkeletonShape } from './lib/skeleton/skeleton';
 export { AndesAlert } from './lib/alert/alert';
 export type { AndesAlertRole, AndesAlertSeverity } from './lib/alert/alert';
+
 export {
   AndesBreadcrumb,
   AndesBreadcrumbEllipsis,
@@ -138,6 +139,7 @@ export {
   AndesAlertDialogTitle,
   AndesAlertDialogTrigger,
 } from './lib/dialog/alert-dialog';
+export type { AndesBreadcrumbEllipsisItem } from './lib/breadcrumb/breadcrumb';
 
 export { AndesDropdownMenu } from './lib/dropdown-menu/dropdown-menu';
 export { AndesDropdownMenuTrigger } from './lib/dropdown-menu/dropdown-menu-trigger';
