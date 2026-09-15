@@ -1,3 +1,4 @@
+import type { AndesListNavigationItemRef } from '@andes-ng/primitives';
 import type { Signal } from '@angular/core';
 
 /** Which arrow keys move focus between tabs, per the WAI-ARIA Tabs pattern. */
@@ -36,4 +37,10 @@ export interface AndesTabsTriggerRef {
    * for control of that attribute; see the comment in `tabs-trigger.ts`.
    */
   readonly elementId: Signal<string | undefined>;
+  /**
+   * The trigger's own registered `AndesListNavigationItem`, once its view has initialized -
+   * `undefined` before then. Read by `AndesTabs` to keep the shared `AndesListNavigation`'s
+   * roving-tabindex target in sync with whichever tab is currently selected.
+   */
+  readonly navigationItem: Signal<AndesListNavigationItemRef | undefined>;
 }

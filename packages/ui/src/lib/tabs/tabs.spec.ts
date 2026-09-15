@@ -280,4 +280,69 @@ describe('AndesTabs', () => {
       expect(fixture.componentInstance.value()).toBe('a');
     });
   });
+
+  // Regression coverage for a bug where nothing seeded the shared `AndesListNavigation`'s
+  // roving-tabindex target from the currently-selected tab, so it fell back to the
+  // primitive's own default (the first enabled item). Under automatic activation, a plain
+  // Tab into the tablist would then focus the first tab - not the selected one - and
+  // silently reselect it via the "focus moved, so select" effect, with no arrow key ever
+  // pressed. See the WAI-ARIA APG: Tab must move focus to the active/selected tab.
+  describe('roving-tabindex target follows the selected tab', () => {
+    it('targets the selected tab (not the first one) before any interaction', () => {
+      const fixture = TestBed.createComponent(HostComponent);
+      // Selects C - not the first tab - before the first `detectChanges`, mirroring a
+      // consumer rendering `AndesTabs` with `[(value)]` already bound to a non-first tab.
+      fixture.componentInstance.value.set('c');
+      fixture.detectChanges();
+      const { tabs } = withHelpers(fixture);
+
+      expect(tabs()[2].getAttribute('aria-selected')).toBe('true');
+      expect(tabs()[0].getAttribute('tabindex')).toBe('-1');
+      expect(tabs()[1].getAttribute('tabindex')).toBe('-1');
+      expect(tabs()[2].getAttribute('tabindex')).toBe('0');
+    });
+
+    it('does not silently change value when Tab moves focus into the tablist', () => {
+      const fixture = TestBed.createComponent(HostComponent);
+      fixture.componentInstance.value.set('c');
+      fixture.detectChanges();
+      const { tabs } = withHelpers(fixture);
+
+      // A real Tab keypress focuses whichever item is the sole roving-tabindex target - a
+      // plain `.focus()` on it is the standard way to simulate that in jsdom, since jsdom
+      // does not implement native Tab-key traversal.
+      const target = tabs().find((tab) => tab.getAttribute('tabindex') === '0');
+      expect(target).toBe(tabs()[2]);
+      target?.focus();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(tabs()[2]);
+      expect(fixture.componentInstance.value()).toBe('c');
+      expect(tabs()[2].getAttribute('aria-selected')).toBe('true');
+    });
+
+    it('updates when a consumer sets [value] programmatically, without breaking automatic activation for subsequent arrow-key navigation', () => {
+      const { fixture, tabs } = createHost();
+
+      // Default selection is the first enabled tab; the target starts on A.
+      expect(tabs()[0].getAttribute('tabindex')).toBe('0');
+
+      // Not a click, not a keypress - a plain programmatic value change.
+      fixture.componentInstance.value.set('c');
+      fixture.detectChanges();
+
+      expect(tabs()[2].getAttribute('tabindex')).toBe('0');
+      expect(tabs()[0].getAttribute('tabindex')).toBe('-1');
+      expect(tabs()[2].getAttribute('aria-selected')).toBe('true');
+
+      // Automatic activation still works normally afterwards: arrowing right from C wraps to A.
+      tabs()[2].focus();
+      pressKey(tabs()[2], 'ArrowRight');
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(tabs()[0]);
+      expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+      expect(fixture.componentInstance.value()).toBe('a');
+    });
+  });
 });

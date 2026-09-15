@@ -64,6 +64,13 @@ export class AndesTabsTrigger implements AndesTabsTriggerRef {
   /** @internal See the class doc comment; consumed by `AndesTabsContent`. */
   readonly elementId = computed(() => this.navItem()?.itemId);
 
+  /** @internal The registered `AndesListNavigationItem` behind this trigger's button, once
+   * its view has initialized - `undefined` before then. Read by `AndesTabs` to keep the
+   * shared `AndesListNavigation`'s roving-tabindex target in sync with whichever tab is
+   * currently selected; see the comment on `AndesTabs.syncActiveItem` for why that lives
+   * there instead of in a per-trigger effect here. */
+  readonly navigationItem = this.navItem;
+
   constructor() {
     this.tabs.registerTrigger(this);
     this.destroyRef.onDestroy(() => this.tabs.unregisterTrigger(this));
