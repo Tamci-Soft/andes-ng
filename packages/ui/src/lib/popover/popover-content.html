@@ -1,0 +1,15 @@
+<div
+  andesOverlayContent
+  class="andes-popover-content"
+  [attr.data-side]="popover.side()"
+  [attr.data-align]="popover.align()"
+>
+  <ng-content />
+  @if (popover.showArrow()) {
+  <span
+    class="andes-popover-arrow"
+    [attr.data-side]="popover.side()"
+    aria-hidden="true"
+  ></span>
+  }
+</div>

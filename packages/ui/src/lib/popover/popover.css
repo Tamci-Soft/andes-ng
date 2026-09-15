@@ -1,0 +1,5 @@
+/* The root component only orchestrates the trigger + the portalled panel - it
+   should never itself take part in layout. */
+:host {
+  display: contents;
+}
