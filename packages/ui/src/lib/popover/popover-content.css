@@ -1,0 +1,74 @@
+.andes-popover-content {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  min-width: 8rem;
+  max-width: min(24rem, calc(100vw - 1rem));
+  padding: var(--andes-space-4);
+  border-radius: var(--andes-radius-lg);
+  border: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 10%),
+    0 4px 6px -4px rgb(0 0 0 / 10%);
+  font-family: var(--andes-font-family), sans-serif;
+  outline: none;
+  animation: andes-popover-in 0.15s ease-out;
+}
+
+@keyframes andes-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Arrow: a rotated square clipped to its leading corner, colored and bordered
+   to match the panel so it reads as a continuation of the surface rather than a
+   separate shape. Centered along the side's cross axis - `align: start`/`end`
+   do not shift it, since exact anchor-relative centering needs the resolved
+   connection pair the overlay primitive does not yet expose (see popover.ts). */
+.andes-popover-arrow {
+  position: absolute;
+  width: 0.625rem;
+  height: 0.625rem;
+  background-color: var(--andes-color-popover);
+  transform: rotate(45deg);
+}
+
+.andes-popover-arrow[data-side='bottom'] {
+  top: -0.3125rem;
+  left: 50%;
+  margin-left: -0.3125rem;
+  border-top: 1px solid var(--andes-color-border);
+  border-left: 1px solid var(--andes-color-border);
+}
+
+.andes-popover-arrow[data-side='top'] {
+  bottom: -0.3125rem;
+  left: 50%;
+  margin-left: -0.3125rem;
+  border-bottom: 1px solid var(--andes-color-border);
+  border-right: 1px solid var(--andes-color-border);
+}
+
+.andes-popover-arrow[data-side='right'] {
+  left: -0.3125rem;
+  top: 50%;
+  margin-top: -0.3125rem;
+  border-bottom: 1px solid var(--andes-color-border);
+  border-left: 1px solid var(--andes-color-border);
+}
+
+.andes-popover-arrow[data-side='left'] {
+  right: -0.3125rem;
+  top: 50%;
+  margin-top: -0.3125rem;
+  border-top: 1px solid var(--andes-color-border);
+  border-right: 1px solid var(--andes-color-border);
+}
