@@ -1,8 +1,15 @@
 @if (href(); as hrefValue) {
 <a
   andesButtonPrimitive
+  data-slot="button"
+  [attr.data-variant]="variant()"
+  [attr.data-size]="size()"
   [disabled]="isDisabled()"
   [attr.href]="isDisabled() ? null : hrefValue"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="ariaInvalid() || null"
   [class]="classes()"
 >
   <ng-container *ngTemplateOutlet="content" />
@@ -10,8 +17,15 @@
 } @else {
 <button
   andesButtonPrimitive
+  data-slot="button"
+  [attr.data-variant]="variant()"
+  [attr.data-size]="size()"
   [disabled]="isDisabled()"
   [attr.aria-busy]="visibleLoading() || null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="ariaInvalid() || null"
   [class]="classes()"
 >
   <ng-container *ngTemplateOutlet="content" />

@@ -1,6 +1,7 @@
 import { AndesButtonPrimitive } from '@andes-ng/primitives';
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -16,7 +17,7 @@ import clsx from 'clsx';
 export type AndesButtonVariant =
   'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'link';
 export type AndesButtonSize =
-  'xs' | 'sm' | 'md' | 'lg' | 'icon-sm' | 'icon' | 'icon-lg';
+  'xs' | 'sm' | 'md' | 'lg' | 'icon-xs' | 'icon-sm' | 'icon' | 'icon-lg';
 export type AndesButtonShape = 'default' | 'full';
 
 const RIPPLE_DURATION_MS = 500;
@@ -29,6 +30,12 @@ const RIPPLE_DURATION_MS = 500;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '(pointerdown)': 'onPointerDown($event)',
+    // Forwarded to the real button/anchor in the template instead - a screen reader never
+    // sees this non-interactive host element, so leaving these here would do nothing.
+    '[attr.aria-label]': 'null',
+    '[attr.aria-labelledby]': 'null',
+    '[attr.aria-describedby]': 'null',
+    '[attr.aria-invalid]': 'null',
   },
 })
 export class AndesButton {
@@ -43,6 +50,19 @@ export class AndesButton {
   readonly loadingDelay = input(0);
   readonly fullWidth = input(false);
   readonly href = input<string | undefined>(undefined);
+  readonly ariaLabel = input<string | undefined>(undefined, {
+    alias: 'aria-label',
+  });
+  readonly ariaLabelledby = input<string | undefined>(undefined, {
+    alias: 'aria-labelledby',
+  });
+  readonly ariaDescribedby = input<string | undefined>(undefined, {
+    alias: 'aria-describedby',
+  });
+  readonly ariaInvalid = input(false, {
+    alias: 'aria-invalid',
+    transform: booleanAttribute,
+  });
 
   protected readonly visibleLoading = signal(false);
   private loadingTimeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -59,6 +79,7 @@ export class AndesButton {
       this.shape() === 'full' && 'andes-button--full',
       this.visibleLoading() && 'andes-button--loading',
       this.fullWidth() && 'andes-button--full-width',
+      this.ariaInvalid() && 'andes-button--invalid',
     ),
   );
 

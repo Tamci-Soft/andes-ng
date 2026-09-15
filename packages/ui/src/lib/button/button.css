@@ -28,6 +28,16 @@
   opacity: 0.6;
 }
 
+.andes-button--invalid {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-button--invalid:focus-visible {
+  outline-color: var(--andes-color-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
 .andes-button--full {
   border-radius: var(--andes-radius-full);
 }
@@ -61,6 +71,12 @@
   height: 3rem;
   padding-inline: var(--andes-space-5);
   font-size: 1.125rem;
+}
+
+.andes-button--icon-xs {
+  height: 1.75rem;
+  width: 1.75rem;
+  padding: 0;
 }
 
 .andes-button--icon-sm {

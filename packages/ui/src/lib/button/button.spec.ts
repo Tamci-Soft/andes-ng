@@ -78,7 +78,7 @@ describe('AndesButton', () => {
     },
   );
 
-  it.each(['xs', 'icon-sm', 'icon', 'icon-lg'] as const)(
+  it.each(['xs', 'icon-xs', 'icon-sm', 'icon', 'icon-lg'] as const)(
     'supports the %s size',
     (size) => {
       const { fixture, button } = createHost();
@@ -88,6 +88,17 @@ describe('AndesButton', () => {
       expect(button.classList).toContain(`andes-button--${size}`);
     },
   );
+
+  it('reflects data-slot, data-variant and data-size', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.variant.set('danger');
+    fixture.componentInstance.size.set('lg');
+    fixture.detectChanges();
+
+    expect(button.getAttribute('data-slot')).toBe('button');
+    expect(button.getAttribute('data-variant')).toBe('danger');
+    expect(button.getAttribute('data-size')).toBe('lg');
+  });
 
   it('applies a pill shape', () => {
     const { fixture, button } = createHost();
@@ -204,5 +215,26 @@ describe('AndesButton', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent.trim()).toBe('←Back');
+  });
+
+  it('forwards aria-label, aria-invalid etc. to the real button, not the host', () => {
+    @Component({
+      imports: [AndesButton],
+      template: `<andes-button aria-label="Add item" aria-invalid="true"
+        >+</andes-button
+      >`,
+    })
+    class AriaHost {}
+
+    const fixture = TestBed.createComponent(AriaHost);
+    fixture.detectChanges();
+    const host = fixture.nativeElement.querySelector('andes-button');
+    const button = fixture.nativeElement.querySelector('button');
+
+    expect(button.getAttribute('aria-label')).toBe('Add item');
+    expect(button.getAttribute('aria-invalid')).toBe('true');
+    expect(button.classList).toContain('andes-button--invalid');
+    expect(host.hasAttribute('aria-label')).toBe(false);
+    expect(host.hasAttribute('aria-invalid')).toBe(false);
   });
 });
