@@ -47,6 +47,13 @@
 .andes-combobox-content {
   display: flex;
   flex-direction: column;
+  /* The CDK's own .cdk-overlay-pane is a flex container already sized to the input (the
+     overlay is configured with matchAnchorWidth), so without these two the panel is laid
+     out as a flex *item* and shrinks to its widest label instead - leaving every
+     suggestion row ending well short of the input's right edge. Same fix, and the same
+     reason, as .andes-select__panel[data-match-trigger-width]. */
+  width: 100%;
+  box-sizing: border-box;
   gap: var(--andes-space-1);
   max-height: 16rem;
   overflow-y: auto;
@@ -63,17 +70,22 @@
 .andes-combobox-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
   padding: var(--andes-space-2) var(--andes-space-3);
   border-radius: var(--andes-radius-sm);
   font-size: 0.875rem;
   line-height: 1.25rem;
   cursor: pointer;
+  user-select: none;
   scroll-margin-block: var(--andes-space-1);
 }
 
 /* Highlighted via aria-activedescendant, not :hover/:focus - real focus never reaches
    here, so the active state has to be driven by the data attribute AndesComboboxItem
-   reflects from AndesListNavigation. */
+   reflects from AndesListNavigation. Hovering a row moves that same active item (see
+   AndesComboboxItem.onPointerOver), which is why there is deliberately no separate
+   :hover rule here: one highlight, one source of truth, whichever input moved it. */
 .andes-combobox-item[data-active] {
   background-color: var(--andes-color-accent);
   color: var(--andes-color-accent-foreground);
@@ -88,9 +100,42 @@
   opacity: 0.5;
 }
 
+/* Always laid out, even while empty, so labels line up whether or not their row is the
+   selected one - the check inside is added and removed, the column it sits in is not. */
+.andes-combobox-item__indicator {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  color: var(--andes-color-primary);
+}
+
+/* The highlighted row paints its own foreground colour; the check has to follow it, or
+   it keeps the primary blue against the accent background. */
+.andes-combobox-item[data-active] .andes-combobox-item__indicator {
+  color: currentcolor;
+}
+
+.andes-combobox-item__check {
+  width: 1em;
+  height: 1em;
+}
+
 .andes-combobox-empty {
-  padding: var(--andes-space-2) var(--andes-space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--andes-space-2);
+  padding: var(--andes-space-4) var(--andes-space-3);
   font-size: 0.875rem;
   color: var(--andes-color-muted-foreground);
   text-align: center;
+}
+
+.andes-combobox-empty__icon {
+  width: 2rem;
+  height: 2rem;
+  opacity: 0.65;
 }
