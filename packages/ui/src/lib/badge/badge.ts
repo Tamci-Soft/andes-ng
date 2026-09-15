@@ -64,6 +64,22 @@ export class AndesBadge {
     return count > max ? `${max}+` : `${count}`;
   });
 
+  /**
+   * A one-character count is forced into a true circle rather than the slightly elongated box
+   * `min-width` alone produces, matching Ant Design's and shadcn's count-indicator convention:
+   * the badge is only allowed to stretch into a pill once the content genuinely needs the
+   * width. `min-width` can't deliver that on its own - the glyph still sits on top of
+   * `padding-inline`, so the box ends up wider than tall even for a single digit.
+   *
+   * Measuring `displayValue()` is exact rather than a heuristic: the indicator element renders
+   * nothing but this string (`standalone`'s `slot=label` content is projected as the badge's
+   * *sibling*, never inside it), so `count`/`max` fully determine its length in every mode.
+   * `dot` is excluded because it carries no text and already has its own fixed circle.
+   */
+  protected readonly singleCharacter = computed(
+    () => !this.dot() && this.displayValue().length === 1,
+  );
+
   protected readonly offsetX = computed(() => this.offset()?.[0] ?? 0);
   protected readonly offsetY = computed(() => this.offset()?.[1] ?? 0);
 
@@ -72,6 +88,7 @@ export class AndesBadge {
       'andes-badge',
       `andes-badge--${this.variant()}`,
       this.dot() && 'andes-badge--dot',
+      this.singleCharacter() && 'andes-badge--single-char',
       this.size() === 'small' && 'andes-badge--small',
       this.processing() && 'andes-badge--processing',
     ),

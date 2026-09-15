@@ -101,6 +101,23 @@ export const Variants: Story = {
   }),
 };
 
+/**
+ * Shape progression: one character is a true circle, two or more elongate into a pill - the
+ * same convention Ant Design's and shadcn's count indicators follow.
+ */
+export const Shapes: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; gap: 2.5rem; align-items: center;">
+        <andes-badge [count]="5"><div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div></andes-badge>
+        <andes-badge [count]="42"><div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div></andes-badge>
+        <andes-badge [count]="150" [max]="99"><div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div></andes-badge>
+        <andes-badge dot><div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div></andes-badge>
+      </div>
+    `,
+  }),
+};
+
 export const StandaloneStatus: Story = {
   render: () => ({
     template: `
