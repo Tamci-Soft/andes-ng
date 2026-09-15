@@ -1,0 +1,99 @@
+/*
+ * Shared across every dropdown-menu sub-component's `styleUrl`. Each component's
+ * emulated view encapsulation scopes these rules to its own host regardless of which
+ * other selectors also live in this file, so co-locating them here (instead of one
+ * file per sub-component) is a size/maintainability trade-off, not a correctness one.
+ */
+
+.andes-dropdown-menu__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 8rem;
+  max-width: 20rem;
+  max-height: var(--andes-dropdown-menu-max-height, 24rem);
+  overflow-y: auto;
+  padding: var(--andes-space-1);
+  border-radius: var(--andes-radius-md);
+  border: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow: var(--andes-shadow-md);
+  outline: none;
+}
+
+.andes-dropdown-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  padding: var(--andes-space-2) var(--andes-space-3);
+  border-radius: var(--andes-radius-sm);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  white-space: nowrap;
+}
+
+.andes-dropdown-menu__checkbox-item,
+.andes-dropdown-menu__radio-item {
+  padding-inline-start: var(--andes-space-2);
+}
+
+.andes-dropdown-menu__item:hover:not([data-disabled]),
+.andes-dropdown-menu__item[data-active]:not([data-disabled]) {
+  background-color: var(--andes-color-accent-hover);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-dropdown-menu__item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-dropdown-menu__item[data-variant='destructive'] {
+  color: var(--andes-color-danger);
+}
+
+.andes-dropdown-menu__item[data-variant='destructive']:hover:not(
+    [data-disabled]
+  ),
+.andes-dropdown-menu__item[data-variant='destructive'][data-active]:not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-danger);
+  color: var(--andes-color-danger-foreground);
+}
+
+.andes-dropdown-menu__indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+.andes-dropdown-menu__separator {
+  height: 1px;
+  margin: var(--andes-space-1) calc(var(--andes-space-1) * -1);
+  background-color: var(--andes-color-border);
+}
+
+.andes-dropdown-menu__label {
+  display: block;
+  padding: var(--andes-space-2) var(--andes-space-3);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__shortcut {
+  margin-left: auto;
+  padding-left: var(--andes-space-4);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--andes-color-muted-foreground);
+}
