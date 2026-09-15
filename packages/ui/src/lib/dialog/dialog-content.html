@@ -1,4 +1,9 @@
-<ng-content />
+<!-- The projected body is wrapped so it, and not the surface, is the scrolling box:
+     the close control below is positioned against the surface, so scrolling the surface
+     itself carried the control off the top of the dialog along with the content. -->
+<div class="andes-dialog__viewport">
+  <ng-content />
+</div>
 
 @if (showCloseButton()) {
 <!-- Rendered after the projected content so the focus trap lands on the dialog's own
