@@ -4,3 +4,12 @@ export { AndesSkeleton } from './lib/skeleton/skeleton';
 export type { AndesSkeletonShape } from './lib/skeleton/skeleton';
 export { AndesAlert } from './lib/alert/alert';
 export type { AndesAlertRole, AndesAlertSeverity } from './lib/alert/alert';
+export {
+  AndesBreadcrumb,
+  AndesBreadcrumbEllipsis,
+  AndesBreadcrumbItem,
+  AndesBreadcrumbLink,
+  AndesBreadcrumbList,
+  AndesBreadcrumbPage,
+  AndesBreadcrumbSeparator,
+} from './lib/breadcrumb/breadcrumb';
