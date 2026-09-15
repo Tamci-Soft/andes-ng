@@ -174,3 +174,7 @@ export type {
   AndesSliderTooltip,
   AndesSliderValue,
 } from './lib/slider/slider';
+
+export { AndesPopover } from './lib/popover/popover';
+export { AndesPopoverContent } from './lib/popover/popover-content';
+export { AndesPopoverTrigger } from './lib/popover/popover-trigger';
