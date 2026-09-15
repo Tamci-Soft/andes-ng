@@ -1,0 +1,24 @@
+<ng-content />
+
+@if (showCloseButton()) {
+<!-- Rendered after the projected content so the focus trap lands on the dialog's own
+     first control rather than on the dismiss affordance. Base UI's guidance is that a
+     modal must carry an in-surface close control at all: Escape and outside-click are
+     unreachable for touch screen-reader users. -->
+<button
+  type="button"
+  class="andes-dialog__close"
+  data-slot="dialog-close-button"
+  andesOverlayClose
+  [attr.aria-label]="closeLabel()"
+>
+  <svg
+    class="andes-dialog__close-icon"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M6 6 18 18M18 6 6 18" />
+  </svg>
+</button>
+}
