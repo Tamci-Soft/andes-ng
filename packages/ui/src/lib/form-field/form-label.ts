@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  ViewEncapsulation,
+} from '@angular/core';
 
 import { ANDES_FORM_FIELD } from './form-field-tokens';
 
@@ -20,7 +25,12 @@ import { ANDES_FORM_FIELD } from './form-field-tokens';
   >
     <ng-content />
   </label>`,
+  styleUrl: './form-field.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // `.andes-form-label` lives in this component's template but the stylesheet is owned by
+  // `AndesFormField`; see the header comment in form-field.css for why the shared sheet is
+  // unscoped rather than split per part.
+  encapsulation: ViewEncapsulation.None,
 })
 export class AndesFormLabel {
   protected readonly field = inject(ANDES_FORM_FIELD, { optional: true });
