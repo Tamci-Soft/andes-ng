@@ -169,6 +169,48 @@
   text-decoration: underline;
 }
 
+/* Ghost mode: transparent background, border/text tinted to the variant's own color -
+   for use on colored or dark backdrops. Distinct from the "ghost" variant above. */
+
+.andes-button--ghost-mode.andes-button--primary {
+  background-color: transparent;
+  border-color: var(--andes-color-primary-ghost);
+  color: var(--andes-color-primary-ghost);
+}
+
+.andes-button--ghost-mode.andes-button--primary:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-button--ghost-mode.andes-button--secondary {
+  background-color: transparent;
+  border-color: var(--andes-color-ghost);
+  color: var(--andes-color-ghost);
+}
+
+.andes-button--ghost-mode.andes-button--secondary:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-ghost);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-button--ghost-mode.andes-button--danger {
+  background-color: transparent;
+  border-color: var(--andes-color-danger-ghost);
+  color: var(--andes-color-danger-ghost);
+}
+
+.andes-button--ghost-mode.andes-button--danger:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-danger);
+  color: var(--andes-color-danger-foreground);
+}
+
 /* Loading */
 
 .andes-button--loading {

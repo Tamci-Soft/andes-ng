@@ -5,6 +5,7 @@ import {
   AndesButton,
   AndesButtonShape,
   AndesButtonSize,
+  AndesButtonType,
   AndesButtonVariant,
 } from './button';
 
@@ -19,6 +20,9 @@ import {
     [loadingDelay]="loadingDelay()"
     [fullWidth]="fullWidth()"
     [href]="href()"
+    [target]="target()"
+    [type]="type()"
+    [ghost]="ghost()"
     >Save</andes-button
   >`,
 })
@@ -31,6 +35,9 @@ class HostComponent {
   readonly loadingDelay = signal(0);
   readonly fullWidth = signal(false);
   readonly href = signal<string | undefined>(undefined);
+  readonly target = signal<string | undefined>(undefined);
+  readonly type = signal<AndesButtonType>('button');
+  readonly ghost = signal(false);
 }
 
 describe('AndesButton', () => {
@@ -236,5 +243,65 @@ describe('AndesButton', () => {
     expect(button.classList).toContain('andes-button--invalid');
     expect(host.hasAttribute('aria-label')).toBe(false);
     expect(host.hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('defaults to type="button", never the native submit default', () => {
+    const { button } = createHost();
+
+    expect(button.getAttribute('type')).toBe('button');
+  });
+
+  it('sets the native button type when requested', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.type.set('submit');
+    fixture.detectChanges();
+
+    expect(button.getAttribute('type')).toBe('submit');
+  });
+
+  it('does not set a type attribute on the anchor', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.href.set('https://andes-ng.dev');
+    fixture.detectChanges();
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(anchor.hasAttribute('type')).toBe(false);
+  });
+
+  it('sets target on the anchor when href is set', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.href.set('https://andes-ng.dev');
+    fixture.componentInstance.target.set('_blank');
+    fixture.detectChanges();
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(anchor.getAttribute('target')).toBe('_blank');
+  });
+
+  it('applies ghost mode as a class distinct from the ghost variant', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.ghost.set(true);
+    fixture.detectChanges();
+
+    expect(button.classList).toContain('andes-button--ghost-mode');
+    expect(button.classList).toContain('andes-button--primary');
+  });
+
+  it('treats bare boolean attributes (no brackets) as true, not the string ""', () => {
+    @Component({
+      imports: [AndesButton],
+      template: `<andes-button disabled loading ghost fullWidth
+        >Save</andes-button
+      >`,
+    })
+    class BareAttrHost {}
+
+    const fixture = TestBed.createComponent(BareAttrHost);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('button');
+
+    expect(button.disabled).toBe(true);
+    expect(button.classList).toContain('andes-button--ghost-mode');
+    expect(button.classList).toContain('andes-button--full-width');
   });
 });

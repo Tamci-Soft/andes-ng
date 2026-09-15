@@ -31,6 +31,9 @@ const meta: Meta<AndesButton> = {
     loadingDelay: { control: 'number' },
     fullWidth: { control: 'boolean' },
     href: { control: 'text' },
+    target: { control: 'text' },
+    type: { control: 'select', options: ['button', 'submit', 'reset'] },
+    ghost: { control: 'boolean' },
   },
   args: {
     variant: 'primary',
@@ -40,10 +43,12 @@ const meta: Meta<AndesButton> = {
     loading: false,
     loadingDelay: 0,
     fullWidth: false,
+    type: 'button',
+    ghost: false,
   },
   render: (args) => ({
     props: args,
-    template: `<andes-button [variant]="variant" [size]="size" [shape]="shape" [disabled]="disabled" [loading]="loading" [loadingDelay]="loadingDelay" [fullWidth]="fullWidth" [href]="href">Save</andes-button>`,
+    template: `<andes-button [variant]="variant" [size]="size" [shape]="shape" [disabled]="disabled" [loading]="loading" [loadingDelay]="loadingDelay" [fullWidth]="fullWidth" [href]="href" [target]="target" [type]="type" [ghost]="ghost">Save</andes-button>`,
   }),
 };
 
@@ -104,6 +109,27 @@ export const FullWidth: Story = {
 
 export const AsLink: Story = {
   args: { href: 'https://andes-ng.dev' },
+};
+
+export const AsLinkNewTab: Story = {
+  args: { href: 'https://andes-ng.dev', target: '_blank' },
+};
+
+export const Submit: Story = {
+  args: { type: 'submit' },
+};
+
+export const GhostMode: Story = {
+  render: (args) => ({
+    props: args,
+    template: `
+      <div style="display: flex; gap: 1rem; padding: 2rem; background: #0f172a;">
+        <andes-button variant="primary" ghost>Primary</andes-button>
+        <andes-button variant="secondary" ghost>Secondary</andes-button>
+        <andes-button variant="danger" ghost>Danger</andes-button>
+      </div>
+    `,
+  }),
 };
 
 export const WithIcons: Story = {

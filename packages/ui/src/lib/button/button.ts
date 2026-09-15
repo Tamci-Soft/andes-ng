@@ -19,6 +19,7 @@ export type AndesButtonVariant =
 export type AndesButtonSize =
   'xs' | 'sm' | 'md' | 'lg' | 'icon-xs' | 'icon-sm' | 'icon' | 'icon-lg';
 export type AndesButtonShape = 'default' | 'full';
+export type AndesButtonType = 'button' | 'submit' | 'reset';
 
 const RIPPLE_DURATION_MS = 500;
 
@@ -45,11 +46,14 @@ export class AndesButton {
   readonly variant = input<AndesButtonVariant>('primary');
   readonly size = input<AndesButtonSize>('md');
   readonly shape = input<AndesButtonShape>('default');
-  readonly disabled = input(false);
-  readonly loading = input(false);
+  readonly disabled = input(false, { transform: booleanAttribute });
+  readonly loading = input(false, { transform: booleanAttribute });
   readonly loadingDelay = input(0);
-  readonly fullWidth = input(false);
+  readonly fullWidth = input(false, { transform: booleanAttribute });
   readonly href = input<string | undefined>(undefined);
+  readonly target = input<string | undefined>(undefined);
+  readonly type = input<AndesButtonType>('button');
+  readonly ghost = input(false, { transform: booleanAttribute });
   readonly ariaLabel = input<string | undefined>(undefined, {
     alias: 'aria-label',
   });
@@ -80,6 +84,7 @@ export class AndesButton {
       this.visibleLoading() && 'andes-button--loading',
       this.fullWidth() && 'andes-button--full-width',
       this.ariaInvalid() && 'andes-button--invalid',
+      this.ghost() && 'andes-button--ghost-mode',
     ),
   );
 
