@@ -36,6 +36,21 @@
   box-shadow: 0 0 0 2px var(--andes-color-background);
 }
 
+/* A one-character count renders as a true circle, the way Ant Design's and shadcn's count
+   indicators do - only 2+ characters are allowed to elongate into a pill.
+   `min-width` above cannot produce that circle by itself: it floors the box at the height, but
+   `padding-inline` is then added *outside* that floor (the badge is content-box, and under a
+   consumer's `box-sizing: border-box` reset the glyph would push past it instead), so a lone
+   digit measured 28x20 rather than 20x20 - and, because 20px of min-width swallows both a
+   1-char and a 2-char glyph run, "5" and "42" came out the exact same width, erasing the
+   shape distinction entirely. Pinning `width` to `height` and zeroing the inline padding fixes
+   both: identical under either box model, since there is no padding left to disagree about.
+   The multi-character case deliberately keeps the min-width + padding-inline rule above. */
+.andes-badge--single-char {
+  width: 1.25rem;
+  padding-inline: 0;
+}
+
 .andes-badge--dot {
   min-width: 0.5rem;
   width: 0.5rem;
@@ -48,6 +63,13 @@
   height: 0.875rem;
   padding-inline: 0.1875rem;
   font-size: 0.625rem;
+}
+
+/* Compound selector rather than relying on source order, so the small circle survives however
+   these two classes end up ordered in a consumer's bundle. */
+.andes-badge--small.andes-badge--single-char {
+  width: 0.875rem;
+  padding-inline: 0;
 }
 
 .andes-badge--small.andes-badge--dot {
