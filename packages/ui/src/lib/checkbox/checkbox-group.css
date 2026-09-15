@@ -1,0 +1,24 @@
+/* The `andes-checkbox-group` classes land on this component's OWN host element (it doubles as
+   the ARIA `role="group"` container - see checkbox-group.ts), so these selectors have to use
+   :host()/:host - under emulated encapsulation the host carries an `_nghost-*` attribute, not
+   the `_ngcontent-*` one Angular appends to plain class selectors, so a bare
+   `.andes-checkbox-group { ... }` rule would never match it. */
+:host {
+  display: flex;
+  gap: var(--andes-space-3);
+}
+
+:host(.andes-checkbox-group--vertical) {
+  flex-direction: column;
+}
+
+:host(.andes-checkbox-group--horizontal) {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+/* Individual items keep their own `--disabled` styling through the shared group state; this
+   only stops the group as a whole from receiving pointer events. */
+:host(.andes-checkbox-group--disabled) {
+  cursor: not-allowed;
+}

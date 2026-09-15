@@ -1,0 +1,134 @@
+.andes-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+  cursor: pointer;
+}
+
+.andes-checkbox--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Distinct from disabled on purpose - stays fully opaque (it's a normal, focusable control
+   the user just can't change), only the pointer cursor changes to signal it won't toggle. */
+.andes-checkbox--readonly,
+.andes-checkbox--readonly .andes-checkbox__input {
+  cursor: default;
+}
+
+.andes-checkbox__control {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Visually hidden but still the real, focusable, clickable control - only its paint is
+   removed (opacity), never its layout box or hit-testing, so native click/keyboard/focus
+   behavior (and the label's implicit click-to-toggle association) keeps working exactly
+   like a plain unstyled checkbox. The decorative box below is purely `aria-hidden`. */
+.andes-checkbox__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.andes-checkbox--disabled .andes-checkbox__input {
+  cursor: not-allowed;
+}
+
+.andes-checkbox__box {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-background);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.andes-checkbox__input:hover:not(:disabled) ~ .andes-checkbox__box {
+  border-color: var(--andes-color-primary);
+}
+
+.andes-checkbox__input:focus-visible ~ .andes-checkbox__box {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* `:checked` and `:indeterminate` are live CSS pseudo-classes driven directly by the native
+   input's own DOM state (property, not attribute) - they track the browser's own truth,
+   including the moment it auto-clears `indeterminate` on user interaction, with no
+   dependency on Angular's own render timing. */
+.andes-checkbox__input:checked ~ .andes-checkbox__box,
+.andes-checkbox__input:indeterminate ~ .andes-checkbox__box {
+  background-color: var(--andes-color-primary);
+  border-color: var(--andes-color-primary);
+}
+
+.andes-checkbox--invalid .andes-checkbox__box {
+  border-color: var(--andes-color-danger);
+}
+
+/* Kept on a SINGLE line on purpose - see the note above the `:checked` icon rule below.
+   Angular's style encapsulation mis-scopes multi-line descendant/sibling selectors. */
+/* prettier-ignore */
+.andes-checkbox--invalid .andes-checkbox__input:focus-visible ~ .andes-checkbox__box {
+  outline-color: var(--andes-color-danger);
+}
+
+.andes-checkbox__icon {
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--andes-color-primary-foreground);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* KEEP EACH OF THE THREE ICON-VISIBILITY SELECTORS BELOW ON A SINGLE LINE.
+   Angular's style encapsulation (`encapsulateStyle`, ShadowCss) splits a selector on
+   whitespace to decide where to attach the `_ngcontent-*` scoping attribute, and it treats a
+   NEWLINE inside the selector as a part boundary of its own. Wrapped across lines, this rule
+   compiles to
+     `... :checked ~ .andes-checkbox__box [_ngcontent-x] .andes-checkbox__icon--check[...]`
+   - the `.andes-checkbox__box` compound loses its attribute entirely and the orphaned
+   `[_ngcontent-x]` is emitted as a phantom extra descendant step. Nothing sits between the box
+   and the icon, so the rule matched nothing and the checkmark stayed at `opacity: 0` forever
+   (a checked checkbox rendered as a plain blue square). On one line it compiles correctly to
+   `...:checked ~ .andes-checkbox__box[_ngcontent-x] .andes-checkbox__icon--check[_ngcontent-x]`.
+   The `prettier-ignore` markers stop Prettier from re-wrapping them past `printWidth` and
+   silently reintroducing the bug. Same defect previously hit AndesAccordion's icon rotation. */
+/* prettier-ignore */
+.andes-checkbox__input:checked ~ .andes-checkbox__box .andes-checkbox__icon--check {
+  opacity: 1;
+}
+
+/* prettier-ignore */
+.andes-checkbox__input:indeterminate ~ .andes-checkbox__box .andes-checkbox__icon--indeterminate {
+  opacity: 1;
+}
+
+/* Indeterminate wins visually over checked when a native checkbox happens to carry both DOM
+   properties at once - this rule is declared after the `:checked` one above so the cascade
+   (equal specificity, later wins) hides the checkmark whenever the dash is shown. */
+/* prettier-ignore */
+.andes-checkbox__input:indeterminate ~ .andes-checkbox__box .andes-checkbox__icon--check {
+  opacity: 0;
+}
+
+.andes-checkbox__label:empty {
+  display: none;
+}
