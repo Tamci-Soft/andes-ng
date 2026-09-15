@@ -72,11 +72,18 @@ export class AndesToastViewport {
     this.toastService.dismiss(id);
   }
 
-  protected onHoverStart(id: string): void {
+  /**
+   * Pauses a toast's auto-dismiss countdown. Wired to both `mouseenter` (pointer hover) and
+   * `focusin` (keyboard focus anywhere within the toast, e.g. Tab-ing to its action button) -
+   * a keyboard-only user needs the same protection from the timer expiring mid-interaction
+   * that a mouse user gets from hover, per WCAG 2.2.1 (Timing Adjustable).
+   */
+  protected onPauseStart(id: string): void {
     this.toastService.pause(id);
   }
 
-  protected onHoverEnd(id: string): void {
+  /** Resumes a toast paused by `onPauseStart`. Wired to both `mouseleave` and `focusout`. */
+  protected onPauseEnd(id: string): void {
     this.toastService.resume(id);
   }
 

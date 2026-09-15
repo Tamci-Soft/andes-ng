@@ -1,3 +1,4 @@
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
@@ -57,26 +58,44 @@ describe('AndesToastViewport', () => {
     expect(texts).toEqual(['first', 'second', 'third']);
   });
 
-  it.each([
-    ['neutral', 'status', 'polite'],
-    ['success', 'status', 'polite'],
-    ['warning', 'status', 'polite'],
-    ['info', 'status', 'polite'],
-    ['error', 'alert', 'assertive'],
-  ] as const)(
-    'sets role="%s" and aria-live="%s" for %s severity',
-    (severity, role, ariaLive) => {
+  it.each(['neutral', 'success', 'warning', 'info', 'error'] as const)(
+    'renders no role/aria-live/aria-atomic on the visible toast for %s severity (announcement is LiveAnnouncer-only, see AndesToastService)',
+    (severity) => {
       const { fixture, service } = createHost();
 
       service.show({ message: 'msg', severity });
       fixture.detectChanges();
 
       const item = items(fixture)[0];
-      expect(item.getAttribute('role')).toBe(role);
-      expect(item.getAttribute('aria-live')).toBe(ariaLive);
-      expect(item.getAttribute('aria-atomic')).toBe('true');
+      expect(item.getAttribute('role')).toBeNull();
+      expect(item.getAttribute('aria-live')).toBeNull();
+      expect(item.getAttribute('aria-atomic')).toBeNull();
     },
   );
+
+  it('announces each toast exactly once via LiveAnnouncer - the visible node has no live-region attributes of its own, so nothing double-announces (regression)', () => {
+    const announceSpy = vi.fn().mockResolvedValue(undefined);
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: LiveAnnouncer, useValue: { announce: announceSpy } },
+      ],
+    });
+
+    const { fixture, service } = createHost();
+    service.show({ title: 'Saved', message: 'Your changes were saved.' });
+    fixture.detectChanges();
+
+    // The one and only announcement mechanism: LiveAnnouncer, fired exactly once.
+    expect(announceSpy).toHaveBeenCalledTimes(1);
+
+    // The visible toast itself must carry no role/aria-live/aria-atomic - if it did, a
+    // screen reader would pick up both that and the LiveAnnouncer announcement above,
+    // reading the toast's text twice.
+    const item = items(fixture)[0];
+    expect(item.getAttribute('role')).toBeNull();
+    expect(item.getAttribute('aria-live')).toBeNull();
+    expect(item.getAttribute('aria-atomic')).toBeNull();
+  });
 
   it('the close button dismisses that toast only', () => {
     const { fixture, service } = createHost();
@@ -144,6 +163,50 @@ describe('AndesToastViewport', () => {
     fixture.detectChanges();
 
     vi.advanceTimersByTime(2000);
+    fixture.detectChanges();
+    expect(service.toasts().map((t) => t.id)).not.toContain(id);
+  });
+
+  it('focusing an actionable toast (e.g. Tab-ing to its action button) pauses auto-dismiss, and focusout resumes it (regression: keyboard users were unreachable once the timer fired)', () => {
+    vi.useFakeTimers();
+    const onClick = vi.fn();
+    const { fixture, service } = createHost();
+
+    const id = service.show({
+      message: 'Item deleted',
+      duration: 2000,
+      action: { label: 'Undo', onClick },
+    });
+    fixture.detectChanges();
+
+    const item = items(fixture)[0];
+    const actionButton = item.querySelector<HTMLButtonElement>(
+      '.andes-toast__action',
+    );
+    expect(actionButton).not.toBeNull();
+
+    // A keyboard user tabs onto the action button - focusin bubbles up to the toast root,
+    // same as mouseenter does for a pointer user.
+    actionButton?.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    fixture.detectChanges();
+
+    // Well past the normal 2000ms duration - must NOT have auto-dismissed while the action
+    // button holds focus, or a keyboard user mid-decision loses the control out from under
+    // them.
+    vi.advanceTimersByTime(10_000);
+    fixture.detectChanges();
+    expect(service.toasts().map((t) => t.id)).toContain(id);
+
+    // Focus moves elsewhere - focusout bubbles up and resumes the countdown with whatever
+    // time remained (the full 2000ms, since it never started counting down while paused).
+    actionButton?.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    fixture.detectChanges();
+
+    vi.advanceTimersByTime(1999);
+    fixture.detectChanges();
+    expect(service.toasts().map((t) => t.id)).toContain(id);
+
+    vi.advanceTimersByTime(1);
     fixture.detectChanges();
     expect(service.toasts().map((t) => t.id)).not.toContain(id);
   });
