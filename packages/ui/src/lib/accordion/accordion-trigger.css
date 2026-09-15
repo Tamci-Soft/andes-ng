@@ -51,7 +51,22 @@
   transition: transform 0.2s ease;
 }
 
-.andes-accordion-trigger__button[aria-expanded='true']
-  .andes-accordion-trigger__icon {
+/* Keyed off the icon's own `data-state` rather than a descendant of the expanded button, so this
+   stays a single compound selector. The descendant form
+   (`.andes-accordion-trigger__button[aria-expanded='true'] .andes-accordion-trigger__icon`) is
+   87 characters, which Prettier wraps onto two lines - and Angular's emulated-encapsulation shim
+   (ShadowCss) mis-compiles a combinator chain broken across lines. It appends the `_ngcontent-*`
+   scope attribute per compound selector by walking the selector text, treating the newline as
+   the separator it emits the attribute *after*, producing
+   `button[aria-expanded='true']\n[_ngcontent-x]   .icon[_ngcontent-x]`: the button compound
+   loses its scope attribute and the lone `[_ngcontent-x]` becomes its own descendant step,
+   matching no element between the button and the icon, so the rule silently never applies and
+   the chevron never rotates. That is the bug this replaced; simply unwrapping the selector did
+   not hold, because `prettier --write` re-wraps it straight back.
+
+   Only pipelines that hand ShadowCss the raw source hit that - notably Storybook's webpack
+   build, where it was caught. `nx test`/`nx build` minify the newline away first, so neither
+   would have caught it. accordion.spec.ts guards the folder at the source level instead. */
+.andes-accordion-trigger__icon[data-state='open'] {
   transform: rotate(180deg);
 }

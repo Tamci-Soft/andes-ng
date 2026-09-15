@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
@@ -198,6 +200,127 @@ describe('AndesAccordion / AndesAccordionItem / AndesAccordionTrigger / AndesAcc
       const second = createHost();
 
       expect(first.triggers[0].id).not.toBe(second.triggers[0].id);
+    });
+  });
+
+  describe('collapsed/expanded visual state (regression)', () => {
+    // These two bugs were both invisible to the existing suite: every assertion above checks
+    // `aria-expanded`/`data-state`, and both were always correct - what was broken was the CSS
+    // those attributes are supposed to drive. The tests below therefore assert against the
+    // *compiled, cascaded* styles rather than the attributes.
+    //
+    // Note on the environment: this suite runs in jsdom, which does apply component stylesheets
+    // and resolve the cascade (so `getComputedStyle` and selector matching are real), but does
+    // no layout at all - `offsetHeight`/`getBoundingClientRect()` are always 0. Anything that
+    // needs real layout is asserted here via the structural invariant that produced the bug
+    // instead, and was additionally verified by hand in a live Storybook.
+
+    it('rotates the trigger chevron only while the item is expanded', () => {
+      const { fixture, triggers } = createHost();
+      const icon = fixture.nativeElement.querySelector(
+        '.andes-accordion-trigger__icon',
+      ) as SVGElement;
+
+      // Collapsed: no rotation at all.
+      const collapsed = getComputedStyle(icon).transform;
+      expect(collapsed === '' || collapsed === 'none').toBe(true);
+
+      triggers[0].click();
+      fixture.detectChanges();
+
+      // Expanded: a real 180deg rotation. jsdom reports the declared value, a real browser
+      // reports the resolved matrix - accept either so this holds if the suite is ever run
+      // with `--browsers`.
+      const expanded = getComputedStyle(icon).transform;
+      expect(expanded).not.toBe('');
+      expect(expanded).not.toBe('none');
+      expect(expanded).toMatch(/rotate\(180deg\)|matrix\(-1,\s*0,\s*0,\s*-1/);
+    });
+
+    it('keeps every accordion CSS selector on a single line', () => {
+      // Angular's emulated-encapsulation shim (ShadowCss) appends the `_ngcontent-*` scope
+      // attribute per compound selector by walking the selector text, and treats a newline
+      // inside a descendant-combinator chain as the separator it emits the attribute *after*.
+      // A selector split across lines therefore compiles to
+      // `button[aria-expanded="true"]\n[_ngcontent-x]   .icon[_ngcontent-x]`: the first compound
+      // loses its scope attribute and the lone `[_ngcontent-x]` becomes its own descendant step,
+      // matching no element, so the rule silently never applies. That is exactly how the chevron
+      // rotation was lost.
+      //
+      // This has to be asserted against the CSS *source*, not the cascade: only pipelines that
+      // shim raw source hit it (Storybook's webpack build, where the broken chevron was found).
+      // `nx test` and `nx build` both minify the newline away before shimming, so the rule
+      // compiles correctly here regardless - a runtime assertion would pass either way and guard
+      // nothing.
+      const dir = 'packages/ui/src/lib/accordion';
+      const offenders: string[] = [];
+
+      for (const file of readdirSync(dir).filter((f) => f.endsWith('.css'))) {
+        const source = readFileSync(`${dir}/${file}`, 'utf8').replace(
+          /\/\*[\s\S]*?\*\//g,
+          '',
+        );
+        for (const match of source.matchAll(/(?:^|\})([^{}]*)\{/g)) {
+          // Breaking a selector *list* after a comma is fine - the shim scopes each part
+          // separately. It's a combinator chain broken mid-part that mis-compiles.
+          for (const part of match[1].trim().split(',')) {
+            if (part.trim().includes('\n')) {
+              offenders.push(`${file}: ${part.trim().replace(/\s+/g, ' ')}`);
+            }
+          }
+        }
+      }
+
+      expect(offenders).toEqual([]);
+    });
+
+    it('collapses a closed panel to a zero-height track and expands an open one', () => {
+      const { fixture, triggers, panels } = createHost();
+
+      expect(getComputedStyle(panels[0]).gridTemplateRows).toBe('0fr');
+
+      triggers[0].click();
+      fixture.detectChanges();
+
+      expect(getComputedStyle(panels[0]).gridTemplateRows).toBe('1fr');
+    });
+
+    it('keeps the collapsing grid item a pure clipping box so a closed panel paints nothing', () => {
+      // `overflow: hidden` clips to the PADDING box, not the content box. Any padding on the
+      // element that collapses therefore survives the collapse as a band of still-painted
+      // content: with `padding-bottom: var(--andes-space-4)` here, a closed panel kept a
+      // 16px-tall padding box and the first 16px of its text stayed plainly readable on screen
+      // even though `data-state="closed"` and `inert` were both correctly applied. The panel's
+      // breathing room must live on an inner, non-clipping box instead.
+      const { panels } = createHost();
+      const inner = panels[0].querySelector(
+        '.andes-accordion-content__inner',
+      ) as HTMLElement;
+      const body = panels[0].querySelector(
+        '.andes-accordion-content__body',
+      ) as HTMLElement;
+
+      expect(inner).toBeTruthy();
+      expect(body).toBeTruthy();
+      // The padded box must sit *inside* the clipping box, so the clip contains it.
+      expect(inner.contains(body)).toBe(true);
+
+      const innerStyle = getComputedStyle(inner);
+      expect(innerStyle.overflow).toBe('hidden');
+
+      // No padding of any kind on the clipping box - this is the invariant that broke.
+      for (const side of [
+        'paddingTop',
+        'paddingRight',
+        'paddingBottom',
+        'paddingLeft',
+      ] as const) {
+        const value = innerStyle[side];
+        expect(value === '' || value === '0px').toBe(true);
+      }
+
+      // ...while the breathing room is still applied, one level in.
+      expect(getComputedStyle(body).paddingBottom).not.toBe('');
     });
   });
 
