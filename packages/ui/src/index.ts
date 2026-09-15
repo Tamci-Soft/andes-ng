@@ -178,3 +178,12 @@ export type {
 export { AndesPopover } from './lib/popover/popover';
 export { AndesPopoverContent } from './lib/popover/popover-content';
 export { AndesPopoverTrigger } from './lib/popover/popover-trigger';
+
+export { AndesTabs } from './lib/tabs/tabs';
+export { AndesTabsList } from './lib/tabs/tabs-list';
+export { AndesTabsTrigger } from './lib/tabs/tabs-trigger';
+export { AndesTabsContent } from './lib/tabs/tabs-content';
+export type {
+  AndesTabsActivationMode,
+  AndesTabsOrientation,
+} from './lib/tabs/tabs-types';
