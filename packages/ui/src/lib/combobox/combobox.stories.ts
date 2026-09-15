@@ -97,6 +97,25 @@ export const WithNgModel: Story = {
   }),
 };
 
+/** Shows the trailing check the currently selected suggestion carries, as `AndesSelect` does. */
+export const WithSelectedValue: Story = {
+  render: (args) => ({
+    props: { ...args, items: FRUITS, value: 'Banana' },
+    template: `
+      <andes-combobox #combobox [items]="items" [(ngModel)]="value" style="width: 260px; display: inline-block;">
+        <input andesComboboxInput placeholder="Search fruit..." style="width: 100%;" />
+        <div andesComboboxContent>
+          @for (item of combobox.filteredItems(); track item) {
+            <div andesComboboxItem [value]="item">{{ item }}</div>
+          } @empty {
+            <div andesComboboxEmpty>No results found.</div>
+          }
+        </div>
+      </andes-combobox>
+    `,
+  }),
+};
+
 export const Disabled: Story = {
   args: { disabled: true },
 };
