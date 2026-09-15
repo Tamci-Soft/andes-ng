@@ -105,10 +105,14 @@ export const ReactiveWithNgModel: Story = {
 
 export const AllSizes: Story = {
   render: () => ({
+    // `checked` is a `model()`, which - unlike `size`'s plain `input()` - doesn't support a
+    // `transform` (a two-way binding's output must emit exactly the type its input accepts),
+    // so a bare, bracket-less attribute isn't coerced through `booleanAttribute`; bind the
+    // literal with brackets instead (same fix `AndesCheckbox`'s stories needed).
     template: `
       <div style="display: flex; align-items: center; gap: 1rem;">
-        <andes-switch size="sm" checked aria-label="Small, checked" />
-        <andes-switch size="md" checked aria-label="Medium, checked" />
+        <andes-switch size="sm" [checked]="true" aria-label="Small, checked" />
+        <andes-switch size="md" [checked]="true" aria-label="Medium, checked" />
       </div>
     `,
   }),
@@ -116,13 +120,16 @@ export const AllSizes: Story = {
 
 export const AllStates: Story = {
   render: () => ({
+    // See the note on `AllSizes` above - `checked` needs a property binding, not a bare
+    // attribute; `disabled`/`readonly` stay bare since they're still plain `input()`s with a
+    // `booleanAttribute` transform.
     template: `
       <div style="display: flex; align-items: center; gap: 1rem;">
         <andes-switch aria-label="Unchecked" />
-        <andes-switch checked aria-label="Checked" />
+        <andes-switch [checked]="true" aria-label="Checked" />
         <andes-switch disabled aria-label="Disabled, unchecked" />
-        <andes-switch disabled checked aria-label="Disabled, checked" />
-        <andes-switch readonly checked aria-label="Readonly, checked" />
+        <andes-switch disabled [checked]="true" aria-label="Disabled, checked" />
+        <andes-switch readonly [checked]="true" aria-label="Readonly, checked" />
       </div>
     `,
   }),

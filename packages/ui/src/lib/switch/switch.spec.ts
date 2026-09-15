@@ -263,6 +263,36 @@ describe('AndesSwitch', () => {
     expect(button.disabled).toBe(true);
   });
 
+  it('treats a bare "checked" attribute (no brackets) as true, not the string "" (regression)', () => {
+    // `checked` is a `model()`, and `model()` intentionally has no `transform` option (see the
+    // doc comments on `checked`/`isChecked` in switch.ts) - a two-way binding's output must
+    // emit exactly the type its input accepts, so it can't silently coerce values on the way
+    // in. That means Angular's own template type checker rejects a bare, bracket-less
+    // `checked` attribute as a compile error (`string` is not assignable to `boolean`) when it
+    // appears directly in a `@Component({ template })` literal - the same reason
+    // `AndesCheckbox`'s own regression test for this exercises the bracket-bound form instead.
+    //
+    // But that static check is exactly what `switch.stories.ts` (and any consumer building a
+    // template as a runtime string, the way Storybook does) does NOT go through: `<andes-switch
+    // checked>` there compiles and runs, silently writing the literal string `""` into the
+    // `checked` model - which is the actual regression a QA judge found (`aria-checked=""`,
+    // switch rendered OFF despite the obvious "on" intent). `TestBed.overrideTemplate` lets this
+    // test reproduce that exact runtime path - a template string assembled and JIT-compiled at
+    // run time, bypassing ngtsc's static template diagnostics - instead of only covering the
+    // bracket-bound case Checkbox's suite already covers.
+    @Component({ imports: [AndesSwitch], template: `` })
+    class BareCheckedHost {}
+
+    TestBed.overrideTemplate(BareCheckedHost, `<andes-switch checked />`);
+    const fixture = TestBed.createComponent(BareCheckedHost);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('button');
+
+    expect(button.getAttribute('aria-checked')).toBe('true');
+    expect(button.hasAttribute('data-checked')).toBe(true);
+    expect(button.hasAttribute('data-unchecked')).toBe(false);
+  });
+
   describe('ControlValueAccessor', () => {
     it('works with [formControl]', () => {
       @Component({
