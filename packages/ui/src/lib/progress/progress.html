@@ -1,0 +1,24 @@
+<div
+  data-slot="progress"
+  role="progressbar"
+  [class]="classes()"
+  [attr.aria-valuemin]="min()"
+  [attr.aria-valuemax]="max()"
+  [attr.aria-valuenow]="isIndeterminate() ? null : clampedValue()"
+  [attr.aria-valuetext]="ariaValuetext() ?? null"
+  [attr.aria-label]="ariaLabel() ?? null"
+  [attr.aria-labelledby]="ariaLabelledby() ?? null"
+  [attr.data-progressing]="state() === 'progressing' ? '' : null"
+  [attr.data-complete]="state() === 'complete' ? '' : null"
+  [attr.data-indeterminate]="state() === 'indeterminate' ? '' : null"
+>
+  <div class="andes-progress__track">
+    <div
+      class="andes-progress__indicator"
+      [style.width.%]="isIndeterminate() ? null : percent()"
+      [attr.data-progressing]="state() === 'progressing' ? '' : null"
+      [attr.data-complete]="state() === 'complete' ? '' : null"
+      [attr.data-indeterminate]="state() === 'indeterminate' ? '' : null"
+    ></div>
+  </div>
+</div>
