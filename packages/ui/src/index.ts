@@ -93,3 +93,13 @@ export {
   AndesSheetTitle,
 } from './lib/sheet/sheet-parts';
 export { AndesSheetTrigger } from './lib/sheet/sheet-trigger';
+
+export { AndesToastViewport } from './lib/toast/toast-viewport';
+export { AndesToastService } from './lib/toast/toast.service';
+export type {
+  AndesToast,
+  AndesToastAction,
+  AndesToastConfig,
+  AndesToastPosition,
+  AndesToastSeverity,
+} from './lib/toast/toast.types';
