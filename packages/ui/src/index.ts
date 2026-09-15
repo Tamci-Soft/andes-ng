@@ -51,3 +51,8 @@ export { AndesTag } from './lib/tag/tag';
 export type { AndesTagColor, AndesTagVariant } from './lib/tag/tag';
 export { AndesInput } from './lib/input/input';
 export type { AndesInputSize, AndesInputType } from './lib/input/input';
+export { AndesAccordion } from './lib/accordion/accordion';
+export type { AndesAccordionType } from './lib/accordion/accordion';
+export { AndesAccordionItem } from './lib/accordion/accordion-item';
+export { AndesAccordionTrigger } from './lib/accordion/accordion-trigger';
+export { AndesAccordionContent } from './lib/accordion/accordion-content';
