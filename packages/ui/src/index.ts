@@ -40,3 +40,5 @@ export type {
   AndesCardTitleLevel,
   AndesCardVariant,
 } from './lib/card/card';
+export { AndesPagination } from './lib/pagination/pagination';
+export type { AndesPaginationItem } from './lib/pagination/pagination';
