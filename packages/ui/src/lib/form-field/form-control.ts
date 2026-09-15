@@ -77,8 +77,8 @@ const LABELABLE_NATIVE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
  *
  * So for the wrapper-component case this directive writes NO attributes at all (writing them
  * would be inert at best and misleading at worst) and instead exposes `resolvedId()`,
- * `describedBy()`, `showError()` and `isRequired()`/`ariaRequired()` as public signals, for the
- * consumer to bind into the wrapper's own inputs from the template:
+ * `labelledBy()`, `describedBy()`, `showError()` and `isRequired()`/`ariaRequired()` as public
+ * signals, for the consumer to bind into the wrapper's own inputs from the template:
  *
  * ```html
  * <andes-form-field #field="andesFormField">
@@ -96,16 +96,47 @@ const LABELABLE_NATIVE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
  * </andes-form-field>
  * ```
  *
- * KNOWN LIMITATION, tracked across PRs: that pattern only works once the wrapper component
- * actually exposes those inputs. As of this PR, `AndesCheckbox`, `AndesSwitch`, `AndesSelect`,
- * `AndesRadioGroup` and `AndesSlider` expose no `id` input at all (`AndesCheckbox` does expose
- * `aria-describedby`/`aria-invalid` inputs, but no `aria-required`), so label association
- * genuinely cannot be completed for them from this PR alone - it needs a follow-up on each of
- * those components' own branches adding an `id` (and `aria-required`) input forwarded onto their
- * internal native control, and nulled on the host the way they already null `aria-label`.
- * Nothing in this directive can substitute for that. Until then, `<andes-form-label>` inside a
- * field wrapping one of those five produces a `for` that resolves to nothing - deliberately
- * detectable, rather than silently pointing at an element the platform will not associate.
+ * ## Which wrappers that pattern is currently complete for
+ *
+ * It only works to the extent the wrapper actually exposes the matching inputs, and that is not
+ * uniform across the library. Re-checked against each component's own branch:
+ *
+ * - `AndesInput` exposes `id`, `name`, `aria-label`, `aria-labelledby`, `aria-describedby` and
+ *   `aria-invalid` inputs, nulls all of them on its host, and forwards them onto the real
+ *   `<input>` in its template. The snippet above therefore works end to end for it, including a
+ *   genuinely clickable `<label for>` - nothing is missing. (It still needs the manual bindings:
+ *   its host element is `<andes-input>`, not an `<input>`, so this directive's automatic host
+ *   writes stay switched off, exactly as described above.) It has no `aria-required` input, but
+ *   needs none: its `required` input puts the native `required` attribute on that inner
+ *   `<input>`, which already implies `aria-required` to assistive technology.
+ * - `AndesCheckbox`, `AndesSwitch`, `AndesSelect`, `AndesRadioGroup` and `AndesSlider` expose no
+ *   `id` input at all, so `[id]="field.controlId()"` has nowhere to land and the label's `for`
+ *   stays dangling - deliberately detectable, rather than silently pointing at an element the
+ *   platform will not associate. Giving each of them an `id` input forwarded onto its internal
+ *   control remains the proper fix, and has to happen on those components' own branches.
+ *
+ * ### Workaround for the five without an `id` input
+ *
+ * All five DO accept an `aria-labelledby` input and forward it onto their real internal control.
+ * `AndesFormLabel` therefore stamps an id onto the `<label>` it renders, and the field exposes it
+ * as `labelledBy()` (mirrored here as {@link labelledBy}), so the accessible name can be wired up
+ * without touching those components at all:
+ *
+ * ```html
+ * <andes-select
+ *   andesFormControl
+ *   #ctrl="andesFormControl"
+ *   [formControl]="country"
+ *   [aria-labelledby]="ctrl.labelledBy()"
+ *   [aria-describedby]="ctrl.describedBy()"
+ *   [aria-invalid]="ctrl.showError()"
+ * />
+ * ```
+ *
+ * That is a real improvement, not a full substitute: `aria-labelledby` gives the control its
+ * accessible name, but only a native `for`/`id` pair makes the label CLICKABLE (and populates
+ * `element.labels`). So the remaining, honestly-still-open gap for those five is label-click
+ * focus, not announcement.
  */
 @Directive({
   selector: '[andesFormControl]',
@@ -158,6 +189,11 @@ export class AndesFormControl implements OnInit {
   readonly resolvedId = computed(() => this.field?.controlId() ?? null);
 
   readonly describedBy = computed(() => this.field?.describedBy() ?? null);
+
+  /** The enclosing field's `<andes-form-label>` id, or `null` when there is no label - for
+   *  binding into a wrapper component's own `aria-labelledby` input when it has no `id` input
+   *  to complete the native `for`/`id` association with. See the class comment. */
+  readonly labelledBy = computed(() => this.field?.labelledBy() ?? null);
 
   /**
    * Whether the bound control carries `Validators.required` (or `Validators.requiredTrue`).
