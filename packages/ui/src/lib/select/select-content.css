@@ -1,0 +1,35 @@
+:host {
+  display: none;
+}
+
+.andes-select__panel {
+  box-sizing: border-box;
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: var(--andes-space-1);
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  /* No shadow token exists yet; the custom property is honoured if one is ever added. */
+  box-shadow: var(--andes-shadow-popover, 0 4px 12px rgb(15 23 42 / 12%));
+}
+
+/* The overlay pane is already sized to the trigger, so filling it matches a native
+   <select>; without that, the panel is sized by its own content instead. */
+.andes-select__panel[data-match-trigger-width] {
+  width: 100%;
+}
+
+.andes-select__panel:not([data-match-trigger-width]) {
+  min-width: 8rem;
+}
+
+.andes-select__panel[data-size='sm'] {
+  font-size: 0.875rem;
+}
+
+.andes-select__panel[data-size='lg'] {
+  font-size: 1.125rem;
+}

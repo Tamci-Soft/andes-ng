@@ -1,0 +1,90 @@
+:host {
+  display: block;
+}
+
+.andes-select__trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
+  box-sizing: border-box;
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.andes-select__trigger:hover:not(:disabled) {
+  border-color: var(--andes-color-border);
+  background-color: var(--andes-color-accent);
+}
+
+.andes-select__trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-select__trigger[data-state='open'] {
+  border-color: var(--andes-color-primary);
+}
+
+.andes-select__trigger[data-placeholder] {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-select__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-select__trigger--invalid {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-select__trigger--invalid:focus-visible {
+  outline-color: var(--andes-color-danger);
+}
+
+/* Sizes, matching the Button's own sm/md/lg steps. */
+
+.andes-select__trigger--sm {
+  height: 2rem;
+  padding-inline: var(--andes-space-2);
+  font-size: 0.875rem;
+}
+
+.andes-select__trigger--md {
+  height: 2.5rem;
+  padding-inline: var(--andes-space-3);
+  font-size: 1rem;
+}
+
+.andes-select__trigger--lg {
+  height: 3rem;
+  padding-inline: var(--andes-space-4);
+  font-size: 1.125rem;
+}
+
+.andes-select__chevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--andes-color-muted-foreground);
+  transition: transform 0.15s ease;
+}
+
+.andes-select__chevron svg {
+  width: 1em;
+  height: 1em;
+}
+
+.andes-select__trigger[data-state='open'] .andes-select__chevron {
+  transform: rotate(180deg);
+}

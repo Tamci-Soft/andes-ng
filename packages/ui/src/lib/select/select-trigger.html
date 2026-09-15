@@ -1,0 +1,32 @@
+<!--
+  `aria-haspopup`, `aria-expanded` and `aria-controls` are host bindings of
+  `andesOverlayTrigger`, which keeps them in sync with the overlay's real state and only
+  points `aria-controls` at the panel while the panel exists. The template rule cannot
+  see a directive's host bindings, hence the exemption.
+-->
+<!-- eslint-disable @angular-eslint/template/role-has-required-aria -->
+<button
+  andesOverlayTrigger
+  type="button"
+  role="combobox"
+  data-slot="select-trigger"
+  [class]="classes()"
+  [attr.data-size]="select.size()"
+  [attr.data-placeholder]="select.hasValue() ? null : ''"
+  [disabled]="select.isDisabled()"
+  [attr.aria-label]="select.ariaLabel()"
+  [attr.aria-labelledby]="select.ariaLabelledby()"
+  [attr.aria-describedby]="select.ariaDescribedby()"
+  [attr.aria-invalid]="select.invalid() || null"
+  [attr.aria-required]="select.required() || null"
+  (click)="onClick()"
+  (keydown)="select.onTriggerKeydown($event)"
+  (blur)="select.markAsTouched()"
+>
+  <ng-content />
+  <span class="andes-select__chevron" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </span>
+</button>
