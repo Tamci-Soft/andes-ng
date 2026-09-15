@@ -3,9 +3,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   forwardRef,
   input,
+  linkedSignal,
   output,
   signal,
 } from '@angular/core';
@@ -60,7 +60,35 @@ export class AndesSwitch implements ControlValueAccessor {
   readonly checkedChange = output<boolean>();
 
   private readonly formDisabled = signal(false);
-  protected readonly isChecked = signal(false);
+
+  /**
+   * Single source of truth for the rendered `checked` state. Seeded from, and kept live in
+   * sync with, the `checked` input for plain/uncontrolled usage - but locally overridable (by
+   * a click) between updates, the same "controlled input, locally-overridable state" shape as
+   * AndesButton's loading/visibleLoading.
+   *
+   * Built with `linkedSignal` instead of a plain `signal()` mirrored by a constructor
+   * `effect()`: a `linkedSignal` re-derives its value synchronously, as part of the normal
+   * signal-consumer graph, the moment `checked()` actually transitions to a new value -
+   * including transitioning back to a value it already held earlier (e.g. a parent
+   * optimistically applying a click via `(checkedChange)` and then rolling it back to
+   * `false` again once `checked()` has genuinely become `true` in between). A one-shot
+   * `effect()` mirror is more fragile here: it re-runs on its own schedule rather than being
+   * read synchronously off the same graph the template renders from, and is generally
+   * discouraged by the Angular team for this kind of state derivation in favor of
+   * `computed`/`linkedSignal`.
+   *
+   * Once this control is wired to Reactive or Template-driven forms (`writeValue` has been
+   * called at least once), the form value takes over exclusively so the two APIs never fight
+   * each other - the same `isFormControlled` guard AndesCheckbox uses for the identical
+   * problem, adapted here to `linkedSignal`'s advanced (source + computation) form so the
+   * guard is consulted on every re-derivation instead of only inside a one-shot effect.
+   */
+  protected readonly isChecked = linkedSignal<boolean, boolean>({
+    source: this.checked,
+    computation: (checked, previous) =>
+      this.isFormControlled ? (previous?.value ?? checked) : checked,
+  });
 
   protected readonly isDisabled = computed(
     () => this.disabled() || this.formDisabled(),
@@ -74,17 +102,9 @@ export class AndesSwitch implements ControlValueAccessor {
     ),
   );
 
+  private isFormControlled = false;
   private onChange: (value: boolean) => void = () => undefined;
   private onTouched: () => void = () => undefined;
-
-  constructor() {
-    // One-way sync from the `checked` input into the internal signal that actually drives
-    // rendering and can also be mutated locally (by a click or by writeValue) - the same
-    // "controlled input, locally-overridable state" shape as AndesButton's loading/visibleLoading.
-    effect(() => {
-      this.isChecked.set(this.checked());
-    });
-  }
 
   protected onClick(): void {
     if (this.isDisabled() || this.readonly()) {
@@ -102,6 +122,7 @@ export class AndesSwitch implements ControlValueAccessor {
   }
 
   writeValue(value: boolean): void {
+    this.isFormControlled = true;
     this.isChecked.set(!!value);
   }
 
