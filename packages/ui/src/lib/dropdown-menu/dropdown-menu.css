@@ -1,8 +1,11 @@
 /*
- * Shared across every dropdown-menu sub-component's `styleUrl`. Each component's
- * emulated view encapsulation scopes these rules to its own host regardless of which
- * other selectors also live in this file, so co-locating them here (instead of one
- * file per sub-component) is a size/maintainability trade-off, not a correctness one.
+ * Shared across every dropdown-menu sub-component's `styleUrl`. Those components all
+ * opt out of view encapsulation (`ViewEncapsulation.None` - see the class comment on
+ * `AndesDropdownMenuContent` for why), so these rules are emitted verbatim and match
+ * by class name globally rather than being scoped per component. Two consequences
+ * worth knowing before editing this file: every class here must stay namespaced
+ * `andes-dropdown-menu__*`, and a descendant selector reaches projected content
+ * directly - `::ng-deep` would be noise, not a requirement.
  */
 
 .andes-dropdown-menu__content {
@@ -19,6 +22,33 @@
   color: var(--andes-color-popover-foreground);
   box-shadow: var(--andes-shadow-md);
   outline: none;
+}
+
+/*
+ * A menu appearing is a position change as much as a visibility one, so it gets the
+ * same short fade+scale Radix/shadcn use rather than popping in hard. `data-state`
+ * comes from `AndesOverlayContentPrimitive`. `center top` is the origin for the
+ * `menu` preset's default bottom-anchored placement; a collision-flipped menu grows
+ * from the wrong edge, but at 120ms/0.97 that is imperceptible, and picking the
+ * origin per resolved side would mean plumbing CDK's position back out to CSS.
+ */
+@keyframes andes-dropdown-menu-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .andes-dropdown-menu__content[data-state='open'] {
+    transform-origin: center top;
+    animation: andes-dropdown-menu-enter 120ms ease-out;
+  }
 }
 
 .andes-dropdown-menu__item {
@@ -57,6 +87,20 @@
   color: var(--andes-color-danger);
 }
 
+/*
+ * `--andes-color-danger` is tuned as a solid *fill* color and is deliberately fixed
+ * across themes, so as standalone text it only reaches 2.4:1 on the dark popover
+ * surface (#dc2626 on #1e293b) - the same class of bug the Button's link variant hit
+ * with `--andes-color-primary` (see `--andes-color-primary-text` in
+ * `@andes-ng/tokens`). The real fix is a `--andes-color-danger-text` token that
+ * brightens in dark mode; until that lands, fall back to the theme-fixed ghost red,
+ * which exists for exactly this "red text on a dark surface" case and reaches 7.2:1.
+ */
+[data-andes-theme='dark']
+  .andes-dropdown-menu__item[data-variant='destructive'] {
+  color: var(--andes-color-danger-text, var(--andes-color-danger-ghost));
+}
+
 .andes-dropdown-menu__item[data-variant='destructive']:hover:not(
     [data-disabled]
   ),
@@ -67,12 +111,53 @@
   color: var(--andes-color-danger-foreground);
 }
 
+/*
+ * Projected icons. Every component that owns this stylesheet is
+ * `ViewEncapsulation.None` (see `AndesDropdownMenuContent`), so a plain descendant
+ * selector already reaches content an item projects - `::ng-deep` is neither needed
+ * nor honest here. Sized in `em` so an icon tracks the item's own font-size.
+ */
+.andes-dropdown-menu__item ng-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__item svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/*
+ * A muted icon on an accent-filled or red row loses contrast against the row it now
+ * sits on, so in those states the icon simply follows the item's own color.
+ */
+.andes-dropdown-menu__item:hover:not([data-disabled]) ng-icon,
+.andes-dropdown-menu__item[data-active]:not([data-disabled]) ng-icon,
+.andes-dropdown-menu__item[data-variant='destructive'] ng-icon {
+  color: inherit;
+}
+
 .andes-dropdown-menu__indicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
+}
+
+/*
+ * The check/dot are inline SVG rather than the `✓`/`●` text glyphs they started as:
+ * a glyph's presence, weight and optical size are entirely at the mercy of whatever
+ * `--andes-font-family` the consuming app sets, and a font without them renders a
+ * tofu box where the checked state should be. `1rem` (not `1em`) so both indicators
+ * stay the same size as each other regardless of the item's font-size.
+ */
+.andes-dropdown-menu__indicator svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .andes-dropdown-menu__separator {
@@ -88,6 +173,23 @@
   font-size: 0.75rem;
   font-weight: var(--andes-font-weight-medium);
   color: var(--andes-color-muted-foreground);
+}
+
+/*
+ * A group heading in a menu that also has checkbox/radio items has to line up with
+ * those items' TEXT, not with their indicator gutter - otherwise the heading hangs
+ * ~20px to the left of the options it heads and reads as a different column.
+ * shadcn solves this with an explicit `inset` prop on its label; keying off the
+ * indicator's presence instead keeps it automatic, since a menu either has an
+ * indicator gutter or it does not. The value is the gutter itself: the
+ * checkbox/radio items' own inline-start padding + the 1rem indicator + the item's
+ * flex `gap`.
+ */
+.andes-dropdown-menu__content:has(.andes-dropdown-menu__indicator)
+  .andes-dropdown-menu__label {
+  padding-inline-start: calc(
+    var(--andes-space-2) + 1rem + var(--andes-space-2)
+  );
 }
 
 .andes-dropdown-menu__shortcut {
