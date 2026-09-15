@@ -125,15 +125,17 @@ a.andes-tag:focus-visible {
  * `default`/`secondary` reuse their own `-foreground`/`-active` tokens instead, since they're
  * neutrals rather than saturated brand hues.
  *
- * `solid`'s text color is NOT always `-foreground`: success/info's base tokens are too light
- * for white text (3.30:1 / 4.10:1, below the 4.5:1 minimum), so solid uses their `-active`
- * shade as the background instead - but `-active` gets *lighter* in dark mode (by design, for
- * hover feedback against a dark page), so pairing it with the fixed white `-foreground` token
- * still fails, and worse, in dark mode (1.74:1 / 2.14:1). `--andes-color-background` flips to
- * exactly the opposite lightness in each theme (white in light mode, dark navy in dark mode),
- * tracking `-active`'s own flip - using it as the text color instead passes in both themes
- * (7.13-10.25:1). primary/secondary/danger/warning need no such workaround: their own base
- * color already pairs safely with their fixed `-foreground` token in both themes.
+ * `solid`'s text color is NOT always `-foreground`: success/info/warning's base tokens are too
+ * light for white text (3.30:1 / 4.10:1 / 4.22:1, all below the 4.5:1 minimum - recomputed
+ * directly against the WCAG relative-luminance formula), so solid uses their `-active` shade
+ * as the background instead - but `-active` gets *lighter* in dark mode (by design, for hover
+ * feedback against a dark page), so pairing it with the fixed white `-foreground` token still
+ * fails, and worse, in dark mode (as low as 1.44:1 for warning). `--andes-color-background`
+ * flips to exactly the opposite lightness in each theme (white in light mode, dark navy in
+ * dark mode), tracking `-active`'s own flip - using it as the text color instead passes in
+ * both themes (5.02-12.38:1 for warning). primary/secondary/danger need no such workaround:
+ * their own base color already pairs safely with their fixed `-foreground` token in both
+ * themes.
  */
 
 .andes-tag--color-default.andes-tag--outlined {
@@ -228,9 +230,9 @@ a.andes-tag:focus-visible {
 }
 
 .andes-tag--color-warning.andes-tag--solid {
-  background-color: var(--andes-color-warning);
-  border-color: var(--andes-color-warning);
-  color: var(--andes-color-warning-foreground);
+  background-color: var(--andes-color-warning-active);
+  border-color: var(--andes-color-warning-active);
+  color: var(--andes-color-background);
 }
 
 .andes-tag--color-danger.andes-tag--outlined {
