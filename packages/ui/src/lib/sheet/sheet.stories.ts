@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesSheet } from './sheet';
 import { AndesSheetClose } from './sheet-close';
 import {
@@ -27,6 +28,7 @@ const meta: Meta<AndesSheet> = {
   render: (args) => ({
     moduleMetadata: {
       imports: [
+        AndesButton,
         AndesSheet,
         AndesSheetTrigger,
         AndesSheetHeader,
@@ -39,7 +41,7 @@ const meta: Meta<AndesSheet> = {
     props: args,
     template: `
       <andes-sheet [side]="side" [closeOnEscape]="closeOnEscape" [closeOnOutsideClick]="closeOnOutsideClick">
-        <button type="button" andesSheetTrigger>Open sheet</button>
+        <andes-button variant="primary" andesSheetTrigger>Open sheet</andes-button>
 
         <andes-sheet-header>
           <andes-sheet-title>Edit profile</andes-sheet-title>
@@ -58,8 +60,8 @@ const meta: Meta<AndesSheet> = {
         </div>
 
         <andes-sheet-footer>
-          <button type="button" andesSheetClose>Cancel</button>
-          <button type="button" andesSheetClose>Save changes</button>
+          <andes-button variant="outline" andesSheetClose>Cancel</andes-button>
+          <andes-button variant="primary" andesSheetClose>Save changes</andes-button>
         </andes-sheet-footer>
       </andes-sheet>
     `,
