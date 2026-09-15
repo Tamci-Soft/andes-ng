@@ -1,0 +1,69 @@
+.andes-pagination {
+  display: block;
+}
+
+.andes-pagination__list {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.andes-pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  color: var(--andes-color-muted-foreground);
+  user-select: none;
+}
+
+/* Native button rather than andes-button - see the comment in pagination.html
+   for why: it needs a real aria-current on the focusable element itself. */
+.andes-pagination__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding-inline: var(--andes-space-2);
+  border-radius: var(--andes-radius-md);
+  border: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-accent-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.andes-pagination__page:hover:not(:disabled) {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-pagination__page:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-pagination__page:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-pagination__page--active {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-pagination__page--active:hover:not(:disabled) {
+  background-color: var(--andes-color-primary-hover);
+}
