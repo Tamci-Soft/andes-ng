@@ -129,6 +129,51 @@ describe('AndesAvatar', () => {
     expect(avatar.classList).toContain('andes-avatar--md');
   });
 
+  // Regression coverage for avatar.css being dead CSS: `classes()` binds the
+  // BEM classes via `[class]` directly on AndesAvatar's OWN host element
+  // (host metadata above), not on an element inside its own template. Under
+  // the default (Emulated) view encapsulation, Angular only rewrites plain
+  // class selectors to also require its `_ngcontent-*` attribute - which the
+  // host element itself never carries (only `_nghost-*` does) - so every
+  // shape/size rule in avatar.css was dead: the host rendered with no
+  // explicit width/height/border-radius at all, collapsing to a
+  // content-sized box (and, in turn, collapsing the `height: 100%` inner
+  // <img> to zero height). The `classList).toContain(...)` assertions above
+  // would stay green even with every rule dead, because they never ask the
+  // browser/jsdom CSS engine to actually resolve a selector - only real
+  // computed styles, read off the actually-compiled component, can catch
+  // that regression.
+  describe('applies real box-model dimensions to the host (not dead CSS)', () => {
+    it.each([
+      ['circular', 'xs', '1.5rem', '1.5rem'],
+      ['square', 'lg', '3.5rem', '3.5rem'],
+    ] as const)(
+      'gives a %s %s avatar a real, non-empty width/height/border-radius',
+      (shape, size, width, height) => {
+        const { fixture, avatar } = createHost();
+        fixture.componentInstance.shape.set(shape);
+        fixture.componentInstance.size.set(size);
+        fixture.detectChanges();
+
+        const style = getComputedStyle(avatar);
+
+        // jsdom's CSSOM reports the specified value verbatim (it doesn't
+        // resolve rem to px), so these compare against avatar.css's literal
+        // rem values rather than a resolved pixel size - either way, a
+        // non-empty match here proves `.andes-avatar--${size}` actually
+        // matched, which is what was dead before the fix.
+        expect(style.width).toBe(width);
+        expect(style.height).toBe(height);
+        // Not asserting the literal --andes-radius-* value: jsdom's CSSOM
+        // doesn't resolve custom properties, but a non-empty, non-zero
+        // border-radius still proves `.andes-avatar--${shape}` actually
+        // matched (an unstyled host has no border-radius rule at all).
+        expect(style.borderRadius).not.toBe('');
+        expect(style.borderRadius).not.toBe('0px');
+      },
+    );
+  });
+
   it('sets data-slot on the root and its parts', () => {
     const { fixture } = createHost();
     const image = fixture.nativeElement.querySelector('andes-avatar-image');
@@ -247,5 +292,82 @@ describe('AndesAvatarGroup', () => {
 
     expect(count.classList).toContain('andes-avatar-group-count--square');
     expect(count.classList).toContain('andes-avatar-group-count--lg');
+  });
+
+  // Same regression as AndesAvatar's own "not dead CSS" suite above:
+  // avatar-group-count.css's shape/size rules are also plain class selectors
+  // bound via `[class]` directly on this component's own host, which never
+  // carries the `_ngcontent-*` attribute Emulated encapsulation requires.
+  it('applies a real, non-empty width/height/border-radius to the overflow count', () => {
+    @Component({
+      imports: [AndesAvatarGroupCount],
+      template: `<andes-avatar-group-count
+        [count]="5"
+        shape="square"
+        size="lg"
+      />`,
+    })
+    class SizedCountHost {}
+
+    const fixture = TestBed.createComponent(SizedCountHost);
+    fixture.detectChanges();
+    const count = fixture.nativeElement.querySelector(
+      'andes-avatar-group-count',
+    ) as HTMLElement;
+    const style = getComputedStyle(count);
+
+    expect(style.width).toBe('3.5rem');
+    expect(style.height).toBe('3.5rem');
+    expect(style.borderRadius).not.toBe('');
+    expect(style.borderRadius).not.toBe('0px');
+  });
+});
+
+describe('AndesAvatarFallback', () => {
+  // Regression coverage for a leading `::ng-deep` in avatar-fallback.css
+  // (i.e. `::ng-deep svg { ... }` instead of `:host ::ng-deep svg { ... }`).
+  // `::ng-deep` as the LEADING part of a selector disables Angular's style
+  // scoping ENTIRELY for that rule, so it compiles to a truly global,
+  // unscoped `svg { width: 1em; height: 1em }` - not merely a rule that
+  // reaches past AndesAvatarFallback's own encapsulation boundary into its
+  // projected content, but one that matches every `<svg>` in the DOM,
+  // anywhere, in any app that ever loads this component. This test renders
+  // AndesAvatarFallback with its own projected icon AND a completely
+  // unrelated `<svg>` elsewhere in the same DOM (simulating some other part
+  // of a consuming app - another component's icon, a chart, anything) and
+  // asserts that only the icon actually inside AndesAvatarFallback's host is
+  // sized; the unrelated one must be untouched.
+  it('sizes an SVG projected into its own host, without leaking that sizing onto an unrelated svg elsewhere in the DOM', () => {
+    @Component({
+      imports: [AndesAvatarFallback],
+      template: `
+        <andes-avatar-fallback>
+          <svg class="fallback-icon" viewBox="0 0 24 24"></svg>
+        </andes-avatar-fallback>
+        <svg class="unrelated-icon" viewBox="0 0 24 24"></svg>
+      `,
+    })
+    class FallbackWithUnrelatedSvgHost {}
+
+    const fixture = TestBed.createComponent(FallbackWithUnrelatedSvgHost);
+    fixture.detectChanges();
+
+    const fallbackIcon = fixture.nativeElement.querySelector(
+      '.fallback-icon',
+    ) as SVGElement;
+    const unrelatedIcon = fixture.nativeElement.querySelector(
+      '.unrelated-icon',
+    ) as SVGElement;
+
+    const fallbackStyle = getComputedStyle(fallbackIcon);
+    const unrelatedStyle = getComputedStyle(unrelatedIcon);
+
+    expect(fallbackStyle.width).toBe('1em');
+    expect(fallbackStyle.height).toBe('1em');
+    // The bug under regression: with a leading `::ng-deep`, this unrelated
+    // svg - not a descendant of andes-avatar-fallback at all - would ALSO
+    // get forced to 1em, because the compiled rule has no host scope left.
+    expect(unrelatedStyle.width).not.toBe('1em');
+    expect(unrelatedStyle.height).not.toBe('1em');
   });
 });

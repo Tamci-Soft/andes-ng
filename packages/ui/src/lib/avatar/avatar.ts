@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   input,
+  ViewEncapsulation,
 } from '@angular/core';
 import clsx from 'clsx';
 
@@ -18,6 +19,17 @@ export type AndesAvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   templateUrl: './avatar.html',
   styleUrl: './avatar.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // avatar.css's shape/size rules are plain class selectors applied via
+  // `[class]` directly on this component's OWN host element (see `classes`
+  // below), not on elements inside its own template. Under the default
+  // Emulated encapsulation, Angular only rewrites plain class selectors to
+  // require its `_ngcontent-*` attribute, which the host element itself
+  // never carries (only `_nghost-*`) - so every one of those rules is dead
+  // and the host renders with no explicit width/height/border-radius (see
+  // Breadcrumb's `encapsulation: ViewEncapsulation.None` fix for the same
+  // root cause). Opting out of scoping here makes the plain class selectors
+  // match by class name the same way a hand-written global stylesheet would.
+  encapsulation: ViewEncapsulation.None,
   providers: [AndesAvatarState],
   host: {
     '[class]': 'classes()',
