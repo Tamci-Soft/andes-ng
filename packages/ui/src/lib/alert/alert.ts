@@ -17,6 +17,14 @@ export type AndesAlertRole = 'alert' | 'status';
   templateUrl: './alert.html',
   styleUrl: './alert.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    // The `role` input is forwarded to the inner div in the template - a static or bound
+    // `role` attribute matching an input's name is otherwise ALSO applied to this host
+    // element by Angular, producing two elements (host + inner div) both carrying
+    // role="alert"/"status", which assistive tech reads as two separate live regions with
+    // duplicate content. Null it out here so only the inner div carries it.
+    '[attr.role]': 'null',
+  },
 })
 export class AndesAlert {
   readonly severity = input<AndesAlertSeverity>('info');
