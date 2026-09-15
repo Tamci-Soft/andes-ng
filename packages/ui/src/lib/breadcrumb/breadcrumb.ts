@@ -1,14 +1,22 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
+  computed,
   Directive,
   ElementRef,
   inject,
   input,
+  output,
   Renderer2,
   ViewEncapsulation,
 } from '@angular/core';
+
+import { AndesDropdownMenu } from '../dropdown-menu/dropdown-menu';
+import { AndesDropdownMenuContent } from '../dropdown-menu/dropdown-menu-content';
+import { AndesDropdownMenuItem } from '../dropdown-menu/dropdown-menu-item';
+import { AndesDropdownMenuTrigger } from '../dropdown-menu/dropdown-menu-trigger';
 
 /**
  * Breadcrumb is a compound set of small parts that communicate purely through DOM nesting and
@@ -184,30 +192,137 @@ export class AndesBreadcrumbSeparator {
 }
 
 /**
+ * One crumb hidden behind an `AndesBreadcrumbEllipsis`, as passed to its `items` input.
+ *
+ * Deliberately a plain data shape rather than projected markup: the crumbs behind a "..." are by
+ * definition the ones the trail had no room to render, so the caller already holds them as data
+ * (a route array, an Ant-Design-style `items` list) and would otherwise have to re-author each of
+ * them as a `<andes-dropdown-menu-item>` by hand.
+ */
+export interface AndesBreadcrumbEllipsisItem {
+  /** Visible text of the hidden crumb. */
+  readonly label: string;
+  /**
+   * Target of the hyperlink. When set, the menu entry renders an `<a andesBreadcrumbLink>` so the
+   * crumb keeps real link semantics (middle-click, "copy link address", browser status bar);
+   * when omitted, the entry is text-only and navigation is left to `(itemSelected)`.
+   */
+  readonly href?: string;
+  /** Whether the entry is present but not selectable. */
+  readonly disabled?: boolean;
+}
+
+/**
  * A collapsed-state indicator for long trails, meant to sit inside an `andesBreadcrumbItem`
  * (`<li andesBreadcrumbItem><andes-breadcrumb-ellipsis /></li>`) - visually a "more" icon with
- * `sr-only` text, meant to be composed with a future dropdown-menu component to expand the hidden
- * middle crumbs, not a component with its own dropdown logic (per the research guide, neither
- * shadcn/ui nor Ant Design gives it one). `role="presentation"`/`aria-hidden="true"` on the host
- * make the whole thing decorative, so the `sr-only` text is not currently exposed to assistive
- * tech either - matching the upstream shadcn/ui source exactly; a real accessible name belongs on
- * whatever interactive trigger wraps this later.
+ * `sr-only` text.
+ *
+ * It has two modes, and which one applies is decided entirely by whether `items` is non-empty, so
+ * the interactive mode is purely additive - existing `<andes-breadcrumb-ellipsis />` usages keep
+ * rendering byte-for-byte the DOM they did before:
+ *
+ * - **Static (default, `items` empty).** A decorative glyph: `role="presentation"` /
+ *   `aria-hidden="true"` on the host make the whole thing invisible to assistive tech (so the
+ *   `sr-only` text is not exposed either), matching the upstream shadcn/ui source exactly. This is
+ *   still the right mode when the consumer wants to wrap the ellipsis in their OWN
+ *   `[andesDropdownMenuTrigger]` and author the menu themselves - shadcn's own
+ *   `BreadcrumbItem` + `DropdownMenu` + `BreadcrumbEllipsis` composition, which keeps working
+ *   unchanged.
+ * - **Interactive (`items` non-empty).** The glyph becomes the trigger of an `AndesDropdownMenu`
+ *   listing the hidden crumbs, which is shadcn's documented "Breadcrumb with Dropdown Menu"
+ *   pattern with the boilerplate folded in. The decorative `role`/`aria-hidden` are dropped (a
+ *   focusable control inside an `aria-hidden` subtree is exactly the "hidden but focusable" error
+ *   axe flags), and the `sr-only` text becomes the trigger's accessible name.
+ *
+ * The dropdown is deliberately assembled from the public `AndesDropdownMenu` parts rather than a
+ * bespoke popup: dismissal (Escape, outside click), positioning, focus return to the trigger and
+ * arrow-key/typeahead navigation all come from the shared `@andes-ng/primitives` overlay + listbox
+ * primitives that component already wires together, so Breadcrumb adds no behavior of its own -
+ * consistent with the research guide's finding that Breadcrumb itself needs no behavior primitive.
+ *
+ * @example Interactive - the ellipsis owns the menu
+ * <li andesBreadcrumbItem>
+ *   <andes-breadcrumb-ellipsis [items]="hiddenCrumbs" (itemSelected)="go($event)" />
+ * </li>
  */
 @Component({
   selector: 'andes-breadcrumb-ellipsis',
+  imports: [
+    NgTemplateOutlet,
+    AndesDropdownMenu,
+    AndesDropdownMenuTrigger,
+    AndesDropdownMenuContent,
+    AndesDropdownMenuItem,
+    AndesBreadcrumbLink,
+  ],
   template: `
-    <ng-content>
-      <svg
-        class="andes-breadcrumb-ellipsis__icon"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-      >
-        <circle cx="5" cy="12" r="1.5" />
-        <circle cx="12" cy="12" r="1.5" />
-        <circle cx="19" cy="12" r="1.5" />
-      </svg>
-    </ng-content>
-    <span class="andes-breadcrumb-ellipsis__sr-only">More</span>
+    @if (hasMenu()) {
+      <andes-dropdown-menu>
+        <button
+          type="button"
+          class="andes-breadcrumb-ellipsis__trigger"
+          andesDropdownMenuTrigger
+        >
+          <ng-container [ngTemplateOutlet]="glyph" />
+          <span class="andes-breadcrumb-ellipsis__sr-only">{{ label() }}</span>
+        </button>
+        <andes-dropdown-menu-content>
+          @for (item of items(); track $index) {
+            <!-- The two branches differ only by the inner anchor, but cannot be collapsed into
+                 one item with a conditional child: a template reference variable declared inside
+                 an @if block is scoped to that block, so #anchor would be out of scope for the
+                 (activated) binding if that binding sat on a shared parent outside it. -->
+            @if (item.href) {
+              <andes-dropdown-menu-item
+                [disabled]="item.disabled ?? false"
+                [typeaheadLabel]="item.label"
+                (activated)="onItemActivated(item, anchor)"
+              >
+                <a
+                  #anchor
+                  andesBreadcrumbLink
+                  class="andes-breadcrumb-ellipsis__menu-link"
+                  tabindex="-1"
+                  [href]="item.href"
+                  (click)="onAnchorClick()"
+                  >{{ item.label }}</a
+                >
+              </andes-dropdown-menu-item>
+            } @else {
+              <andes-dropdown-menu-item
+                [disabled]="item.disabled ?? false"
+                [typeaheadLabel]="item.label"
+                (activated)="onItemActivated(item)"
+              >
+                {{ item.label }}
+              </andes-dropdown-menu-item>
+            }
+          }
+        </andes-dropdown-menu-content>
+      </andes-dropdown-menu>
+    } @else {
+      <ng-container [ngTemplateOutlet]="glyph" />
+      <span class="andes-breadcrumb-ellipsis__sr-only">{{ label() }}</span>
+    }
+
+    <!-- The glyph lives in a template rather than being written out in both branches above
+         because it wraps the component's single ng-content: two ng-content elements with the
+         same (default) selector do NOT each get a copy of the projected nodes - the first one in
+         template order silently wins, even when @if means it is the branch that never renders. A
+         template instantiated from exactly one live branch has no such ambiguity. -->
+    <ng-template #glyph>
+      <ng-content>
+        <svg
+          class="andes-breadcrumb-ellipsis__icon"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <circle cx="5" cy="12" r="1.5" />
+          <circle cx="12" cy="12" r="1.5" />
+          <circle cx="19" cy="12" r="1.5" />
+        </svg>
+      </ng-content>
+    </ng-template>
   `,
   styleUrl: './breadcrumb.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -215,8 +330,59 @@ export class AndesBreadcrumbSeparator {
   encapsulation: ViewEncapsulation.None,
   host: {
     class: 'andes-breadcrumb-ellipsis',
-    role: 'presentation',
-    '[attr.aria-hidden]': 'true',
+    // Decorative only while there is nothing to open - see the class comment. `null` removes the
+    // attribute entirely rather than writing `role=""`/`aria-hidden="false"`.
+    '[attr.role]': 'hasMenu() ? null : "presentation"',
+    '[attr.aria-hidden]': 'hasMenu() ? null : true',
   },
 })
-export class AndesBreadcrumbEllipsis {}
+export class AndesBreadcrumbEllipsis {
+  /**
+   * The crumbs collapsed behind this "...". Empty (the default) keeps the historical static,
+   * non-interactive glyph; anything else turns it into a dropdown menu trigger.
+   */
+  readonly items = input<readonly AndesBreadcrumbEllipsisItem[]>([]);
+
+  /**
+   * Accessible name of the trigger, and the `sr-only` text of the static glyph. Defaults to
+   * `'More'` (the upstream shadcn/ui wording); override it for localization, the same way
+   * `AndesBreadcrumb`'s own `aria-label` is overridden.
+   */
+  readonly label = input('More');
+
+  /** Emits the hidden crumb that was activated, by click, Enter or Space. */
+  readonly itemSelected = output<AndesBreadcrumbEllipsisItem>();
+
+  protected readonly hasMenu = computed(() => this.items().length > 0);
+
+  /**
+   * A real pointer click lands on the inner `<a>` first and navigates natively; the SAME click
+   * then bubbles to the `role="menuitem"` host, whose own handler fires `activated`. Recording the
+   * anchor hit here is what stops `onItemActivated` from synthesizing a second click on an anchor
+   * the browser is already following (which a router directive would see as a duplicate
+   * navigation). Keyboard activation never sets it - focus sits on the menu item, not the anchor.
+   */
+  private anchorHandledClick = false;
+
+  protected onAnchorClick(): void {
+    this.anchorHandledClick = true;
+  }
+
+  protected onItemActivated(
+    item: AndesBreadcrumbEllipsisItem,
+    anchor?: HTMLAnchorElement,
+  ): void {
+    this.itemSelected.emit(item);
+
+    if (this.anchorHandledClick) {
+      this.anchorHandledClick = false;
+      return;
+    }
+
+    // Enter/Space on the focused menu item: forward the activation to the anchor so the crumb
+    // navigates exactly as a click on it would, including through whatever router directive the
+    // consumer put on it. Runs before `AndesDropdownMenuItem` closes the menu, so the anchor is
+    // still in the DOM.
+    anchor?.click();
+  }
+}
