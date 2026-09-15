@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { AndesBadge, AndesBadgeVariant } from './badge';
+import { AndesBadge, AndesBadgeSize, AndesBadgeVariant } from './badge';
 
 @Component({
   imports: [AndesBadge],
@@ -11,6 +11,10 @@ import { AndesBadge, AndesBadgeVariant } from './badge';
     [dot]="dot()"
     [showZero]="showZero()"
     [variant]="variant()"
+    [size]="size()"
+    [processing]="processing()"
+    [offset]="offset()"
+    [title]="title()"
     [standalone]="standalone()"
     ><span class="anchor">Bell</span
     ><span slot="label">Active</span></andes-badge
@@ -22,6 +26,10 @@ class HostComponent {
   readonly dot = signal(false);
   readonly showZero = signal(false);
   readonly variant = signal<AndesBadgeVariant>('danger');
+  readonly size = signal<AndesBadgeSize>('default');
+  readonly processing = signal(false);
+  readonly offset = signal<[number, number] | undefined>(undefined);
+  readonly title = signal<string | undefined>(undefined);
   readonly standalone = signal(false);
 }
 
@@ -163,5 +171,61 @@ describe('AndesBadge', () => {
 
     expect(badge).toBeTruthy();
     expect(badge.classList).toContain('andes-badge--dot');
+  });
+
+  it('applies the small size class', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.count.set(1);
+    fixture.componentInstance.size.set('small');
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge').classList,
+    ).toContain('andes-badge--small');
+  });
+
+  it('renders a pulsing ping element when processing', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.dot.set(true);
+    fixture.componentInstance.processing.set(true);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge__ping'),
+    ).toBeTruthy();
+  });
+
+  it('does not render a ping element by default', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.count.set(1);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge__ping'),
+    ).toBeFalsy();
+  });
+
+  it('applies the offset as CSS custom properties', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.count.set(1);
+    fixture.componentInstance.offset.set([4, -6]);
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector(
+      '.andes-badge',
+    ) as HTMLElement;
+
+    expect(badge.style.getPropertyValue('--andes-badge-offset-x')).toBe('4px');
+    expect(badge.style.getPropertyValue('--andes-badge-offset-y')).toBe('-6px');
+  });
+
+  it('sets a native title tooltip on the indicator', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.count.set(1);
+    fixture.componentInstance.title.set('3 unread messages');
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge').getAttribute('title'),
+    ).toBe('3 unread messages');
   });
 });

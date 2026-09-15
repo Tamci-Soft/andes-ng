@@ -4,16 +4,15 @@
   align-items: center;
   gap: var(--andes-space-1);
   border-radius: var(--andes-radius-sm);
-  border: 1px solid var(--andes-color-border);
+  border: 1px solid transparent;
   padding-block: 0.125rem;
   padding-inline: var(--andes-space-2);
-  background-color: var(--andes-color-muted);
-  color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   font-size: 0.75rem;
   font-weight: var(--andes-font-weight-medium);
   line-height: 1.4;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 /* Projected icons keep their own encapsulation context - see button.css for why ::ng-deep
@@ -24,17 +23,15 @@
   flex-shrink: 0;
 }
 
-.andes-tag--borderless {
-  border-color: transparent;
-}
-
 .andes-tag--disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-/* Interactive (checkable/clickable) tags render as a native <button> - reset its defaults. */
-button.andes-tag {
+/* Interactive (checkable/clickable) tags render as a native <button>, and link tags as a
+   native <a> - reset their non-tag defaults. */
+button.andes-tag,
+a.andes-tag {
   cursor: pointer;
   font: inherit;
 }
@@ -44,13 +41,22 @@ button.andes-tag:disabled {
   opacity: 0.6;
 }
 
-button.andes-tag:focus-visible {
+button.andes-tag:focus-visible,
+a.andes-tag:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
 }
 
 .andes-tag--interactive:hover:not(:disabled) {
-  background-color: var(--andes-color-accent);
+  filter: brightness(0.96);
+}
+
+/* Checkable tags ignore `color`/`variant` (antd's CheckableTag has no such props either) and
+   only ever show this neutral/checked pair. */
+.andes-tag--checkable {
+  background-color: var(--andes-color-muted);
+  border-color: var(--andes-color-border);
+  color: var(--andes-color-foreground);
 }
 
 .andes-tag--checked {
@@ -98,51 +104,173 @@ button.andes-tag:focus-visible {
   height: 0.75em;
 }
 
-/* Variants */
+/*
+ * Color x variant matrix.
+ *
+ * `variant` (outlined/filled/solid) and `color` (default/primary/secondary/success/warning/
+ * danger/info) are independent axes, matching antd Tag's `variant` + `color` props - not a
+ * single combined enum. Each color below defines three treatments:
+ *   - outlined (default): transparent background, colored border + text.
+ *   - filled: a light tint of the color as background (10% mixed into the page background -
+ *     kept low because a couple of colors are otherwise too close to the 4.5:1 floor once
+ *     tinted), colored text, no border.
+ *   - solid: a fully saturated background with a readable text color on top.
+ *
+ * The "colored text/border" shade for outlined/filled is each color's `-active` token rather
+ * than its base color - the base tokens are tuned for readable *white* text on top of them
+ * (as `solid` mostly uses), not for use *as* text on a light background, and several fail
+ * WCAG AA there. `-active` also already flips appropriately per theme (darker in light mode,
+ * lighter in dark mode) to stay readable against the page background either way - verified
+ * against the same relative-luminance formula axe-core's a11y addon uses, in BOTH themes.
+ * `default`/`secondary` reuse their own `-foreground`/`-active` tokens instead, since they're
+ * neutrals rather than saturated brand hues.
+ *
+ * `solid`'s text color is NOT always `-foreground`: success/info's base tokens are too light
+ * for white text (3.30:1 / 4.10:1, below the 4.5:1 minimum), so solid uses their `-active`
+ * shade as the background instead - but `-active` gets *lighter* in dark mode (by design, for
+ * hover feedback against a dark page), so pairing it with the fixed white `-foreground` token
+ * still fails, and worse, in dark mode (1.74:1 / 2.14:1). `--andes-color-background` flips to
+ * exactly the opposite lightness in each theme (white in light mode, dark navy in dark mode),
+ * tracking `-active`'s own flip - using it as the text color instead passes in both themes
+ * (7.13-10.25:1). primary/secondary/danger/warning need no such workaround: their own base
+ * color already pairs safely with their fixed `-foreground` token in both themes.
+ */
 
-.andes-tag--primary {
-  background-color: var(--andes-color-primary);
-  border-color: var(--andes-color-primary);
-  color: var(--andes-color-primary-foreground);
+.andes-tag--color-default.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-border);
+  color: var(--andes-color-foreground);
 }
 
-.andes-tag--secondary {
+.andes-tag--color-default.andes-tag--filled {
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-foreground);
+}
+
+.andes-tag--color-default.andes-tag--solid {
+  background-color: var(--andes-color-foreground);
+  border-color: var(--andes-color-foreground);
+  color: var(--andes-color-background);
+}
+
+.andes-tag--color-secondary.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-secondary-active);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-tag--color-secondary.andes-tag--filled {
+  background-color: var(--andes-color-secondary);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-tag--color-secondary.andes-tag--solid {
   background-color: var(--andes-color-secondary);
   border-color: var(--andes-color-secondary);
   color: var(--andes-color-secondary-foreground);
 }
 
-/* The base success/info tokens are too light for white text to clear WCAG AA (3.30:1 and
-   4.10:1 measured against --andes-color-*-foreground - both below the 4.5:1 normal-text
-   minimum; found via the Storybook a11y addon). Their -active shades already exist for hover
-   states and comfortably pass (>7:1), so solid fills borrow that shade instead of widening
-   the public token contract. Warning and danger already pass with their own base color. */
-.andes-tag--success {
-  background-color: var(--andes-color-success-active);
-  border-color: var(--andes-color-success-active);
-  color: var(--andes-color-success-foreground);
+.andes-tag--color-primary.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-primary-active);
+  color: var(--andes-color-primary-active);
 }
 
-.andes-tag--warning {
+.andes-tag--color-primary.andes-tag--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 10%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-primary-active);
+}
+
+.andes-tag--color-primary.andes-tag--solid {
+  background-color: var(--andes-color-primary);
+  border-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-tag--color-success.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-success-active);
+  color: var(--andes-color-success-active);
+}
+
+.andes-tag--color-success.andes-tag--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-success) 10%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-success-active);
+}
+
+.andes-tag--color-success.andes-tag--solid {
+  background-color: var(--andes-color-success-active);
+  border-color: var(--andes-color-success-active);
+  color: var(--andes-color-background);
+}
+
+.andes-tag--color-warning.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-warning-active);
+  color: var(--andes-color-warning-active);
+}
+
+.andes-tag--color-warning.andes-tag--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-warning) 10%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-warning-active);
+}
+
+.andes-tag--color-warning.andes-tag--solid {
   background-color: var(--andes-color-warning);
   border-color: var(--andes-color-warning);
   color: var(--andes-color-warning-foreground);
 }
 
-.andes-tag--danger {
+.andes-tag--color-danger.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-danger-active);
+  color: var(--andes-color-danger-active);
+}
+
+.andes-tag--color-danger.andes-tag--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-danger) 10%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-danger-active);
+}
+
+.andes-tag--color-danger.andes-tag--solid {
   background-color: var(--andes-color-danger);
   border-color: var(--andes-color-danger);
   color: var(--andes-color-danger-foreground);
 }
 
-.andes-tag--info {
-  background-color: var(--andes-color-info-active);
+.andes-tag--color-info.andes-tag--outlined {
+  background-color: transparent;
   border-color: var(--andes-color-info-active);
-  color: var(--andes-color-info-foreground);
+  color: var(--andes-color-info-active);
 }
 
-.andes-tag--outline {
-  background-color: transparent;
-  border-color: var(--andes-color-border);
-  color: var(--andes-color-foreground);
+.andes-tag--color-info.andes-tag--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-info) 10%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-info-active);
+}
+
+.andes-tag--color-info.andes-tag--solid {
+  background-color: var(--andes-color-info-active);
+  border-color: var(--andes-color-info-active);
+  color: var(--andes-color-background);
 }

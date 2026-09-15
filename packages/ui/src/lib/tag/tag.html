@@ -1,20 +1,7 @@
-@if (isInteractive()) {
-<button
-  type="button"
-  data-slot="tag"
-  [class]="classes()"
-  [disabled]="disabled()"
-  [attr.aria-pressed]="checkable() ? checkedState() : null"
-  (click)="onTagClick($event)"
->
-  <ng-content select="[slot=icon]" />
-  <ng-content />
-</button>
-} @else {
+@if (closable()) {
 <span data-slot="tag" [class]="classes()">
   <ng-content select="[slot=icon]" />
   <ng-content />
-  @if (closable()) {
   <button
     type="button"
     class="andes-tag__close"
@@ -34,6 +21,34 @@
       <line x1="19" y1="5" x2="5" y2="19" />
     </svg>
   </button>
-  }
+</span>
+} @else if (isLink()) {
+<a
+  data-slot="tag"
+  [class]="classes()"
+  [attr.href]="disabled() ? null : href()"
+  [attr.target]="target()"
+  [attr.aria-disabled]="disabled() ? 'true' : null"
+  (click)="onTagClick($event)"
+>
+  <ng-content select="[slot=icon]" />
+  <ng-content />
+</a>
+} @else if (isInteractive()) {
+<button
+  type="button"
+  data-slot="tag"
+  [class]="classes()"
+  [disabled]="disabled()"
+  [attr.aria-pressed]="checkable() ? checkedState() : null"
+  (click)="onTagClick($event)"
+>
+  <ng-content select="[slot=icon]" />
+  <ng-content />
+</button>
+} @else {
+<span data-slot="tag" [class]="classes()">
+  <ng-content select="[slot=icon]" />
+  <ng-content />
 </span>
 }

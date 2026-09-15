@@ -15,6 +15,9 @@ const meta: Meta<AndesBadge> = {
       control: 'select',
       options: ['primary', 'secondary', 'danger', 'success', 'warning', 'info'],
     },
+    size: { control: 'select', options: ['default', 'small'] },
+    processing: { control: 'boolean' },
+    title: { control: 'text' },
     standalone: { control: 'boolean' },
   },
   args: {
@@ -23,12 +26,14 @@ const meta: Meta<AndesBadge> = {
     dot: false,
     showZero: false,
     variant: 'danger',
+    size: 'default',
+    processing: false,
     standalone: false,
   },
   render: (args) => ({
     props: args,
     template: `
-      <andes-badge [count]="count" [max]="max" [dot]="dot" [showZero]="showZero" [variant]="variant" [standalone]="standalone">
+      <andes-badge [count]="count" [max]="max" [dot]="dot" [showZero]="showZero" [variant]="variant" [size]="size" [processing]="processing" [title]="title" [standalone]="standalone">
         <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div>
       </andes-badge>
     `,
@@ -57,6 +62,28 @@ export const ZeroShown: Story = {
 
 export const Dot: Story = {
   args: { dot: true, count: undefined },
+};
+
+export const Small: Story = {
+  args: { count: 5, size: 'small' },
+};
+
+export const Processing: Story = {
+  args: { dot: true, count: undefined, processing: true, variant: 'info' },
+};
+
+export const CustomOffset: Story = {
+  render: () => ({
+    template: `
+      <andes-badge [count]="5" [offset]="[-4, 4]">
+        <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div>
+      </andes-badge>
+    `,
+  }),
+};
+
+export const WithTitleTooltip: Story = {
+  args: { count: 12, title: '12 unread notifications' },
 };
 
 export const Variants: Story = {
