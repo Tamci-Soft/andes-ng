@@ -26,3 +26,17 @@ export type {
   AndesProgressSize,
   AndesProgressVariant,
 } from './lib/progress/progress';
+export {
+  AndesCard,
+  AndesCardAction,
+  AndesCardContent,
+  AndesCardDescription,
+  AndesCardFooter,
+  AndesCardHeader,
+  AndesCardTitle,
+} from './lib/card/card';
+export type {
+  AndesCardSize,
+  AndesCardTitleLevel,
+  AndesCardVariant,
+} from './lib/card/card';
