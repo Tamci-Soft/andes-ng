@@ -1,0 +1,15 @@
+<button
+  type="button"
+  role="tab"
+  andesListNavigationItem
+  [attr.aria-selected]="isSelected()"
+  [attr.aria-controls]="panelId()"
+  [disabled]="disabled()"
+  [attr.disabled]="disabled() ? '' : null"
+  [class]="classes()"
+  (click)="onSelect()"
+  (keydown.enter)="onSelect()"
+  (keydown.space)="onSelect()"
+>
+  <ng-content />
+</button>

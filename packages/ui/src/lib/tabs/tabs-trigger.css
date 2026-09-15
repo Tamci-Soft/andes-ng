@@ -1,0 +1,46 @@
+.andes-tabs__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-2);
+  padding: var(--andes-space-2) var(--andes-space-4);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: var(--andes-font-family), sans-serif;
+  font-weight: var(--andes-font-weight-medium);
+  font-size: 0.875rem;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* `andes-tabs-list` is a sibling component, not an ancestor within this component's own
+   template - but CSS combinators match the real, rendered DOM regardless of Angular's
+   emulated-encapsulation boundaries, so this reaches the button correctly. */
+andes-tabs-list[aria-orientation='vertical'] .andes-tabs__trigger {
+  justify-content: flex-start;
+  border-bottom: none;
+  border-right: 2px solid transparent;
+}
+
+.andes-tabs__trigger:hover:not(:disabled) {
+  color: var(--andes-color-foreground);
+}
+
+.andes-tabs__trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.andes-tabs__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-tabs__trigger--selected {
+  color: var(--andes-color-primary);
+  border-color: var(--andes-color-primary);
+}
