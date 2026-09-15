@@ -1,0 +1,57 @@
+/* This component only ever wraps a heading + button pair - it should never introduce its own
+   box in the layout. */
+:host {
+  display: contents;
+}
+
+.andes-accordion-trigger__heading {
+  display: flex;
+  margin: 0;
+  font: inherit;
+}
+
+.andes-accordion-trigger__button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
+  width: 100%;
+  padding-block: var(--andes-space-4);
+  background: none;
+  border: none;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 1rem;
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-foreground);
+  text-align: start;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.andes-accordion-trigger__button:hover:not(:disabled) {
+  color: var(--andes-color-primary-text);
+}
+
+.andes-accordion-trigger__button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-accordion-trigger__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-accordion-trigger__icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--andes-color-muted-foreground);
+  transition: transform 0.2s ease;
+}
+
+.andes-accordion-trigger__button[aria-expanded='true']
+  .andes-accordion-trigger__icon {
+  transform: rotate(180deg);
+}
