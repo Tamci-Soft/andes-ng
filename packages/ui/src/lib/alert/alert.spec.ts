@@ -93,6 +93,29 @@ describe('AndesAlert', () => {
     expect(alert.getAttribute('role')).toBe('alert');
   });
 
+  it('does not duplicate the role attribute onto the host element', () => {
+    // Regression test: a static `role="..."` attribute (unlike a `[role]` property binding)
+    // matches the `role` input's name, so Angular also writes it onto <andes-alert> itself
+    // unless the host metadata explicitly nulls it out - producing two elements (host + inner
+    // div) both carrying the same role and duplicate live-region announcements for screen
+    // reader users. Only the inner div is supposed to carry it.
+    @Component({
+      imports: [AndesAlert],
+      template: `<andes-alert role="alert">Something went wrong.</andes-alert>`,
+    })
+    class StaticRoleHost {}
+
+    const fixture = TestBed.createComponent(StaticRoleHost);
+    fixture.detectChanges();
+    const host = fixture.nativeElement.querySelector(
+      'andes-alert',
+    ) as HTMLElement;
+    const inner = host.querySelector('[data-slot="alert"]') as HTMLElement;
+
+    expect(host.hasAttribute('role')).toBe(false);
+    expect(inner.getAttribute('role')).toBe('alert');
+  });
+
   it('shows the severity icon by default', () => {
     const { alert } = createHost();
 
