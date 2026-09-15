@@ -1,5 +1,6 @@
 import { moduleMetadata, type Meta, type StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import {
   AndesCard,
   AndesCardAction,
@@ -16,6 +17,11 @@ const meta: Meta<AndesCard> = {
   tags: ['autodocs'],
   decorators: [
     moduleMetadata({
+      // AndesButton is imported here rather than per-story so every story that needs a card
+      // action uses the library's own button. Card's demos double as living documentation, so
+      // they should show the two components composing the way a consumer is meant to use them
+      // - a raw <button> would render unstyled browser chrome and quietly document the wrong
+      // pattern.
       imports: [
         AndesCardHeader,
         AndesCardTitle,
@@ -23,6 +29,7 @@ const meta: Meta<AndesCard> = {
         AndesCardAction,
         AndesCardContent,
         AndesCardFooter,
+        AndesButton,
       ],
     }),
   ],
@@ -48,7 +55,7 @@ const meta: Meta<AndesCard> = {
           <p style="margin: 0;">Invite teammates by email and assign them a role.</p>
         </andes-card-content>
         <andes-card-footer>
-          <button type="button">Invite member</button>
+          <andes-button>Invite member</andes-button>
         </andes-card-footer>
       </andes-card>
     `,
@@ -84,7 +91,7 @@ export const HeaderWithAction: Story = {
           <andes-card-title>Team members</andes-card-title>
           <andes-card-description>Manage who has access to this project.</andes-card-description>
           <andes-card-action>
-            <button type="button">Edit</button>
+            <andes-button variant="outline" size="sm">Edit</andes-button>
           </andes-card-action>
         </andes-card-header>
         <andes-card-content>
@@ -161,7 +168,7 @@ export const Overview: Story = {
             <andes-card-description>variant="outlined"</andes-card-description>
           </andes-card-header>
           <andes-card-content><p style="margin:0;">Body content.</p></andes-card-content>
-          <andes-card-footer><button type="button">Action</button></andes-card-footer>
+          <andes-card-footer><andes-button size="sm">Action</andes-button></andes-card-footer>
         </andes-card>
 
         <andes-card variant="borderless" style="max-width: 300px;">
@@ -176,7 +183,9 @@ export const Overview: Story = {
           <andes-card-header>
             <andes-card-title>Small + hoverable</andes-card-title>
             <andes-card-description>size="sm" hoverable</andes-card-description>
-            <andes-card-action><button type="button">⋯</button></andes-card-action>
+            <andes-card-action>
+              <andes-button variant="ghost" size="icon-sm" aria-label="More options">⋯</andes-button>
+            </andes-card-action>
           </andes-card-header>
           <andes-card-content><p style="margin:0;">Hover to see the elevation.</p></andes-card-content>
         </andes-card>

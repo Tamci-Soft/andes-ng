@@ -68,11 +68,32 @@
   color: var(--andes-color-muted-foreground);
 }
 
+/* `display: flex` here is load-bearing, not cosmetic: it blockifies whatever is projected into the
+   slot so the slot's box wraps the control exactly instead of deriving its height from a line box.
+   `gap` covers the multiple-actions case, where inline children would otherwise be separated only
+   by collapsed whitespace. Both stay agnostic about the content - a plain `<button>` behaves
+   identically as a flex item. */
 :host(.andes-card__action) {
   grid-column: 2;
   grid-row: 1 / -1;
   justify-self: end;
   align-self: start;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+}
+
+/* AndesButton puts `.andes-button`'s `inline-flex` on the real button/anchor *inside* its template,
+   leaving its own `<andes-button>` host with no display of its own. Blockified as a flex item above,
+   that host still wraps its inline-flex child in a line box, so the host's strut adds leading the
+   button itself never accounts for and the action drifts off the title's top edge as the surrounding
+   font-size grows (measured: ~8px of phantom space above a 32px button at a 2rem font-size). Making
+   the host a flex container collapses that line box, so the host hugs the button at any font-size.
+   The host is projected content in the consumer's encapsulation context, so a plain descendant
+   selector can't reach it - ::ng-deep is the sanctioned escape hatch here, the same way button.css
+   reaches its own projected icons via `.andes-button ::ng-deep svg`. */
+:host(.andes-card__action) ::ng-deep andes-button {
+  display: flex;
 }
 
 :host(.andes-card__content) {
