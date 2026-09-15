@@ -106,25 +106,27 @@
   color: var(--andes-color-danger-foreground);
 }
 
-/* success/info's base tokens are too light for white text to clear WCAG AA (3.30:1 and
-   4.10:1 against --andes-color-*-foreground - both below the 4.5:1 normal-text minimum;
-   found via the Storybook a11y addon). Their -active shades pass comfortably in light mode
-   (>7:1) - but -active tokens get *lighter*, not darker, in dark mode (by design, for hover
-   feedback against a dark page), so pairing -active with the fixed white -foreground token
-   fails even worse there (1.74:1 / 2.14:1). --andes-color-background flips to exactly the
-   opposite lightness in each theme (white in light mode, dark navy in dark mode) - using it
-   as the text color, instead of the -foreground token, tracks -active's own flip and passes
-   in both themes (7.13-10.25:1). Verified against the same WCAG formula axe-core's a11y
-   addon uses; primary/secondary/danger/warning need no such workaround since their base
-   color's own light/dark values already pair safely with their fixed -foreground token. */
+/* success/info/warning's base tokens are too light for white text to clear WCAG AA (3.30:1,
+   4.10:1 and 4.22:1 respectively against --andes-color-*-foreground - all below the 4.5:1
+   normal-text minimum; found via the Storybook a11y addon and confirmed by recomputing the
+   WCAG relative-luminance formula directly). Their -active shades pass comfortably in light
+   mode (>5:1) - but -active tokens get *lighter*, not darker, in dark mode (by design, for
+   hover feedback against a dark page), so pairing -active with the fixed white -foreground
+   token fails even worse there (as low as 1.44:1 for warning). --andes-color-background flips
+   to exactly the opposite lightness in each theme (white in light mode, dark navy in dark
+   mode) - using it as the text color, instead of the -foreground token, tracks -active's own
+   flip and passes in both themes (5.02-12.38:1). Verified against the same WCAG formula
+   axe-core's a11y addon uses; primary/secondary/danger need no such workaround since their
+   base color's own light/dark values already pair safely with their fixed -foreground
+   token. */
 .andes-badge--success {
   background-color: var(--andes-color-success-active);
   color: var(--andes-color-background);
 }
 
 .andes-badge--warning {
-  background-color: var(--andes-color-warning);
-  color: var(--andes-color-warning-foreground);
+  background-color: var(--andes-color-warning-active);
+  color: var(--andes-color-background);
 }
 
 .andes-badge--info {
