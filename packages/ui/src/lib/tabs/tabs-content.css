@@ -1,6 +1,7 @@
 :host {
   display: block;
   margin-top: var(--andes-space-3);
+  font-family: var(--andes-font-family), sans-serif;
 }
 
 :host(:focus-visible) {
