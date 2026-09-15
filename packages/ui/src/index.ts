@@ -20,3 +20,4 @@ export type {
   AndesTextareaResize,
   AndesTextareaSize,
 } from './lib/textarea/textarea';
+export { AndesCheckbox } from './lib/checkbox/checkbox';
