@@ -166,3 +166,11 @@ export type {
   AndesSortState,
   AndesSortValue,
 } from './lib/table/table-sort';
+export { AndesSlider } from './lib/slider/slider';
+export type {
+  AndesSliderMark,
+  AndesSliderMarkInput,
+  AndesSliderOrientation,
+  AndesSliderTooltip,
+  AndesSliderValue,
+} from './lib/slider/slider';
