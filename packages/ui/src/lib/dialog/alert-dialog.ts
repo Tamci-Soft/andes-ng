@@ -3,6 +3,7 @@ import {
   AndesOverlayContentPrimitive,
   AndesOverlayTriggerPrimitive,
   provideAndesOverlay,
+  type AndesOverlayConfig,
   type AndesOverlayPreset,
 } from '@andes-ng/primitives';
 import {
@@ -19,6 +20,7 @@ import {
 import clsx from 'clsx';
 
 import {
+  ANDES_DIALOG_BACKDROP_CLASS,
   AndesDialogRoot,
   AndesDialogRootBase,
   AndesDialogSurface,
@@ -98,6 +100,10 @@ export class AndesAlertDialog extends AndesDialogRootBase {
   protected surfaceTemplate(): TemplateRef<void> | undefined {
     return this.contentTemplate()?.templateRef;
   }
+
+  protected override configOverrides(): Partial<AndesOverlayConfig> {
+    return { backdropClass: ANDES_DIALOG_BACKDROP_CLASS };
+  }
 }
 
 /** The element that opens an alert dialog. */
@@ -124,7 +130,9 @@ export class AndesAlertDialogTrigger {
  */
 @Component({
   selector: 'andes-alert-dialog-content',
-  template: '<ng-content />',
+  // Same viewport wrapper as AndesDialogContent, so a long confirmation scrolls its body
+  // under a pinned header and footer rather than scrolling the whole surface.
+  template: '<div class="andes-dialog__viewport"><ng-content /></div>',
   styleUrl: './dialog.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
