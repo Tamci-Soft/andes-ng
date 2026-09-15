@@ -142,6 +142,19 @@ export interface AndesOverlayConfig {
   readonly closeOnOutsideClick: boolean;
   /** Block document scroll while open. */
   readonly lockScroll: boolean;
+  /**
+   * Mark everything outside the overlay `inert` while it is open, so a screen
+   * reader browsing the page (not just tabbing through it) cannot reach content
+   * behind a modal. `trapFocus` only governs Tab and `ariaModal` is a hint AT does
+   * not universally honour, so a truly modal overlay needs this as well.
+   *
+   * Applies to every direct child of `<body>` except the one the overlay itself is
+   * portalled into, and is reference-counted across nested overlays.
+   *
+   * On for the `dialog`, `alert-dialog` and `drawer` presets; off for the
+   * non-modal `popover`, `menu` and `tooltip`, which must leave the page usable.
+   */
+  readonly inertBackground: boolean;
   /** Render a backdrop scrim using `--andes-color-overlay`. */
   readonly hasBackdrop: boolean;
   /** ARIA role for the content element. */
@@ -161,9 +174,9 @@ export interface AndesOverlayConfig {
 }
 
 /**
- * Deliberately conservative defaults: no focus trap, no scroll lock, no backdrop.
- * A consumer that forgets to configure gets the least invasive overlay rather than
- * one that silently hijacks the page.
+ * Deliberately conservative defaults: no focus trap, no scroll lock, no backdrop,
+ * no inert background. A consumer that forgets to configure gets the least
+ * invasive overlay rather than one that silently hijacks the page.
  */
 export const ANDES_OVERLAY_DEFAULT_CONFIG: AndesOverlayConfig = {
   layer: 'overlay',
@@ -174,6 +187,7 @@ export const ANDES_OVERLAY_DEFAULT_CONFIG: AndesOverlayConfig = {
   closeOnEscape: true,
   closeOnOutsideClick: true,
   lockScroll: false,
+  inertBackground: false,
   hasBackdrop: false,
   role: 'none',
   ariaModal: false,
@@ -197,6 +211,7 @@ const DIALOG_PRESET: Partial<AndesOverlayConfig> = {
   closeOnEscape: true,
   closeOnOutsideClick: true,
   lockScroll: true,
+  inertBackground: true,
   hasBackdrop: true,
   role: 'dialog',
   ariaModal: true,
@@ -208,7 +223,8 @@ const DIALOG_PRESET: Partial<AndesOverlayConfig> = {
  * then override. They exist so the five components do not each invent their own
  * answer to "should a menu trap focus?" independently.
  *
- * - `dialog` / `alert-dialog` / `drawer` are modal: trap, lock scroll, backdrop.
+ * - `dialog` / `alert-dialog` / `drawer` are modal: trap, lock scroll, backdrop,
+ *   and an inert background so AT cannot reach the page behind them.
  *   `alert-dialog` additionally refuses outside-click dismissal, per the WAI-ARIA
  *   distinction between `dialog` and `alertdialog`.
  * - `drawer` sits on the `overlay` layer rather than `modal`, so a confirmation
@@ -216,8 +232,9 @@ const DIALOG_PRESET: Partial<AndesOverlayConfig> = {
  * - `popover` and `menu` move focus into the overlay (both are click-opened and
  *   contain interactive content, so keyboard users must be able to reach it) but do
  *   not trap it: the page behind stays usable and scrollable, matching Base UI's
- *   non-modal Popover default. Consumers that render a close button inside and want
- *   modal semantics can flip `trapFocus` on.
+ *   non-modal Popover default, and they leave the rest of the page readable by
+ *   assistive tech. Consumers that render a close button inside and want modal
+ *   semantics can flip `trapFocus` and `inertBackground` on together.
  * - `tooltip` moves nothing, traps nothing and restores nothing — it is a passive
  *   hint attached to an element that already has focus.
  */
@@ -249,6 +266,7 @@ export const ANDES_OVERLAY_PRESETS: Readonly<
     closeOnEscape: true,
     closeOnOutsideClick: true,
     lockScroll: false,
+    inertBackground: false,
     hasBackdrop: false,
     role: 'dialog',
     ariaModal: false,
@@ -268,6 +286,7 @@ export const ANDES_OVERLAY_PRESETS: Readonly<
     closeOnEscape: true,
     closeOnOutsideClick: true,
     lockScroll: false,
+    inertBackground: false,
     hasBackdrop: false,
     role: 'menu',
     ariaModal: false,
@@ -287,6 +306,7 @@ export const ANDES_OVERLAY_PRESETS: Readonly<
     closeOnEscape: true,
     closeOnOutsideClick: true,
     lockScroll: false,
+    inertBackground: false,
     hasBackdrop: false,
     role: 'tooltip',
     ariaModal: false,
