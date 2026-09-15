@@ -44,6 +44,23 @@
   --andes-color-danger-active: #991b1b;
   --andes-color-danger-foreground: #ffffff;
 
+  --andes-color-success: #16a34a;
+  --andes-color-success-hover: #15803d;
+  --andes-color-success-active: #166534;
+  --andes-color-success-foreground: #ffffff;
+
+  --andes-color-warning: #f59e0b;
+  --andes-color-warning-hover: #d97706;
+  --andes-color-warning-active: #b45309;
+  /* Amber only reaches AA contrast with a dark foreground, not white - unlike primary/danger/
+     success, which are dark enough to pair with white text. */
+  --andes-color-warning-foreground: #78350f;
+
+  --andes-color-info: #0284c7;
+  --andes-color-info-hover: #0369a1;
+  --andes-color-info-active: #075985;
+  --andes-color-info-foreground: #ffffff;
+
   --andes-color-border: #d1d5db;
   --andes-color-input: #d1d5db;
   --andes-color-focus-ring: #2563eb;
@@ -55,6 +72,10 @@
   --andes-color-ghost: #ffffff;
   --andes-color-primary-ghost: #60a5fa;
   --andes-color-danger-ghost: #fca5a5;
+
+  /* Backdrop scrim behind an overlay (Dialog/Drawer). Black-based rather than theme-based on
+     purpose - a scrim dims whatever is behind it regardless of the page's own light/dark theme. */
+  --andes-color-overlay: rgb(15 23 42 / 45%);
 
   --andes-font-family: system-ui, sans-serif;
   --andes-font-weight-medium: 500;
@@ -70,6 +91,15 @@
   --andes-space-3: 0.75rem;
   --andes-space-4: 1rem;
   --andes-space-5: 1.25rem;
+
+  /* Stacking order for layered UI. Numeric (unitless) so consumers can use them directly in
+     z-index. Not overridden per-theme - layering order doesn't depend on light/dark. */
+  --andes-z-index-dropdown: 1000;
+  --andes-z-index-overlay: 1040;
+  --andes-z-index-modal: 1050;
+  --andes-z-index-popover: 1060;
+  --andes-z-index-tooltip: 1070;
+  --andes-z-index-toast: 1080;
 }
 
 [data-andes-theme='dark'] {
@@ -105,7 +135,24 @@
   --andes-color-danger-active: #f87171;
   --andes-color-danger-foreground: #ffffff;
 
+  --andes-color-success: #16a34a;
+  --andes-color-success-hover: #22c55e;
+  --andes-color-success-active: #4ade80;
+  --andes-color-success-foreground: #ffffff;
+
+  --andes-color-warning: #f59e0b;
+  --andes-color-warning-hover: #fbbf24;
+  --andes-color-warning-active: #fcd34d;
+  --andes-color-warning-foreground: #78350f;
+
+  --andes-color-info: #0284c7;
+  --andes-color-info-hover: #0ea5e9;
+  --andes-color-info-active: #38bdf8;
+  --andes-color-info-foreground: #ffffff;
+
   --andes-color-border: #334155;
   --andes-color-input: #334155;
   --andes-color-focus-ring: #3b82f6;
+
+  --andes-color-overlay: rgb(2 6 23 / 65%);
 }

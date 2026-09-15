@@ -18,7 +18,7 @@ Tailwind CSS 4 may be used by documentation or product applications, but Tailwin
 
 The stylesheet entry point is in place and packaged: `packages/tokens/src/theme.css` is copied to `packages/tokens/dist/theme.css` and exposed through the `./theme.css` export, and `apps/playground` imports it the way a consumer would. The naming contract is fixed by `ANDES_TOKEN_PREFIX` (`--andes-`) and `ANDES_THEME_ATTRIBUTE` (`data-andes-theme`).
 
-The token catalogue now covers the categories a real component needs: background/foreground, card, popover, primary/secondary/danger/muted/accent (each with a foreground pair), border, input, focus-ring, a radius scale and a spacing scale. Dark mode is implemented via `ANDES_THEME_ATTRIBUTE` — `[data-andes-theme='dark']` redefines every color token; consumers toggle it on `<html>` or any ancestor, there is no automatic `prefers-color-scheme` fallback.
+The token catalogue now covers the categories a real component needs: background/foreground, card, popover, primary/secondary/danger/success/warning/info/muted/accent (each with a foreground pair), border, input, focus-ring, an overlay scrim color, a z-index scale for layered UI (dropdown/overlay/modal/popover/tooltip/toast), a radius scale and a spacing scale. Dark mode is implemented via `ANDES_THEME_ATTRIBUTE` — `[data-andes-theme='dark']` redefines every color token; consumers toggle it on `<html>` or any ancestor, there is no automatic `prefers-color-scheme` fallback.
 
 ## Consequences
 
