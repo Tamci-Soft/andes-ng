@@ -207,6 +207,112 @@ class BareWrapperControlHost {
   readonly accept = new FormControl('', { validators: Validators.required });
 }
 
+/**
+ * A wrapper exposing `aria-labelledby`/`aria-describedby`/`aria-invalid` but deliberately NO
+ * `id` input - the exact shape of `AndesSelect`, `AndesCheckbox`, `AndesSwitch`,
+ * `AndesRadioGroup` and `AndesSlider` (each was re-read from its own branch to confirm). Used to
+ * prove the `labelledBy()` workaround gives those components a correct accessible name without
+ * any change to their own source.
+ */
+@Component({
+  selector: 'andes-test-labelledby-wrapper',
+  imports: [],
+  template: `<input
+    #native
+    [attr.aria-labelledby]="ariaLabelledby"
+    [attr.aria-describedby]="ariaDescribedby"
+    [attr.aria-invalid]="ariaInvalid || null"
+    [value]="value()"
+    (input)="onInput($event)"
+    (blur)="onTouched()"
+  />`,
+  host: { '[attr.aria-labelledby]': 'null' },
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => TestLabelledbyWrapper),
+      multi: true,
+    },
+  ],
+})
+class TestLabelledbyWrapper implements ControlValueAccessor {
+  @Input('aria-labelledby') ariaLabelledby: string | null = null;
+  @Input('aria-describedby') ariaDescribedby: string | null = null;
+  @Input('aria-invalid') ariaInvalid = false;
+
+  protected readonly value = signal('');
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  private onChange: (value: string) => void = () => {};
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  onTouched: () => void = () => {};
+
+  writeValue(value: string | null): void {
+    this.value.set(value ?? '');
+  }
+
+  registerOnChange(fn: (value: string) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  protected onInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.value.set(value);
+    this.onChange(value);
+  }
+}
+
+@Component({
+  imports: [
+    ReactiveFormsModule,
+    AndesFormField,
+    AndesFormLabel,
+    AndesFormControl,
+    AndesFormError,
+    TestLabelledbyWrapper,
+  ],
+  template: `<andes-form-field>
+    <andes-form-label>Country</andes-form-label>
+    <andes-test-labelledby-wrapper
+      andesFormControl
+      #ctrl="andesFormControl"
+      [formControl]="country"
+      [aria-labelledby]="ctrl.labelledBy()"
+      [aria-describedby]="ctrl.describedBy()"
+      [aria-invalid]="ctrl.showError()"
+    />
+    <andes-form-error>Please pick a country.</andes-form-error>
+  </andes-form-field>`,
+})
+class LabelledbyWrapperHost {
+  readonly country = new FormControl('', { validators: Validators.required });
+}
+
+/** Same wrapper, but with no `<andes-form-label>` authored at all - `labelledBy()` must stay
+ *  `null` rather than point `aria-labelledby` at an id that does not exist. */
+@Component({
+  imports: [
+    ReactiveFormsModule,
+    AndesFormField,
+    AndesFormControl,
+    TestLabelledbyWrapper,
+  ],
+  template: `<andes-form-field>
+    <andes-test-labelledby-wrapper
+      andesFormControl
+      #ctrl="andesFormControl"
+      [formControl]="country"
+      [aria-labelledby]="ctrl.labelledBy()"
+    />
+  </andes-form-field>`,
+})
+class LabelledbyWrapperNoLabelHost {
+  readonly country = new FormControl('');
+}
+
 @Component({
   selector: 'andes-test-optional-host',
   imports: [ReactiveFormsModule, AndesFormField, AndesFormControl],
@@ -605,6 +711,84 @@ describe('AndesFormField', () => {
       ) as HTMLInputElement;
 
       expect(innerInput.id).toBeTruthy();
+    });
+  });
+
+  // The aria-labelledby escape hatch for the five wrapper components that expose no `id` input
+  // (AndesSelect/Checkbox/Switch/RadioGroup/Slider). They all DO accept aria-labelledby and
+  // forward it onto their real internal control, so naming them needs no change on their side -
+  // only a stable id on the label AndesFormLabel already renders.
+  describe('aria-labelledby fallback for wrappers with no id input', () => {
+    it('gives the rendered <label> a stable id derived from the field id', () => {
+      const fixture = TestBed.createComponent(NativeInputHost);
+      fixture.detectChanges();
+      const label = fixture.nativeElement.querySelector(
+        'label',
+      ) as HTMLLabelElement;
+      const input = fixture.nativeElement.querySelector(
+        'input',
+      ) as HTMLInputElement;
+
+      expect(label.id).toBe(`${input.id}-label`);
+    });
+
+    it('names a wrapper´s internal control through aria-labelledby', () => {
+      const fixture = TestBed.createComponent(LabelledbyWrapperHost);
+      fixture.detectChanges();
+      const label = fixture.nativeElement.querySelector(
+        'label',
+      ) as HTMLLabelElement;
+      const innerInput = fixture.nativeElement.querySelector(
+        'andes-test-labelledby-wrapper input',
+      ) as HTMLInputElement;
+
+      expect(label.id).toBeTruthy();
+      expect(innerInput.getAttribute('aria-labelledby')).toBe(label.id);
+      // The id it points at must actually resolve in the document, which is the whole
+      // difference between this and the dangling `for` it works around.
+      expect(fixture.nativeElement.querySelector(`#${label.id}`)).toBe(label);
+    });
+
+    it('omits aria-labelledby entirely when no label was authored', () => {
+      const fixture = TestBed.createComponent(LabelledbyWrapperNoLabelHost);
+      fixture.detectChanges();
+      const innerInput = fixture.nativeElement.querySelector(
+        'andes-test-labelledby-wrapper input',
+      ) as HTMLInputElement;
+
+      expect(innerInput.hasAttribute('aria-labelledby')).toBe(false);
+    });
+
+    it('still folds description/error ids into the same wrapper´s aria-describedby', () => {
+      const fixture = TestBed.createComponent(LabelledbyWrapperHost);
+      fixture.detectChanges();
+      const innerInput = fixture.nativeElement.querySelector(
+        'andes-test-labelledby-wrapper input',
+      ) as HTMLInputElement;
+
+      expect(innerInput.hasAttribute('aria-describedby')).toBe(false);
+
+      fixture.componentInstance.country.markAsTouched();
+      fixture.detectChanges();
+
+      const error = fixture.nativeElement.querySelector(
+        '.andes-form-error',
+      ) as HTMLElement;
+      expect(innerInput.getAttribute('aria-describedby')).toBe(error.id);
+      expect(innerInput.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('does not make the label clickable - the remaining, documented gap', () => {
+      const fixture = TestBed.createComponent(LabelledbyWrapperHost);
+      fixture.detectChanges();
+      const label = fixture.nativeElement.querySelector(
+        'label',
+      ) as HTMLLabelElement;
+
+      // aria-labelledby supplies the accessible NAME only. Only a native for/id pair populates
+      // `label.control`/`element.labels` and moves focus on click, and that still needs an `id`
+      // input on each of those five components.
+      expect(label.control).toBeNull();
     });
   });
 

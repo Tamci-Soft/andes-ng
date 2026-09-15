@@ -12,8 +12,10 @@ import { InjectionToken } from '@angular/core';
  */
 export interface AndesFormFieldApi {
   readonly controlId: () => string;
+  readonly labelId: () => string;
   readonly descriptionId: () => string;
   readonly errorId: () => string;
+  readonly labelledBy: () => string | null;
   readonly describedBy: () => string | null;
   readonly showError: () => boolean;
 }
@@ -32,8 +34,11 @@ export const ANDES_FORM_CONTROL = new InjectionToken<AndesFormControlApi>(
   'AndesFormControl',
 );
 
-/** Presence markers only - `AndesFormField` just needs to know whether a description/error
- *  slot was authored at all, to decide whether to fold its id into `aria-describedby`. */
+/** Presence markers only - `AndesFormField` just needs to know whether a label/description/
+ *  error slot was authored at all, to decide whether to expose its id (`aria-labelledby`) or
+ *  fold it into `aria-describedby`. */
+export const ANDES_FORM_LABEL = new InjectionToken<unknown>('AndesFormLabel');
+
 export const ANDES_FORM_DESCRIPTION = new InjectionToken<unknown>(
   'AndesFormDescription',
 );
