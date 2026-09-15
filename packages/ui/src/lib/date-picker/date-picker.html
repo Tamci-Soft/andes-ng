@@ -1,0 +1,61 @@
+<div class="andes-date-picker">
+  <!-- A button styled as a form field, not a text input: this version has no date
+       parsing, so the trigger never accepts text. `button` also natively supports
+       the aria-haspopup/aria-expanded/aria-controls that andesOverlayTrigger
+       applies, with no role override. -->
+  <button
+    andesOverlayTrigger
+    type="button"
+    class="andes-date-picker__trigger"
+    data-slot="date-picker-trigger"
+    [disabled]="isDisabled()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-labelledby]="ariaLabelledby()"
+    (click)="toggle()"
+    (keydown)="onTriggerKeydown($event)"
+  >
+    <span
+      class="andes-date-picker__value"
+      [class.andes-date-picker__value--placeholder]="!displayValue()"
+      >{{ displayValue() || placeholder() }}</span
+    >
+
+    <span class="andes-date-picker__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <path
+          d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+  </button>
+</div>
+
+<ng-template #panel>
+  <div
+    andesOverlayContent
+    class="andes-date-picker__panel"
+    data-slot="date-picker-panel"
+    [attr.aria-label]="panelLabel()"
+  >
+    <andes-calendar
+      autoFocus
+      [mode]="mode()"
+      [value]="selection()"
+      [min]="min()"
+      [max]="max()"
+      [locale]="locale()"
+      [weekStartsOn]="weekStartsOn()"
+      [showOutsideDays]="showOutsideDays()"
+      [fixedWeeks]="fixedWeeks()"
+      [dateDisabled]="dateDisabled()"
+      [defaultMonth]="defaultMonth()"
+      [disabled]="isDisabled()"
+      (valueChange)="onCalendarValueChange($event)"
+    />
+  </div>
+</ng-template>
