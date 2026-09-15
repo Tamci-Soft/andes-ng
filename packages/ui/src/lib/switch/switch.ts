@@ -46,8 +46,10 @@ export class AndesSwitch implements ControlValueAccessor {
    * left for it to silently diverge from.
    *
    * `model()` does not support the `transform` option that `input()` does, so a bare boolean
-   * attribute (`<andes-switch checked>`, no brackets) is no longer coerced through
-   * `booleanAttribute` - callers should use a property binding (`[checked]="true"`) instead.
+   * attribute (`<andes-switch checked>`, no brackets) is written into the model as the literal
+   * empty string, not `true` - the same gap `AndesCheckbox` hit on its own `model()` fields.
+   * `isChecked` below coerces that back through `booleanAttribute` for template consumption;
+   * callers still writing new templates should prefer a property binding (`[checked]="true"`).
    */
   readonly checked = model(false);
   readonly disabled = input(false, { transform: booleanAttribute });
@@ -67,6 +69,21 @@ export class AndesSwitch implements ControlValueAccessor {
     alias: 'aria-invalid',
     transform: booleanAttribute,
   });
+
+  /**
+   * `checked` coerced through `booleanAttribute`, for TEMPLATE CONSUMPTION only (see the doc
+   * comment on `checked` above) - mirrors `checkedProp` on `AndesCheckbox`. Reads in switch.html
+   * that render state (`aria-checked`, the `data-checked`/`data-unchecked` attrs, the
+   * checked/unchecked slot switch) go through this computed instead of the raw model, so a bare
+   * `<andes-switch checked>` renders as truthy instead of leaking the empty-string attribute
+   * value into the DOM. Writes (`this.checked.set(...)`, `writeValue`) still go straight to the
+   * `checked` model itself - it stays the single source of truth for reads/writes and the
+   * `[(checked)]` two-way binding surface; this computed can never itself drift out of sync
+   * with it, being a pure derived formatter.
+   */
+  protected readonly isChecked = computed(() =>
+    booleanAttribute(this.checked()),
+  );
 
   private readonly formDisabled = signal(false);
 
