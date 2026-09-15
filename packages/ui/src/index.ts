@@ -5,5 +5,11 @@ export { AndesAvatar } from './lib/avatar/avatar';
 export type { AndesAvatarShape, AndesAvatarSize } from './lib/avatar/avatar';
 export { AndesAvatarImage } from './lib/avatar/avatar-image';
 export { AndesAvatarFallback } from './lib/avatar/avatar-fallback';
+export { AndesAvatarIcon } from './lib/avatar/avatar-icon';
+export { AndesAvatarBadge } from './lib/avatar/avatar-badge';
+export type {
+  AndesAvatarBadgePlacement,
+  AndesAvatarStatus,
+} from './lib/avatar/avatar-badge';
 export { AndesAvatarGroup } from './lib/avatar/avatar-group';
 export { AndesAvatarGroupCount } from './lib/avatar/avatar-group-count';
