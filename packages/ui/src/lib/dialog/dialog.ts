@@ -22,6 +22,7 @@ import {
 import clsx from 'clsx';
 
 import {
+  ANDES_DIALOG_BACKDROP_CLASS,
   AndesDialogRoot,
   AndesDialogRootBase,
   AndesDialogSurface,
@@ -109,7 +110,10 @@ export class AndesDialog extends AndesDialogRootBase {
   }
 
   protected override configOverrides(): Partial<AndesOverlayConfig> {
-    return { closeOnOutsideClick: this.closeOnOutsideClick() };
+    return {
+      closeOnOutsideClick: this.closeOnOutsideClick(),
+      backdropClass: ANDES_DIALOG_BACKDROP_CLASS,
+    };
   }
 }
 

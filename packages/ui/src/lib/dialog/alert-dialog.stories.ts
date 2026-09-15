@@ -11,11 +11,14 @@ import { ANDES_ALERT_DIALOG_IMPORTS, AndesAlertDialog } from './alert-dialog';
  */
 const TRIGGER_STYLES = `
   <style>
+    /* Metrics copied from .andes-button--md rather than invented: 2.25rem/0.875rem was a
+       step that does not exist in the button scale, so the trigger read as a button from
+       a different system than the AndesButtons it opens. */
     .sb-alert-trigger {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      height: 2.25rem;
+      height: 2.5rem;
       padding: 0 var(--andes-space-4);
       border: 1px solid transparent;
       border-radius: var(--andes-radius-md);
@@ -23,8 +26,9 @@ const TRIGGER_STYLES = `
       color: var(--andes-color-danger-foreground);
       font-family: var(--andes-font-family), sans-serif;
       font-weight: var(--andes-font-weight-medium);
-      font-size: 0.875rem;
+      font-size: 1rem;
       cursor: pointer;
+      transition: background-color 0.15s ease;
     }
     .sb-alert-trigger:hover { background-color: var(--andes-color-danger-hover); }
     .sb-alert-trigger:focus-visible {
