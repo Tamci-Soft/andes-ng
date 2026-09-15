@@ -1,0 +1,79 @@
+/* The `andes-radio--checked`/`andes-radio--disabled` classes are applied to this component's
+   own host element (see radio.ts), so any rule keying off them must use :host(...) - a plain
+   `.andes-radio--checked .foo { ... }` rule never matches under Angular's emulated view
+   encapsulation, since the host carries an `_nghost-*` attribute rather than the `_ngcontent-*`
+   attribute Angular appends to plain class selectors used inside the template. */
+:host {
+  display: inline-flex;
+}
+
+.andes-radio__label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  cursor: pointer;
+  font-family: var(--andes-font-family), sans-serif;
+  color: var(--andes-color-foreground);
+}
+
+:host(.andes-radio--disabled) .andes-radio__label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Visually hidden but still focusable/operable - the real interactive element stays a native
+   <input type="radio"> for correct semantics and free browser keyboard behavior; the visible
+   circle/dot pair is purely decorative (aria-hidden). */
+.andes-radio__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.andes-radio__control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: var(--andes-radius-full);
+  border: 1px solid var(--andes-color-input);
+  background-color: var(--andes-color-background);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+:host(.andes-radio--checked) .andes-radio__control {
+  border-color: var(--andes-color-primary);
+}
+
+.andes-radio__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-primary);
+  transform: scale(0);
+  transition: transform 0.15s ease;
+}
+
+:host(.andes-radio--checked) .andes-radio__dot {
+  transform: scale(1);
+}
+
+.andes-radio__input:focus-visible ~ .andes-radio__control {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-radio__text:empty {
+  display: none;
+}
