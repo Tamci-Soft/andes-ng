@@ -2,11 +2,11 @@ import {
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   forwardRef,
   input,
-  linkedSignal,
-  output,
+  model,
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -35,9 +35,42 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
   ],
 })
 export class AndesCheckbox implements ControlValueAccessor {
-  readonly checked = input(false, { transform: booleanAttribute });
+  /**
+   * Single source of truth for the rendered `checked` state - AND the two-way binding
+   * surface for it (`model()` auto-generates the `checkedChange` output, enabling
+   * `[(checked)]`). A user click writes straight into this signal (see `onNativeChange`) and
+   * `writeValue` does the same for Reactive/Template-driven forms - there is no longer a
+   * separate "internal" signal that mirrors it, the way the previous `checked` `input()` +
+   * `checkedState` `linkedSignal` pair did.
+   *
+   * That split was the actual bug, not just the `signal()` + `effect()` mirror it replaced:
+   * a parent re-asserting a value the reactive graph doesn't perceive as "changed" from what
+   * it last wrote is unobservable by ANY Angular signal primitive - traced against Angular's
+   * own reactive-graph source, this isn't specific to `linkedSignal`. With two distinct
+   * signals, a click could leave the parent's own `checked` sitting on a value it never
+   * itself transitioned away from, so a later "reassertion" of that same value was a no-op
+   * write from the framework's point of view and the checkbox stayed stuck on the
+   * click-diverged state. Folding both into one `model()` signal removes the second signal
+   * entirely - a click and a bound parent's own state are the exact same value at every
+   * instant (when the parent wires `[(checked)]`/`(checkedChange)`), so there is nothing left
+   * to diverge and nothing to "reassert" against.
+   */
+  readonly checked = model<boolean>(false);
+
   readonly disabled = input(false, { transform: booleanAttribute });
-  readonly indeterminate = input(false, { transform: booleanAttribute });
+
+  /**
+   * Two-way model for the native `indeterminate` DOM PROPERTY (not an HTML attribute -
+   * `[attr.indeterminate]` is a no-op on a native checkbox, see checkbox.html). Same
+   * rationale as `checked` above: a user click writes straight into this signal (see
+   * `onNativeChange`) - a native checkbox's `indeterminate` property is automatically reset
+   * to `false` by the browser the moment the user interacts with it, and mirroring that
+   * directly into the single shared model (rather than a separate internal copy of it) is
+   * what lets a bound parent's own `indeterminate` state stay perfectly in sync, with nothing
+   * left to fall out of sync the way the previous `indeterminateState` `linkedSignal` could.
+   */
+  readonly indeterminate = model<boolean>(false);
+
   readonly required = input(false, { transform: booleanAttribute });
   /**
    * Prevents toggling without visually disabling the control - distinct from `disabled`:
@@ -66,64 +99,27 @@ export class AndesCheckbox implements ControlValueAccessor {
   });
 
   /**
-   * Emits the new checked value on every user interaction (click or keyboard). Lets
-   * `[checked]` be used as a plain, uncontrolled-style two-way pairing
-   * (`[checked]="isChecked()" (checkedChange)="isChecked.set($event)"`) for consumers who
-   * aren't wiring this control into Reactive/Template-driven forms.
+   * `model()` intentionally has no `transform` option - unlike `input()`, a two-way binding's
+   * output has to emit exactly the type its input accepts, so it can't silently coerce values
+   * on the way in without breaking that round-trip. That means a bare, bracket-less
+   * `checked`/`indeterminate` attribute (e.g. `<andes-checkbox checked>`, used throughout
+   * checkbox.stories.ts) is written into the model as the literal empty string, not `true`.
+   * The native DOM-property bindings in checkbox.html read through these `booleanAttribute`
+   * coerced computeds instead of the raw models directly to restore that. Being `computed()`
+   * rather than a locally-settable signal, this can never itself drift out of sync with the
+   * model it derives from - it's a pure formatter for the native property setter, not a
+   * second piece of state.
    */
-  readonly checkedChange = output<boolean>();
-
-  /**
-   * Emits `false` when the user interacts with an indeterminate checkbox. The native
-   * `indeterminate` DOM property is cleared by the browser itself as soon as the user
-   * toggles the control (see the class-level comment on `indeterminateState` below) - this
-   * output lets a consumer keep its own bound `indeterminate` signal in sync with that.
-   */
-  readonly indeterminateChange = output<boolean>();
-
-  /**
-   * Single source of truth for the rendered `checked` state. Seeded from, and kept live in
-   * sync with, the `checked` input for plain/uncontrolled usage - but once this control is
-   * wired to Reactive or Template-driven forms (`writeValue` has been called at least once),
-   * the form value takes over exclusively so the two APIs never fight each other. This
-   * mirrors the well-established `mat-checkbox` convention: don't combine the `checked`
-   * input with `[formControl]`/`[(ngModel)]` on the same element - pick one.
-   *
-   * Uses `linkedSignal` rather than a plain `signal` + `effect` mirror: this is exactly
-   * Angular's "controlled-but-locally-overridable" pattern (see the `linkedSignal` guide) -
-   * `checkedState` normally tracks `checked()`, but a user click can locally diverge it via
-   * `.set()`, and the moment `checked()` changes to any new value afterwards, `linkedSignal`
-   * recomputes and resyncs on top of that local override. A plain `effect` mirror is prone to
-   * getting stuck on the diverged, user-driven value here - `linkedSignal` is the primitive
-   * built specifically to keep resyncing reliable in this exact shape of component state.
-   */
-  protected readonly checkedState = linkedSignal<boolean, boolean>({
-    source: this.checked,
-    computation: (checked, previous) =>
-      this.isFormControlled ? (previous?.value ?? checked) : checked,
-  });
-
-  /**
-   * Single source of truth for the native `indeterminate` DOM PROPERTY (not an HTML
-   * attribute - `[attr.indeterminate]` is a no-op on a native checkbox, see checkbox.html).
-   * Kept in sync with the `indeterminate` input, but a user click also writes to it directly
-   * (see `onNativeChange`): a native checkbox's `indeterminate` property is automatically
-   * reset to `false` by the browser the moment the user interacts with it, and we mirror
-   * that back into our own state instead of fighting the browser on the next render.
-   *
-   * `linkedSignal` (see `checkedState` above for the full rationale) so that once a user
-   * click has locally diverged this from `indeterminate()`, the next change to that input
-   * reliably resyncs the checkbox instead of getting stuck on the user-driven value like a
-   * plain `effect` mirror is prone to.
-   */
-  protected readonly indeterminateState = linkedSignal(() =>
-    this.indeterminate(),
+  protected readonly checkedProp = computed(() =>
+    booleanAttribute(this.checked()),
+  );
+  protected readonly indeterminateProp = computed(() =>
+    booleanAttribute(this.indeterminate()),
   );
 
   private readonly formDisabled = signal(false);
   protected readonly isDisabled = signal(false);
 
-  private isFormControlled = false;
   private onChange: (value: boolean) => void = () => undefined;
   private onTouched: () => void = () => undefined;
 
@@ -143,19 +139,19 @@ export class AndesCheckbox implements ControlValueAccessor {
 
   protected onNativeChange(event: Event): void {
     const nativeInput = event.target as HTMLInputElement;
-    const wasIndeterminate = this.indeterminateState();
 
-    this.checkedState.set(nativeInput.checked);
-    // The browser already cleared the DOM property on this same interaction - mirror it
-    // into our own state rather than letting the next render fight the user's click.
-    this.indeterminateState.set(nativeInput.indeterminate);
+    // Writing directly into the shared `checked`/`indeterminate` models - rather than some
+    // separate internal signal - is what makes this immediately visible to a bound parent:
+    // `model.set()` emits the paired `checkedChange`/`indeterminateChange` output itself
+    // whenever the value actually changes, so `[(checked)]`/`[(indeterminate)]` (or a plain
+    // `(checkedChange)`/`(indeterminateChange)` listener) stays in lockstep with the click,
+    // with no explicit `.emit()` calls needed here.
+    this.checked.set(nativeInput.checked);
+    // The browser already cleared the DOM property on this same interaction - mirror it into
+    // the model rather than letting the next render fight the user's click.
+    this.indeterminate.set(nativeInput.indeterminate);
 
     this.onChange(nativeInput.checked);
-    this.checkedChange.emit(nativeInput.checked);
-
-    if (wasIndeterminate && !nativeInput.indeterminate) {
-      this.indeterminateChange.emit(false);
-    }
   }
 
   protected onNativeBlur(): void {
@@ -163,8 +159,9 @@ export class AndesCheckbox implements ControlValueAccessor {
   }
 
   writeValue(value: boolean | null): void {
-    this.isFormControlled = true;
-    this.checkedState.set(!!value);
+    // No more "form-controlled vs. plain input" priority dance: `checked` is the one and
+    // only signal backing this control now, so a form value simply writes into it directly.
+    this.checked.set(!!value);
   }
 
   registerOnChange(fn: (value: boolean) => void): void {
