@@ -5,6 +5,7 @@ import {
   effect,
   forwardRef,
   input,
+  linkedSignal,
   output,
   signal,
 } from '@angular/core';
@@ -87,8 +88,20 @@ export class AndesCheckbox implements ControlValueAccessor {
    * the form value takes over exclusively so the two APIs never fight each other. This
    * mirrors the well-established `mat-checkbox` convention: don't combine the `checked`
    * input with `[formControl]`/`[(ngModel)]` on the same element - pick one.
+   *
+   * Uses `linkedSignal` rather than a plain `signal` + `effect` mirror: this is exactly
+   * Angular's "controlled-but-locally-overridable" pattern (see the `linkedSignal` guide) -
+   * `checkedState` normally tracks `checked()`, but a user click can locally diverge it via
+   * `.set()`, and the moment `checked()` changes to any new value afterwards, `linkedSignal`
+   * recomputes and resyncs on top of that local override. A plain `effect` mirror is prone to
+   * getting stuck on the diverged, user-driven value here - `linkedSignal` is the primitive
+   * built specifically to keep resyncing reliable in this exact shape of component state.
    */
-  protected readonly checkedState = signal(false);
+  protected readonly checkedState = linkedSignal<boolean, boolean>({
+    source: this.checked,
+    computation: (checked, previous) =>
+      this.isFormControlled ? (previous?.value ?? checked) : checked,
+  });
 
   /**
    * Single source of truth for the native `indeterminate` DOM PROPERTY (not an HTML
@@ -97,8 +110,15 @@ export class AndesCheckbox implements ControlValueAccessor {
    * (see `onNativeChange`): a native checkbox's `indeterminate` property is automatically
    * reset to `false` by the browser the moment the user interacts with it, and we mirror
    * that back into our own state instead of fighting the browser on the next render.
+   *
+   * `linkedSignal` (see `checkedState` above for the full rationale) so that once a user
+   * click has locally diverged this from `indeterminate()`, the next change to that input
+   * reliably resyncs the checkbox instead of getting stuck on the user-driven value like a
+   * plain `effect` mirror is prone to.
    */
-  protected readonly indeterminateState = signal(false);
+  protected readonly indeterminateState = linkedSignal(() =>
+    this.indeterminate(),
+  );
 
   private readonly formDisabled = signal(false);
   protected readonly isDisabled = signal(false);
@@ -112,17 +132,6 @@ export class AndesCheckbox implements ControlValueAccessor {
       const disabled = this.disabled();
       const formDisabled = this.formDisabled();
       this.isDisabled.set(disabled || formDisabled);
-    });
-
-    effect(() => {
-      const checked = this.checked();
-      if (!this.isFormControlled) {
-        this.checkedState.set(checked);
-      }
-    });
-
-    effect(() => {
-      this.indeterminateState.set(this.indeterminate());
     });
   }
 
