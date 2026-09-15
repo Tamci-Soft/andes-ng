@@ -1,0 +1,76 @@
+.andes-progress {
+  display: block;
+  width: 100%;
+}
+
+.andes-progress__track {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-muted);
+}
+
+.andes-progress__indicator {
+  height: 100%;
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-primary);
+  transition: width 0.3s ease;
+}
+
+/* Sizes (track thickness) */
+
+.andes-progress--sm .andes-progress__track {
+  height: 0.375rem;
+}
+
+.andes-progress--md .andes-progress__track {
+  height: 0.5rem;
+}
+
+.andes-progress--lg .andes-progress__track {
+  height: 0.75rem;
+}
+
+/* Variants (indicator color) */
+
+.andes-progress--primary .andes-progress__indicator {
+  background-color: var(--andes-color-primary);
+}
+
+.andes-progress--success .andes-progress__indicator {
+  background-color: var(--andes-color-success);
+}
+
+.andes-progress--warning .andes-progress__indicator {
+  background-color: var(--andes-color-warning);
+}
+
+.andes-progress--danger .andes-progress__indicator {
+  background-color: var(--andes-color-danger);
+}
+
+/* Indeterminate: unknown-length highlight sweeping across the track, since
+   there is no known percentage to render as a static width. */
+
+.andes-progress__indicator[data-indeterminate] {
+  position: absolute;
+  inset-block: 0;
+  width: 40%;
+  animation: andes-progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes andes-progress-indeterminate {
+  from {
+    left: -40%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-progress__indicator[data-indeterminate] {
+    animation-duration: 3s;
+  }
+}
