@@ -1024,6 +1024,87 @@ describe('AndesOverlayPrimitive', () => {
       expect(background().hasAttribute('inert')).toBe(false);
       expect(inertBodyChildren()).toHaveLength(0);
     });
+
+    describe('CDK accessibility infrastructure', () => {
+      /**
+       * CDK's `LiveAnnouncer` (behind `AndesToastService`) and `AriaDescriber`
+       * both append their own plumbing directly under `<body>`, right alongside
+       * the app root — which otherwise puts them squarely in "the background" a
+       * modal marks inert. If that happens, a toast fired while a dialog is open
+       * is announced to nobody: the live-announcer node still renders, it is just
+       * unreachable by assistive tech. No error, no visual symptom.
+       */
+      function planted(className: string): HTMLElement {
+        const element = document.createElement('div');
+        element.className = className;
+        document.body.appendChild(element);
+        return element;
+      }
+
+      it('never marks the CDK live-announcer element inert or aria-hidden', () => {
+        const liveAnnouncer = planted('cdk-live-announcer-element');
+        liveAnnouncer.setAttribute('aria-live', 'polite');
+
+        try {
+          const { fixture, host } = createHost(andesOverlayPreset('dialog'));
+          host.open();
+          fixture.detectChanges();
+
+          expect(liveAnnouncer.hasAttribute('inert')).toBe(false);
+          expect(liveAnnouncer.hasAttribute('aria-hidden')).toBe(false);
+          // The rest of the background is still inert — this is a targeted
+          // exemption, not a hole in the feature.
+          expect(background().hasAttribute('inert')).toBe(true);
+        } finally {
+          liveAnnouncer.remove();
+        }
+      });
+
+      it('never marks the CDK aria-describedby message container inert', () => {
+        const describedBy = planted('cdk-describedby-message-container');
+
+        try {
+          const { fixture, host } = createHost(andesOverlayPreset('dialog'));
+          host.open();
+          fixture.detectChanges();
+
+          expect(describedBy.hasAttribute('inert')).toBe(false);
+          expect(describedBy.hasAttribute('aria-hidden')).toBe(false);
+        } finally {
+          describedBy.remove();
+        }
+      });
+
+      it('exempts any body child explicitly carrying aria-live, by that attribute alone', () => {
+        const liveRegion = planted('consumer-live-region');
+        liveRegion.setAttribute('aria-live', 'assertive');
+
+        try {
+          const { fixture, host } = createHost(andesOverlayPreset('dialog'));
+          host.open();
+          fixture.detectChanges();
+
+          expect(liveRegion.hasAttribute('inert')).toBe(false);
+        } finally {
+          liveRegion.remove();
+        }
+      });
+
+      it('still inerts a body child whose aria-live is explicitly "off"', () => {
+        const offRegion = planted('consumer-off-region');
+        offRegion.setAttribute('aria-live', 'off');
+
+        try {
+          const { fixture, host } = createHost(andesOverlayPreset('dialog'));
+          host.open();
+          fixture.detectChanges();
+
+          expect(offRegion.hasAttribute('inert')).toBe(true);
+        } finally {
+          offRegion.remove();
+        }
+      });
+    });
   });
 
   describe('nested overlays', () => {

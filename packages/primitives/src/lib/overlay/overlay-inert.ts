@@ -24,6 +24,26 @@ const NON_RENDERED_TAGS: ReadonlySet<string> = new Set([
   'TITLE',
 ]);
 
+/**
+ * Selectors for body children that, unlike `NON_RENDERED_TAGS`, *do* render —
+ * but are Angular CDK's own accessibility plumbing rather than page content, and
+ * so must stay reachable by assistive tech no matter what overlay is open.
+ *
+ * CDK appends these directly to `<body>`, alongside the app root and the overlay
+ * container, which puts them squarely in "the background" `inertBackgroundExcept`
+ * would otherwise inert on every modal open.
+ */
+const NON_RENDERED_SELECTORS: readonly string[] = [
+  // `LiveAnnouncer` posts text into this hidden node for screen readers to
+  // announce (this is how `AndesToastService` speaks a toast). Inerting it makes
+  // every announcement — every toast — silent for exactly as long as a modal is
+  // open, with no visible symptom: the element still renders, just unreachable.
+  '.cdk-live-announcer-element',
+  // `AriaDescriber` stores the text a dynamically generated `aria-describedby`
+  // points to here.
+  '.cdk-describedby-message-container',
+];
+
 /** Attribute we always apply: the standard, browser-enforced one. */
 const INERT_ATTRIBUTE = 'inert';
 
@@ -59,7 +79,9 @@ interface InertEntry {
  * Every **direct child of `<body>`** except the one containing the overlay itself.
  * Not `<body>`, because the overlay's own portal is rendered into the CDK overlay
  * container, which is itself a body child — inerting `<body>` would make the modal
- * unusable.
+ * unusable. Also excluded: CDK's own accessibility infrastructure (`LiveAnnouncer`,
+ * `AriaDescriber`), which CDK likewise appends directly under `<body>` — see
+ * `NON_RENDERED_SELECTORS` below.
  *
  * ## Nesting
  *
@@ -180,8 +202,30 @@ export class AndesOverlayInertRegistry {
 
   private backgroundChildren(exempt: ReadonlySet<Element>): Element[] {
     return [...this.document.body.children].filter(
-      (child) => !exempt.has(child) && !NON_RENDERED_TAGS.has(child.tagName),
+      (child) =>
+        !exempt.has(child) &&
+        !NON_RENDERED_TAGS.has(child.tagName) &&
+        !this.isAccessibilityInfrastructure(child),
     );
+  }
+
+  /**
+   * True for a body child that is itself an accessibility mechanism rather than
+   * page content — CDK's own (matched by class, since `NON_RENDERED_TAGS` only
+   * matches by tag), or a live region a consumer appended directly under `<body>`
+   * for the same reason CDK does: so it keeps announcing regardless of what else
+   * on the page is inert.
+   *
+   * `aria-live="off"` is excluded because it explicitly opts out of announcing —
+   * exempting it would serve no one and would needlessly leave an otherwise
+   * ordinary piece of background content out of the inert set.
+   */
+  private isAccessibilityInfrastructure(element: Element): boolean {
+    if (NON_RENDERED_SELECTORS.some((selector) => element.matches(selector))) {
+      return true;
+    }
+    const ariaLive = element.getAttribute('aria-live');
+    return !!ariaLive && ariaLive !== 'off';
   }
 
   /**
