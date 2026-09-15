@@ -1,0 +1,256 @@
+/* Positioning uses logical properties throughout (inset-inline-start / margin-inline-start
+   rather than left + translateX) so an RTL context mirrors the track, fill, thumbs, dots and
+   marks for free, with no transform to un-mirror. The pointer math in slider.ts mirrors to
+   match. */
+
+:host {
+  --andes-slider-thumb-size: 1rem;
+  --andes-slider-rail-size: 0.25rem;
+  --andes-slider-dot-size: 0.5rem;
+  --andes-slider-length: 12rem;
+
+  display: block;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+:host([data-orientation='vertical']) {
+  display: inline-flex;
+  align-items: stretch;
+  block-size: var(--andes-slider-length);
+}
+
+:host([data-disabled]) {
+  opacity: 0.6;
+}
+
+/* Control: the hit area. Padded by half a thumb so the thumbs, which are centered on the
+   track's ends, stay inside the component's own box. */
+
+.andes-slider__control {
+  position: relative;
+  display: flex;
+  touch-action: none;
+  cursor: pointer;
+}
+
+:host([data-disabled]) .andes-slider__control {
+  cursor: not-allowed;
+}
+
+:host([data-orientation='horizontal']) .andes-slider__control {
+  align-items: center;
+  block-size: var(--andes-slider-thumb-size);
+  padding-inline: calc(var(--andes-slider-thumb-size) / 2);
+}
+
+:host([data-orientation='vertical']) .andes-slider__control {
+  justify-content: center;
+  block-size: 100%;
+  inline-size: var(--andes-slider-thumb-size);
+  padding-block: calc(var(--andes-slider-thumb-size) / 2);
+}
+
+/* Track: the reference box the pointer math measures against. */
+
+.andes-slider__track {
+  position: relative;
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-muted);
+}
+
+:host([data-orientation='horizontal']) .andes-slider__track {
+  inline-size: 100%;
+  block-size: var(--andes-slider-rail-size);
+}
+
+:host([data-orientation='vertical']) .andes-slider__track {
+  inline-size: var(--andes-slider-rail-size);
+  block-size: 100%;
+}
+
+/* Indicator: the filled portion. */
+
+.andes-slider__indicator {
+  position: absolute;
+  border-radius: inherit;
+  background-color: var(--andes-color-primary);
+}
+
+:host([data-orientation='horizontal']) .andes-slider__indicator {
+  inset-block: 0;
+  inset-inline-start: var(--andes-slider-fill-start, 0%);
+  inline-size: var(--andes-slider-fill-size, 0%);
+}
+
+:host([data-orientation='vertical']) .andes-slider__indicator {
+  inset-inline: 0;
+  inset-block-end: var(--andes-slider-fill-start, 0%);
+  block-size: var(--andes-slider-fill-size, 0%);
+}
+
+:host([data-disabled]) .andes-slider__indicator {
+  background-color: var(--andes-color-muted-foreground);
+}
+
+/* Tick dots */
+
+.andes-slider__dot {
+  position: absolute;
+  box-sizing: border-box;
+  inline-size: var(--andes-slider-dot-size);
+  block-size: var(--andes-slider-dot-size);
+  border: 2px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-background);
+  pointer-events: none;
+}
+
+:host([data-orientation='horizontal']) .andes-slider__dot {
+  inset-block-start: 50%;
+  margin-block-start: calc(var(--andes-slider-dot-size) / -2);
+  inset-inline-start: var(--andes-slider-dot-offset, 0%);
+  margin-inline-start: calc(var(--andes-slider-dot-size) / -2);
+}
+
+:host([data-orientation='vertical']) .andes-slider__dot {
+  inset-inline-start: 50%;
+  margin-inline-start: calc(var(--andes-slider-dot-size) / -2);
+  inset-block-end: var(--andes-slider-dot-offset, 0%);
+  margin-block-end: calc(var(--andes-slider-dot-size) / -2);
+}
+
+.andes-slider__dot--active {
+  border-color: var(--andes-color-primary);
+}
+
+/* Thumb: the real focusable control, role="slider". */
+
+.andes-slider__thumb {
+  position: absolute;
+  box-sizing: border-box;
+  inline-size: var(--andes-slider-thumb-size);
+  block-size: var(--andes-slider-thumb-size);
+  border: 2px solid var(--andes-color-primary);
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-background);
+  cursor: grab;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+:host([data-orientation='horizontal']) .andes-slider__thumb {
+  inset-block-start: 50%;
+  margin-block-start: calc(var(--andes-slider-thumb-size) / -2);
+  inset-inline-start: var(--andes-slider-thumb-offset, 0%);
+  margin-inline-start: calc(var(--andes-slider-thumb-size) / -2);
+}
+
+:host([data-orientation='vertical']) .andes-slider__thumb {
+  inset-inline-start: 50%;
+  margin-inline-start: calc(var(--andes-slider-thumb-size) / -2);
+  inset-block-end: var(--andes-slider-thumb-offset, 0%);
+  margin-block-end: calc(var(--andes-slider-thumb-size) / -2);
+}
+
+.andes-slider__thumb:hover {
+  border-color: var(--andes-color-primary-hover);
+}
+
+.andes-slider__thumb:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-slider__thumb[data-dragging] {
+  cursor: grabbing;
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+}
+
+:host([data-disabled]) .andes-slider__thumb {
+  cursor: not-allowed;
+  border-color: var(--andes-color-muted-foreground);
+}
+
+/* Value tooltip. A zero-offset flex box inside the thumb, so the bubble overflows
+   symmetrically and stays centered without a direction-sensitive transform. */
+
+.andes-slider__tooltip {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(100% + var(--andes-space-2));
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+:host([data-orientation='vertical']) .andes-slider__tooltip {
+  inset-block: 0;
+  inset-inline-start: calc(100% + var(--andes-space-2));
+  inset-inline-end: auto;
+  align-items: center;
+}
+
+.andes-slider__tooltip-bubble {
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  padding: 0.125rem var(--andes-space-2);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+:host([data-tooltip='always']) .andes-slider__tooltip,
+.andes-slider__thumb:hover .andes-slider__tooltip,
+.andes-slider__thumb:focus-visible .andes-slider__tooltip,
+.andes-slider__thumb[data-dragging] .andes-slider__tooltip {
+  opacity: 1;
+}
+
+/* Mark labels */
+
+.andes-slider__marks {
+  position: relative;
+}
+
+:host([data-orientation='horizontal']) .andes-slider__marks {
+  margin-inline: calc(var(--andes-slider-thumb-size) / 2);
+  block-size: 1.25rem;
+}
+
+:host([data-orientation='vertical']) .andes-slider__marks {
+  margin-block: calc(var(--andes-slider-thumb-size) / 2);
+  inline-size: 3rem;
+}
+
+.andes-slider__mark {
+  position: absolute;
+  display: flex;
+  pointer-events: none;
+}
+
+:host([data-orientation='horizontal']) .andes-slider__mark {
+  inset-block-start: var(--andes-space-1);
+  inset-inline-start: var(--andes-slider-mark-offset, 0%);
+  inline-size: 0;
+  justify-content: center;
+}
+
+:host([data-orientation='vertical']) .andes-slider__mark {
+  inset-inline-start: var(--andes-space-2);
+  inset-block-end: var(--andes-slider-mark-offset, 0%);
+  block-size: 0;
+  align-items: center;
+}
+
+.andes-slider__mark-label {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--andes-color-muted-foreground);
+  white-space: nowrap;
+}
