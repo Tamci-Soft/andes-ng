@@ -1,0 +1,29 @@
+<!-- The projected body is wrapped so it, and not the surface, is the scrolling box:
+     the close control below is positioned against the surface, so scrolling the surface
+     itself carried the control off the top of the dialog along with the content. -->
+<div class="andes-dialog__viewport">
+  <ng-content />
+</div>
+
+@if (showCloseButton()) {
+<!-- Rendered after the projected content so the focus trap lands on the dialog's own
+     first control rather than on the dismiss affordance. Base UI's guidance is that a
+     modal must carry an in-surface close control at all: Escape and outside-click are
+     unreachable for touch screen-reader users. -->
+<button
+  type="button"
+  class="andes-dialog__close"
+  data-slot="dialog-close-button"
+  andesOverlayClose
+  [attr.aria-label]="closeLabel()"
+>
+  <svg
+    class="andes-dialog__close-icon"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M6 6 18 18M18 6 6 18" />
+  </svg>
+</button>
+}
