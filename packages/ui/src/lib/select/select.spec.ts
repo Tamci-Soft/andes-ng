@@ -839,3 +839,84 @@ describe('AndesSelect groups', () => {
     expect(options[1].hasAttribute('data-active')).toBe(true);
   });
 });
+
+@Component({
+  imports: [
+    AndesSelect,
+    AndesSelectContent,
+    AndesSelectItem,
+    AndesSelectTrigger,
+    AndesSelectValue,
+  ],
+  template: `<andes-select aria-label="Fruit" [value]="value()">
+    <andes-select-trigger><andes-select-value /></andes-select-trigger>
+    <andes-select-content>
+      @for (fruit of fruits; track fruit.value) {
+        <andes-select-item [value]="fruit.value">{{
+          fruit.label
+        }}</andes-select-item>
+      }
+    </andes-select-content>
+  </andes-select>`,
+})
+class TwoWaySelectHost {
+  readonly fruits = FRUITS;
+  readonly value = signal<unknown>('banana');
+}
+
+describe('AndesSelect resyncing a diverged value', () => {
+  // Regression test for a bug a QA judge found: once a user's pick had diverged the
+  // trigger from the bound `value`, the old design - a plain `input()` mirrored into a
+  // separate internal signal by an `effect()` - could never be reliably nudged back into
+  // sync by the parent, because the *only* channel the parent has for "re-asserting" a
+  // value is the `[value]` template binding, and Angular only pushes a binding through
+  // when its own bound expression evaluates to something it did not already push last
+  // time. Once the input has been sitting on 'banana' the whole time, there is no way for
+  // a parent to make that binding "fire again" with the exact same value - so with a
+  // *separate* internal signal that only the effect mirrors into, a value the effect
+  // never got told to re-apply is a display that can never be corrected short of the user
+  // picking 'banana' again themselves. A `linkedSignal` has the identical blind spot,
+  // since it also only recomputes when its `source` produces a value it considers new
+  // (confirmed by the Switch/Checkbox investigation).
+  //
+  // `model()` removes this dependency on the template binding "firing" at all: the value
+  // a consumer holds a reference to (through `[(value)]`, or - as here - by reading the
+  // model straight off the component, exactly what a real two-way-bound parent signal
+  // amounts to) *is* the control's own state, so writing 'banana' into it is always a
+  // direct, unconditional resync, the same way `writeValue` already was.
+  it('re-displays a re-asserted value after the user picks something else', () => {
+    const fixture = TestBed.createComponent(TwoWaySelectHost);
+    fixture.detectChanges();
+
+    const trigger = fixture.nativeElement.querySelector(
+      'button',
+    ) as HTMLButtonElement;
+    const options = () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-slot="select-content"] [role="option"]',
+        ),
+      );
+    const select = fixture.debugElement.query(
+      (node) => node.name === 'andes-select',
+    ).componentInstance as { value: { set(value: unknown): void } };
+
+    expect(trigger.textContent?.trim()).toBe('Banana');
+
+    // The user picks a different option, diverging the trigger from 'banana'.
+    trigger.click();
+    fixture.detectChanges();
+    options()[0].click();
+    fixture.detectChanges();
+
+    expect(trigger.textContent?.trim()).toBe('Apple');
+
+    // The parent re-asserts the value it originally bound - through the exact same
+    // channel `[(value)]`/`valueChange` two-way binding writes through, since that is
+    // what `value` being a `model()` (rather than a plain `input()`) now enables.
+    select.value.set('banana');
+    fixture.detectChanges();
+
+    expect(trigger.textContent?.trim()).toBe('Banana');
+  });
+});
