@@ -1,0 +1,50 @@
+<span [class]="wrapperClasses()">
+  <span class="andes-input__prefix">
+    <ng-content select="[slot=prefix]" />
+  </span>
+  <input
+    #nativeInput
+    data-slot="input"
+    class="andes-input__control"
+    [attr.type]="type()"
+    [attr.id]="id()"
+    [attr.name]="name()"
+    [attr.placeholder]="placeholder()"
+    [attr.autocomplete]="autocomplete()"
+    [attr.maxlength]="maxLength()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-labelledby]="ariaLabelledby()"
+    [attr.aria-describedby]="ariaDescribedby()"
+    [attr.aria-invalid]="ariaInvalid() || null"
+    [disabled]="isDisabled()"
+    [required]="required()"
+    [readOnly]="readOnly()"
+    [value]="value()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+  />
+  @if (showClear()) {
+  <button
+    type="button"
+    class="andes-input__clear"
+    aria-label="Clear"
+    (click)="clear($event)"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  }
+  <span class="andes-input__suffix">
+    <ng-content select="[slot=suffix]" />
+  </span>
+</span>

@@ -1,0 +1,113 @@
+.andes-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  width: 100%;
+  border-radius: var(--andes-radius-md);
+  border: 1px solid var(--andes-color-input);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.andes-input-wrapper:focus-within {
+  border-color: var(--andes-color-focus-ring);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+}
+
+.andes-input-wrapper--invalid {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-input-wrapper--invalid:focus-within {
+  border-color: var(--andes-color-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+.andes-input-wrapper--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-input__control {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  color: inherit;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-input__control::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-input__control:disabled {
+  cursor: not-allowed;
+}
+
+.andes-input__prefix,
+.andes-input__suffix {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-input__prefix:empty,
+.andes-input__suffix:empty {
+  display: none;
+}
+
+/* Projected icons keep their own encapsulation context, so a plain descendant selector
+   can't reach them - ::ng-deep is the sanctioned way to size content Angular doesn't
+   otherwise let this component's styles touch (same rationale as AndesButton). */
+.andes-input__prefix ::ng-deep svg,
+.andes-input__suffix ::ng-deep svg,
+.andes-input__clear svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.andes-input__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-input__clear:hover {
+  color: var(--andes-color-foreground);
+}
+
+/* Sizes */
+
+.andes-input-wrapper--sm {
+  height: 2rem;
+  padding-inline: var(--andes-space-3);
+  font-size: 0.875rem;
+}
+
+.andes-input-wrapper--md {
+  height: 2.5rem;
+  padding-inline: var(--andes-space-3);
+  font-size: 1rem;
+}
+
+.andes-input-wrapper--lg {
+  height: 3rem;
+  padding-inline: var(--andes-space-4);
+  font-size: 1.125rem;
+}
