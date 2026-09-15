@@ -1,4 +1,7 @@
-import { AndesListNavigation } from '@andes-ng/primitives';
+import {
+  AndesListNavigation,
+  AndesListNavigationItemRef,
+} from '@andes-ng/primitives';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,6 +11,7 @@ import {
   input,
   model,
   signal,
+  untracked,
 } from '@angular/core';
 
 import {
@@ -97,6 +101,15 @@ export class AndesTabs {
   private readonly tabsId = `andes-tabs-${nextTabsId++}`;
 
   constructor() {
+    // Force-builds `AndesListNavigation`'s underlying CDK key manager now, synchronously,
+    // while the constructor is running outside any reactive context. The CDK key manager
+    // calls Angular's own `effect()` the first time it is constructed (to watch the items
+    // signal); if that first construction were instead triggered lazily from inside one of
+    // *our own* effects below, Angular would throw NG0602 ("effect() cannot be called from
+    // within a reactive context"). `clearActive` is a no-op on the already-clear initial
+    // state; it is only ever called here for this side effect.
+    this.navigation.clearActive();
+
     effect(() => {
       this.navigation.configure({
         orientation: this.orientation(),
@@ -106,6 +119,29 @@ export class AndesTabs {
         // Typeahead is a listbox/menu convention, not part of the WAI-ARIA Tabs pattern.
         typeahead: false,
       });
+    });
+
+    // Keeps `AndesListNavigation`'s roving-tabindex target pointed at the selected tab - on
+    // first render, and whenever `value` changes from outside (a consumer setting `[value]`
+    // programmatically) - rather than left at the primitive's own default of "the first
+    // enabled item". Per the WAI-ARIA APG, Tab must move focus to the active/selected tab,
+    // not merely to the first one. See {@link syncActiveItem} for why the actual
+    // read-compare-and-set against `navigation.activeItem()` happens `untracked`.
+    //
+    // Tracks `navigation.items()` (not just `activeValue()`/the triggers list) because a
+    // trigger's own `AndesListNavigationItem` finishes registering with `AndesListNavigation`
+    // slightly *after* this component's effects get their first flush - by design this
+    // effect is a no-op until the selected trigger's item has actually registered, and
+    // re-running once `items()` changes is what lets it catch up.
+    effect(() => {
+      const value = this.activeValue();
+      const items = this.navigation.items();
+      const item = this.sortedTriggers()
+        .find((trigger) => trigger.value() === value)
+        ?.navigationItem();
+      if (item && items.includes(item)) {
+        this.syncActiveItem(item);
+      }
     });
   }
 
@@ -124,6 +160,33 @@ export class AndesTabs {
    * move selection too. */
   select(value: string): void {
     this.value.set(value);
+  }
+
+  /**
+   * Points {@link AndesListNavigation}'s roving-tabindex target at `item`, the registered
+   * `AndesListNavigationItem` for whichever trigger is currently selected - see the
+   * constructor effect that calls this.
+   *
+   * Delegates to `setActiveItemSilently` specifically because it updates the primitive's
+   * active-item pointer without moving real DOM focus or scrolling - this can run before the
+   * user has interacted at all - and, just as importantly, it does not go through the same
+   * "focus moved, so select" path that automatic activation reacts to, which would otherwise
+   * feed back into `select` on every sync.
+   *
+   * The read-compare-and-set against `navigation.activeItem()` is deliberately `untracked`:
+   * the calling effect tracks `activeValue()`/`navigation.items()` (i.e. *selection*, and
+   * whether the target item has registered yet), not `navigation.activeItem()` itself.
+   * Tracking the latter would make that effect re-run on every focus move - including ones
+   * arrow-key navigation just made for a *different*, newly-active tab - and it would stomp
+   * that move straight back before the newly-active trigger's own automatic-activation effect
+   * gets a chance to update `value` to match.
+   */
+  private syncActiveItem(item: AndesListNavigationItemRef): void {
+    untracked(() => {
+      if (this.navigation.activeItem() !== item) {
+        this.navigation.setActiveItemSilently(item);
+      }
+    });
   }
 
   /** @internal The `id` for the content panel matching `value`. */
