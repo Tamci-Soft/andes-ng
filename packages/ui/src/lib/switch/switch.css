@@ -1,0 +1,125 @@
+.andes-switch {
+  --andes-switch-track-height: 1.5rem;
+  --andes-switch-track-width: 2.75rem;
+  --andes-switch-thumb-size: 1.125rem;
+  --andes-switch-track-padding: 0.1875rem;
+
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: var(--andes-switch-track-height);
+  width: var(--andes-switch-track-width);
+  padding-inline: var(--andes-switch-track-padding);
+  border-radius: var(--andes-radius-full);
+  border: 1px solid transparent;
+  background-color: var(--andes-color-input);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.andes-switch--sm {
+  --andes-switch-track-height: 1.25rem;
+  --andes-switch-track-width: 2.25rem;
+  --andes-switch-thumb-size: 0.875rem;
+  --andes-switch-track-padding: 0.1875rem;
+}
+
+.andes-switch[data-checked] {
+  background-color: var(--andes-color-primary);
+}
+
+.andes-switch[data-checked]:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-primary-hover);
+}
+
+.andes-switch:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-switch:disabled,
+.andes-switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-switch[data-readonly] {
+  cursor: default;
+}
+
+.andes-switch--invalid {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-switch--invalid:focus-visible {
+  outline-color: var(--andes-color-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+/* Thumb */
+
+.andes-switch__thumb {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  height: var(--andes-switch-thumb-size);
+  width: var(--andes-switch-thumb-size);
+  flex-shrink: 0;
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-background);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+  transition: transform 0.15s ease;
+  transform: translateX(0);
+  pointer-events: none;
+}
+
+.andes-switch[data-checked] .andes-switch__thumb {
+  transform: translateX(
+    calc(
+      var(--andes-switch-track-width) - var(--andes-switch-thumb-size) - 2 *
+        var(--andes-switch-track-padding)
+    )
+  );
+}
+
+/* Content projected inside the track (Ant Design's checkedChildren/unCheckedChildren
+   equivalent) - sits on the opposite side of the track from the thumb, out of its way. */
+
+.andes-switch__content {
+  position: absolute;
+  inset-block: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.625rem;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.andes-switch__content--checked {
+  inset-inline-start: var(--andes-switch-track-padding);
+  inset-inline-end: calc(
+    var(--andes-switch-thumb-size) + var(--andes-switch-track-padding)
+  );
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-switch__content--unchecked {
+  inset-inline-start: calc(
+    var(--andes-switch-thumb-size) + var(--andes-switch-track-padding)
+  );
+  inset-inline-end: var(--andes-switch-track-padding);
+  /* --andes-color-muted-foreground only reaches ~3.2:1 on --andes-color-input, below
+     WCAG AA for this text's size - --andes-color-foreground clears it comfortably. */
+  color: var(--andes-color-foreground);
+}
+
+.andes-switch__content ::ng-deep svg {
+  width: 0.75em;
+  height: 0.75em;
+  flex-shrink: 0;
+}
