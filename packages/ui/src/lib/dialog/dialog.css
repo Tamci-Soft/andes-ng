@@ -1,0 +1,167 @@
+/*
+ * Shared by AndesDialogContent and AndesAlertDialogContent, both of which render
+ * with ViewEncapsulation.None: the parts inside a dialog (header, title, footer,
+ * close controls) are consumer markup projected from the consumer's own view, so
+ * an encapsulated stylesheet could never reach them. Every class is namespaced
+ * `andes-dialog*` to make that safe, and the two surfaces are one visual part
+ * distinguished by `data-slot`, not by a second class family.
+ */
+
+.andes-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-4);
+  box-sizing: border-box;
+  width: 100%;
+  max-height: calc(100dvh - var(--andes-space-5) * 2);
+  overflow-y: auto;
+  padding: var(--andes-space-5);
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  /* `popover`, not `card`/`background` - both reference libraries reserve the popover
+     surface tokens for floating layers. */
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  /* Derived from the foreground token rather than a hard-coded ink, since there is no
+     elevation token in @andes-ng/tokens yet. */
+  box-shadow:
+    0 10px 15px -3px
+      color-mix(in srgb, var(--andes-color-foreground) 12%, transparent),
+    0 4px 6px -4px
+      color-mix(in srgb, var(--andes-color-foreground) 16%, transparent);
+}
+
+/* Sizes. Neither reference library exposes an enum, but a scale keeps consumers off
+   magic widths; every step still collapses to the viewport on a narrow screen. */
+.andes-dialog--sm {
+  max-width: 24rem;
+}
+
+.andes-dialog--md {
+  max-width: 32rem;
+}
+
+.andes-dialog--lg {
+  max-width: 42rem;
+}
+
+.andes-dialog--xl {
+  max-width: 56rem;
+}
+
+/* A confirmation is a short, dense surface - it should not stretch to a content width
+   it will never use. */
+.andes-dialog--alert.andes-dialog--md {
+  max-width: 26rem;
+}
+
+.andes-dialog__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-2);
+  /* Leaves room for the built-in close control. */
+  padding-inline-end: var(--andes-space-5);
+}
+
+.andes-dialog__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1.5;
+  color: var(--andes-color-popover-foreground);
+}
+
+.andes-dialog__description {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--andes-space-2);
+}
+
+/* The built-in close ("x") control. */
+.andes-dialog__close {
+  position: absolute;
+  inset-block-start: var(--andes-space-3);
+  inset-inline-end: var(--andes-space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--andes-radius-sm);
+  background-color: transparent;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.andes-dialog__close:hover {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-dialog__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-dialog__close-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Reverse order on narrow screens so the affirmative action sits under the thumb,
+   while the DOM order still puts Cancel first for initial focus. */
+@media (width <= 30rem) {
+  .andes-dialog__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
+
+/* Entry motion, applied to the pane the primitive creates rather than to the surface,
+   so a consumer restyling the surface cannot lose it. */
+.andes-overlay-pane:has(> .andes-dialog) {
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--andes-space-5);
+  animation: andes-dialog-enter 0.16s ease-out;
+}
+
+@keyframes andes-dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-overlay-pane:has(> .andes-dialog) {
+    animation: none;
+  }
+}
