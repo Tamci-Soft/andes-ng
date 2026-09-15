@@ -84,6 +84,49 @@
   height: 1rem;
 }
 
+/* The interactive (dropdown) mode of AndesBreadcrumbEllipsis. The host keeps its own 1.5rem box
+   from `.andes-breadcrumb-ellipsis` above; the trigger just fills it and resets the browser's
+   default button chrome so the "..." looks identical to the static glyph until hovered/focused. */
+.andes-breadcrumb-ellipsis__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.andes-breadcrumb-ellipsis__trigger:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-breadcrumb-ellipsis__trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Fills its `role="menuitem"` parent so the whole row - not just the text - is a click target,
+   and drops `.andes-breadcrumb-link`'s own hover underline/color, which would fight the menu
+   item's own hover/active highlight. */
+.andes-breadcrumb-ellipsis__menu-link,
+.andes-breadcrumb-ellipsis__menu-link:hover {
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The menu item already draws the focus/active highlight for the whole row. */
+.andes-breadcrumb-ellipsis__menu-link:focus-visible {
+  outline: none;
+}
+
 .andes-breadcrumb-ellipsis__sr-only {
   position: absolute;
   width: 1px;
