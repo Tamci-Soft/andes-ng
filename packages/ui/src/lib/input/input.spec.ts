@@ -249,13 +249,13 @@ describe('AndesInput', () => {
     // forced-colors) keyed off `:focus-visible` on the native input, matching every other
     // control in this library.
     //
-    // jsdom's `getComputedStyle` does not resolve dynamic pseudo-classes (`:focus`,
-    // `:focus-visible`, `:hover`, `:focus-within`, ...) at all - the same reason none of
-    // this library's other components (e.g. button.spec.ts) assert computed outline
-    // styles either. `Element.matches()` *does* evaluate them correctly (it goes through
-    // nwsapi rather than jsdom's computed-style resolver), so it is used below to prove
-    // the selector logic actually reacts to real focus state; the declaration itself
-    // (outline vs. box-shadow) is verified by reading the authored stylesheet.
+    // jsdom does resolve dynamic pseudo-classes (`:focus`, `:focus-visible`, ...) both in
+    // `Element.matches()` and in `getComputedStyle`, so the assertions below exercise the
+    // real cascade against a really-focused input. It does not expand shorthands, though,
+    // so `outline` is compared as the authored string rather than via `outlineStyle`; and
+    // `var()` is left unresolved, hence the token name appearing verbatim. The authored
+    // stylesheet is also read directly where the point is which *selector* carries a
+    // declaration, which a computed style cannot show.
     const focusRingSelector =
       '.andes-input-wrapper:has(.andes-input__control:focus-visible)';
 
@@ -296,6 +296,49 @@ describe('AndesInput', () => {
       // `:focus-within` was deliberately dropped for this purpose.)
       const cssWithoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
       expect(cssWithoutComments).not.toMatch(/:focus-within/);
+    });
+
+    // Regression coverage for the "double ring" this fix removes: dropping `outline: none`
+    // from `.andes-input__control` left the browser's own default ring painting on the
+    // native input *in addition to* the wrapper's authored one, so a focused field showed
+    // two differently-colored rectangles with a gap between them. The inner control must
+    // resolve to `outline: none` while focused; the wrapper must still resolve to the real
+    // authored outline.
+    it('paints exactly one focus ring: the wrapper outlines, the native input does not', () => {
+      const { input, wrapper } = createHost();
+
+      input.focus();
+
+      // `auto` here would mean the UA's own default focus ring is back on the inner input.
+      expect(getComputedStyle(input).outline).toBe('none');
+      expect(getComputedStyle(wrapper).outline).toBe(
+        '2px solid var(--andes-color-focus-ring)',
+      );
+    });
+
+    it('does not reset the outline of the native input while it is unfocused', () => {
+      const { input } = createHost();
+
+      expect(getComputedStyle(input).outline).not.toBe('none');
+    });
+
+    it("scopes the native-ring reset to the control's own focus pseudo-classes", () => {
+      const css = readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
+        'utf-8',
+      ).replace(/\/\*[\s\S]*?\*\//g, '');
+
+      // Every `outline: none` in the stylesheet must be scoped to a focus state of the
+      // native control. A blanket `.andes-input__control { outline: none }` would also kill
+      // any outline a consumer or the UA applies for non-focus reasons, and it is the shape
+      // the pre-fix code used - the wrapper's ring is what must carry accessibility here.
+      const outlineNoneRules = [
+        ...css.matchAll(/([^{}]+){([^}]*outline:\s*none[^}]*)}/g),
+      ].map((match) => match[1].trim());
+
+      expect(outlineNoneRules).toEqual([
+        '.andes-input__control:focus,\n.andes-input__control:focus-visible',
+      ]);
     });
   });
 

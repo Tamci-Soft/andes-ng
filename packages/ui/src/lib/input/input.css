@@ -55,6 +55,20 @@
   font-family: var(--andes-font-family), sans-serif;
 }
 
+/* Suppress the browser's own default focus ring on the native input - and *only* there.
+   The visible indicator is the wrapper's outline above, which `:has()` drives off this very
+   element's `:focus-visible` state; without this rule both rings paint at once (the UA ring
+   hugging the input, the authored ring around the wrapper) and the field reads as broken.
+   Scoping the reset to the focus pseudo-classes, rather than putting a blanket
+   `outline: none` on `.andes-input__control` itself, keeps it obvious that this suppresses a
+   UA default and nothing else. Accessibility is unaffected: the wrapper still carries a real
+   `outline`, which `forced-colors: active` recolors rather than strips, so keyboard users
+   keep a visible indicator in Windows High Contrast Mode. */
+.andes-input__control:focus,
+.andes-input__control:focus-visible {
+  outline: none;
+}
+
 .andes-input__control::placeholder {
   color: var(--andes-color-muted-foreground);
 }
