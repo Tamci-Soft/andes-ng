@@ -646,4 +646,79 @@ describe('AndesDatePicker', () => {
       expect(harness(fixture).triggerText()).toBe('Feb 15, 2024');
     });
   });
+
+  describe('weekStartsOn bare attribute', () => {
+    /**
+     * `AndesDatePicker` declares its own `weekStartsOn` input and passes it
+     * through to the `AndesCalendar` it composes (`[weekStartsOn]="weekStartsOn()"`
+     * in date-picker.html). It needs the same `numberAttribute` coercion as the
+     * calendar's own input: a bare `weekStartsOn="1"` attribute (no square
+     * brackets) otherwise reaches Angular as the string `"1"`, which corrupts
+     * `weekdayNames`'s `+`-based offset math via string concatenation and
+     * renders a Wednesday-first grid instead of Monday-first.
+     */
+    it('treats a bare weekStartsOn="1" attribute as the number 1, producing a Monday-first panel grid', () => {
+      @Component({
+        imports: [AndesDatePicker],
+        template: `<andes-date-picker
+          weekStartsOn="1"
+          locale="en-US"
+          [defaultMonth]="defaultMonth"
+        />`,
+      })
+      class BareWeekStartsOnHost {
+        readonly defaultMonth = d(2024, 2, 1);
+      }
+
+      const fixture = TestBed.createComponent(BareWeekStartsOnHost);
+      fixture.detectChanges();
+      const view = harness(fixture);
+      view.openPanel();
+
+      const headers = Array.from(
+        view.panel()?.querySelectorAll<HTMLElement>('[role="columnheader"]') ??
+          [],
+      );
+
+      // Correct, Monday-first order. Before the fix this rendered
+      // Wednesday-first (Wed, Thu, Fri, Sat, Sun, Mon, Tue).
+      expect(
+        headers.map((header) => header.getAttribute('aria-label')),
+      ).toEqual([
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ]);
+    });
+
+    it('clamps an out-of-range bare weekStartsOn="9" attribute to 0 (Sunday) instead of crashing', () => {
+      @Component({
+        imports: [AndesDatePicker],
+        template: `<andes-date-picker
+          weekStartsOn="9"
+          locale="en-US"
+          [defaultMonth]="defaultMonth"
+        />`,
+      })
+      class OutOfRangeWeekStartsOnHost {
+        readonly defaultMonth = d(2024, 2, 1);
+      }
+
+      const fixture = TestBed.createComponent(OutOfRangeWeekStartsOnHost);
+      expect(() => fixture.detectChanges()).not.toThrow();
+      const view = harness(fixture);
+      expect(() => view.openPanel()).not.toThrow();
+
+      const headers = Array.from(
+        view.panel()?.querySelectorAll<HTMLElement>('[role="columnheader"]') ??
+          [],
+      );
+      expect(headers).toHaveLength(7);
+      expect(headers[0].getAttribute('aria-label')).toBe('Sunday');
+    });
+  });
 });

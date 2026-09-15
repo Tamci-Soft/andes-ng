@@ -10,6 +10,7 @@ import {
   input,
   linkedSignal,
   model,
+  numberAttribute,
   output,
   signal,
 } from '@angular/core';
@@ -21,6 +22,7 @@ import {
   addYears,
   buildCalendarWeeks,
   clampDate,
+  clampWeekday,
   coerceDate,
   compareDays,
   endOfMonth,
@@ -143,8 +145,20 @@ export class AndesCalendar {
    */
   readonly locale = input<string | undefined>(undefined);
 
-  /** First column of the week, `0` = Sunday. */
-  readonly weekStartsOn = input<AndesWeekday>(0);
+  /**
+   * First column of the week, `0` = Sunday.
+   *
+   * `numberAttribute` guards against the bare-attribute case:
+   * `<andes-calendar weekStartsOn="1">` (no square brackets) passes Angular
+   * the literal string `"1"`, and left uncoerced that string reaches
+   * `weekdayNames`'s `+`-based offset arithmetic as a string, silently
+   * producing the wrong grid via JS string concatenation instead of
+   * addition. `clampWeekday` then falls back to `0` for anything that
+   * isn't a whole number in the valid `0`-`6` range.
+   */
+  readonly weekStartsOn = input<AndesWeekday>(0, {
+    transform: (value: unknown) => clampWeekday(numberAttribute(value, 0)),
+  });
 
   /** Render the adjacent months' days in the leading/trailing cells. */
   readonly showOutsideDays = input(true, { transform: booleanAttribute });

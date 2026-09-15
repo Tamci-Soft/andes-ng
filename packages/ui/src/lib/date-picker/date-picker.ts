@@ -15,6 +15,7 @@ import {
   forwardRef,
   inject,
   input,
+  numberAttribute,
   output,
   signal,
   TemplateRef,
@@ -28,6 +29,7 @@ import {
   type AndesCalendarValue,
 } from '../calendar/calendar';
 import {
+  clampWeekday,
   coerceDate,
   formatDate,
   toDateRange,
@@ -112,8 +114,18 @@ export class AndesDatePicker implements ControlValueAccessor {
   /** BCP 47 tag driving month/weekday names and the trigger's display format. */
   readonly locale = input<string | undefined>(undefined);
 
-  /** First column of the week, `0` = Sunday. */
-  readonly weekStartsOn = input<AndesWeekday>(0);
+  /**
+   * First column of the week, `0` = Sunday.
+   *
+   * Coerced the same way as `AndesCalendar`'s own `weekStartsOn` (which this
+   * value is passed straight through to): `numberAttribute` guards the bare
+   * `weekStartsOn="1"` attribute case, and `clampWeekday` keeps the result in
+   * the valid `0`-`6` range. See `AndesCalendar.weekStartsOn` for why an
+   * uncoerced string silently corrupts the grid.
+   */
+  readonly weekStartsOn = input<AndesWeekday>(0, {
+    transform: (value: unknown) => clampWeekday(numberAttribute(value, 0)),
+  });
 
   /** Render the adjacent months' days in the calendar's leading/trailing cells. */
   readonly showOutsideDays = input(true, { transform: booleanAttribute });
