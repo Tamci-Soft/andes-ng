@@ -233,6 +233,140 @@ describe('AndesBadge', () => {
   });
 });
 
+/**
+ * jsdom applies the component's stylesheet cascade but runs no layout engine, so
+ * `getBoundingClientRect()`/`offsetWidth` are always 0 here. These tests therefore read the
+ * *resolved computed style* off the rendered element and derive the border box from it, which
+ * still pins the shape down exactly:
+ *   - a badge with an explicit `width` has that width, full stop;
+ *   - a badge with `width: auto` can never be narrower than `min-width + padding-inline * 2`,
+ *     however narrow its glyphs happen to be - so that sum is a sound lower bound.
+ * The same three cases were measured in a real engine (Chromium, Storybook `Badge/Shapes`,
+ * 16px root font): "5" 20.00x20.00, "42" 28.00x20.00, "99+" 29.63x20.00.
+ */
+describe('AndesBadge shape', () => {
+  function px(value: string): number {
+    const match = /^(-?[\d.]+)(rem|px)?$/.exec(value.trim());
+    if (!match) {
+      return Number.NaN;
+    }
+    return match[2] === 'rem' ? Number(match[1]) * 16 : Number(match[1]);
+  }
+
+  /**
+   * Horizontal padding actually in force. jsdom expands a `padding` shorthand into longhands
+   * but does not cross-expand it against a `padding-inline` declared in another rule, so the
+   * longhand is the authoritative answer whenever it resolved - `padding-inline` is only the
+   * fallback for elements where no rule used the `padding` shorthand at all.
+   */
+  function horizontalPadding(style: CSSStyleDeclaration): number {
+    return style.paddingLeft !== ''
+      ? px(style.paddingLeft)
+      : px(style.getPropertyValue('padding-inline') || '0');
+  }
+
+  /** Border-box geometry of the indicator, as far as the computed style determines it. */
+  function box(badge: HTMLElement) {
+    const style = getComputedStyle(badge);
+    const inlinePadding = horizontalPadding(style);
+    // '' means the property was never declared, i.e. it resolves to `auto`.
+    const declaredWidth = style.width === '' ? Number.NaN : px(style.width);
+    return {
+      height: px(style.height),
+      inlinePadding,
+      hasFixedWidth: !Number.isNaN(declaredWidth),
+      width: declaredWidth + inlinePadding * 2,
+      minimumWidth: px(style.minWidth) + inlinePadding * 2,
+    };
+  }
+
+  function renderBadge(
+    apply: (host: HostComponent) => void,
+  ): ReturnType<typeof box> {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+
+    return box(fixture.nativeElement.querySelector('.andes-badge'));
+  }
+
+  it('renders a single-digit count as a true circle - width is pinned to height, not merely floored by it', () => {
+    const shape = renderBadge((host) => host.count.set(5));
+
+    expect(shape.hasFixedWidth).toBe(true);
+    expect(shape.inlinePadding).toBe(0);
+    expect(shape.width).toBe(shape.height);
+    expect(shape.width).toBe(20);
+  });
+
+  it('renders a two-digit count wider than tall - a pill, not a circle', () => {
+    const shape = renderBadge((host) => host.count.set(42));
+
+    expect(shape.hasFixedWidth).toBe(false);
+    expect(shape.inlinePadding).toBeGreaterThan(0);
+    expect(shape.minimumWidth).toBeGreaterThan(shape.height);
+    expect(shape.minimumWidth).toBe(28);
+  });
+
+  it('renders the 99+ overflow count wider than tall - a pill, not a circle', () => {
+    const shape = renderBadge((host) => {
+      host.count.set(150);
+      host.max.set(99);
+    });
+
+    expect(shape.hasFixedWidth).toBe(false);
+    expect(shape.minimumWidth).toBeGreaterThan(shape.height);
+  });
+
+  it('keeps the dot variant its own circle', () => {
+    const shape = renderBadge((host) => host.dot.set(true));
+
+    expect(shape.hasFixedWidth).toBe(true);
+    expect(shape.inlinePadding).toBe(0);
+    expect(shape.width).toBe(shape.height);
+    expect(shape.width).toBe(8);
+  });
+
+  it('circles a single-digit count at the small size too', () => {
+    const shape = renderBadge((host) => {
+      host.count.set(5);
+      host.size.set('small');
+    });
+
+    expect(shape.width).toBe(shape.height);
+    expect(shape.width).toBe(14);
+  });
+
+  it('keeps a two-digit count a pill at the small size', () => {
+    const shape = renderBadge((host) => {
+      host.count.set(42);
+      host.size.set('small');
+    });
+
+    expect(shape.hasFixedWidth).toBe(false);
+    expect(shape.minimumWidth).toBeGreaterThan(shape.height);
+  });
+
+  it('circles a single-digit count in standalone mode, where the indicator still renders only the count', () => {
+    const shape = renderBadge((host) => {
+      host.count.set(7);
+      host.standalone.set(true);
+    });
+
+    expect(shape.width).toBe(shape.height);
+  });
+
+  it('circles a zero shown via showZero', () => {
+    const shape = renderBadge((host) => {
+      host.count.set(0);
+      host.showZero.set(true);
+    });
+
+    expect(shape.width).toBe(shape.height);
+  });
+});
+
 describe('AndesBadge warning variant contrast (WCAG 2.x AA, 4.5:1 for normal text)', () => {
   // Same relative-luminance/contrast formula the Storybook a11y addon (axe-core) uses.
   function relativeLuminance(hex: string): number {
