@@ -1,0 +1,89 @@
+/* This single stylesheet is shared (via styleUrl) across every Card sub-component. Angular
+   scopes each `:host(...)` rule to the component that actually declares that class on its own
+   host, so only the relevant rules ever match for a given sub-component - the rest are simply
+   inert there. Rules for `.andes-card__title` are a plain (non-host) selector instead, since
+   AndesCardTitle renders its class on an inner h2-h6 element from its own template, not on its
+   host. */
+
+:host(.andes-card) {
+  display: flex;
+  flex-direction: column;
+  /* Card-local density knob (mirrors shadcn's own `--card-spacing`) - not a global design
+     token, so it lives here rather than in packages/tokens/src/theme.css. Only the root
+     overrides it; descendants merely consume the cascaded value. */
+  --andes-card-spacing: var(--andes-space-4);
+  gap: var(--andes-card-spacing);
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--andes-color-card);
+  color: var(--andes-color-card-foreground);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+:host(.andes-card--outlined) {
+  border: 1px solid var(--andes-color-border);
+}
+
+:host(.andes-card--borderless) {
+  border: 1px solid transparent;
+}
+
+:host(.andes-card--sm) {
+  --andes-card-spacing: var(--andes-space-3);
+}
+
+:host(.andes-card--hoverable) {
+  cursor: pointer;
+}
+
+/* No dedicated elevation/shadow token exists yet in packages/tokens/src/theme.css for this
+   (the same gap flagged against Ant's `boxShadowTertiary` in tooltip.md/dropdown-menu.md/
+   card.md) - derive the hover shadow from an existing color token via color-mix rather than
+   inventing a new token or hard-coding an unrelated color. */
+:host(.andes-card--hoverable:hover) {
+  box-shadow: 0 4px 16px
+    color-mix(in srgb, var(--andes-color-foreground) 16%, transparent);
+}
+
+:host(.andes-card__header) {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: var(--andes-space-1);
+  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
+  padding-block-start: var(--andes-card-spacing, var(--andes-space-4));
+}
+
+.andes-card__title {
+  grid-column: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1.2;
+}
+
+:host(.andes-card__description) {
+  grid-column: 1;
+  font-size: 0.875rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+:host(.andes-card__action) {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  justify-self: end;
+  align-self: start;
+}
+
+:host(.andes-card__content) {
+  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
+  padding-block: var(--andes-card-spacing, var(--andes-space-4));
+}
+
+:host(.andes-card__footer) {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
+  padding-block-end: var(--andes-card-spacing, var(--andes-space-4));
+}
