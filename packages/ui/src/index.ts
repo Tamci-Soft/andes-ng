@@ -187,3 +187,9 @@ export type {
   AndesTabsActivationMode,
   AndesTabsOrientation,
 } from './lib/tabs/tabs-types';
+
+export { AndesFormControl } from './lib/form-field/form-control';
+export { AndesFormDescription } from './lib/form-field/form-description';
+export { AndesFormError } from './lib/form-field/form-error';
+export { AndesFormField } from './lib/form-field/form-field';
+export { AndesFormLabel } from './lib/form-field/form-label';
