@@ -23,24 +23,21 @@ const meta: Meta<AndesPopover> = {
     alignOffset: 0,
     showArrow: false,
   },
-  decorators: [
-    () => ({
-      template: `<div style="padding: 8rem;"><story/></div>`,
-    }),
-  ],
   render: (args) => ({
     moduleMetadata: {
       imports: [AndesButton, AndesPopoverTrigger, AndesPopoverContent],
     },
     props: args,
     template: `
-      <andes-popover [side]="side" [align]="align" [sideOffset]="sideOffset" [alignOffset]="alignOffset" [showArrow]="showArrow">
-        <button andes-button andesPopoverTrigger>Open popover</button>
-        <andes-popover-content>
-          <p style="margin: 0 0 0.5rem; font-weight: 600;">Popover title</p>
-          <p style="margin: 0; font-size: 0.875rem;">This is the popover body content.</p>
-        </andes-popover-content>
-      </andes-popover>
+      <div style="padding: 8rem;">
+        <andes-popover [side]="side" [align]="align" [sideOffset]="sideOffset" [alignOffset]="alignOffset" [showArrow]="showArrow">
+          <button andes-button andesPopoverTrigger>Open popover</button>
+          <andes-popover-content>
+            <p style="margin: 0 0 0.5rem; font-weight: 600;">Popover title</p>
+            <p style="margin: 0; font-size: 0.875rem;">This is the popover body content.</p>
+          </andes-popover-content>
+        </andes-popover>
+      </div>
     `,
   }),
 };
@@ -102,7 +99,7 @@ export const Controlled: Story = {
     },
     props: { ...args, visible: false },
     template: `
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+      <div style="padding: 8rem; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
         <andes-button (click)="visible = !visible">Toggle from outside</andes-button>
         <andes-popover [side]="side" [align]="align" [(open)]="visible">
           <button andes-button variant="outline" andesPopoverTrigger>Or click me</button>
