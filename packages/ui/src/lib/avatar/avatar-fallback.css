@@ -1,0 +1,25 @@
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-transform: uppercase;
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+/* `:host ::ng-deep`, not a leading `::ng-deep`: an SVG icon passed as
+   projected content is declared in the CONSUMER's own template, so reaching
+   it at all requires piercing this component's encapsulation - but
+   `::ng-deep` as the LEADING part of a selector disables Angular's style
+   scoping entirely for that rule, emitting a truly global `svg { ... }` that
+   would size every `<svg>` on the whole page, in any app that ever loads
+   this component. Anchoring `::ng-deep` after `:host` keeps the rule scoped
+   to SVGs that are actual descendants of this component's own host. */
+:host ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+}
