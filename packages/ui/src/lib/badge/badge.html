@@ -1,0 +1,14 @@
+<span
+  class="andes-badge-wrapper"
+  [class.andes-badge-wrapper--standalone]="standalone()"
+>
+  @if (!standalone()) {
+  <ng-content />
+  } @if (visible()) {
+  <span [class]="classes()" [attr.aria-label]="ariaLabel() ?? null">
+    @if (!dot()) { {{ displayValue() }} }
+  </span>
+  } @if (standalone()) {
+  <ng-content select="[slot=label]" />
+  }
+</span>
