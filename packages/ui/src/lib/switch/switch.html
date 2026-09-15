@@ -1,0 +1,33 @@
+<button
+  type="button"
+  role="switch"
+  data-slot="switch"
+  [attr.data-size]="size()"
+  [attr.data-checked]="isChecked() ? '' : null"
+  [attr.data-unchecked]="isChecked() ? null : ''"
+  [attr.data-disabled]="isDisabled() ? '' : null"
+  [attr.data-readonly]="readonly() ? '' : null"
+  [attr.data-required]="required() ? '' : null"
+  [attr.aria-checked]="isChecked()"
+  [attr.aria-required]="required() || null"
+  [attr.aria-readonly]="readonly() || null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="ariaInvalid() || null"
+  [disabled]="isDisabled()"
+  [class]="classes()"
+  (click)="onClick()"
+  (blur)="onBlur()"
+>
+  <span class="andes-switch__thumb" data-slot="switch-thumb"></span>
+  @if (isChecked()) {
+  <span class="andes-switch__content andes-switch__content--checked">
+    <ng-content select="[slot=checked]" />
+  </span>
+  } @else {
+  <span class="andes-switch__content andes-switch__content--unchecked">
+    <ng-content select="[slot=unchecked]" />
+  </span>
+  }
+</button>
