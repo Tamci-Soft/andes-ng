@@ -82,9 +82,10 @@
   border-color: var(--andes-color-danger);
 }
 
-.andes-checkbox--invalid
-  .andes-checkbox__input:focus-visible
-  ~ .andes-checkbox__box {
+/* Kept on a SINGLE line on purpose - see the note above the `:checked` icon rule below.
+   Angular's style encapsulation mis-scopes multi-line descendant/sibling selectors. */
+/* prettier-ignore */
+.andes-checkbox--invalid .andes-checkbox__input:focus-visible ~ .andes-checkbox__box {
   outline-color: var(--andes-color-danger);
 }
 
@@ -97,24 +98,34 @@
   pointer-events: none;
 }
 
-.andes-checkbox__input:checked
-  ~ .andes-checkbox__box
-  .andes-checkbox__icon--check {
+/* KEEP EACH OF THE THREE ICON-VISIBILITY SELECTORS BELOW ON A SINGLE LINE.
+   Angular's style encapsulation (`encapsulateStyle`, ShadowCss) splits a selector on
+   whitespace to decide where to attach the `_ngcontent-*` scoping attribute, and it treats a
+   NEWLINE inside the selector as a part boundary of its own. Wrapped across lines, this rule
+   compiles to
+     `... :checked ~ .andes-checkbox__box [_ngcontent-x] .andes-checkbox__icon--check[...]`
+   - the `.andes-checkbox__box` compound loses its attribute entirely and the orphaned
+   `[_ngcontent-x]` is emitted as a phantom extra descendant step. Nothing sits between the box
+   and the icon, so the rule matched nothing and the checkmark stayed at `opacity: 0` forever
+   (a checked checkbox rendered as a plain blue square). On one line it compiles correctly to
+   `...:checked ~ .andes-checkbox__box[_ngcontent-x] .andes-checkbox__icon--check[_ngcontent-x]`.
+   The `prettier-ignore` markers stop Prettier from re-wrapping them past `printWidth` and
+   silently reintroducing the bug. Same defect previously hit AndesAccordion's icon rotation. */
+/* prettier-ignore */
+.andes-checkbox__input:checked ~ .andes-checkbox__box .andes-checkbox__icon--check {
   opacity: 1;
 }
 
-.andes-checkbox__input:indeterminate
-  ~ .andes-checkbox__box
-  .andes-checkbox__icon--indeterminate {
+/* prettier-ignore */
+.andes-checkbox__input:indeterminate ~ .andes-checkbox__box .andes-checkbox__icon--indeterminate {
   opacity: 1;
 }
 
 /* Indeterminate wins visually over checked when a native checkbox happens to carry both DOM
    properties at once - this rule is declared after the `:checked` one above so the cascade
    (equal specificity, later wins) hides the checkmark whenever the dash is shown. */
-.andes-checkbox__input:indeterminate
-  ~ .andes-checkbox__box
-  .andes-checkbox__icon--check {
+/* prettier-ignore */
+.andes-checkbox__input:indeterminate ~ .andes-checkbox__box .andes-checkbox__icon--check {
   opacity: 0;
 }
 
