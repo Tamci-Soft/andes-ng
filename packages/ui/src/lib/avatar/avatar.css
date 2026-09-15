@@ -14,48 +14,54 @@
   user-select: none;
 }
 
-/* Shapes */
+/* Shapes - `:host(.class)`, not a plain `.class` selector: these rules target
+   this component's OWN host element (the BEM classes are bound via `[class]`
+   directly on the host, not on an element in this component's template), and
+   under Angular's Emulated encapsulation a plain class selector only ever
+   matches elements carrying its `_ngcontent-*` attribute, which the host
+   itself never has (only `_nghost-*` does). `:host(.class)` compiles to
+   something like `[_nghost-xxx].class`, which does match the host. */
 
-.andes-avatar--circular {
+:host(.andes-avatar--circular) {
   border-radius: var(--andes-radius-full);
 }
 
-.andes-avatar--rounded {
+:host(.andes-avatar--rounded) {
   border-radius: var(--andes-radius-lg);
 }
 
-.andes-avatar--square {
+:host(.andes-avatar--square) {
   border-radius: var(--andes-radius-md);
 }
 
 /* Sizes - fixed box dimensions, not the generic space scale, since these are
    avatar box dimensions rather than gaps between elements. */
 
-.andes-avatar--xs {
+:host(.andes-avatar--xs) {
   width: 1.5rem;
   height: 1.5rem;
   font-size: 0.625rem;
 }
 
-.andes-avatar--sm {
+:host(.andes-avatar--sm) {
   width: 2rem;
   height: 2rem;
   font-size: 0.75rem;
 }
 
-.andes-avatar--md {
+:host(.andes-avatar--md) {
   width: 2.5rem;
   height: 2.5rem;
   font-size: 0.875rem;
 }
 
-.andes-avatar--lg {
+:host(.andes-avatar--lg) {
   width: 3.5rem;
   height: 3.5rem;
   font-size: 1.125rem;
 }
 
-.andes-avatar--xl {
+:host(.andes-avatar--xl) {
   width: 4.5rem;
   height: 4.5rem;
   font-size: 1.375rem;
