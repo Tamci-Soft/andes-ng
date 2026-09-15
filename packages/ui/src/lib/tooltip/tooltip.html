@@ -1,0 +1,9 @@
+<ng-content />
+
+<ng-template #overlayTemplate>
+  <div andesOverlayContent class="andes-tooltip">
+    @if (richContent(); as tpl) {
+    <ng-container *ngTemplateOutlet="tpl" />
+    } @else { {{ content() }} }
+  </div>
+</ng-template>
