@@ -1,0 +1,58 @@
+<nav [attr.aria-label]="ariaLabel()" class="andes-pagination">
+  <ul class="andes-pagination__list">
+    <li>
+      <andes-button
+        variant="outline"
+        size="icon-sm"
+        [disabled]="disabled() || isFirstPage()"
+        aria-label="Previous page"
+        (click)="goToPrevious()"
+      >
+        <span aria-hidden="true">&lsaquo;</span>
+      </andes-button>
+    </li>
+    @for (item of items(); track item) {
+    <li>
+      @if (isEllipsis(item)) {
+      <span class="andes-pagination__ellipsis" aria-hidden="true"
+        >&hellip;</span
+      >
+      } @else {
+      <!--
+            A plain native button rather than andes-button: AndesButton's host
+            deliberately nulls out ad-hoc [attr.aria-*] bindings (see
+            button.ts) so only its own dedicated aria-* inputs reach the real
+            inner <button> - it has no aria-current input, so aria-current
+            would be stuck on the non-interactive <andes-button> wrapper
+            instead of the focusable control a screen reader actually reports
+            it from.
+          -->
+      <button
+        type="button"
+        class="andes-pagination__page"
+        [class.andes-pagination__page--active]="
+              item === clampedCurrentPage()
+            "
+        [disabled]="disabled()"
+        [attr.aria-current]="item === clampedCurrentPage() ? 'page' : null"
+        [attr.aria-label]="'Page ' + item"
+        (click)="goToPage(item)"
+      >
+        {{ item }}
+      </button>
+      }
+    </li>
+    }
+    <li>
+      <andes-button
+        variant="outline"
+        size="icon-sm"
+        [disabled]="disabled() || isLastPage()"
+        aria-label="Next page"
+        (click)="goToNext()"
+      >
+        <span aria-hidden="true">&rsaquo;</span>
+      </andes-button>
+    </li>
+  </ul>
+</nav>
