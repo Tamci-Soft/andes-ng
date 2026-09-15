@@ -49,6 +49,42 @@ describe('AndesSwitch', () => {
     expect(button.classList).toContain('andes-switch--md');
   });
 
+  it('resyncs to a validation rollback re-asserting checked after a click (regression)', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<andes-switch
+        [checked]="checked()"
+        (checkedChange)="onChange($event)"
+      />`,
+    })
+    class RollbackHost {
+      readonly checked = signal(false);
+      onChange(value: boolean): void {
+        this.checked.set(value);
+      }
+    }
+
+    const fixture = TestBed.createComponent(RollbackHost);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector(
+      'button',
+    ) as HTMLButtonElement;
+
+    // User clicks: emits checkedChange(true), which the host optimistically applies back
+    // onto its own `checked` signal.
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-checked')).toBe('true');
+
+    // Parent rejects the change (e.g. failed validation) and re-asserts `checked=false`.
+    fixture.componentInstance.checked.set(false);
+    fixture.detectChanges();
+
+    expect(button.getAttribute('aria-checked')).toBe('false');
+    expect(button.hasAttribute('data-checked')).toBe(false);
+    expect(button.hasAttribute('data-unchecked')).toBe(true);
+  });
+
   it('reflects the checked input on aria-checked and data-checked', () => {
     const { fixture, button } = createHost();
     fixture.componentInstance.checked.set(true);
@@ -221,6 +257,35 @@ describe('AndesSwitch', () => {
       control.disable();
       fixture.detectChanges();
       expect(button.disabled).toBe(true);
+    });
+
+    it('renders checked when [formControl] starts with an initial value of true (regression)', () => {
+      @Component({
+        imports: [AndesSwitch, ReactiveFormsModule],
+        template: `<andes-switch [formControl]="control" />`,
+      })
+      class InitiallyCheckedFormControlHost {
+        readonly control = new FormControl(true, { nonNullable: true });
+      }
+
+      const fixture = TestBed.createComponent(InitiallyCheckedFormControlHost);
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector('button');
+      const switchDebugEl = fixture.debugElement.query(
+        (debugEl) => debugEl.componentInstance instanceof AndesSwitch,
+      );
+      const switchInstance = switchDebugEl.componentInstance as AndesSwitch;
+
+      // The rendered DOM must reflect checked...
+      expect(button.getAttribute('aria-checked')).toBe('true');
+      expect(button.hasAttribute('data-checked')).toBe(true);
+      // ...and so must the component's own internal displayed-state signal, not just the
+      // FormControl's value (which would still read `true` even if writeValue's effect had
+      // been clobbered - it's the internal signal that drives what actually renders).
+      expect(
+        (switchInstance as unknown as { isChecked: () => boolean }).isChecked(),
+      ).toBe(true);
+      expect(fixture.componentInstance.control.value).toBe(true);
     });
 
     it('works with [(ngModel)]', async () => {
