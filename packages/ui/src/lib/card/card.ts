@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   input,
+  numberAttribute,
 } from '@angular/core';
 import clsx from 'clsx';
 
@@ -113,7 +114,36 @@ export class AndesCardHeader {}
   `,
 })
 export class AndesCardTitle {
-  readonly level = input<AndesCardTitleLevel>(3);
+  /**
+   * `numberAttribute` guards against the bare-attribute case: `<andes-card-title level="2">`
+   * (no square brackets) passes Angular the literal string `"2"`, and without this transform
+   * the strict `===` comparisons in the `@switch` above never match, silently falling through
+   * to `@default`. `numberAttribute` coerces to a real number and falls back to `3` (the
+   * default level) for anything that isn't a valid number (`NaN`, empty, non-numeric garbage).
+   *
+   * Out-of-range *numeric* input (e.g. `level="9"` or `level="0"`) is then clamped to the
+   * nearest valid bound (`2` or `6`) rather than left to fall through to `@default`'s `h3` -
+   * a value outside the documented `2`-`6` range is a request for "as high/low as this card
+   * goes", not a request for the arbitrary default.
+   */
+  readonly level = input<AndesCardTitleLevel>(3, {
+    transform: (value: unknown) =>
+      clampCardTitleLevel(numberAttribute(value, 3)),
+  });
+}
+
+/** Clamps a coerced `level` value into the valid `AndesCardTitleLevel` range (`2`-`6`). */
+function clampCardTitleLevel(level: number): AndesCardTitleLevel {
+  if (!Number.isInteger(level)) {
+    return 3;
+  }
+  if (level < 2) {
+    return 2;
+  }
+  if (level > 6) {
+    return 6;
+  }
+  return level as AndesCardTitleLevel;
 }
 
 /** Supporting/secondary text beneath the title. */
