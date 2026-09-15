@@ -3,7 +3,6 @@ import {
   Component,
   computed,
   input,
-  ViewEncapsulation,
 } from '@angular/core';
 import clsx from 'clsx';
 
@@ -15,12 +14,14 @@ import type { AndesAvatarShape, AndesAvatarSize } from './avatar';
   templateUrl: './avatar-group-count.html',
   styleUrl: './avatar-group-count.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // Same root cause as AndesAvatar (see avatar.ts): avatar-group-count.css's
-  // shape/size rules are plain class selectors applied via `[class]` on this
-  // component's own host element, which never carries the `_ngcontent-*`
-  // attribute Emulated encapsulation requires for them to match. Opt out of
-  // scoping so they match by class name globally, same fix as Breadcrumb.
-  encapsulation: ViewEncapsulation.None,
+  // Same root cause and fix as AndesAvatar (see avatar.ts): avatar-group-
+  // count.css's shape/size rules target this component's own host element,
+  // so they're written as `:host(.andes-avatar-group-count--xxx)` rather
+  // than plain class selectors, which Emulated encapsulation (the default,
+  // restored here) rewrites to match the host correctly. `ViewEncapsulation
+  // .None`, used here previously, emits the stylesheet verbatim into a
+  // global stylesheet where a `:host` selector - meaningful only inside a
+  // real shadow root - matches nothing, dropping every rule in the file.
   host: {
     '[class]': 'classes()',
     '[attr.data-slot]': "'avatar-group-count'",

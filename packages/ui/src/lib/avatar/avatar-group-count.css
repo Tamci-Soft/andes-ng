@@ -18,43 +18,47 @@
   user-select: none;
 }
 
-.andes-avatar-group-count--circular {
+/* `:host(.class)`, not a plain `.class` selector: see avatar.css for why a
+   plain class selector targeting this component's own host-bound BEM
+   classes is dead under Emulated encapsulation. */
+
+:host(.andes-avatar-group-count--circular) {
   border-radius: var(--andes-radius-full);
 }
 
-.andes-avatar-group-count--rounded {
+:host(.andes-avatar-group-count--rounded) {
   border-radius: var(--andes-radius-lg);
 }
 
-.andes-avatar-group-count--square {
+:host(.andes-avatar-group-count--square) {
   border-radius: var(--andes-radius-md);
 }
 
-.andes-avatar-group-count--xs {
+:host(.andes-avatar-group-count--xs) {
   width: 1.5rem;
   height: 1.5rem;
   font-size: 0.625rem;
 }
 
-.andes-avatar-group-count--sm {
+:host(.andes-avatar-group-count--sm) {
   width: 2rem;
   height: 2rem;
   font-size: 0.75rem;
 }
 
-.andes-avatar-group-count--md {
+:host(.andes-avatar-group-count--md) {
   width: 2.5rem;
   height: 2.5rem;
   font-size: 0.875rem;
 }
 
-.andes-avatar-group-count--lg {
+:host(.andes-avatar-group-count--lg) {
   width: 3.5rem;
   height: 3.5rem;
   font-size: 1.125rem;
 }
 
-.andes-avatar-group-count--xl {
+:host(.andes-avatar-group-count--xl) {
   width: 4.5rem;
   height: 4.5rem;
   font-size: 1.375rem;

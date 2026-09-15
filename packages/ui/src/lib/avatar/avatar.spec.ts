@@ -129,21 +129,31 @@ describe('AndesAvatar', () => {
     expect(avatar.classList).toContain('andes-avatar--md');
   });
 
-  // Regression coverage for avatar.css being dead CSS: `classes()` binds the
-  // BEM classes via `[class]` directly on AndesAvatar's OWN host element
-  // (host metadata above), not on an element inside its own template. Under
-  // the default (Emulated) view encapsulation, Angular only rewrites plain
-  // class selectors to also require its `_ngcontent-*` attribute - which the
-  // host element itself never carries (only `_nghost-*` does) - so every
-  // shape/size rule in avatar.css was dead: the host rendered with no
-  // explicit width/height/border-radius at all, collapsing to a
-  // content-sized box (and, in turn, collapsing the `height: 100%` inner
-  // <img> to zero height). The `classList).toContain(...)` assertions above
-  // would stay green even with every rule dead, because they never ask the
-  // browser/jsdom CSS engine to actually resolve a selector - only real
-  // computed styles, read off the actually-compiled component, can catch
-  // that regression.
-  describe('applies real box-model dimensions to the host (not dead CSS)', () => {
+  // Regression coverage for avatar.css being dead CSS under two different
+  // failure modes:
+  //
+  // 1. Plain class selectors (e.g. `.andes-avatar--circular { ... }`) under
+  //    the default Emulated encapsulation: `classes()` binds the BEM classes
+  //    via `[class]` directly on AndesAvatar's OWN host element (host
+  //    metadata above), not on an element inside its own template. Angular
+  //    only rewrites plain class selectors to also require its
+  //    `_ngcontent-*` attribute, which the host element itself never
+  //    carries (only `_nghost-*` does) - so every shape/size rule was dead.
+  // 2. `encapsulation: ViewEncapsulation.None` (a previous, worse fix for
+  //    the above): this emits the whole stylesheet verbatim into a global,
+  //    non-shadow-DOM `<style>` tag with no scoping rewrite at all. The
+  //    bare `:host { ... }` rule at the top of avatar.css - meaningful only
+  //    inside a real shadow root - then matches NOTHING, dropping the
+  //    host's `display`, `overflow`, `align-items`/`justify-content`,
+  //    `position`, `background-color`, etc., even though the class-based
+  //    width/height/border-radius rules technically "worked" again (as
+  //    plain global class selectors).
+  //
+  // The `classList).toContain(...)` assertions above would stay green under
+  // EITHER failure mode, because they never ask the browser/jsdom CSS engine
+  // to actually resolve a selector - only real computed styles, read off the
+  // actually-compiled component, can catch these regressions.
+  describe('applies real computed styles to the host (not dead CSS)', () => {
     it.each([
       ['circular', 'xs', '1.5rem', '1.5rem'],
       ['square', 'lg', '3.5rem', '3.5rem'],
@@ -160,18 +170,62 @@ describe('AndesAvatar', () => {
         // jsdom's CSSOM reports the specified value verbatim (it doesn't
         // resolve rem to px), so these compare against avatar.css's literal
         // rem values rather than a resolved pixel size - either way, a
-        // non-empty match here proves `.andes-avatar--${size}` actually
-        // matched, which is what was dead before the fix.
+        // non-empty match here proves `:host(.andes-avatar--${size})`
+        // actually matched, which is what was dead before the fix.
         expect(style.width).toBe(width);
         expect(style.height).toBe(height);
         // Not asserting the literal --andes-radius-* value: jsdom's CSSOM
         // doesn't resolve custom properties, but a non-empty, non-zero
-        // border-radius still proves `.andes-avatar--${shape}` actually
-        // matched (an unstyled host has no border-radius rule at all).
+        // border-radius still proves `:host(.andes-avatar--${shape})`
+        // actually matched (an unstyled host has no border-radius rule at
+        // all).
         expect(style.borderRadius).not.toBe('');
         expect(style.borderRadius).not.toBe('0px');
       },
     );
+
+    it.each(['circular', 'rounded', 'square'] as const)(
+      'lays out a %s avatar as an inline-flex box that clips and centers its content',
+      (shape) => {
+        const { fixture, avatar } = createHost();
+        fixture.componentInstance.shape.set(shape);
+        fixture.detectChanges();
+
+        const style = getComputedStyle(avatar);
+
+        // The bare `:host { ... }` rule in avatar.css - not a `:host(.class)`
+        // selector - carries the box's non-shape/size-dependent layout.
+        // Under `ViewEncapsulation.None` this whole rule is dead (a literal
+        // `:host` selector matches nothing outside a real shadow root), so
+        // the host fell back to `display: inline` (a non-replaced inline
+        // box, which ignores width/height/overflow and can't center
+        // content), lost `overflow: hidden` (so a clipped image would
+        // overflow its rounded/circular frame), and lost the flex alignment
+        // that centers fallback initials.
+        expect(style.display).toBe('inline-flex');
+        expect(style.overflow).toBe('hidden');
+        expect(style.alignItems).toBe('center');
+        expect(style.justifyContent).toBe('center');
+        expect(style.position).toBe('relative');
+        expect(style.flexShrink).toBe('0');
+      },
+    );
+
+    it('gives the host a background color from the muted token', () => {
+      const { avatar } = createHost();
+
+      const style = getComputedStyle(avatar);
+
+      // jsdom's CSSOM doesn't resolve custom properties, so this can't
+      // compare against a resolved color - but a background-color other
+      // than the initial value still proves the bare `:host { ... }` rule
+      // actually matched. jsdom reports an unstyled element's initial
+      // `background-color` as `rgba(0, 0, 0, 0)` (fully transparent black),
+      // not the empty string, so that's the value a dead rule leaves behind.
+      expect(style.backgroundColor).not.toBe('');
+      expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+      expect(style.backgroundColor).not.toBe('transparent');
+    });
   });
 
   it('sets data-slot on the root and its parts', () => {

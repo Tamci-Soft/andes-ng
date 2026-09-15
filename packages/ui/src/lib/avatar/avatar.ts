@@ -4,7 +4,6 @@ import {
   computed,
   inject,
   input,
-  ViewEncapsulation,
 } from '@angular/core';
 import clsx from 'clsx';
 
@@ -19,17 +18,19 @@ export type AndesAvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   templateUrl: './avatar.html',
   styleUrl: './avatar.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  // avatar.css's shape/size rules are plain class selectors applied via
-  // `[class]` directly on this component's OWN host element (see `classes`
-  // below), not on elements inside its own template. Under the default
-  // Emulated encapsulation, Angular only rewrites plain class selectors to
-  // require its `_ngcontent-*` attribute, which the host element itself
-  // never carries (only `_nghost-*`) - so every one of those rules is dead
-  // and the host renders with no explicit width/height/border-radius (see
-  // Breadcrumb's `encapsulation: ViewEncapsulation.None` fix for the same
-  // root cause). Opting out of scoping here makes the plain class selectors
-  // match by class name the same way a hand-written global stylesheet would.
-  encapsulation: ViewEncapsulation.None,
+  // avatar.css's shape/size rules target this component's OWN host element
+  // (via the BEM classes bound through `[class]` below), not elements inside
+  // its own template - so they're written as `:host(.andes-avatar--xxx)`
+  // rather than plain class selectors. Emulated encapsulation (the default,
+  // restored here) rewrites `:host(...)` to something like
+  // `[_nghost-xxx].andes-avatar--circular`, which DOES match the host
+  // element regardless of encapsulation, because `_nghost-*` is present on
+  // the host itself. (A previous fix reached for
+  // `encapsulation: ViewEncapsulation.None` instead, which solved that dead
+  // -CSS problem but created a worse one: None emits the stylesheet verbatim
+  // into a global, non-shadow-DOM `<style>` tag, where avatar.css's `:host`
+  // selector - meaningful only inside a real shadow root - matches nothing
+  // at all, dropping every rule in the file, not just the class ones.)
   providers: [AndesAvatarState],
   host: {
     '[class]': 'classes()',
