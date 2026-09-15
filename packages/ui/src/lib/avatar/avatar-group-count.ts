@@ -3,10 +3,13 @@ import {
   Component,
   computed,
   input,
+  signal,
 } from '@angular/core';
 import clsx from 'clsx';
 
 import type { AndesAvatarShape, AndesAvatarSize } from './avatar';
+
+let nextPanelId = 0;
 
 @Component({
   selector: 'andes-avatar-group-count',
@@ -25,6 +28,9 @@ import type { AndesAvatarShape, AndesAvatarSize } from './avatar';
   host: {
     '[class]': 'classes()',
     '[attr.data-slot]': "'avatar-group-count'",
+    '[attr.data-open]': "open() ? '' : null",
+    '(mouseenter)': 'onOpen()',
+    '(mouseleave)': 'onClose()',
   },
 })
 export class AndesAvatarGroupCount {
@@ -33,6 +39,36 @@ export class AndesAvatarGroupCount {
   readonly shape = input<AndesAvatarShape>('circular');
   readonly size = input<AndesAvatarSize>('md');
 
+  /**
+   * Names of the avatars this chip stands in for. When non-empty the chip
+   * turns into a real focusable trigger that reveals them on hover and on
+   * keyboard focus - the behaviour Ant Design's `Avatar.Group` gives its
+   * `maxCount` overflow indicator (`maxPopoverTrigger`), where a static `+N`
+   * is otherwise a dead end for anyone trying to find out WHO is hidden.
+   *
+   * Left empty the chip stays exactly what it was: inert, non-focusable text.
+   * That keeps a group whose hidden members have no names to show from
+   * advertising an empty panel, and keeps this input additive for existing
+   * callers.
+   */
+  readonly hiddenNames = input<readonly string[]>([]);
+
+  /**
+   * Optional heading rendered above the names inside the panel, e.g.
+   * "4 more people". Not defaulted, because any default would be an
+   * untranslated English string baked into every consuming app.
+   */
+  readonly overflowLabel = input('');
+
+  protected readonly panelId = `andes-avatar-group-count-${nextPanelId++}`;
+
+  private readonly _open = signal(false);
+  protected readonly open = this._open.asReadonly();
+
+  protected readonly interactive = computed(
+    () => this.hiddenNames().length > 0,
+  );
+
   protected readonly label = computed(() => `+${this.count()}`);
 
   protected readonly classes = computed(() =>
@@ -40,6 +76,17 @@ export class AndesAvatarGroupCount {
       'andes-avatar-group-count',
       `andes-avatar-group-count--${this.shape()}`,
       `andes-avatar-group-count--${this.size()}`,
+      this.interactive() && 'andes-avatar-group-count--interactive',
     ),
   );
+
+  protected onOpen(): void {
+    if (this.interactive()) {
+      this._open.set(true);
+    }
+  }
+
+  protected onClose(): void {
+    this._open.set(false);
+  }
 }

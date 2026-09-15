@@ -2,9 +2,15 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { AndesAvatar, AndesAvatarShape, AndesAvatarSize } from './avatar';
+import {
+  AndesAvatarBadge,
+  type AndesAvatarBadgePlacement,
+  type AndesAvatarStatus,
+} from './avatar-badge';
 import { AndesAvatarFallback } from './avatar-fallback';
 import { AndesAvatarGroup } from './avatar-group';
 import { AndesAvatarGroupCount } from './avatar-group-count';
+import { AndesAvatarIcon } from './avatar-icon';
 import { AndesAvatarImage } from './avatar-image';
 
 const VALID_SRC = 'https://andes-ng.dev/avatar.png';
@@ -374,6 +380,389 @@ describe('AndesAvatarGroup', () => {
     expect(style.height).toBe('3.5rem');
     expect(style.borderRadius).not.toBe('');
     expect(style.borderRadius).not.toBe('0px');
+  });
+
+  // The stacked look is the whole point of a group: Ant's `groupOverlapping`
+  // pulls each avatar back over the previous one and draws a ring in the page
+  // background so the overlap still reads as separate people. Without the
+  // negative margin the group is just a row of detached circles.
+  it('overlaps the stacked avatars instead of laying them out with a gap', () => {
+    const fixture = TestBed.createComponent(GroupHost);
+    fixture.detectChanges();
+
+    const avatars = fixture.nativeElement.querySelectorAll(
+      'andes-avatar',
+    ) as NodeListOf<HTMLElement>;
+    const count = fixture.nativeElement.querySelector(
+      'andes-avatar-group-count',
+    ) as HTMLElement;
+
+    const first = getComputedStyle(avatars[0]);
+    const second = getComputedStyle(avatars[1]);
+    const countStyle = getComputedStyle(count);
+
+    // The first avatar is excluded by `:not(:first-child)` - it has nothing to
+    // overlap - so a negative margin there would push the whole stack left.
+    expect(first.marginInlineStart).not.toBe('-0.625rem');
+    expect(second.marginInlineStart).toBe('-0.625rem');
+    expect(countStyle.marginInlineStart).toBe('-0.625rem');
+
+    // The separating ring, without which the overlap reads as one smeared
+    // blob rather than a stack.
+    expect(second.boxShadow).not.toBe('');
+    expect(second.boxShadow).not.toBe('none');
+  });
+});
+
+describe('AndesAvatarGroupCount overflow reveal', () => {
+  const HIDDEN = ['Dana Whitfield', 'Elliot Brandt'];
+
+  @Component({
+    imports: [AndesAvatarGroupCount],
+    template: `<andes-avatar-group-count
+      [count]="2"
+      [hiddenNames]="hiddenNames()"
+      overflowLabel="Also in this project"
+    />`,
+  })
+  class RevealHost {
+    readonly hiddenNames = signal<readonly string[]>(HIDDEN);
+  }
+
+  function createRevealHost() {
+    const fixture = TestBed.createComponent(RevealHost);
+    fixture.detectChanges();
+    const count = fixture.nativeElement.querySelector(
+      'andes-avatar-group-count',
+    ) as HTMLElement;
+    return { fixture, count };
+  }
+
+  function panelOf(count: HTMLElement): HTMLElement | null {
+    return count.querySelector('[role="tooltip"]');
+  }
+
+  it('renders the +N chip as a real button when there are names to reveal', () => {
+    const { count } = createRevealHost();
+    const trigger = count.querySelector('button');
+
+    expect(trigger).not.toBeNull();
+    expect(trigger?.getAttribute('type')).toBe('button');
+    // The chip's own text is the trigger's accessible name, so no aria-label
+    // (and no untranslated English) is needed for it.
+    expect(trigger?.textContent?.trim()).toBe('+2');
+  });
+
+  it('stays inert, non-focusable text when no names are supplied', () => {
+    const { fixture, count } = createRevealHost();
+    fixture.componentInstance.hiddenNames.set([]);
+    fixture.detectChanges();
+
+    expect(count.querySelector('button')).toBeNull();
+    expect(count.textContent?.trim()).toBe('+2');
+    expect(count.classList).not.toContain(
+      'andes-avatar-group-count--interactive',
+    );
+  });
+
+  it('reveals the hidden names on hover and hides them again on leave', () => {
+    const { fixture, count } = createRevealHost();
+
+    expect(panelOf(count)).toBeNull();
+
+    count.dispatchEvent(new Event('mouseenter'));
+    fixture.detectChanges();
+
+    const panel = panelOf(count);
+    expect(panel).not.toBeNull();
+    expect(panel?.textContent).toContain('Dana Whitfield');
+    expect(panel?.textContent).toContain('Elliot Brandt');
+    expect(panel?.textContent).toContain('Also in this project');
+    expect(count.getAttribute('data-open')).toBe('');
+
+    count.dispatchEvent(new Event('mouseleave'));
+    fixture.detectChanges();
+
+    expect(panelOf(count)).toBeNull();
+    expect(count.getAttribute('data-open')).toBeNull();
+  });
+
+  // Hover-only would make the hidden members unreachable by keyboard, which
+  // is the accessibility half of the Ant `Avatar.Group` behaviour this
+  // implements - not an optional extra.
+  it('reveals the names on keyboard focus and ties the panel to the trigger', () => {
+    const { fixture, count } = createRevealHost();
+    const trigger = count.querySelector('button') as HTMLButtonElement;
+
+    trigger.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+
+    const panel = panelOf(count) as HTMLElement;
+    expect(panel).not.toBeNull();
+    expect(panel.id).not.toBe('');
+    expect(trigger.getAttribute('aria-describedby')).toBe(panel.id);
+
+    trigger.dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+
+    expect(panelOf(count)).toBeNull();
+    expect(trigger.getAttribute('aria-describedby')).toBeNull();
+  });
+
+  it('dismisses the panel on Escape without moving focus', () => {
+    const { fixture, count } = createRevealHost();
+    const trigger = count.querySelector('button') as HTMLButtonElement;
+
+    trigger.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    expect(panelOf(count)).not.toBeNull();
+
+    trigger.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
+    fixture.detectChanges();
+
+    expect(panelOf(count)).toBeNull();
+  });
+
+  it('gives two chips on the same page distinct panel ids', () => {
+    @Component({
+      imports: [AndesAvatarGroupCount],
+      template: `<andes-avatar-group-count [count]="1" [hiddenNames]="names" />
+        <andes-avatar-group-count [count]="1" [hiddenNames]="names" />`,
+    })
+    class TwoChipsHost {
+      readonly names = ['Someone'];
+    }
+
+    const fixture = TestBed.createComponent(TwoChipsHost);
+    fixture.detectChanges();
+    const chips = fixture.nativeElement.querySelectorAll(
+      'andes-avatar-group-count',
+    ) as NodeListOf<HTMLElement>;
+
+    chips.forEach((chip) => {
+      chip.dispatchEvent(new Event('mouseenter'));
+    });
+    fixture.detectChanges();
+
+    const ids = [...chips].map((chip) => panelOf(chip)?.id);
+
+    expect(ids[0]).toBeTruthy();
+    expect(ids[0]).not.toBe(ids[1]);
+  });
+});
+
+describe('AndesAvatarIcon', () => {
+  @Component({
+    imports: [AndesAvatar, AndesAvatarIcon],
+    template: `<andes-avatar [shape]="shape()">
+      <andes-avatar-icon [label]="label()">
+        <svg class="avatar-icon-svg" viewBox="0 0 24 24"></svg>
+      </andes-avatar-icon>
+    </andes-avatar>`,
+  })
+  class IconHost {
+    readonly shape = signal<AndesAvatarShape>('circular');
+    readonly label = signal('Unassigned');
+  }
+
+  function createIconHost() {
+    const fixture = TestBed.createComponent(IconHost);
+    fixture.detectChanges();
+    const icon = fixture.nativeElement.querySelector(
+      'andes-avatar-icon',
+    ) as HTMLElement;
+    return { fixture, icon };
+  }
+
+  // The reason AndesAvatarIcon exists at all rather than reusing
+  // AndesAvatarFallback: a fallback is driven by the image-load state machine,
+  // so with no AndesAvatarImage sibling the avatar never leaves `loading` and
+  // a delayed fallback would never show. An icon avatar has no image to wait
+  // for, so it must render unconditionally.
+  it('renders unconditionally, with no image sibling and no load event', () => {
+    const { icon } = createIconHost();
+
+    expect(icon.hidden).toBe(false);
+    expect(icon.querySelector('.avatar-icon-svg')).not.toBeNull();
+    expect(icon.getAttribute('data-slot')).toBe('avatar-icon');
+  });
+
+  it('exposes its label as an image role for screen readers', () => {
+    const { icon } = createIconHost();
+
+    expect(icon.getAttribute('role')).toBe('img');
+    expect(icon.getAttribute('aria-label')).toBe('Unassigned');
+    expect(icon.getAttribute('aria-hidden')).toBeNull();
+  });
+
+  it('hides itself from the accessibility tree when the label is empty', () => {
+    const { fixture, icon } = createIconHost();
+    fixture.componentInstance.label.set('');
+    fixture.detectChanges();
+
+    // An empty label is the explicit "decorative, adjacent text names this"
+    // opt-out - it must not leave an unnamed `role="img"` behind.
+    expect(icon.getAttribute('aria-hidden')).toBe('true');
+    expect(icon.getAttribute('role')).toBeNull();
+    expect(icon.getAttribute('aria-label')).toBeNull();
+  });
+
+  it('sizes a projected icon relative to the avatar box, not the page font', () => {
+    const { fixture } = createIconHost();
+    const svg = fixture.nativeElement.querySelector(
+      '.avatar-icon-svg',
+    ) as SVGElement;
+
+    const style = getComputedStyle(svg);
+
+    expect(style.width).toBe('60%');
+    expect(style.height).toBe('60%');
+  });
+
+  it('does not leak its icon sizing onto an unrelated svg elsewhere in the DOM', () => {
+    @Component({
+      imports: [AndesAvatarIcon],
+      template: `<andes-avatar-icon label="Unassigned">
+          <svg class="scoped-icon" viewBox="0 0 24 24"></svg>
+        </andes-avatar-icon>
+        <svg class="unrelated-icon" viewBox="0 0 24 24"></svg>`,
+    })
+    class IconWithUnrelatedSvgHost {}
+
+    const fixture = TestBed.createComponent(IconWithUnrelatedSvgHost);
+    fixture.detectChanges();
+
+    // Same trap as avatar-fallback.css: a LEADING `::ng-deep` would compile to
+    // a global, unscoped `svg { width: 60% }` and resize every SVG in the app.
+    const unrelated = getComputedStyle(
+      fixture.nativeElement.querySelector('.unrelated-icon') as SVGElement,
+    );
+
+    expect(unrelated.width).not.toBe('60%');
+    expect(unrelated.height).not.toBe('60%');
+  });
+});
+
+describe('AndesAvatarBadge', () => {
+  @Component({
+    imports: [
+      AndesAvatar,
+      AndesAvatarImage,
+      AndesAvatarFallback,
+      AndesAvatarBadge,
+    ],
+    template: `<andes-avatar [shape]="shape()" [size]="size()">
+      <andes-avatar-image src="a.png" alt="Jane Doe" />
+      <andes-avatar-fallback>JD</andes-avatar-fallback>
+      <andes-avatar-badge
+        [status]="status()"
+        [placement]="placement()"
+        [label]="label()"
+      />
+    </andes-avatar>`,
+  })
+  class BadgeHost {
+    readonly shape = signal<AndesAvatarShape>('circular');
+    readonly size = signal<AndesAvatarSize>('md');
+    readonly status = signal<AndesAvatarStatus>('online');
+    readonly placement = signal<AndesAvatarBadgePlacement>('bottom-end');
+    readonly label = signal('Online');
+  }
+
+  function createBadgeHost() {
+    const fixture = TestBed.createComponent(BadgeHost);
+    fixture.detectChanges();
+    const avatar = fixture.nativeElement.querySelector(
+      'andes-avatar',
+    ) as HTMLElement;
+    const badge = fixture.nativeElement.querySelector(
+      'andes-avatar-badge',
+    ) as HTMLElement;
+    return { fixture, avatar, badge };
+  }
+
+  it.each(['online', 'offline', 'busy', 'away'] as const)(
+    'reflects the %s status as a class and a data attribute',
+    (status) => {
+      const { fixture, badge } = createBadgeHost();
+      fixture.componentInstance.status.set(status);
+      fixture.detectChanges();
+
+      expect(badge.classList).toContain(`andes-avatar-badge--${status}`);
+      expect(badge.getAttribute('data-status')).toBe(status);
+      expect(badge.getAttribute('data-slot')).toBe('avatar-badge');
+    },
+  );
+
+  it.each(['bottom-end', 'bottom-start', 'top-end', 'top-start'] as const)(
+    'supports the %s placement',
+    (placement) => {
+      const { fixture, badge } = createBadgeHost();
+      fixture.componentInstance.placement.set(placement);
+      fixture.detectChanges();
+
+      expect(badge.classList).toContain(`andes-avatar-badge--${placement}`);
+      expect(badge.getAttribute('data-placement')).toBe(placement);
+    },
+  );
+
+  it('defaults to an online dot in the bottom-end corner', () => {
+    const { badge } = createBadgeHost();
+
+    expect(badge.getAttribute('data-status')).toBe('online');
+    expect(badge.getAttribute('data-placement')).toBe('bottom-end');
+  });
+
+  it('names the status for screen readers rather than relying on colour', () => {
+    const { badge } = createBadgeHost();
+
+    expect(badge.getAttribute('role')).toBe('img');
+    expect(badge.getAttribute('aria-label')).toBe('Online');
+    expect(badge.getAttribute('aria-hidden')).toBeNull();
+  });
+
+  it('hides itself from the accessibility tree when the label is empty', () => {
+    const { fixture, badge } = createBadgeHost();
+    fixture.componentInstance.label.set('');
+    fixture.detectChanges();
+
+    expect(badge.getAttribute('aria-hidden')).toBe('true');
+    expect(badge.getAttribute('role')).toBeNull();
+  });
+
+  it('positions itself absolutely against the avatar and scales with its size', () => {
+    const { badge } = createBadgeHost();
+    const style = getComputedStyle(badge);
+
+    expect(style.position).toBe('absolute');
+    // `em`, so the dot tracks AndesAvatar's per-size font-size step instead of
+    // this component duplicating (and drifting from) that scale.
+    expect(style.width).toBe('0.75em');
+    expect(style.height).toBe('0.75em');
+  });
+
+  // The badge sits ON the avatar's edge, so it can only be fully visible if
+  // the avatar gives up the `overflow: hidden` that otherwise clips its
+  // content to the shape - and the parts then have to clip themselves, or a
+  // circular avatar would render its photo as a bare square.
+  it('makes the avatar stop clipping, while the parts keep the avatar shape', () => {
+    const { avatar, fixture } = createBadgeHost();
+
+    expect(getComputedStyle(avatar).overflow).toBe('visible');
+
+    const img = fixture.nativeElement.querySelector('img') as HTMLImageElement;
+    const fallback = fixture.nativeElement.querySelector(
+      'andes-avatar-fallback',
+    ) as HTMLElement;
+
+    // jsdom's CSSOM doesn't resolve custom properties, so the assertion is
+    // that the rule matched at all - an unstyled element has no border-radius.
+    expect(getComputedStyle(img).borderRadius).not.toBe('');
+    expect(getComputedStyle(img).borderRadius).not.toBe('0px');
+    expect(getComputedStyle(fallback).borderRadius).not.toBe('');
+    expect(getComputedStyle(fallback).borderRadius).not.toBe('0px');
   });
 });
 

@@ -22,16 +22,40 @@
    itself never has (only `_nghost-*` does). `:host(.class)` compiles to
    something like `[_nghost-xxx].class`, which does match the host. */
 
+/* Each shape also publishes its radius as `--andes-avatar-radius`. Custom
+   properties inherit across both Angular's style encapsulation boundaries and
+   `display: contents` (AndesAvatarImage's host), which makes this the only
+   way the parts can clip themselves to the ROOT's shape without every part
+   re-deriving the shape from its own input. They need to, because a projected
+   `andes-avatar-badge` forces the rule below to drop this host's
+   `overflow: hidden`. */
+
 :host(.andes-avatar--circular) {
-  border-radius: var(--andes-radius-full);
+  --andes-avatar-radius: var(--andes-radius-full);
+
+  border-radius: var(--andes-avatar-radius);
 }
 
 :host(.andes-avatar--rounded) {
-  border-radius: var(--andes-radius-lg);
+  --andes-avatar-radius: var(--andes-radius-lg);
+
+  border-radius: var(--andes-avatar-radius);
 }
 
 :host(.andes-avatar--square) {
-  border-radius: var(--andes-radius-md);
+  --andes-avatar-radius: var(--andes-radius-md);
+
+  border-radius: var(--andes-avatar-radius);
+}
+
+/* A corner status dot has to sit ON the avatar's edge, so it must escape this
+   host's clipping box - `overflow: hidden` above would slice it in half.
+   Scoped to `:has(andes-avatar-badge)` rather than dropped outright so the
+   overwhelmingly common badge-less avatar keeps clipping its image the plain
+   way; in the badge case the parts clip themselves instead, via the
+   `--andes-avatar-radius` published above. */
+:host(:has(andes-avatar-badge)) {
+  overflow: visible;
 }
 
 /* Sizes - fixed box dimensions, not the generic space scale, since these are
