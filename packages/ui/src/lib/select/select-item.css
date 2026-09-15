@@ -1,0 +1,77 @@
+:host {
+  display: contents;
+}
+
+.andes-select__option {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
+  padding: var(--andes-space-2) var(--andes-space-2);
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.andes-select__option:hover:not([data-disabled]) {
+  background-color: var(--andes-color-accent);
+}
+
+/* The keyboard cursor. In roving-tabindex mode the option also holds real focus, so
+   both hooks are styled the same way and the two can never disagree. */
+.andes-select__option[data-active],
+.andes-select__option:focus-visible {
+  background-color: var(--andes-color-accent-hover);
+}
+
+.andes-select__option:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* andes-ng has no dedicated "selected option" colour yet, so the chosen option is
+   tinted from the primary colour the way Ant's `optionSelectedBg` is; the custom
+   property is honoured if a token is ever added. */
+.andes-select__option[data-selected] {
+  background-color: var(
+    --andes-color-selected-bg,
+    color-mix(in srgb, var(--andes-color-primary) 12%, transparent)
+  );
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-select__option[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-select__option[data-disabled]:hover {
+  background-color: transparent;
+}
+
+.andes-select__option-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.andes-select__option-indicator {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  color: var(--andes-color-primary);
+}
+
+.andes-select__option-indicator svg {
+  width: 1em;
+  height: 1em;
+}

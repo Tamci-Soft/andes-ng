@@ -1,0 +1,13 @@
+<ng-template>
+  <div
+    andesOverlayContent
+    data-slot="select-content"
+    class="andes-select__panel"
+    [attr.data-size]="select.size()"
+    [attr.data-match-trigger-width]="matchTriggerWidth() ? '' : null"
+    [attr.aria-labelledby]="select.ariaLabelledby()"
+    [attr.aria-label]="select.ariaLabelledby() ? null : select.ariaLabel()"
+  >
+    <ng-content />
+  </div>
+</ng-template>
