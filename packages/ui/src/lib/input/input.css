@@ -1,0 +1,139 @@
+.andes-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  width: 100%;
+  border-radius: var(--andes-radius-md);
+  border: 1px solid var(--andes-color-input);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  transition:
+    border-color 0.15s ease,
+    outline-color 0.15s ease;
+}
+
+/* Focus ring lives on the wrapper - not `.andes-input__control` - because the wrapper is
+   what visually reads as "the field": it also encloses the prefix/suffix slots and the
+   clear button, which sit outside the native input's own box. `:has(.andes-input__control
+   :focus-visible)` keeps the same keyboard-only trigger as every other control in this
+   library (`:focus-visible`, never plain `:focus`) while letting the ring reach the
+   wrapper. Plain `:focus-within` is intentionally NOT used here: it would also light up on
+   a mouse click, which the rest of the library's focus rings do not do. (The clear
+   button's own visibility is a separate concern driven by the `showClear` signal in
+   input.ts, not by any focus pseudo-class.) `outline`, not `box-shadow`, is required so the
+   indicator survives `forced-colors: active` (Windows High Contrast Mode strips
+   `box-shadow` but substitutes its own color for an author-specified `outline`). */
+.andes-input-wrapper:has(.andes-input__control:focus-visible) {
+  border-color: var(--andes-color-focus-ring);
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-input-wrapper--invalid {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-input-wrapper--invalid:has(.andes-input__control:focus-visible) {
+  border-color: var(--andes-color-danger);
+  outline-color: var(--andes-color-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+.andes-input-wrapper--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-input__control {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+}
+
+/* Suppress the browser's own default focus ring on the native input - and *only* there.
+   The visible indicator is the wrapper's outline above, which `:has()` drives off this very
+   element's `:focus-visible` state; without this rule both rings paint at once (the UA ring
+   hugging the input, the authored ring around the wrapper) and the field reads as broken.
+   Scoping the reset to the focus pseudo-classes, rather than putting a blanket
+   `outline: none` on `.andes-input__control` itself, keeps it obvious that this suppresses a
+   UA default and nothing else. Accessibility is unaffected: the wrapper still carries a real
+   `outline`, which `forced-colors: active` recolors rather than strips, so keyboard users
+   keep a visible indicator in Windows High Contrast Mode. */
+.andes-input__control:focus,
+.andes-input__control:focus-visible {
+  outline: none;
+}
+
+.andes-input__control::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-input__control:disabled {
+  cursor: not-allowed;
+}
+
+.andes-input__prefix,
+.andes-input__suffix {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-input__prefix:empty,
+.andes-input__suffix:empty {
+  display: none;
+}
+
+/* Projected icons keep their own encapsulation context, so a plain descendant selector
+   can't reach them - ::ng-deep is the sanctioned way to size content Angular doesn't
+   otherwise let this component's styles touch (same rationale as AndesButton). */
+.andes-input__prefix ::ng-deep svg,
+.andes-input__suffix ::ng-deep svg,
+.andes-input__clear svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.andes-input__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-input__clear:hover {
+  color: var(--andes-color-foreground);
+}
+
+/* Sizes */
+
+.andes-input-wrapper--sm {
+  height: 2rem;
+  padding-inline: var(--andes-space-3);
+  font-size: 0.875rem;
+}
+
+.andes-input-wrapper--md {
+  height: 2.5rem;
+  padding-inline: var(--andes-space-3);
+  font-size: 1rem;
+}
+
+.andes-input-wrapper--lg {
+  height: 3rem;
+  padding-inline: var(--andes-space-4);
+  font-size: 1.125rem;
+}
