@@ -175,6 +175,106 @@ describe('AndesCard', () => {
     },
   );
 
+  it('treats a bare numeric level attribute (no brackets) as a number, not the string', () => {
+    @Component({
+      imports: [AndesCard, AndesCardHeader, AndesCardTitle],
+      template: `<andes-card
+        ><andes-card-header
+          ><andes-card-title level="2"
+            >Title</andes-card-title
+          ></andes-card-header
+        ></andes-card
+      >`,
+    })
+    class BareLevelHost {}
+
+    const fixture = TestBed.createComponent(BareLevelHost);
+    fixture.detectChanges();
+    const title = fixture.nativeElement.querySelector('andes-card-title h2');
+
+    expect(title?.tagName).toBe('H2');
+  });
+
+  it('treats another bare numeric level attribute (level="4") as a number', () => {
+    @Component({
+      imports: [AndesCard, AndesCardHeader, AndesCardTitle],
+      template: `<andes-card
+        ><andes-card-header
+          ><andes-card-title level="4"
+            >Title</andes-card-title
+          ></andes-card-header
+        ></andes-card
+      >`,
+    })
+    class BareLevelHost {}
+
+    const fixture = TestBed.createComponent(BareLevelHost);
+    fixture.detectChanges();
+    const title = fixture.nativeElement.querySelector('andes-card-title h4');
+
+    expect(title?.tagName).toBe('H4');
+  });
+
+  it('clamps a bare level attribute above the valid range (level="9") to h6', () => {
+    @Component({
+      imports: [AndesCard, AndesCardHeader, AndesCardTitle],
+      template: `<andes-card
+        ><andes-card-header
+          ><andes-card-title level="9"
+            >Title</andes-card-title
+          ></andes-card-header
+        ></andes-card
+      >`,
+    })
+    class OutOfRangeLevelHost {}
+
+    const fixture = TestBed.createComponent(OutOfRangeLevelHost);
+    fixture.detectChanges();
+    const title = fixture.nativeElement.querySelector('andes-card-title h6');
+
+    expect(title?.tagName).toBe('H6');
+  });
+
+  it('clamps a bare level attribute below the valid range (level="0") to h2', () => {
+    @Component({
+      imports: [AndesCard, AndesCardHeader, AndesCardTitle],
+      template: `<andes-card
+        ><andes-card-header
+          ><andes-card-title level="0"
+            >Title</andes-card-title
+          ></andes-card-header
+        ></andes-card
+      >`,
+    })
+    class OutOfRangeLevelHost {}
+
+    const fixture = TestBed.createComponent(OutOfRangeLevelHost);
+    fixture.detectChanges();
+    const title = fixture.nativeElement.querySelector('andes-card-title h2');
+
+    expect(title?.tagName).toBe('H2');
+  });
+
+  it('falls back to h3 for a non-numeric bare level attribute', () => {
+    @Component({
+      imports: [AndesCard, AndesCardHeader, AndesCardTitle],
+      template: `<andes-card
+        ><andes-card-header
+          ><andes-card-title level="not-a-number"
+            >Title</andes-card-title
+          ></andes-card-header
+        ></andes-card
+      >`,
+    })
+    class InvalidLevelHost {}
+
+    const fixture = TestBed.createComponent(InvalidLevelHost);
+    fixture.detectChanges();
+    const title = fixture.nativeElement.querySelector('andes-card-title h3');
+
+    expect(title?.tagName).toBe('H3');
+  });
+
   it('renders a card with only content, no header or footer', () => {
     @Component({
       imports: [AndesCard, AndesCardContent],
