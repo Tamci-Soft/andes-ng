@@ -1,0 +1,195 @@
+/*
+ * Layout follows Spartan NG's Alert anatomy (`.spartan-alert` in its style registry): a
+ * bordered card on the normal card surface - NOT a severity-tinted fill - laid out as a grid
+ * whose first column is the icon and whose second column carries the stacked title and
+ * description. The icon spans the title+description rows and is nudged down a fraction so it
+ * seats against the title's cap height rather than centering against the whole block, and the
+ * description is rendered in the muted foreground so title/description carry real hierarchy
+ * instead of differing only by font weight. Only the structure is borrowed; every value here
+ * comes from Andes' own token set.
+ */
+
+:host {
+  display: block;
+}
+
+.andes-alert {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--andes-space-2);
+  /* Tighter than any spacing token on purpose: the title and description are one unit of text,
+     so the gap between them has to read as leading, not as separation. */
+  row-gap: 0.125rem;
+  align-items: start;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--andes-color-card);
+  color: var(--andes-color-card-foreground);
+  padding: var(--andes-space-3);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  text-align: start;
+}
+
+.andes-alert[hidden] {
+  display: none;
+}
+
+.andes-alert__icon {
+  grid-column: 1;
+  /* Spans the title and description rows so the column exists for the full height of the text
+     block while `align-items: start` keeps the glyph itself pinned to the first row. */
+  grid-row: span 2;
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  /* Optical, not geometric: seats the glyph against the title's cap height rather than the top
+     of its line box, which otherwise leaves the icon looking a hair high. */
+  transform: translateY(0.125rem);
+}
+
+.andes-alert__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.andes-alert__title {
+  grid-column: 2;
+  /* Holds the row open to the icon's height so a title-less alert doesn't shift the glyph. */
+  min-height: 1rem;
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-foreground);
+}
+
+.andes-alert__title:empty {
+  display: none;
+}
+
+.andes-alert__description {
+  grid-column: 2;
+  color: var(--andes-color-muted-foreground);
+  text-wrap: pretty;
+}
+
+.andes-alert__description:empty {
+  display: none;
+}
+
+.andes-alert__action {
+  grid-column: 2;
+  margin-top: var(--andes-space-2);
+}
+
+.andes-alert__action:empty {
+  display: none;
+}
+
+/* An alert with no icon collapses to a single content column rather than leaving an empty
+   gutter where the glyph would have been. */
+.andes-alert--no-icon {
+  grid-template-columns: 1fr;
+}
+
+.andes-alert--no-icon .andes-alert__title,
+.andes-alert--no-icon .andes-alert__description,
+.andes-alert--no-icon .andes-alert__action {
+  grid-column: 1;
+}
+
+/* The close button is taken out of flow and pinned to the top inline-end corner (Spartan pins
+   its own trailing alert slot the same way); the container reserves the room so a long title
+   can never run under it. */
+.andes-alert--closable {
+  padding-inline-end: calc(var(--andes-space-3) + 1.5rem);
+}
+
+.andes-alert__close {
+  position: absolute;
+  inset-block-start: var(--andes-space-2);
+  inset-inline-end: var(--andes-space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 1.5rem rather than the glyph's own 0.875rem so the control clears the 24x24 minimum
+     target size (WCAG 2.2 SC 2.5.8) without drawing a visibly larger button. */
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background-color: transparent;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-alert__close:hover {
+  color: var(--andes-color-foreground);
+  background-color: var(--andes-color-accent-hover);
+}
+
+.andes-alert__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-alert__close svg {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/*
+ * Severity is carried by the glyph and by a tint on the card's own border, never by a fill
+ * behind the text. Keeping the surface neutral means title and description stay on the
+ * already-verified foreground/muted pairing whatever the severity is - `warning`'s amber
+ * fails 4.5:1 as text long before it fails as an accent. Both accents use each severity's
+ * `-active` token, which the token set already defines as the darkest shade in light mode and
+ * the lightest in dark mode, so the glyph stays legible in both themes without new tokens.
+ */
+
+.andes-alert--success {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-success-active) 30%,
+    var(--andes-color-border)
+  );
+}
+.andes-alert--success .andes-alert__icon {
+  color: var(--andes-color-success-active);
+}
+
+.andes-alert--info {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-info-active) 30%,
+    var(--andes-color-border)
+  );
+}
+.andes-alert--info .andes-alert__icon {
+  color: var(--andes-color-info-active);
+}
+
+.andes-alert--warning {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-warning-active) 30%,
+    var(--andes-color-border)
+  );
+}
+.andes-alert--warning .andes-alert__icon {
+  color: var(--andes-color-warning-active);
+}
+
+.andes-alert--danger {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-danger-active) 30%,
+    var(--andes-color-border)
+  );
+}
+.andes-alert--danger .andes-alert__icon {
+  color: var(--andes-color-danger-active);
+}
