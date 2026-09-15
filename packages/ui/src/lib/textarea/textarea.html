@@ -1,0 +1,25 @@
+<textarea
+  #textareaEl
+  data-slot="textarea"
+  [attr.data-size]="size()"
+  [id]="id()"
+  [attr.name]="name()"
+  [rows]="autoSize() ? 1 : rows()"
+  [attr.placeholder]="placeholder()"
+  [attr.maxlength]="maxLength()"
+  [disabled]="isDisabled()"
+  [readOnly]="readonly()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="ariaInvalid() || null"
+  [class]="classes()"
+  [value]="value()"
+  (input)="onInput($event)"
+  (blur)="onBlur()"
+></textarea>
+@if (showCount()) {
+<span class="andes-textarea__count" aria-hidden="true"
+  >{{ currentLength() }}{{ maxLength() ? '/' + maxLength() : '' }}</span
+>
+}
