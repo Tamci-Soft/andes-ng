@@ -1,0 +1,69 @@
+<div
+  #control
+  class="andes-slider__control"
+  data-slot="slider-control"
+  (pointerdown)="onPointerDown($event)"
+  (pointermove)="onPointerMove($event)"
+  (pointerup)="onPointerUp($event)"
+  (pointercancel)="onPointerUp($event)"
+>
+  <div #track class="andes-slider__track" data-slot="slider-track">
+    <div
+      class="andes-slider__indicator"
+      data-slot="slider-indicator"
+      [style.--andes-slider-fill-start]="fill().start"
+      [style.--andes-slider-fill-size]="fill().size"
+    ></div>
+
+    @for (dot of dotViews(); track dot.value) {
+    <span
+      class="andes-slider__dot"
+      data-slot="slider-dot"
+      aria-hidden="true"
+      [class.andes-slider__dot--active]="dot.active"
+      [style.--andes-slider-dot-offset]="dot.offset"
+    ></span>
+    } @for (thumb of thumbs(); track thumb.index) {
+    <div
+      #thumbElement
+      class="andes-slider__thumb"
+      data-slot="slider-thumb"
+      role="slider"
+      [attr.data-index]="thumb.index"
+      [attr.data-dragging]="dragging() && activeIndex() === thumb.index ? '' : null"
+      [attr.tabindex]="isDisabled() ? -1 : 0"
+      [attr.aria-orientation]="orientation()"
+      [attr.aria-valuemin]="min()"
+      [attr.aria-valuemax]="max()"
+      [attr.aria-valuenow]="thumb.value"
+      [attr.aria-valuetext]="thumb.valueText"
+      [attr.aria-label]="thumb.ariaLabel"
+      [attr.aria-labelledby]="thumb.ariaLabelledby"
+      [attr.aria-describedby]="thumb.ariaDescribedby"
+      [attr.aria-disabled]="isDisabled() ? 'true' : null"
+      [style.--andes-slider-thumb-offset]="thumb.offset"
+      (keydown)="onKeydown($event, thumb.index)"
+      (blur)="onBlur()"
+    >
+      @if (tooltip() !== 'never') {
+      <span class="andes-slider__tooltip" aria-hidden="true">
+        <span class="andes-slider__tooltip-bubble">{{ thumb.label }}</span>
+      </span>
+      }
+    </div>
+    }
+  </div>
+</div>
+
+@if (markViews().length > 0) {
+<div class="andes-slider__marks" data-slot="slider-marks" aria-hidden="true">
+  @for (mark of markViews(); track mark.value) {
+  <span
+    class="andes-slider__mark"
+    [style.--andes-slider-mark-offset]="mark.offset"
+  >
+    <span class="andes-slider__mark-label">{{ mark.label }}</span>
+  </span>
+  }
+</div>
+}
