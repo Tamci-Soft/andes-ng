@@ -1,0 +1,95 @@
+:host {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--andes-space-3);
+  box-sizing: border-box;
+  min-width: 18rem;
+  max-width: 24rem;
+  padding: var(--andes-space-3) var(--andes-space-4);
+  border-radius: var(--andes-radius-lg);
+  border: 1px solid var(--andes-color-border);
+  border-inline-start: 4px solid var(--andes-color-border);
+  background-color: var(--andes-color-card);
+  color: var(--andes-color-card-foreground);
+  box-shadow:
+    0 4px 12px rgb(15 23 42 / 15%),
+    0 2px 4px rgb(15 23 42 / 10%);
+  font-family: var(--andes-font-family), sans-serif;
+  /* The viewport disables pointer-events on itself so empty space around a toast doesn't
+     block clicks - pointer-events is inherited, so each toast opts back in. */
+  pointer-events: auto;
+}
+
+:host([data-severity='success']) {
+  border-inline-start-color: var(--andes-color-success);
+}
+
+:host([data-severity='error']) {
+  border-inline-start-color: var(--andes-color-danger);
+}
+
+:host([data-severity='warning']) {
+  border-inline-start-color: var(--andes-color-warning);
+}
+
+:host([data-severity='info']) {
+  border-inline-start-color: var(--andes-color-info);
+}
+
+.andes-toast__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.andes-toast__title {
+  margin: 0 0 var(--andes-space-1);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-toast__message {
+  margin: 0;
+  font-size: 0.875rem;
+  overflow-wrap: break-word;
+}
+
+.andes-toast__action {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--andes-color-primary-text);
+  font-family: inherit;
+  font-weight: var(--andes-font-weight-medium);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.andes-toast__action:hover {
+  text-decoration: underline;
+}
+
+.andes-toast__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.andes-toast__close:hover {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-toast__close:focus-visible,
+.andes-toast__action:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
