@@ -45,3 +45,7 @@ export type { AndesPaginationItem } from './lib/pagination/pagination';
 export { AndesRadioGroup } from './lib/radio-group/radio-group';
 export type { AndesRadioGroupOrientation } from './lib/radio-group/radio-group';
 export { AndesRadio } from './lib/radio-group/radio';
+export { AndesBadge } from './lib/badge/badge';
+export type { AndesBadgeSize, AndesBadgeVariant } from './lib/badge/badge';
+export { AndesTag } from './lib/tag/tag';
+export type { AndesTagColor, AndesTagVariant } from './lib/tag/tag';
