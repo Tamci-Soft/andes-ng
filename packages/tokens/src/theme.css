@@ -100,6 +100,12 @@
   --andes-z-index-popover: 1060;
   --andes-z-index-tooltip: 1070;
   --andes-z-index-toast: 1080;
+
+  /* Elevation for floating surfaces (Dropdown Menu, Popover, Select...). Only the one
+     value a first floating-panel component needs exists so far - a full elevation
+     scale (sm/lg, etc.) is still a gap worth closing when the next overlay needs it. */
+  --andes-shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
 }
 
 [data-andes-theme='dark'] {
@@ -155,4 +161,7 @@
   --andes-color-focus-ring: #3b82f6;
 
   --andes-color-overlay: rgb(2 6 23 / 65%);
+
+  --andes-shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 30%), 0 2px 4px -2px rgb(0 0 0 / 24%);
 }
