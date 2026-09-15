@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -233,6 +237,65 @@ describe('AndesInput', () => {
       expect(
         fixture.nativeElement.querySelector('.andes-input__clear'),
       ).toBeFalsy();
+    });
+  });
+
+  describe('focus indicator', () => {
+    // Regression coverage for a forced-colors (Windows High Contrast Mode) a11y bug: the
+    // wrapper used to show focus purely via `box-shadow` on `:focus-within`. `box-shadow`
+    // is stripped entirely under `forced-colors: active`, which left keyboard users with
+    // no visible focus indicator at all - a WCAG 2.4.7 failure. The fix uses `outline`
+    // (which browsers keep, recoloring it to the system's own highlight color, under
+    // forced-colors) keyed off `:focus-visible` on the native input, matching every other
+    // control in this library.
+    //
+    // jsdom's `getComputedStyle` does not resolve dynamic pseudo-classes (`:focus`,
+    // `:focus-visible`, `:hover`, `:focus-within`, ...) at all - the same reason none of
+    // this library's other components (e.g. button.spec.ts) assert computed outline
+    // styles either. `Element.matches()` *does* evaluate them correctly (it goes through
+    // nwsapi rather than jsdom's computed-style resolver), so it is used below to prove
+    // the selector logic actually reacts to real focus state; the declaration itself
+    // (outline vs. box-shadow) is verified by reading the authored stylesheet.
+    const focusRingSelector =
+      '.andes-input-wrapper:has(.andes-input__control:focus-visible)';
+
+    it('does not match the focus-ring selector before the input is focused', () => {
+      const { wrapper } = createHost();
+
+      expect(wrapper.matches(focusRingSelector)).toBe(false);
+    });
+
+    it('matches the focus-ring selector once the native input is focused', () => {
+      const { input, wrapper } = createHost();
+
+      input.focus();
+
+      expect(document.activeElement).toBe(input);
+      expect(wrapper.matches(focusRingSelector)).toBe(true);
+    });
+
+    it('defines the focus ring using `outline` (not `box-shadow`), keyed off `:focus-visible`', () => {
+      const css = readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
+        'utf-8',
+      );
+      const ruleBody =
+        /:has\(\.andes-input__control:focus-visible\)\s*{([^}]*)}/.exec(
+          css,
+        )?.[1];
+
+      expect(ruleBody).toBeDefined();
+      expect(ruleBody).toContain(
+        'outline: 2px solid var(--andes-color-focus-ring)',
+      );
+      expect(ruleBody).not.toContain('box-shadow');
+
+      // No live rule anywhere in the stylesheet should key the focus ring off
+      // `:focus-within` - it fires on a plain mouse click, unlike `:focus-visible`.
+      // (Comments are stripped first since the stylesheet documents, in prose, why
+      // `:focus-within` was deliberately dropped for this purpose.)
+      const cssWithoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
+      expect(cssWithoutComments).not.toMatch(/:focus-within/);
     });
   });
 

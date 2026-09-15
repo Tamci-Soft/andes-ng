@@ -9,21 +9,33 @@
   color: var(--andes-color-foreground);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    outline-color 0.15s ease;
 }
 
-.andes-input-wrapper:focus-within {
+/* Focus ring lives on the wrapper - not `.andes-input__control` - because the wrapper is
+   what visually reads as "the field": it also encloses the prefix/suffix slots and the
+   clear button, which sit outside the native input's own box. `:has(.andes-input__control
+   :focus-visible)` keeps the same keyboard-only trigger as every other control in this
+   library (`:focus-visible`, never plain `:focus`) while letting the ring reach the
+   wrapper. Plain `:focus-within` is intentionally NOT used here: it would also light up on
+   a mouse click, which the rest of the library's focus rings do not do. (The clear
+   button's own visibility is a separate concern driven by the `showClear` signal in
+   input.ts, not by any focus pseudo-class.) `outline`, not `box-shadow`, is required so the
+   indicator survives `forced-colors: active` (Windows High Contrast Mode strips
+   `box-shadow` but substitutes its own color for an author-specified `outline`). */
+.andes-input-wrapper:has(.andes-input__control:focus-visible) {
   border-color: var(--andes-color-focus-ring);
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
 }
 
 .andes-input-wrapper--invalid {
   border-color: var(--andes-color-danger);
 }
 
-.andes-input-wrapper--invalid:focus-within {
+.andes-input-wrapper--invalid:has(.andes-input__control:focus-visible) {
   border-color: var(--andes-color-danger);
+  outline-color: var(--andes-color-danger);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
@@ -38,7 +50,6 @@
   flex: 1 1 auto;
   min-width: 0;
   border: none;
-  outline: none;
   background-color: transparent;
   color: inherit;
   font-family: var(--andes-font-family), sans-serif;
