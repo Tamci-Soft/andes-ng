@@ -1,0 +1,18 @@
+/* The `andes-radio-group` classes are applied to this component's own host element (it
+   doubles as the actual ARIA radiogroup container - see radio-group.ts), so the selectors
+   below must use :host()/:host - a plain `.andes-radio-group { ... }` rule never matches the
+   host under Angular's emulated view encapsulation (the host carries an `_nghost-*` attribute,
+   not the `_ngcontent-*` attribute Angular appends to plain class selectors). */
+:host {
+  display: flex;
+  gap: var(--andes-space-3);
+}
+
+:host(.andes-radio-group--vertical) {
+  flex-direction: column;
+}
+
+:host(.andes-radio-group--horizontal) {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
