@@ -21,6 +21,7 @@ function setScrollHeight(textarea: HTMLTextAreaElement, value: number): void {
     [size]="size()"
     [disabled]="disabled()"
     [readonly]="readonly()"
+    [required]="required()"
     [placeholder]="placeholder()"
     [rows]="rows()"
     [maxLength]="maxLength()"
@@ -35,6 +36,7 @@ class HostComponent {
   readonly size = signal<AndesTextareaSize>('md');
   readonly disabled = signal(false);
   readonly readonly = signal(false);
+  readonly required = signal(false);
   readonly placeholder = signal<string | undefined>(undefined);
   readonly rows = signal(3);
   readonly maxLength = signal<number | undefined>(undefined);
@@ -147,10 +149,18 @@ describe('AndesTextarea', () => {
     expect(textarea.readOnly).toBe(true);
   });
 
+  it('reflects required state on the native textarea', () => {
+    const { fixture, textarea } = createHost();
+    fixture.componentInstance.required.set(true);
+    fixture.detectChanges();
+
+    expect(textarea.required).toBe(true);
+  });
+
   it('treats bare boolean attributes (no brackets) as true, not the string ""', () => {
     @Component({
       imports: [AndesTextarea],
-      template: `<andes-textarea disabled readonly />`,
+      template: `<andes-textarea disabled readonly required />`,
     })
     class BareAttrHost {}
 
@@ -160,6 +170,7 @@ describe('AndesTextarea', () => {
 
     expect(textarea.disabled).toBe(true);
     expect(textarea.readOnly).toBe(true);
+    expect(textarea.required).toBe(true);
   });
 
   it('shows a character count when showCount is enabled', async () => {
