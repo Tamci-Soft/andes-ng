@@ -1,0 +1,92 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+  width: 100%;
+}
+
+.andes-textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  border-radius: var(--andes-radius-md);
+  border: 1px solid var(--andes-color-input);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  padding: var(--andes-space-2) var(--andes-space-3);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.andes-textarea::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-textarea:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-textarea:read-only:not(:disabled) {
+  background-color: var(--andes-color-muted);
+}
+
+.andes-textarea--invalid {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-textarea--invalid:focus-visible {
+  outline-color: var(--andes-color-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+/* Sizes - control font-size and padding; height is otherwise driven by `rows` (native) or
+   the auto-size measurement, never a fixed size-based height. */
+
+.andes-textarea--sm {
+  font-size: 0.875rem;
+  padding: var(--andes-space-1) var(--andes-space-2);
+}
+
+.andes-textarea--md {
+  font-size: 1rem;
+}
+
+.andes-textarea--lg {
+  font-size: 1.125rem;
+  padding: var(--andes-space-3) var(--andes-space-4);
+}
+
+/* Resize */
+
+.andes-textarea--resize-none {
+  resize: none;
+}
+
+.andes-textarea--resize-vertical {
+  resize: vertical;
+}
+
+.andes-textarea--resize-horizontal {
+  resize: horizontal;
+}
+
+.andes-textarea--resize-both {
+  resize: both;
+}
+
+.andes-textarea__count {
+  align-self: flex-end;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  color: var(--andes-color-muted-foreground);
+}
