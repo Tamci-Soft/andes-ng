@@ -180,7 +180,7 @@
 
 .andes-button--link {
   background-color: transparent;
-  color: var(--andes-color-primary);
+  color: var(--andes-color-primary-text);
   padding-inline: 0;
   height: auto;
   overflow: visible;
