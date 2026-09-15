@@ -13,6 +13,7 @@ import {
   ANDES_FORM_DESCRIPTION,
   ANDES_FORM_ERROR,
   ANDES_FORM_FIELD,
+  ANDES_FORM_LABEL,
   type AndesFormFieldApi,
 } from './form-field-tokens';
 
@@ -27,7 +28,8 @@ let nextFieldId = 0;
  *
  * Composition, in author order inside `<andes-form-field>`:
  * - `<andes-form-label>` - optional; renders a real `<label>` wired to the control via
- *   `for`/`id`.
+ *   `for`/`id`, and carrying an id of its own ({@link labelId}) so a wrapper component that
+ *   only accepts `aria-labelledby` can still be named by it.
  * - the control itself, carrying `andesFormControl` alongside `formControlName` /
  *   `[formControl]` / `[(ngModel)]` - a native `<input>`/`<select>`/`<textarea>`, or any
  *   `ControlValueAccessor` component from this library or elsewhere.
@@ -68,6 +70,9 @@ export class AndesFormField implements AndesFormFieldApi {
   protected readonly controlApi = contentChild(ANDES_FORM_CONTROL, {
     descendants: true,
   });
+  protected readonly labelPresent = contentChild(ANDES_FORM_LABEL, {
+    descendants: true,
+  });
   protected readonly descriptionPresent = contentChild(ANDES_FORM_DESCRIPTION, {
     descendants: true,
   });
@@ -76,8 +81,25 @@ export class AndesFormField implements AndesFormFieldApi {
   });
 
   readonly controlId = computed(() => this.id() ?? this.autoId);
+  readonly labelId = computed(() => `${this.controlId()}-label`);
   readonly descriptionId = computed(() => `${this.controlId()}-description`);
   readonly errorId = computed(() => `${this.controlId()}-error`);
+
+  /**
+   * The `<andes-form-label>`'s own element id, or `null` when no label was authored - shaped
+   * to be bound straight through `[aria-labelledby]`.
+   *
+   * This is the escape hatch for wrapper components that expose no `id` input, where the
+   * native `for`/`id` association cannot be completed from outside (see `AndesFormControl`'s
+   * class comment): every one of this library's wrappers already accepts an `aria-labelledby`
+   * input and forwards it onto its real internal control, so pointing that at the label's id
+   * gives assistive technology the accessible name without needing any change to the wrapper's
+   * own source. Returns `null` rather than a dangling id when there is no label, so a template
+   * binding it unconditionally never emits `aria-labelledby` pointing at nothing.
+   */
+  readonly labelledBy = computed(() =>
+    this.labelPresent() ? this.labelId() : null,
+  );
 
   /** `true` once the registered control is invalid *and* the user has interacted with it
    *  (touched or dirty) - the same gate `AndesFormError` uses to decide whether to render,

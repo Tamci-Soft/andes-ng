@@ -8,6 +8,7 @@ import {
 } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesFormControl } from './form-control';
 import { AndesFormDescription } from './form-description';
 import { AndesFormError } from './form-error';
@@ -24,6 +25,10 @@ const fieldModuleMetadata = {
     AndesFormControl,
     AndesFormDescription,
     AndesFormError,
+    // The one andes-ng control this package can depend on today: AndesButton is already on
+    // `develop`. AndesInput/AndesSelect are still unmerged branches of their own - see the
+    // "Using andes-ng's own controls" section of the docs below.
+    AndesButton,
   ],
 };
 
@@ -41,35 +46,90 @@ const meta: Meta<AndesFormField> = {
           'Wire `andesFormControl` onto the control itself, alongside `formControlName` /',
           '`[formControl]` / `[(ngModel)]`. For a **native** `<input>` / `<textarea>` /',
           '`<select>` everything (`id`/`for`, `aria-describedby`, `aria-invalid`,',
-          '`aria-required`) is derived and applied automatically - nothing to hand-wire.',
+          '`aria-required`) is derived and applied automatically - nothing to hand-wire. That is',
+          'what the stories below render.',
           '',
-          '### Known limitation: wrapper components',
+          '### Using andes-ng’s own controls',
           '',
           'For a wrapper component that renders its real control inside its own template',
-          '(`AndesCheckbox`, `AndesSwitch`, `AndesSelect`, `AndesRadioGroup`, `AndesSlider`,',
-          '`AndesInput`), `andesFormControl` sits on the outer custom element, which is not a',
+          '(`AndesInput`, `AndesSelect`, `AndesCheckbox`, `AndesSwitch`, `AndesRadioGroup`,',
+          '`AndesSlider`), `andesFormControl` sits on the outer custom element, which is not a',
           'labelable form control and is deliberately kept out of the accessibility tree by',
           "those components' own host metadata. Writing `id`/`aria-*` there would reach neither",
           'the `<label for>` machinery nor the buried native control, so the directive writes',
-          'nothing at all in that case and instead exposes `resolvedId()`, `describedBy()`,',
-          "`showError()` and `isRequired()` for you to bind into the wrapper's own inputs:",
+          'nothing at all in that case and instead exposes `resolvedId()`, `labelledBy()`,',
+          "`describedBy()`, `showError()` and `isRequired()` for you to bind into the wrapper's",
+          'own inputs.',
+          '',
+          '**`AndesInput` is fully supported by that pattern** - verified against its own',
+          'component source: it exposes `id`, `aria-labelledby`, `aria-describedby` and',
+          '`aria-invalid` inputs, nulls each of them on its host element and forwards them onto',
+          'the real `<input>` in its template, so the label is correctly associated *and*',
+          'clickable. Its `required` input puts the native `required` attribute on that same',
+          'inner `<input>`, which already implies `aria-required`:',
           '',
           '```html',
-          '<andes-some-wrapper',
-          '  andesFormControl',
-          '  #ctrl="andesFormControl"',
-          '  [formControl]="value"',
-          '  [id]="field.controlId()"',
-          '  [aria-describedby]="ctrl.describedBy()"',
-          '  [aria-invalid]="field.showError()"',
-          '/>',
+          '<andes-form-field #field="andesFormField">',
+          '  <andes-form-label>Full name</andes-form-label>',
+          '  <andes-input',
+          '    andesFormControl',
+          '    #ctrl="andesFormControl"',
+          '    formControlName="name"',
+          '    [id]="field.controlId()"',
+          '    [aria-describedby]="ctrl.describedBy()"',
+          '    [aria-invalid]="ctrl.showError()"',
+          '    [required]="ctrl.isRequired()"',
+          '  />',
+          '  <andes-form-error>Your name is required.</andes-form-error>',
+          '</andes-form-field>',
           '```',
           '',
-          'That pattern only works once the wrapper actually exposes those inputs. As of this',
-          'release none of the five components above expose an `id` input, so label association',
-          'cannot be completed for them yet - a coordinated follow-up on each of those',
-          'components is required. Until then, prefer a native control inside `AndesFormField`',
-          'when the label must be clickable and announced.',
+          '### Known limitation: wrappers with no `id` input',
+          '',
+          '`AndesSelect`, `AndesCheckbox`, `AndesSwitch`, `AndesRadioGroup` and `AndesSlider`',
+          'expose **no `id` input**, so `[id]="field.controlId()"` has nowhere to land and the',
+          "label's `for` stays dangling - deliberately detectable rather than silently pointing",
+          'at an element the platform refuses to associate. Adding an `id` input to each of them',
+          'is the proper fix and has to happen on their own branches.',
+          '',
+          'All five *do* accept `aria-labelledby` and forward it onto their real internal',
+          'control, so `AndesFormLabel` now stamps an id onto the `<label>` it renders and the',
+          'field exposes it as `labelledBy()`. That gives those controls a correct accessible',
+          'name today, without changing a line of their source:',
+          '',
+          '```html',
+          '<andes-form-field>',
+          '  <andes-form-label>Country</andes-form-label>',
+          '  <andes-select',
+          '    andesFormControl',
+          '    #ctrl="andesFormControl"',
+          '    formControlName="country"',
+          '    [aria-labelledby]="ctrl.labelledBy()"',
+          '    [aria-describedby]="ctrl.describedBy()"',
+          '    [aria-invalid]="ctrl.showError()"',
+          '  >',
+          '    <andes-select-trigger><andes-select-value /></andes-select-trigger>',
+          '    <andes-select-content>',
+          '      <andes-select-item value="pe">Peru</andes-select-item>',
+          '    </andes-select-content>',
+          '  </andes-select>',
+          '  <andes-form-error>Please pick a country.</andes-form-error>',
+          '</andes-form-field>',
+          '```',
+          '',
+          'It is an improvement, not a full substitute: `aria-labelledby` supplies the accessible',
+          'name, but only a native `for`/`id` pair makes the label **clickable**. Label-click',
+          'focus is the one thing still genuinely missing for those five.',
+          '',
+          '### Why these stories still render native controls',
+          '',
+          'Only `AndesButton` (used for the submit action in **Reactive Form Example**) has landed',
+          'on `develop` so far. `AndesInput` and `AndesSelect` are still open, unmerged PRs of',
+          'their own - and `AndesSelect` additionally depends on the overlay and list-navigation',
+          'primitives, which are two further unmerged PRs. Importing them here would make this',
+          'package fail to build until all of those merge, so the live examples stay on native',
+          'controls and the wiring for the andes-ng controls is documented above instead. Swap',
+          'them in - using exactly the snippets above - once those branches are on `develop`.',
         ].join('\n'),
       },
     },
@@ -118,9 +178,15 @@ export const Basic: Story = {
 };
 
 /**
- * A small reactive form (`FormGroup`) with two fields, each independently wired, plus a
- * submit button that force-marks everything as touched (`markAllAsTouched`) - the standard
- * Angular pattern for surfacing every remaining error on a failed submit attempt.
+ * A small reactive form (`FormGroup`) with two fields, each independently wired, plus an
+ * `AndesButton` submit that force-marks everything as touched (`markAllAsTouched`) - the
+ * standard Angular pattern for surfacing every remaining error on a failed submit attempt.
+ *
+ * The submit uses the library's own `<andes-button type="submit">`: its internal `<button>`
+ * is still a descendant of this `<form>`, so implicit submission and `(ngSubmit)` behave
+ * exactly as with a native button. The two controls are native `<input>`/`<select>` for the
+ * reason documented on the component above - `AndesInput`/`AndesSelect` are not on `develop`
+ * yet - and are the fully-automatic wiring path in the meantime.
  */
 export const ReactiveFormExample: Story = {
   render: () => {
@@ -166,7 +232,7 @@ export const ReactiveFormExample: Story = {
             <andes-form-error>Please pick a country.</andes-form-error>
           </andes-form-field>
 
-          <button type="submit" style="align-self: flex-start;">Submit</button>
+          <andes-button type="submit" style="align-self: flex-start;">Submit</andes-button>
           @if (submitted) {
             <p>Submitted: {{ form.value | json }}</p>
           }
@@ -179,14 +245,15 @@ export const ReactiveFormExample: Story = {
 /**
  * Works identically with `[(ngModel)]` (template-driven forms) instead of Reactive Forms -
  * `AndesFormControl` reads whichever `NgControl` is present (`FormControlName`,
- * `FormControlDirective` or `NgModel`) without caring which.
+ * `FormControlDirective` or `NgModel`) without caring which. The `AndesButton` here only
+ * echoes the current value; the field itself needs no submit to work.
  */
 export const WithNgModel: Story = {
   render: () => ({
     moduleMetadata: fieldModuleMetadata,
-    props: { nickname: '', controlStyle },
+    props: { nickname: '', echoed: '', controlStyle },
     template: `
-      <div style="max-width: 320px;">
+      <div style="max-width: 320px; display: flex; flex-direction: column; gap: 1rem;">
         <andes-form-field>
           <andes-form-label>Nickname</andes-form-label>
           <input
@@ -198,6 +265,15 @@ export const WithNgModel: Story = {
           />
           <andes-form-error>A nickname is required.</andes-form-error>
         </andes-form-field>
+        <andes-button
+          variant="secondary"
+          style="align-self: flex-start;"
+          (click)="echoed = nickname"
+          >Greet me</andes-button
+        >
+        @if (echoed) {
+          <p>Hello, {{ echoed }}!</p>
+        }
       </div>
     `,
   }),

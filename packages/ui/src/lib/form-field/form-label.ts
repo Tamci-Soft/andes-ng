@@ -1,11 +1,12 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  forwardRef,
   inject,
   ViewEncapsulation,
 } from '@angular/core';
 
-import { ANDES_FORM_FIELD } from './form-field-tokens';
+import { ANDES_FORM_FIELD, ANDES_FORM_LABEL } from './form-field-tokens';
 
 /**
  * Label for the control inside an `AndesFormField`. Renders a real `<label for="...">`
@@ -13,14 +14,22 @@ import { ANDES_FORM_FIELD } from './form-field-tokens';
  * documented approach), using the id the enclosing `AndesFormField` generated - no manual
  * id coordination required.
  *
- * Renders as a plain, unassociated `<label>` when used outside an `AndesFormField` (`for`
- * is simply omitted).
+ * The `<label>` also carries an id of its own (`AndesFormField.labelId()`). That is what makes
+ * `aria-labelledby` association possible for wrapper components that expose no `id` input of
+ * their own (`AndesSelect`, `AndesCheckbox`, `AndesSwitch`, `AndesRadioGroup`, `AndesSlider`),
+ * where `for`/`id` cannot work - see `AndesFormControl`'s class comment. It is registered with
+ * the field through `ANDES_FORM_LABEL` so the field only ever advertises that id
+ * (`labelledBy()`) when a label was actually authored.
+ *
+ * Renders as a plain, unassociated `<label>` when used outside an `AndesFormField` (`for` and
+ * `id` are simply omitted).
  */
 @Component({
   selector: 'andes-form-label',
   imports: [],
   template: `<label
     class="andes-form-label"
+    [attr.id]="field?.labelId() ?? null"
     [attr.for]="field?.controlId() ?? null"
   >
     <ng-content />
@@ -31,6 +40,12 @@ import { ANDES_FORM_FIELD } from './form-field-tokens';
   // `AndesFormField`; see the header comment in form-field.css for why the shared sheet is
   // unscoped rather than split per part.
   encapsulation: ViewEncapsulation.None,
+  providers: [
+    {
+      provide: ANDES_FORM_LABEL,
+      useExisting: forwardRef(() => AndesFormLabel),
+    },
+  ],
 })
 export class AndesFormLabel {
   protected readonly field = inject(ANDES_FORM_FIELD, { optional: true });
