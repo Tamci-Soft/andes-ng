@@ -1,0 +1,61 @@
+/* Mirrors the box-model rules in avatar.css so a "+N" chip lines up exactly
+   with the avatars it's stacked against - duplicated rather than shared
+   because each Angular component's styles are independently encapsulated. */
+
+:host {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  vertical-align: middle;
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-muted-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1;
+  user-select: none;
+}
+
+.andes-avatar-group-count--circular {
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-avatar-group-count--rounded {
+  border-radius: var(--andes-radius-lg);
+}
+
+.andes-avatar-group-count--square {
+  border-radius: var(--andes-radius-md);
+}
+
+.andes-avatar-group-count--xs {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.625rem;
+}
+
+.andes-avatar-group-count--sm {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.75rem;
+}
+
+.andes-avatar-group-count--md {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 0.875rem;
+}
+
+.andes-avatar-group-count--lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.125rem;
+}
+
+.andes-avatar-group-count--xl {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 1.375rem;
+}
