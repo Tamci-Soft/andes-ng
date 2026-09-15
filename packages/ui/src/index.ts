@@ -244,3 +244,6 @@ export { AndesComboboxContent } from './lib/combobox/combobox-content';
 export { AndesComboboxEmpty } from './lib/combobox/combobox-empty';
 export { AndesComboboxInput } from './lib/combobox/combobox-input';
 export { AndesComboboxItem } from './lib/combobox/combobox-item';
+export { AndesCheckboxGroup } from './lib/checkbox/checkbox-group';
+export type { AndesCheckboxGroupOrientation } from './lib/checkbox/checkbox-group';
+export { AndesCheckboxSelectAll } from './lib/checkbox/checkbox-select-all';
