@@ -1,0 +1,54 @@
+<label
+  class="andes-checkbox"
+  data-slot="checkbox"
+  [class.andes-checkbox--disabled]="isDisabled()"
+  [class.andes-checkbox--invalid]="ariaInvalid()"
+>
+  <span class="andes-checkbox__control">
+    <input
+      type="checkbox"
+      class="andes-checkbox__input"
+      [checked]="checkedState()"
+      [indeterminate]="indeterminateState()"
+      [disabled]="isDisabled()"
+      [attr.name]="name()"
+      [attr.value]="value()"
+      [attr.required]="required() || null"
+      [attr.aria-label]="ariaLabel()"
+      [attr.aria-labelledby]="ariaLabelledby()"
+      [attr.aria-describedby]="ariaDescribedby()"
+      [attr.aria-invalid]="ariaInvalid() || null"
+      (change)="onNativeChange($event)"
+      (blur)="onNativeBlur()"
+    />
+    <span class="andes-checkbox__box" aria-hidden="true">
+      <svg
+        class="andes-checkbox__icon andes-checkbox__icon--check"
+        viewBox="0 0 16 16"
+        fill="none"
+      >
+        <path
+          d="M3.5 8.5L6.5 11.5L12.5 4.5"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <svg
+        class="andes-checkbox__icon andes-checkbox__icon--indeterminate"
+        viewBox="0 0 16 16"
+        fill="none"
+      >
+        <path
+          d="M3.5 8H12.5"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+  </span>
+  <span class="andes-checkbox__label"><ng-content /></span>
+</label>
