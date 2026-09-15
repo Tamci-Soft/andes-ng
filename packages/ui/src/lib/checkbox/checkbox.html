@@ -2,6 +2,7 @@
   class="andes-checkbox"
   data-slot="checkbox"
   [class.andes-checkbox--disabled]="isDisabled()"
+  [class.andes-checkbox--readonly]="readOnly()"
   [class.andes-checkbox--invalid]="ariaInvalid()"
 >
   <span class="andes-checkbox__control">
@@ -18,6 +19,8 @@
       [attr.aria-labelledby]="ariaLabelledby()"
       [attr.aria-describedby]="ariaDescribedby()"
       [attr.aria-invalid]="ariaInvalid() || null"
+      [attr.aria-readonly]="readOnly() || null"
+      (click)="onNativeClick($event)"
       (change)="onNativeChange($event)"
       (blur)="onNativeBlur()"
     />
