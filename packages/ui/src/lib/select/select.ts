@@ -14,6 +14,7 @@ import {
   forwardRef,
   inject,
   input,
+  model,
   output,
   signal,
 } from '@angular/core';
@@ -88,10 +89,21 @@ export class AndesSelect
   readonly navigation = inject(AndesListNavigation);
 
   /**
-   * The selected value. Supports `[(value)]`, and coexists with `[formControl]`.
-   * Read {@link selectedValue} for the current selection whatever set it.
+   * The selected value. A `model()`, not a plain `input()`: `[(value)]`/`valueChange` are
+   * generated automatically, and - critically - a user's selection is written directly
+   * into this same signal (see {@link selectItem}) rather than into a separate internal
+   * copy that an `effect()` would then have to mirror back onto. That mirroring shape is
+   * what bit `AndesSwitch`/`AndesCheckbox`: an `effect()` (or a `linkedSignal`) only
+   * resyncs when the `value` *input* itself produces a value it considers new, so once a
+   * user's pick has diverged the internal copy from the bound input, a parent re-asserting
+   * a value the input's own signal already holds is architecturally invisible to it, and
+   * the display silently stays stuck on the stale selection. With `model()` there is only
+   * one signal - the parent's binding and the user's interaction both read and write it -
+   * so there is nothing left for it to diverge from.
+   * Coexists with `[formControl]`/`[(ngModel)]`, which write through `writeValue` onto the
+   * same signal. Read {@link selectedValue} for the current selection whatever set it.
    */
-  readonly value = input<unknown>(undefined);
+  readonly value = model<unknown>(null);
   /** Text shown while nothing is selected. */
   readonly placeholder = input('');
   /** Disables the control. A form control's own disabled state is honoured too. */
@@ -121,8 +133,6 @@ export class AndesSelect
     transform: booleanAttribute,
   });
 
-  /** Emits the new value when the user picks an option. */
-  readonly valueChange = output<unknown>();
   /** Emits when the panel opens or closes. */
   readonly openChange = output<boolean>();
 
@@ -130,7 +140,6 @@ export class AndesSelect
     descendants: true,
   });
 
-  private readonly _value = signal<unknown>(null);
   private readonly _items = signal<readonly AndesSelectItemRef[]>([]);
   private readonly _formDisabled = signal(false);
 
@@ -146,11 +155,11 @@ export class AndesSelect
   private onTouched: () => void = () => undefined;
 
   /** The current selection, whether it came from the input, a form or the user. */
-  readonly selectedValue = this._value.asReadonly();
+  readonly selectedValue = this.value.asReadonly();
   readonly isOpen = this.overlay.isOpen;
 
   readonly hasValue = computed(() => {
-    const value = this._value();
+    const value = this.value();
     return value !== null && value !== undefined && value !== '';
   });
 
@@ -163,7 +172,7 @@ export class AndesSelect
     if (!this.hasValue()) {
       return null;
     }
-    const value = this._value();
+    const value = this.value();
     const compare = this.compareWith();
     return this._items().find((item) => compare(item.value(), value)) ?? null;
   });
@@ -177,7 +186,7 @@ export class AndesSelect
     if (!this.hasValue()) {
       return null;
     }
-    const value = this._value();
+    const value = this.value();
 
     const rendered = this.selectedItem()?.getLabel();
     if (rendered) {
@@ -225,13 +234,6 @@ export class AndesSelect
     });
 
     effect(() => this.navigation.typeahead.set(this.typeahead()));
-
-    effect(() => {
-      const value = this.value();
-      if (value !== undefined) {
-        this._value.set(value);
-      }
-    });
 
     effect(() => {
       if (this.isDisabled() && this.overlay.isOpen()) {
@@ -301,7 +303,7 @@ export class AndesSelect
     if (!this.hasValue()) {
       return false;
     }
-    return this.compareWith()(item.value(), this._value());
+    return this.compareWith()(item.value(), this.value());
   }
 
   override selectItem(item: AndesSelectItemRef): void {
@@ -311,10 +313,12 @@ export class AndesSelect
 
     const value = item.value();
     this.cacheLabel(item);
-    this._value.set(value);
+    // Writes straight into the model shared with the caller's own `[(value)]` binding
+    // (see the class comment on `value`) - this also emits `valueChange`, so there is no
+    // separate `this.valueChange.emit(value)` to keep in sync here.
+    this.value.set(value);
     this.onChange(value);
     this.onTouched();
-    this.valueChange.emit(value);
     this.close();
   }
 
@@ -365,7 +369,7 @@ export class AndesSelect
   }
 
   writeValue(value: unknown): void {
-    this._value.set(value ?? null);
+    this.value.set(value ?? null);
   }
 
   registerOnChange(fn: (value: unknown) => void): void {
