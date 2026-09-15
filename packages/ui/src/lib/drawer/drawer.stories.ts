@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesDrawer } from './drawer';
 import { AndesDrawerClose } from './drawer-close';
 import {
@@ -25,6 +26,7 @@ const meta: Meta<AndesDrawer> = {
   render: (args) => ({
     moduleMetadata: {
       imports: [
+        AndesButton,
         AndesDrawer,
         AndesDrawerTrigger,
         AndesDrawerHeader,
@@ -37,7 +39,7 @@ const meta: Meta<AndesDrawer> = {
     props: args,
     template: `
       <andes-drawer [closeOnEscape]="closeOnEscape" [closeOnOutsideClick]="closeOnOutsideClick">
-        <button type="button" andesDrawerTrigger>Open drawer</button>
+        <andes-button variant="primary" andesDrawerTrigger>Open drawer</andes-button>
 
         <andes-drawer-header>
           <andes-drawer-title>Move goal</andes-drawer-title>
@@ -50,8 +52,8 @@ const meta: Meta<AndesDrawer> = {
         </div>
 
         <andes-drawer-footer>
-          <button type="button" andesDrawerClose>Submit</button>
-          <button type="button" andesDrawerClose>Cancel</button>
+          <andes-button variant="primary" fullWidth andesDrawerClose>Submit</andes-button>
+          <andes-button variant="outline" fullWidth andesDrawerClose>Cancel</andes-button>
         </andes-drawer-footer>
       </andes-drawer>
     `,
