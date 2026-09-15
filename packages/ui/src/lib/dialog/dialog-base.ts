@@ -30,6 +30,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export type AndesDialogSize = 'sm' | 'md' | 'lg' | 'xl';
 
 /**
+ * Extra class both dialog roots put on their backdrop, so `dialog.css` can retime the
+ * scrim's fade without reaching the backdrop of every other overlay through the shared
+ * `andes-overlay-backdrop` hook.
+ */
+export const ANDES_DIALOG_BACKDROP_CLASS = 'andes-dialog-backdrop';
+
+/**
  * The root of a dialog compound, as seen by its sub-parts.
  *
  * Both `AndesDialog` and `AndesAlertDialog` provide themselves under this token, so

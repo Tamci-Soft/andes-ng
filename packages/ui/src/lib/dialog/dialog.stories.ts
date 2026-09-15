@@ -13,12 +13,15 @@ import { ANDES_DIALOG_IMPORTS, AndesDialog } from './dialog';
  */
 const TRIGGER_STYLES = `
   <style>
+    /* Metrics copied from .andes-button--md rather than invented: 2.25rem/0.875rem was a
+       step that does not exist in the button scale, so the trigger read as a button from
+       a different system than the AndesButtons it opens. */
     .sb-dialog-trigger {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: var(--andes-space-2);
-      height: 2.25rem;
+      height: 2.5rem;
       padding: 0 var(--andes-space-4);
       border: 1px solid transparent;
       border-radius: var(--andes-radius-md);
@@ -26,8 +29,9 @@ const TRIGGER_STYLES = `
       color: var(--andes-color-primary-foreground);
       font-family: var(--andes-font-family), sans-serif;
       font-weight: var(--andes-font-weight-medium);
-      font-size: 0.875rem;
+      font-size: 1rem;
       cursor: pointer;
+      transition: background-color 0.15s ease;
     }
     .sb-dialog-trigger:hover { background-color: var(--andes-color-primary-hover); }
     .sb-dialog-trigger:focus-visible {
@@ -50,6 +54,14 @@ const TRIGGER_STYLES = `
       background-color: var(--andes-color-background);
       color: var(--andes-color-foreground);
       font: inherit;
+    }
+    /* The library has no Input component yet, so this demo field is a native input. It
+       still needs the design system's focus ring: without one the browser draws its own
+       default ring inside the border, which reads as a second, mismatched border. */
+    .sb-field input:focus-visible {
+      border-color: var(--andes-color-focus-ring);
+      outline: 2px solid var(--andes-color-focus-ring);
+      outline-offset: 2px;
     }
   </style>
 `;
