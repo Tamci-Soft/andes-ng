@@ -3,12 +3,12 @@
   role="switch"
   data-slot="switch"
   [attr.data-size]="size()"
-  [attr.data-checked]="isChecked() ? '' : null"
-  [attr.data-unchecked]="isChecked() ? null : ''"
+  [attr.data-checked]="checked() ? '' : null"
+  [attr.data-unchecked]="checked() ? null : ''"
   [attr.data-disabled]="isDisabled() ? '' : null"
   [attr.data-readonly]="readonly() ? '' : null"
   [attr.data-required]="required() ? '' : null"
-  [attr.aria-checked]="isChecked()"
+  [attr.aria-checked]="checked()"
   [attr.aria-required]="required() || null"
   [attr.aria-readonly]="readonly() || null"
   [attr.aria-label]="ariaLabel()"
@@ -21,7 +21,7 @@
   (blur)="onBlur()"
 >
   <span class="andes-switch__thumb" data-slot="switch-thumb"></span>
-  @if (isChecked()) {
+  @if (checked()) {
   <span class="andes-switch__content andes-switch__content--checked">
     <ng-content select="[slot=checked]" />
   </span>
