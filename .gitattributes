@@ -28,3 +28,5 @@
 # Generated/lockfiles — collapse in the GitHub PR diff view
 # https://github.com/github-linguist/linguist/blob/main/docs/overrides.md
 pnpm-lock.yaml     linguist-generated=true
+packages/ui/src/index.ts merge=union
+packages/primitives/src/index.ts merge=union
