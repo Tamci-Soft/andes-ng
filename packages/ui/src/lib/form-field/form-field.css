@@ -1,0 +1,59 @@
+/* Shared by every Form Field part. Only `.andes-form-field` below lives in `AndesFormField`'s
+   OWN template (form-field.html); `.andes-form-label`/`.andes-form-description`/
+   `.andes-form-error` are rendered by three separate sibling `@Component`s, and the
+   `:where(input, select, textarea)` rules at the bottom target the control the CONSUMER
+   authored and Angular projects in through `<ng-content>`. Under Angular's default emulated
+   view encapsulation a stylesheet's selectors are rewritten to only match elements carrying
+   its own component's `_ngcontent-*` attribute, so none of those four groups of elements were
+   ever reachable from here - 5 of the 6 rules in this file were dead (measured: error text
+   computed to the initial `rgb(0, 0, 0)` rather than `--andes-color-danger`, and the label's
+   font-size/font-weight resolved to empty strings).
+
+   `:host`/`:host-context` can't fix it either: `:host` only ever matches the component that
+   owns the stylesheet, and the projected native control is not a descendant of that component
+   in the *style-scoping* sense. So every `@Component` that includes this file opts out of
+   scoping with `encapsulation: ViewEncapsulation.None` (see form-field.ts, form-label.ts,
+   form-description.ts, form-error.ts) and these plain class selectors match by class name
+   globally, exactly as a hand-authored global stylesheet would. Each part includes the
+   stylesheet itself rather than relying on `AndesFormField` having been rendered first, so a
+   standalone `<andes-form-label>` (documented as valid usage outside a field) is styled too;
+   Angular's shared styles host de-duplicates the identical stylesheet, so it is only ever
+   injected into the document once. This is the same fix applied to Breadcrumb, Dropdown Menu
+   and Avatar in this same wave. */
+
+.andes-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-form-label {
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-foreground);
+}
+
+.andes-form-description {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-form-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--andes-color-danger);
+}
+
+/* Andes-ng's own controls (AndesInput, AndesCheckbox, ...) already draw their own
+   invalid-state border/ring off their `aria-invalid` input - this only adds a matching
+   tint for plain native controls placed directly inside the field, which have no such
+   styling of their own. */
+.andes-form-field--invalid :where(input, select, textarea) {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-form-field--invalid :where(input, select, textarea):focus-visible {
+  outline-color: var(--andes-color-danger);
+}
