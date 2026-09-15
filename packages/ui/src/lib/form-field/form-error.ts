@@ -4,6 +4,7 @@ import {
   computed,
   forwardRef,
   inject,
+  ViewEncapsulation,
 } from '@angular/core';
 
 import { ANDES_FORM_ERROR, ANDES_FORM_FIELD } from './form-field-tokens';
@@ -28,7 +29,10 @@ import { ANDES_FORM_ERROR, ANDES_FORM_FIELD } from './form-field-tokens';
       <ng-content />
     </p>
   }`,
+  styleUrl: './form-field.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // See the header comment in form-field.css for why the shared sheet is unscoped.
+  encapsulation: ViewEncapsulation.None,
   providers: [
     {
       provide: ANDES_FORM_ERROR,
