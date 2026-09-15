@@ -17,6 +17,16 @@
     border-color 0.15s ease;
 }
 
+/* Projected icons (icon-start/icon-end/default content) keep their own encapsulation
+   context, so a plain descendant selector can't reach them - ::ng-deep is the sanctioned
+   way to size content Angular doesn't otherwise let this component's styles touch. Sizes
+   in em so it scales with each size class's own font-size, not a single fixed value. */
+.andes-button ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
 .andes-button:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
@@ -145,6 +155,17 @@
 }
 
 .andes-button--outline:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-button--dashed {
+  background-color: var(--andes-color-background);
+  border-style: dashed;
+  border-color: var(--andes-color-border);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-button--dashed:hover:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-accent);
 }
 

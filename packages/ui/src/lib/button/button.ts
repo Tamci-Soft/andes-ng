@@ -11,11 +11,12 @@ import {
   input,
   Renderer2,
   signal,
+  TemplateRef,
 } from '@angular/core';
 import clsx from 'clsx';
 
 export type AndesButtonVariant =
-  'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'link';
+  'primary' | 'secondary' | 'danger' | 'outline' | 'dashed' | 'ghost' | 'link';
 export type AndesButtonSize =
   'xs' | 'sm' | 'md' | 'lg' | 'icon-xs' | 'icon-sm' | 'icon' | 'icon-lg';
 export type AndesButtonShape = 'default' | 'full';
@@ -49,6 +50,7 @@ export class AndesButton {
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly loading = input(false, { transform: booleanAttribute });
   readonly loadingDelay = input(0);
+  readonly loadingIcon = input<TemplateRef<unknown> | undefined>(undefined);
   readonly fullWidth = input(false, { transform: booleanAttribute });
   readonly href = input<string | undefined>(undefined);
   readonly target = input<string | undefined>(undefined);

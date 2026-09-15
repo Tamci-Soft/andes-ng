@@ -35,9 +35,11 @@
 }
 
 <ng-template #content>
-  @if (visibleLoading()) {
-  <span class="andes-button__spinner" aria-hidden="true"></span>
+  @if (visibleLoading()) { @if (loadingIcon(); as customIcon) {
+  <ng-container *ngTemplateOutlet="customIcon" />
   } @else {
+  <span class="andes-button__spinner" aria-hidden="true"></span>
+  } } @else {
   <ng-content select="[slot=icon-start]" />
   }
   <ng-content />

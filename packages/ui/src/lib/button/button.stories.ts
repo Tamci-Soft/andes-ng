@@ -10,7 +10,15 @@ const meta: Meta<AndesButton> = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['primary', 'secondary', 'danger', 'outline', 'ghost', 'link'],
+      options: [
+        'primary',
+        'secondary',
+        'danger',
+        'outline',
+        'dashed',
+        'ghost',
+        'link',
+      ],
     },
     size: {
       control: 'select',
@@ -72,6 +80,10 @@ export const Outline: Story = {
   args: { variant: 'outline' },
 };
 
+export const Dashed: Story = {
+  args: { variant: 'dashed' },
+};
+
 export const Ghost: Story = {
   args: { variant: 'ghost' },
 };
@@ -93,6 +105,23 @@ export const Invalid: Story = {
 
 export const Loading: Story = {
   args: { loading: true },
+};
+
+export const CustomLoadingIcon: Story = {
+  render: (args) => ({
+    moduleMetadata: { imports: [NgIcon] },
+    props: args,
+    template: `
+      <ng-template #spinningLoader>
+        <ng-icon name="lucideLoaderCircle" class="spinning-loader" />
+      </ng-template>
+      <andes-button [variant]="variant" [loading]="true" [loadingIcon]="spinningLoader">Save</andes-button>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinning-loader ::ng-deep svg { animation: spin 0.8s linear infinite; }
+      </style>
+    `,
+  }),
 };
 
 export const Pill: Story = {
@@ -179,6 +208,7 @@ export const AllVariants: Story = {
         <andes-button variant="secondary">Secondary</andes-button>
         <andes-button variant="danger">Danger</andes-button>
         <andes-button variant="outline">Outline</andes-button>
+        <andes-button variant="dashed">Dashed</andes-button>
         <andes-button variant="ghost">Ghost</andes-button>
         <andes-button variant="link">Link</andes-button>
       </div>

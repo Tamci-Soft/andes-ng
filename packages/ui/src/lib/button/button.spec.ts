@@ -74,7 +74,7 @@ describe('AndesButton', () => {
     expect(button.classList).toContain('andes-button--lg');
   });
 
-  it.each(['outline', 'ghost', 'link'] as const)(
+  it.each(['outline', 'dashed', 'ghost', 'link'] as const)(
     'supports the %s variant',
     (variant) => {
       const { fixture, button } = createHost();
@@ -303,5 +303,35 @@ describe('AndesButton', () => {
     expect(button.disabled).toBe(true);
     expect(button.classList).toContain('andes-button--ghost-mode');
     expect(button.classList).toContain('andes-button--full-width');
+  });
+
+  it('renders the default spinner when loading with no custom loadingIcon', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+
+    expect(button.querySelector('.andes-button__spinner')).toBeTruthy();
+  });
+
+  it('renders a custom loadingIcon template instead of the default spinner', () => {
+    @Component({
+      imports: [AndesButton],
+      template: `
+        <ng-template #customLoader
+          ><span class="my-loader">…</span></ng-template
+        >
+        <andes-button [loading]="true" [loadingIcon]="customLoader"
+          >Save</andes-button
+        >
+      `,
+    })
+    class CustomLoaderHost {}
+
+    const fixture = TestBed.createComponent(CustomLoaderHost);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('button');
+
+    expect(button.querySelector('.my-loader')).toBeTruthy();
+    expect(button.querySelector('.andes-button__spinner')).toBeFalsy();
   });
 });
