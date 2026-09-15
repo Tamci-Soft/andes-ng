@@ -5,9 +5,107 @@
  *
  *   @import '@andes-ng/tokens/theme.css';
  *
- * The token catalogue (`--andes-*` custom properties for color, typography,
- * spacing, radii, elevation and focus) will be introduced together with the
- * first component foundations. Token names are public API and follow semantic
- * versioning, so the catalogue is deliberately empty until those decisions are
- * made. See docs/adr/0003-css-custom-properties-as-the-styling-contract.md.
+ * Dark mode: set data-andes-theme="dark" on <html> (or any ancestor).
+ * See docs/adr/0003-css-custom-properties-as-the-styling-contract.md.
  */
+
+:root {
+  --andes-color-background: #ffffff;
+  --andes-color-foreground: #0f172a;
+
+  --andes-color-card: #ffffff;
+  --andes-color-card-foreground: #0f172a;
+
+  --andes-color-popover: #ffffff;
+  --andes-color-popover-foreground: #0f172a;
+
+  --andes-color-primary: #2563eb;
+  --andes-color-primary-hover: #1d4ed8;
+  --andes-color-primary-active: #1e40af;
+  --andes-color-primary-foreground: #ffffff;
+  /* For text standing alone on the page background (e.g. the link variant), not as a fill
+     color - brightens in dark mode below since #2563eb only hits 3.45:1 on #0f172a. */
+  --andes-color-primary-text: #2563eb;
+
+  --andes-color-secondary: #e5e7eb;
+  --andes-color-secondary-hover: #d1d5db;
+  --andes-color-secondary-active: #9ca3af;
+  --andes-color-secondary-foreground: #111827;
+
+  --andes-color-muted: #f1f5f9;
+  --andes-color-muted-foreground: #64748b;
+
+  --andes-color-accent: #f3f4f6;
+  --andes-color-accent-hover: #e5e7eb;
+  --andes-color-accent-foreground: #111827;
+
+  --andes-color-danger: #dc2626;
+  --andes-color-danger-hover: #b91c1c;
+  --andes-color-danger-active: #991b1b;
+  --andes-color-danger-foreground: #ffffff;
+
+  --andes-color-border: #d1d5db;
+  --andes-color-input: #d1d5db;
+  --andes-color-focus-ring: #2563eb;
+
+  /* Fixed regardless of light/dark - ghost mode sits on arbitrary colored/dark backdrops,
+     not the page's own background, so it doesn't follow the page theme. Brighter than the
+     solid-button shades on purpose: those are tuned for legibility as a fill color, not as
+     standalone text/border on a dark or colored backdrop. */
+  --andes-color-ghost: #ffffff;
+  --andes-color-primary-ghost: #60a5fa;
+  --andes-color-danger-ghost: #fca5a5;
+
+  --andes-font-family: system-ui, sans-serif;
+  --andes-font-weight-medium: 500;
+
+  --andes-radius-sm: 0.25rem;
+  --andes-radius-md: 0.375rem;
+  --andes-radius-lg: 0.5rem;
+  --andes-radius-xl: 0.75rem;
+  --andes-radius-full: 9999px;
+
+  --andes-space-1: 0.25rem;
+  --andes-space-2: 0.5rem;
+  --andes-space-3: 0.75rem;
+  --andes-space-4: 1rem;
+  --andes-space-5: 1.25rem;
+}
+
+[data-andes-theme='dark'] {
+  --andes-color-background: #0f172a;
+  --andes-color-foreground: #f8fafc;
+
+  --andes-color-card: #1e293b;
+  --andes-color-card-foreground: #f8fafc;
+
+  --andes-color-popover: #1e293b;
+  --andes-color-popover-foreground: #f8fafc;
+
+  --andes-color-primary: #2563eb;
+  --andes-color-primary-hover: #3b82f6;
+  --andes-color-primary-active: #60a5fa;
+  --andes-color-primary-foreground: #ffffff;
+  --andes-color-primary-text: #60a5fa;
+
+  --andes-color-secondary: #334155;
+  --andes-color-secondary-hover: #475569;
+  --andes-color-secondary-active: #64748b;
+  --andes-color-secondary-foreground: #f8fafc;
+
+  --andes-color-muted: #1e293b;
+  --andes-color-muted-foreground: #94a3b8;
+
+  --andes-color-accent: #1e293b;
+  --andes-color-accent-hover: #334155;
+  --andes-color-accent-foreground: #f8fafc;
+
+  --andes-color-danger: #dc2626;
+  --andes-color-danger-hover: #ef4444;
+  --andes-color-danger-active: #f87171;
+  --andes-color-danger-foreground: #ffffff;
+
+  --andes-color-border: #334155;
+  --andes-color-input: #334155;
+  --andes-color-focus-ring: #3b82f6;
+}

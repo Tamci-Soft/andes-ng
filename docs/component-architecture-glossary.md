@@ -6,12 +6,13 @@ This guide explains Andes NG's vocabulary and responsibility boundaries. It's a 
 
 ## Responsibilities per package
 
-| Package             | Responsibility                                                                                                                                | Must not contain                                    |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `@andes-ng/tokens`  | Framework-agnostic design values: color, typography, spacing scale, radii, shadows and focus. Published as `--andes-*` CSS custom properties. | Angular components, internal selectors or behavior. |
-| `@andes-ng/ui`      | Public Angular components, their API, composition with behavior primitives, and encapsulated CSS that consumes tokens.                        | Duplicated brand values, or Spartan's public API.   |
-| `@andes-ng/testing` | Stable test helpers built on Andes's public API and semantics.                                                                                | Spartan's internal selectors or types.              |
-| `apps/playground`   | Non-publishable app for checking a real consumer's experience.                                                                                | Code meant to ship as a package.                    |
+| Package                | Responsibility                                                                                                                                | Must not contain                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `@andes-ng/tokens`     | Framework-agnostic design values: color, typography, spacing scale, radii, shadows and focus. Published as `--andes-*` CSS custom properties. | Angular components, internal selectors or behavior.     |
+| `@andes-ng/primitives` | Andes-owned, unstyled, accessible behavior directives — see [ADR 0008](adr/0008-own-behavior-primitives-incrementally.md).                    | Any styling, or a component's public API.               |
+| `@andes-ng/ui`         | Public Angular components, their API, composition with behavior primitives, and encapsulated CSS that consumes tokens.                        | Duplicated brand values, or a primitive's public API.   |
+| `@andes-ng/testing`    | Stable test helpers built on Andes's public API and semantics.                                                                                | Spartan's or `@andes-ng/primitives`'s internal details. |
+| `apps/playground`      | Non-publishable app for checking a real consumer's experience.                                                                                | Code meant to ship as a package.                        |
 
 These boundaries are enforced today: `@nx/enforce-module-boundaries` checks them on every `lint` via the `type:tokens`, `type:ui`, `type:testing` and `type:app` tags.
 
@@ -27,30 +28,20 @@ This gets identity without coupling a component to a specific screen. Changing a
 
 The token catalogue is still empty for exactly that reason: names are public API under semantic versioning, and will be defined alongside the first components rather than guessed ahead of them.
 
-## Tailwind CSS, `tw-animate-css` and `clsx`
+## `clsx`, and why there's no Tailwind CSS or `tw-animate-css`
 
-- **Tailwind CSS** generates CSS from utility classes found in code. It isn't Andes's styling contract: Andes publishes its tokens and its components' encapsulated CSS, so a consuming application doesn't need to scan the library's code or configure Tailwind.
-- **`tw-animate-css`** is an animation package built for Tailwind's ecosystem. Andes doesn't import or use it.
-- **`clsx`** is a small utility for conditionally building CSS class strings. It also has no direct import in Andes's code.
+- **`clsx`** is a small utility for conditionally building CSS class strings. `AndesButton` uses it directly to compose its variant/size/state classes.
+- **Tailwind CSS** and **`tw-animate-css`** are not Andes dependencies. They were only ever present because `@spartan-ng/brain` declared them as peer requirements; now that `AndesButton` uses Andes's own `AndesButtonPrimitive` instead (see [ADR 0008](adr/0008-own-behavior-primitives-incrementally.md)), neither package is installed. Andes still doesn't have a Tailwind styling contract of its own: components publish encapsulated CSS built on `@andes-ng/tokens`, so a consuming application never needs to scan Andes's code or configure Tailwind.
 
-All three are present because Spartan Brain declares them as ecosystem requirements.
+If a future component does depend on Spartan Brain, Tailwind and `tw-animate-css` reappear in the install graph as its peers — that's a real, visible cost of that specific choice, not something to hide behind `ignoredDependencies`.
 
 ## Dependencies and peers
 
 A normal dependency in `dependencies` gets installed alongside the package that declares it. A **peer dependency** is a different kind of declaration: the package asks the host project to provide a compatible version of another library, so a single instance can be shared.
 
-Spartan Brain declares Angular, Angular CDK, RxJS, `clsx`, Tailwind CSS and `tw-animate-css` as peers. Andes treats these in two ways:
+`@andes-ng/ui` keeps Angular, Angular CDK and RxJS as peers — an application must have a single compatible instance of the Angular runtime — and declares `@andes-ng/primitives`, `@andes-ng/tokens` and `clsx` as real, used dependencies.
 
-- Angular, CDK and RxJS remain peers of `@andes-ng/ui`: an application must have a single compatible instance of the Angular runtime.
-- `@spartan-ng/brain`, `clsx`, Tailwind CSS and `tw-animate-css` are direct implementation dependencies of `@andes-ng/ui`. This satisfies Brain's peer graph deterministically when Andes is installed.
-
-The root `package.json` also declares them as `devDependencies`, to develop and test the monorepo. That doesn't replace the publishable package's own dependencies — the root doesn't exist when an application installs `@andes-ng/ui` from npm.
-
-### Why they're declared without being used yet
-
-`@andes-ng/ui` declares Brain and its requirements even though no file imports them yet. This is deliberate: it reserves the contract from [ADR 0004](adr/0004-spartan-brain-behind-andes-adapters.md) and lets the build verify the installation before the first component exists.
-
-It has a visible cost — Tailwind and `tw-animate-css` show up in the install graph without contributing anything yet — that is accepted on purpose. In the meantime, `@nx/dependency-checks` lists them in `ignoredDependencies` inside `packages/ui/eslint.config.mjs`; each exception is removed once its dependency comes into real use.
+The root `package.json` also declares Angular/CDK/RxJS as `devDependencies`, to develop and test the monorepo. That doesn't replace the publishable package's own dependencies — the root doesn't exist when an application installs `@andes-ng/ui` from npm.
 
 ## `allowedNonPeerDependencies`
 

@@ -27,7 +27,7 @@ export default [
             },
             {
               sourceTag: 'type:ui',
-              onlyDependOnLibsWithTags: ['type:tokens'],
+              onlyDependOnLibsWithTags: ['type:tokens', 'type:primitives'],
             },
             {
               sourceTag: 'type:testing',
@@ -36,6 +36,10 @@ export default [
             {
               sourceTag: 'type:tokens',
               onlyDependOnLibsWithTags: ['type:tokens'],
+            },
+            {
+              sourceTag: 'type:primitives',
+              onlyDependOnLibsWithTags: ['type:primitives'],
             },
           ],
         },

@@ -1,0 +1,49 @@
+@if (href(); as hrefValue) {
+<a
+  andesButtonPrimitive
+  data-slot="button"
+  [attr.data-variant]="variant()"
+  [attr.data-size]="size()"
+  [disabled]="isDisabled()"
+  [attr.href]="isDisabled() ? null : hrefValue"
+  [attr.target]="target()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="ariaInvalid() || null"
+  [class]="classes()"
+>
+  <ng-container *ngTemplateOutlet="content" />
+</a>
+} @else {
+<button
+  andesButtonPrimitive
+  data-slot="button"
+  [attr.data-variant]="variant()"
+  [attr.data-size]="size()"
+  [disabled]="isDisabled()"
+  [attr.type]="type()"
+  [attr.aria-busy]="visibleLoading() || null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="ariaInvalid() || null"
+  [class]="classes()"
+>
+  <ng-container *ngTemplateOutlet="content" />
+</button>
+}
+
+<ng-template #content>
+  @if (visibleLoading()) { @if (loadingIcon(); as customIcon) {
+  <ng-container *ngTemplateOutlet="customIcon" />
+  } @else {
+  <span class="andes-button__spinner" aria-hidden="true"></span>
+  } } @else {
+  <ng-content select="[slot=icon-start]" />
+  }
+  <ng-content />
+  @if (!visibleLoading()) {
+  <ng-content select="[slot=icon-end]" />
+  }
+</ng-template>

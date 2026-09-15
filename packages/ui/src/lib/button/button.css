@@ -1,0 +1,274 @@
+.andes-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-2);
+  overflow: hidden;
+  border-radius: var(--andes-radius-md);
+  border: 1px solid transparent;
+  font-family: var(--andes-font-family), sans-serif;
+  font-weight: var(--andes-font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+/* Projected icons (icon-start/icon-end/default content) keep their own encapsulation
+   context, so a plain descendant selector can't reach them - ::ng-deep is the sanctioned
+   way to size content Angular doesn't otherwise let this component's styles touch. Sizes
+   in em so it scales with each size class's own font-size, not a single fixed value. */
+.andes-button ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.andes-button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-button:disabled,
+.andes-button[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-button--invalid {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-button--invalid:focus-visible {
+  outline-color: var(--andes-color-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+.andes-button--full {
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-button--full-width {
+  display: flex;
+  width: 100%;
+}
+
+/* Sizes */
+
+.andes-button--xs {
+  height: 1.75rem;
+  padding-inline: var(--andes-space-2);
+  font-size: 0.75rem;
+}
+
+.andes-button--sm {
+  height: 2rem;
+  padding-inline: var(--andes-space-3);
+  font-size: 0.875rem;
+}
+
+.andes-button--md {
+  height: 2.5rem;
+  padding-inline: var(--andes-space-4);
+  font-size: 1rem;
+}
+
+.andes-button--lg {
+  height: 3rem;
+  padding-inline: var(--andes-space-5);
+  font-size: 1.125rem;
+}
+
+.andes-button--icon-xs {
+  height: 1.75rem;
+  width: 1.75rem;
+  padding: 0;
+}
+
+.andes-button--icon-sm {
+  height: 2rem;
+  width: 2rem;
+  padding: 0;
+}
+
+.andes-button--icon {
+  height: 2.5rem;
+  width: 2.5rem;
+  padding: 0;
+}
+
+.andes-button--icon-lg {
+  height: 3rem;
+  width: 3rem;
+  padding: 0;
+}
+
+/* Variants */
+
+.andes-button--primary {
+  background-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-button--primary:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-primary-hover);
+}
+
+.andes-button--primary:active:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-primary-active);
+}
+
+.andes-button--secondary {
+  background-color: var(--andes-color-secondary);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-button--secondary:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-secondary-hover);
+}
+
+.andes-button--secondary:active:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-secondary-active);
+}
+
+.andes-button--danger {
+  background-color: var(--andes-color-danger);
+  color: var(--andes-color-danger-foreground);
+}
+
+.andes-button--danger:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-danger-hover);
+}
+
+.andes-button--danger:active:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-danger-active);
+}
+
+.andes-button--outline {
+  background-color: var(--andes-color-background);
+  border-color: var(--andes-color-border);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-button--outline:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-button--dashed {
+  background-color: var(--andes-color-background);
+  border-style: dashed;
+  border-color: var(--andes-color-border);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-button--dashed:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-button--ghost {
+  background-color: transparent;
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-button--ghost:hover:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-button--link {
+  background-color: transparent;
+  color: var(--andes-color-primary-text);
+  padding-inline: 0;
+  height: auto;
+  overflow: visible;
+}
+
+.andes-button--link:hover:not(:disabled):not([data-disabled]) {
+  text-decoration: underline;
+}
+
+/* Ghost mode: transparent background, border/text tinted to the variant's own color -
+   for use on colored or dark backdrops. Distinct from the "ghost" variant above. */
+
+.andes-button--ghost-mode.andes-button--primary {
+  background-color: transparent;
+  border-color: var(--andes-color-primary-ghost);
+  color: var(--andes-color-primary-ghost);
+}
+
+.andes-button--ghost-mode.andes-button--primary:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-button--ghost-mode.andes-button--secondary {
+  background-color: transparent;
+  border-color: var(--andes-color-ghost);
+  color: var(--andes-color-ghost);
+}
+
+.andes-button--ghost-mode.andes-button--secondary:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-ghost);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-button--ghost-mode.andes-button--danger {
+  background-color: transparent;
+  border-color: var(--andes-color-danger-ghost);
+  color: var(--andes-color-danger-ghost);
+}
+
+.andes-button--ghost-mode.andes-button--danger:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-danger);
+  color: var(--andes-color-danger-foreground);
+}
+
+/* Loading */
+
+.andes-button--loading {
+  cursor: wait;
+}
+
+.andes-button__spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: var(--andes-radius-full);
+  animation: andes-button-spin 0.6s linear infinite;
+}
+
+@keyframes andes-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ripple */
+
+.andes-button__ripple {
+  position: absolute;
+  border-radius: var(--andes-radius-full);
+  background-color: currentcolor;
+  opacity: 0.25;
+  transform: scale(0);
+  animation: andes-button-ripple 0.5s ease-out;
+  pointer-events: none;
+}
+
+@keyframes andes-button-ripple {
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}

@@ -11,15 +11,6 @@ export default [
       '@nx/dependency-checks': [
         'error',
         {
-          ignoredDependencies: [
-            // Relied on only through --andes-* CSS custom properties, never a TS import.
-            '@andes-ng/tokens',
-            // Not used by any component yet.
-            '@angular/cdk',
-            '@angular/common',
-            '@angular/forms',
-            'rxjs',
-          ],
           ignoredFiles: ['{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}'],
         },
       ],
