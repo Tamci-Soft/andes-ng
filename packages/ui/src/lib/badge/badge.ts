@@ -9,6 +9,7 @@ import clsx from 'clsx';
 
 export type AndesBadgeVariant =
   'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'info';
+export type AndesBadgeSize = 'default' | 'small';
 
 @Component({
   selector: 'andes-badge',
@@ -26,6 +27,16 @@ export class AndesBadge {
   /** Keep the badge visible when `count` is exactly 0 (hidden by default, matching Ant). */
   readonly showZero = input(false, { transform: booleanAttribute });
   readonly variant = input<AndesBadgeVariant>('danger');
+  readonly size = input<AndesBadgeSize>('default');
+  /**
+   * Adds a looping pulse ring, matching Ant Badge's `status="processing"` treatment.
+   * Typically paired with `dot`.
+   */
+  readonly processing = input(false, { transform: booleanAttribute });
+  /** [x, y] pixel offset applied on top of the default corner position. */
+  readonly offset = input<[number, number] | undefined>(undefined);
+  /** Native tooltip shown when hovering the count/dot indicator itself. */
+  readonly title = input<string | undefined>(undefined);
   /**
    * Renders the badge as a normal inline element instead of an absolutely positioned
    * overlay - for a standalone status indicator (optionally paired with a `slot=label`
@@ -53,11 +64,16 @@ export class AndesBadge {
     return count > max ? `${max}+` : `${count}`;
   });
 
+  protected readonly offsetX = computed(() => this.offset()?.[0] ?? 0);
+  protected readonly offsetY = computed(() => this.offset()?.[1] ?? 0);
+
   protected readonly classes = computed(() =>
     clsx(
       'andes-badge',
       `andes-badge--${this.variant()}`,
       this.dot() && 'andes-badge--dot',
+      this.size() === 'small' && 'andes-badge--small',
+      this.processing() && 'andes-badge--processing',
     ),
   );
 }

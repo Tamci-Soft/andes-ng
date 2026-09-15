@@ -5,8 +5,16 @@
   @if (!standalone()) {
   <ng-content />
   } @if (visible()) {
-  <span [class]="classes()" [attr.aria-label]="ariaLabel() ?? null">
-    @if (!dot()) { {{ displayValue() }} }
+  <span
+    [class]="classes()"
+    [attr.aria-label]="ariaLabel() ?? null"
+    [attr.title]="title() ?? null"
+    [style.--andes-badge-offset-x.px]="offsetX()"
+    [style.--andes-badge-offset-y.px]="offsetY()"
+  >
+    @if (processing()) {
+    <span class="andes-badge__ping" aria-hidden="true"></span>
+    } @if (!dot()) { {{ displayValue() }} }
   </span>
   } @if (standalone()) {
   <ng-content select="[slot=label]" />
