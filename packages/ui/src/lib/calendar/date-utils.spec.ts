@@ -4,6 +4,7 @@ import {
   addYears,
   buildCalendarWeeks,
   clampDate,
+  clampWeekday,
   coerceDate,
   compareDays,
   daysInMonth,
@@ -229,6 +230,25 @@ describe('date-utils', () => {
       // 2024-02-01 was a Thursday.
       expect(leadingDayCount(d(2024, 2, 1), 0)).toBe(4);
       expect(leadingDayCount(d(2024, 2, 1), 1)).toBe(3);
+    });
+  });
+
+  describe('clampWeekday', () => {
+    it('passes through every valid weekday index unchanged', () => {
+      for (let day = 0; day <= 6; day++) {
+        expect(clampWeekday(day)).toBe(day);
+      }
+    });
+
+    it('falls back to 0 for a non-integer value', () => {
+      expect(clampWeekday(Number.NaN)).toBe(0);
+      expect(clampWeekday(1.5)).toBe(0);
+    });
+
+    it('falls back to 0 for an out-of-range value instead of indexing past the valid range', () => {
+      expect(clampWeekday(7)).toBe(0);
+      expect(clampWeekday(-1)).toBe(0);
+      expect(clampWeekday(100)).toBe(0);
     });
   });
 

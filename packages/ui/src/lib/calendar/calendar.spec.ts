@@ -904,4 +904,105 @@ describe('AndesCalendar', () => {
       expect(blocked.getAttribute('aria-disabled')).toBe('true');
     });
   });
+
+  describe('weekStartsOn bare attribute', () => {
+    /**
+     * Regression guard for a string-concatenation bug: a *static* HTML attribute
+     * (no square brackets) reaches Angular as the literal string `"1"`, not the
+     * number `1`. `weekdayNames`'s `(weekStartsOn + index) % 7` used `+`, which is
+     * string concatenation on a string operand — `"1" + 0` produced `"10"`, and
+     * `"10" % 7` silently coerced back to `3`, rendering a Wednesday-first grid
+     * for every consumer who wrote `weekStartsOn="1"` instead of
+     * `[weekStartsOn]="1"`. The fix is `numberAttribute` on the input; these tests
+     * must use the bare attribute form to actually exercise that path.
+     */
+    it('treats a bare weekStartsOn="1" attribute as the number 1, producing a Monday-first grid', () => {
+      @Component({
+        imports: [AndesCalendar],
+        template: `<andes-calendar
+          weekStartsOn="1"
+          [defaultMonth]="defaultMonth"
+        />`,
+      })
+      class BareWeekStartsOnHost {
+        readonly defaultMonth = d(2024, 2, 1);
+      }
+
+      const fixture = TestBed.createComponent(BareWeekStartsOnHost);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const headers = Array.from(
+        root.querySelectorAll<HTMLElement>('[role="columnheader"]'),
+      );
+
+      // Correct, Monday-first order. Before the fix this rendered
+      // Wednesday-first (Wed, Thu, Fri, Sat, Sun, Mon, Tue).
+      expect(
+        headers.map((header) => header.getAttribute('aria-label')),
+      ).toEqual([
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ]);
+
+      // The day grid itself must also start each row on Monday, not just the
+      // header labels — both are driven by the same coerced input.
+      const firstRow = root.querySelector(
+        '.andes-calendar__row:not(.andes-calendar__row--weekdays)',
+      );
+      const firstCellDate = firstRow
+        ?.querySelector('[role="gridcell"][data-date]')
+        ?.getAttribute('data-date');
+      expect(new Date(`${firstCellDate}T00:00:00`).getDay()).toBe(1);
+    });
+
+    it('clamps an out-of-range bare weekStartsOn="9" attribute to 0 (Sunday) instead of crashing', () => {
+      @Component({
+        imports: [AndesCalendar],
+        template: `<andes-calendar
+          weekStartsOn="9"
+          [defaultMonth]="defaultMonth"
+        />`,
+      })
+      class OutOfRangeWeekStartsOnHost {
+        readonly defaultMonth = d(2024, 2, 1);
+      }
+
+      const fixture = TestBed.createComponent(OutOfRangeWeekStartsOnHost);
+      expect(() => fixture.detectChanges()).not.toThrow();
+
+      const root = fixture.nativeElement as HTMLElement;
+      const headers = Array.from(
+        root.querySelectorAll<HTMLElement>('[role="columnheader"]'),
+      );
+      expect(headers).toHaveLength(7);
+      expect(headers[0].getAttribute('aria-label')).toBe('Sunday');
+    });
+
+    it('falls back to 0 (Sunday) for a non-numeric bare weekStartsOn attribute', () => {
+      @Component({
+        imports: [AndesCalendar],
+        template: `<andes-calendar
+          weekStartsOn="not-a-number"
+          [defaultMonth]="defaultMonth"
+        />`,
+      })
+      class InvalidWeekStartsOnHost {
+        readonly defaultMonth = d(2024, 2, 1);
+      }
+
+      const fixture = TestBed.createComponent(InvalidWeekStartsOnHost);
+      expect(() => fixture.detectChanges()).not.toThrow();
+
+      const root = fixture.nativeElement as HTMLElement;
+      const headers = Array.from(
+        root.querySelectorAll<HTMLElement>('[role="columnheader"]'),
+      );
+      expect(headers[0].getAttribute('aria-label')).toBe('Sunday');
+    });
+  });
 });
