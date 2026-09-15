@@ -34,7 +34,7 @@ const meta: Meta<AndesBreadcrumb> = {
     moduleMetadata: { imports },
     props: args,
     template: `
-      <andes-breadcrumb [attr.aria-label]="ariaLabel">
+      <andes-breadcrumb [aria-label]="ariaLabel">
         <ol andesBreadcrumbList>
           <li andesBreadcrumbItem><a andesBreadcrumbLink href="/">Home</a></li>
           <li andesBreadcrumbSeparator></li>

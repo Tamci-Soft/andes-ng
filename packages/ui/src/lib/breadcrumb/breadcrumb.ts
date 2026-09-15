@@ -7,6 +7,7 @@ import {
   inject,
   input,
   Renderer2,
+  ViewEncapsulation,
 } from '@angular/core';
 
 /**
@@ -26,6 +27,20 @@ import {
  * would still look right but breaks the list/listitem relationship assistive tech relies on
  * (axe's "list" rule flags any `<ol>`/`<ul>` child that isn't an `<li>`, regardless of CSS) -
  * directives avoid that entirely, since the rendered DOM is exactly the tags the author wrote.
+ *
+ * That same directive-on-consumer-markup technique breaks Angular's default emulated view
+ * encapsulation for `breadcrumb.css`: emulated encapsulation only rewrites a stylesheet's
+ * selectors to match elements carrying ITS OWN component's `_ngcontent-*`/`_nghost-*` attribute,
+ * and the `<ol>`/`<li>`/`<a>`/`<span>` these directives attach to are declared in the CONSUMER's
+ * template, projected in via `<ng-content>` - they never carry `AndesBreadcrumb`'s attribute (a
+ * `:host(...)` selector cannot reach them either, since `:host()` only ever matches an actual
+ * component host element, and none of these directive-hosted elements are one). Unlike
+ * `AndesCard`/`AndesRadioGroup`, where every styled part is its own `@Component` and `:host()`
+ * therefore works, most of Breadcrumb's parts must stay directives (see above), so the only way
+ * for `breadcrumb.css` to reach them at all is to opt the two `@Component`s that own that
+ * stylesheet (`AndesBreadcrumb`, `AndesBreadcrumbEllipsis`) out of scoping entirely via
+ * `encapsulation: ViewEncapsulation.None` - the plain class selectors in `breadcrumb.css` then
+ * match by class name globally, the same way they would in a hand-written global stylesheet.
  */
 
 /**
@@ -51,7 +66,17 @@ import {
   `,
   styleUrl: './breadcrumb.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'andes-breadcrumb' },
+  // See the class-level comment above for why this can't be the (default) Emulated mode.
+  encapsulation: ViewEncapsulation.None,
+  host: {
+    class: 'andes-breadcrumb',
+    // The `aria-label` input is forwarded onto the real `<nav>` in the template below. Without
+    // this, Angular would ALSO write the same static/bound value onto this host element (any
+    // attribute matching an input's alias lands on both), producing two elements in the a11y
+    // tree with the same accessible name - the same pitfall `AndesButton` avoids for its own
+    // ARIA inputs (see button.ts).
+    '[attr.aria-label]': 'null',
+  },
 })
 export class AndesBreadcrumb {
   readonly ariaLabel = input('breadcrumb', { alias: 'aria-label' });
@@ -141,6 +166,13 @@ export class AndesBreadcrumbSeparator {
       this.renderer.setAttribute(svg, 'stroke-width', '2');
       this.renderer.setAttribute(svg, 'stroke-linecap', 'round');
       this.renderer.setAttribute(svg, 'stroke-linejoin', 'round');
+      // Explicit size, not left to `.andes-breadcrumb-separator__icon` in breadcrumb.css alone:
+      // an unsized `<svg>` is a replaced element that falls back to the browser's default
+      // replaced-element size (~300x150px) the instant it renders, before any stylesheet has
+      // necessarily been applied - setting it here guarantees the icon is never briefly (or, if
+      // the stylesheet somehow failed to load, permanently) oversized.
+      this.renderer.setAttribute(svg, 'width', '14');
+      this.renderer.setAttribute(svg, 'height', '14');
 
       const path = this.renderer.createElement('path', SVG_NS);
       this.renderer.setAttribute(path, 'd', 'm9 18 6-6-6-6');
@@ -179,6 +211,8 @@ export class AndesBreadcrumbSeparator {
   `,
   styleUrl: './breadcrumb.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // See the file-level comment above `AndesBreadcrumb` for why breadcrumb.css needs this.
+  encapsulation: ViewEncapsulation.None,
   host: {
     class: 'andes-breadcrumb-ellipsis',
     role: 'presentation',
