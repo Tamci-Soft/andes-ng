@@ -7,6 +7,7 @@
   border: 1px solid var(--andes-color-input);
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
   transition:
     border-color 0.15s ease,
     outline-color 0.15s ease;
@@ -52,7 +53,7 @@
   border: none;
   background-color: transparent;
   color: inherit;
-  font-family: var(--andes-font-family), sans-serif;
+  font-family: inherit;
 }
 
 /* Suppress the browser's own default focus ring on the native input - and *only* there.
