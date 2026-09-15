@@ -1,0 +1,36 @@
+.andes-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-form-label {
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-foreground);
+}
+
+.andes-form-description {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-form-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--andes-color-danger);
+}
+
+/* Andes-ng's own controls (AndesInput, AndesCheckbox, ...) already draw their own
+   invalid-state border/ring off their `aria-invalid` input - this only adds a matching
+   tint for plain native controls placed directly inside the field, which have no such
+   styling of their own. */
+.andes-form-field--invalid :where(input, select, textarea) {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-form-field--invalid :where(input, select, textarea):focus-visible {
+  outline-color: var(--andes-color-danger);
+}
