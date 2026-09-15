@@ -63,3 +63,12 @@ export { AndesAvatarImage } from './lib/avatar/avatar-image';
 export { AndesAvatarFallback } from './lib/avatar/avatar-fallback';
 export { AndesAvatarGroup } from './lib/avatar/avatar-group';
 export { AndesAvatarGroupCount } from './lib/avatar/avatar-group-count';
+
+export {
+  AndesTooltip,
+  ANDES_TOOLTIP_DEFAULT_CLOSE_DELAY,
+  ANDES_TOOLTIP_DEFAULT_INSTANT_REOPEN_WINDOW,
+  ANDES_TOOLTIP_DEFAULT_OPEN_DELAY,
+} from './lib/tooltip/tooltip';
+export { AndesTooltipContent } from './lib/tooltip/tooltip-content';
+export { AndesTooltipTrigger } from './lib/tooltip/tooltip-trigger';
