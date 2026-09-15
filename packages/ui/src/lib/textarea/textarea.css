@@ -14,6 +14,10 @@
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
+  /* Explicit so `getComputedStyle(...).lineHeight` resolves to a real pixel value for the
+     auto-size row math instead of `normal` - unitless so it still scales correctly with
+     each size variant's own font-size below. */
+  line-height: 1.5;
   padding: var(--andes-space-2) var(--andes-space-3);
   transition:
     border-color 0.15s ease,
@@ -49,20 +53,26 @@
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
-/* Sizes - control font-size and padding; height is otherwise driven by `rows` (native) or
-   the auto-size measurement, never a fixed size-based height. */
+/* Sizes - control font-size, line-height and padding; height is otherwise driven by
+   `rows` (native) or the auto-size measurement, never a fixed size-based height.
+   Line-height is kept at each size's own font-size * 1.5 so the auto-size row math
+   (which reads the computed line-height) stays proportional per size instead of
+   collapsing onto a single shared value. */
 
 .andes-textarea--sm {
   font-size: 0.875rem;
+  line-height: 1.3125rem;
   padding: var(--andes-space-1) var(--andes-space-2);
 }
 
 .andes-textarea--md {
   font-size: 1rem;
+  line-height: 1.5rem;
 }
 
 .andes-textarea--lg {
   font-size: 1.125rem;
+  line-height: 1.6875rem;
   padding: var(--andes-space-3) var(--andes-space-4);
 }
 

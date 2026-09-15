@@ -18,6 +18,7 @@ function setScrollHeight(textarea: HTMLTextAreaElement, value: number): void {
 @Component({
   imports: [AndesTextarea],
   template: `<andes-textarea
+    [id]="id()"
     [size]="size()"
     [disabled]="disabled()"
     [readonly]="readonly()"
@@ -33,6 +34,7 @@ function setScrollHeight(textarea: HTMLTextAreaElement, value: number): void {
   />`,
 })
 class HostComponent {
+  readonly id = signal<string | undefined>(undefined);
   readonly size = signal<AndesTextareaSize>('md');
   readonly disabled = signal(false);
   readonly readonly = signal(false);
@@ -62,6 +64,25 @@ describe('AndesTextarea', () => {
 
     expect(textarea.tagName).toBe('TEXTAREA');
     expect(textarea.getAttribute('data-slot')).toBe('textarea');
+  });
+
+  it('does not render an id attribute when none is provided, instead of the string "undefined"', () => {
+    const { textarea } = createHost();
+
+    // `[id]="id()"` is a DOM property binding: setting the native `id` property to
+    // `undefined` string-coerces to the literal "undefined". `[attr.id]` must be used
+    // instead so an unset id omits the attribute entirely (and stays a valid, unique
+    // element when nothing was provided).
+    expect(textarea.getAttribute('id')).toBeNull();
+    expect(textarea.id).toBe('');
+  });
+
+  it('renders the real id when one is provided', () => {
+    const { fixture, textarea } = createHost();
+    fixture.componentInstance.id.set('comments');
+    fixture.detectChanges();
+
+    expect(textarea.getAttribute('id')).toBe('comments');
   });
 
   it('defaults to the medium size and vertical resize', () => {
@@ -227,6 +248,12 @@ describe('AndesTextarea', () => {
   });
 
   describe('auto-size', () => {
+    // The `md` size declares `line-height: 1.5rem` (see textarea.css), which is what
+    // `getComputedStyle(...).lineHeight` resolves to for these host fixtures (default
+    // size 'md'). `parseFloat('1.5rem')` reads as `1.5`, so that - not the old hard-coded
+    // `20` fallback - is the real per-row multiplier the row math below is built on.
+    const MD_LINE_HEIGHT = 1.5;
+
     it('grows to fit content up to autoSizeMaxRows', () => {
       const { fixture, textarea } = createHost();
       fixture.componentInstance.autoSize.set(true);
@@ -239,8 +266,8 @@ describe('AndesTextarea', () => {
       textarea.dispatchEvent(new Event('input'));
       fixture.detectChanges();
 
-      // 4 rows at the jsdom fallback line-height (20px) = 80px ceiling.
-      expect(textarea.style.height).toBe('80px');
+      // 4 rows at the real computed line-height (1.5) = 6px ceiling.
+      expect(textarea.style.height).toBe(`${4 * MD_LINE_HEIGHT}px`);
       expect(textarea.style.overflowY).toBe('auto');
     });
 
@@ -250,13 +277,15 @@ describe('AndesTextarea', () => {
       fixture.componentInstance.autoSizeMinRows.set(3);
       fixture.detectChanges();
 
-      setScrollHeight(textarea, 10);
+      // The floor (3 rows * 1.5 = 4.5px) is now small enough that it must be exercised
+      // with a scrollHeight below it, or the content height would dominate instead.
+      setScrollHeight(textarea, 0);
       textarea.value = 'x';
       textarea.dispatchEvent(new Event('input'));
       fixture.detectChanges();
 
-      // 3 rows at the jsdom fallback line-height (20px) = 60px floor.
-      expect(textarea.style.height).toBe('60px');
+      // 3 rows at the real computed line-height (1.5) = 4.5px floor.
+      expect(textarea.style.height).toBe(`${3 * MD_LINE_HEIGHT}px`);
       expect(textarea.style.overflowY).toBe('hidden');
     });
 
@@ -269,7 +298,8 @@ describe('AndesTextarea', () => {
       setScrollHeight(textarea, 0);
       fixture.detectChanges();
 
-      expect(textarea.style.height).toBe('100px');
+      // 5 rows at the real computed line-height (1.5) = 7.5px floor.
+      expect(textarea.style.height).toBe(`${5 * MD_LINE_HEIGHT}px`);
     });
 
     it('does not touch the inline height when autoSize is disabled', () => {
@@ -277,6 +307,36 @@ describe('AndesTextarea', () => {
       fixture.detectChanges();
 
       expect(textarea.style.height).toBe('');
+    });
+
+    function heightForSize(size: AndesTextareaSize, rows: number): string {
+      const { fixture, textarea } = createHost();
+      // Apply the size on its own change-detection pass first, so the `--sm`/`--md`/`--lg`
+      // class (and the line-height it carries) is fully committed to the DOM before
+      // `autoSize` flips on and the row-height measurement effect reads it.
+      fixture.componentInstance.size.set(size);
+      fixture.detectChanges();
+      fixture.componentInstance.rows.set(rows);
+      fixture.componentInstance.autoSize.set(true);
+      fixture.detectChanges();
+      setScrollHeight(textarea, 0);
+      textarea.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      return textarea.style.height;
+    }
+
+    it('produces different, proportional heights per size instead of converging on one fallback number', () => {
+      // Each size declares its own line-height (sm: 1.3125rem, md: 1.5rem, lg: 1.6875rem -
+      // each size's font-size * 1.5), so the same `rows` count must yield genuinely
+      // different computed heights per size rather than all landing on the same value.
+      const smHeight = heightForSize('sm', 4);
+      const mdHeight = heightForSize('md', 4);
+      const lgHeight = heightForSize('lg', 4);
+
+      expect(smHeight).toBe(`${4 * 1.3125}px`);
+      expect(mdHeight).toBe(`${4 * 1.5}px`);
+      expect(lgHeight).toBe(`${4 * 1.6875}px`);
+      expect(new Set([smHeight, mdHeight, lgHeight]).size).toBe(3);
     });
   });
 
