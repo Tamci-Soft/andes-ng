@@ -5,6 +5,7 @@
   box-sizing: border-box;
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
   box-shadow: 0 10px 40px rgb(0 0 0 / 20%);
   outline: none;
   overflow-y: auto;
