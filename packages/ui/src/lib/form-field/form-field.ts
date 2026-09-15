@@ -5,6 +5,7 @@ import {
   contentChild,
   forwardRef,
   input,
+  ViewEncapsulation,
 } from '@angular/core';
 
 import {
@@ -34,10 +35,11 @@ let nextFieldId = 0;
  * - `<andes-form-error>` - optional; only rendered once the control is
  *   `invalid && (touched || dirty)`.
  *
- * `id`/`for`/`aria-describedby`/`aria-invalid` are all derived here and picked up by the
- * nested parts through DI (see `form-field-tokens.ts` for why that's token-based rather
- * than a direct class reference) - no id needs to be hand-authored or coordinated by hand
- * for the common case of a native form control.
+ * `id`/`for`/`aria-describedby`/`aria-invalid`/`aria-required` are all derived here (or on
+ * `AndesFormControl`) and picked up by the nested parts through DI (see
+ * `form-field-tokens.ts` for why that's token-based rather than a direct class reference) -
+ * no id needs to be hand-authored or coordinated by hand for the common case of a native
+ * form control. See `AndesFormControl`'s class comment for the wrapper-component caveat.
  */
 @Component({
   selector: 'andes-form-field',
@@ -46,6 +48,10 @@ let nextFieldId = 0;
   templateUrl: './form-field.html',
   styleUrl: './form-field.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // form-field.css has to reach three sibling components' templates and the consumer's own
+  // projected control, none of which carry this component's emulated-encapsulation scope
+  // attribute - see the header comment in form-field.css for the full rationale.
+  encapsulation: ViewEncapsulation.None,
   providers: [
     {
       provide: ANDES_FORM_FIELD,
