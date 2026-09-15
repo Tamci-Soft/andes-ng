@@ -7,47 +7,43 @@
 >
   @if (showIcon()) {
   <span class="andes-alert__icon" aria-hidden="true">
-    @switch (severity()) { @case ('success') {
-    <svg viewBox="0 0 20 20" fill="currentColor">
+    <!-- Stroked (outline) glyphs rather than solid/filled discs: at the 1rem size this layout
+         calls for, a filled disc with a knocked-out mark collapses into a featureless colored
+         dot, and the severity stops being readable from the glyph itself. An outline keeps the
+         check / i / ! / x legible at 16px. All four share one 24-unit grid, one stroke width
+         and one optical size so they read as a set. -->
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      @switch (severity()) { @case ('success') {
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.25 12.25 2.5 2.5 5-5.5" />
+      } @case ('warning') {
       <path
-        fill-rule="evenodd"
-        clip-rule="evenodd"
-        d="M10 18a8 8 0 100-16 8 8 0 000 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.68-1.68a.75.75 0 1 0-1.06 1.061l2.25 2.25a.75.75 0 0 0 1.137-.089l4-5.5Z"
+        d="M10.3 4.6a2 2 0 0 1 3.4 0l7.3 12.6a2 2 0 0 1-1.7 3H4.7a2 2 0 0 1-1.7-3Z"
       />
+      <path d="M12 10v3.5" />
+      <path d="M12 16.75h.01" />
+      } @case ('danger') {
+      <circle cx="12" cy="12" r="9" />
+      <path d="m14.5 9.5-5 5" />
+      <path d="m9.5 9.5 5 5" />
+      } @default {
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11.25v5" />
+      <path d="M12 7.75h.01" />
+      } }
     </svg>
-    } @case ('warning') {
-    <svg viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fill-rule="evenodd"
-        clip-rule="evenodd"
-        d="M9.401 2.222a1.75 1.75 0 0 1 1.198 0c.36.128.629.376.83.63.197.25.392.575.615.95l6.383 10.788c.223.377.418.706.55.984.133.281.257.62.207.999a1.75 1.75 0 0 1-.633 1.13c-.3.245-.65.324-.957.358-.303.033-.68.033-1.12.033H3.526c-.44 0-.816 0-1.12-.033a1.917 1.917 0 0 1-.957-.358 1.75 1.75 0 0 1-.633-1.13c-.05-.379.074-.718.207-.999.132-.278.327-.607.55-.984L8.156 3.802c.223-.375.418-.7.615-.95.2-.254.47-.502.83-.63ZM10 7a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 7Zm0 8a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Z"
-      />
-    </svg>
-    } @case ('danger') {
-    <svg viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fill-rule="evenodd"
-        clip-rule="evenodd"
-        d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z"
-      />
-    </svg>
-    } @default {
-    <svg viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fill-rule="evenodd"
-        clip-rule="evenodd"
-        d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM9 9a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2H10v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1Zm1-3.75a1.125 1.125 0 1 0 0 2.25 1.125 1.125 0 0 0 0-2.25Z"
-      />
-    </svg>
-    } }
   </span>
   }
 
-  <div class="andes-alert__body">
-    <div class="andes-alert__title"><ng-content select="[slot=title]" /></div>
-    <div class="andes-alert__description"><ng-content /></div>
-  </div>
-
+  <div class="andes-alert__title"><ng-content select="[slot=title]" /></div>
+  <div class="andes-alert__description"><ng-content /></div>
   <div class="andes-alert__action"><ng-content select="[slot=action]" /></div>
 
   @if (closable()) {
@@ -57,10 +53,16 @@
     [attr.aria-label]="closeLabel()"
     (click)="dismiss()"
   >
-    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path
-        d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-      />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <path d="m6.5 6.5 11 11" />
+      <path d="m17.5 6.5-11 11" />
     </svg>
   </button>
   }
