@@ -1,0 +1,110 @@
+<div class="andes-calendar">
+  <div class="andes-calendar__header">
+    <button
+      type="button"
+      class="andes-calendar__nav"
+      data-slot="calendar-previous"
+      [attr.aria-label]="previousMonthLabel()"
+      [disabled]="!canGoPrevious()"
+      (click)="goToPreviousMonth()"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M15 18l-6-6 6-6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+
+    <!-- Announced on change so a keyboard user paging months hears where they
+         landed; the grid's own aria-label carries the same month for context. -->
+    <div
+      class="andes-calendar__caption"
+      data-slot="calendar-caption"
+      aria-live="polite"
+    >
+      {{ monthCaption() }}
+    </div>
+
+    <button
+      type="button"
+      class="andes-calendar__nav"
+      data-slot="calendar-next"
+      [attr.aria-label]="nextMonthLabel()"
+      [disabled]="!canGoNext()"
+      (click)="goToNextMonth()"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M9 6l6 6-6 6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Keys are handled on the day buttons rather than here: they are the elements
+       that actually hold focus, so a listener on this non-focusable container
+       would only ever see events bubbling up from them anyway. -->
+  <div
+    class="andes-calendar__grid"
+    data-slot="calendar-grid"
+    role="grid"
+    [attr.aria-label]="gridLabel()"
+  >
+    <div class="andes-calendar__row andes-calendar__row--weekdays" role="row">
+      @for (weekday of weekdays(); track weekday.key) {
+      <!-- The abbreviation stays visible to assistive tech rather than being
+           aria-hidden behind the aria-label: a column header with no text content
+           trips axe's `empty-table-header`. `aria-label` still upgrades the
+           announced name from "Sun" to "Sunday". -->
+      <div
+        class="andes-calendar__weekday"
+        role="columnheader"
+        [attr.aria-label]="weekday.long"
+      >
+        {{ weekday.short }}
+      </div>
+      }
+    </div>
+
+    @for (week of weeks(); track week.key) {
+    <div class="andes-calendar__row" role="row">
+      @for (day of week.days; track day.key) { @if (day.outside &&
+      !showOutsideDays()) {
+      <!-- Keeps the row at seven cells so the grid's column geometry, and
+                 therefore vertical arrow navigation, stays intact. -->
+      <div class="andes-calendar__day-placeholder" role="gridcell"></div>
+      } @else {
+      <button
+        type="button"
+        role="gridcell"
+        [class]="day.classes"
+        [attr.data-date]="day.key"
+        [attr.data-outside]="day.outside || null"
+        [attr.data-today]="day.isToday || null"
+        [attr.data-selected]="day.selected || null"
+        [attr.data-in-range]="day.inRange || null"
+        [attr.tabindex]="day.active ? 0 : -1"
+        [attr.aria-label]="day.label"
+        [attr.aria-selected]="day.selected"
+        [attr.aria-disabled]="day.disabled || null"
+        [attr.aria-current]="day.isToday ? 'date' : null"
+        (click)="selectDay(day)"
+        (keydown)="onDayKeydown($event, day)"
+      >
+        <span aria-hidden="true">{{ day.dayOfMonth }}</span>
+      </button>
+      } }
+    </div>
+    }
+  </div>
+</div>

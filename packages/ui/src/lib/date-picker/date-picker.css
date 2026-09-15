@@ -1,0 +1,96 @@
+/* The panel lives in the CDK overlay container, not inside this component's DOM,
+   so its styles have to escape view encapsulation - hence the `::ng-deep` block at
+   the bottom. Everything above styles the trigger, which is a normal child. */
+
+:host {
+  display: inline-block;
+}
+
+.andes-date-picker {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Styled to read as a form field even though it is a button: same height, border,
+   radius and typography as a text input, with the value left-aligned. */
+.andes-date-picker__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
+  width: 100%;
+  min-width: 12rem;
+  height: 2.5rem;
+  padding-inline: var(--andes-space-3);
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 1rem;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.andes-date-picker__value {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Mirrors an input's ::placeholder treatment, since this is a field visually. */
+.andes-date-picker__value--placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-date-picker__trigger:hover:not(:disabled) {
+  border-color: var(--andes-color-primary);
+}
+
+.andes-date-picker__trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+  border-color: var(--andes-color-primary);
+}
+
+.andes-date-picker__trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-date-picker__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-date-picker__icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+:host([data-disabled]) .andes-date-picker__icon {
+  opacity: 0.6;
+}
+
+/* Panel, rendered into the overlay container. */
+
+::ng-deep .andes-date-picker__panel {
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%);
+}
+
+::ng-deep .andes-date-picker__panel:focus {
+  outline: none;
+}
