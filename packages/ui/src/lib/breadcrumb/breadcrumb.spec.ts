@@ -69,6 +69,48 @@ describe('Breadcrumb', () => {
     expect(nav.getAttribute('aria-label')).toBe('Ruta de navegación');
   });
 
+  it('renders aria-label only on the <nav>, never duplicated onto the <andes-breadcrumb> host', () => {
+    @Component({
+      imports: [AndesBreadcrumb],
+      template: `<andes-breadcrumb aria-label="Ruta de navegación" />`,
+    })
+    class LocalizedHost {}
+
+    const fixture = TestBed.createComponent(LocalizedHost);
+    fixture.detectChanges();
+    const host = fixture.nativeElement.querySelector(
+      'andes-breadcrumb',
+    ) as HTMLElement;
+    const nav = host.querySelector('nav') as HTMLElement;
+
+    expect(nav.getAttribute('aria-label')).toBe('Ruta de navegación');
+    // Angular writes a static/bound attribute matching an input's alias to both the component's
+    // own template AND its host element unless the host metadata explicitly nulls it out - this
+    // asserts that nulling actually took effect and the host isn't a second element in the a11y
+    // tree with the same accessible name as the nav landmark it wraps.
+    expect(host.hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('reaches the <nav> when aria-label is bound dynamically (as the Storybook control does)', () => {
+    @Component({
+      imports: [AndesBreadcrumb],
+      template: `<andes-breadcrumb [aria-label]="label" />`,
+    })
+    class DynamicHost {
+      label = 'Ruta dinámica';
+    }
+
+    const fixture = TestBed.createComponent(DynamicHost);
+    fixture.detectChanges();
+    const host = fixture.nativeElement.querySelector(
+      'andes-breadcrumb',
+    ) as HTMLElement;
+    const nav = host.querySelector('nav') as HTMLElement;
+
+    expect(nav.getAttribute('aria-label')).toBe('Ruta dinámica');
+    expect(host.hasAttribute('aria-label')).toBe(false);
+  });
+
   it('renders the ol/li structure with no intervening wrapper elements', () => {
     const { nav } = createTrail();
     const list = nav.querySelector('ol') as HTMLOListElement;
@@ -213,5 +255,81 @@ describe('Breadcrumb', () => {
     expect(
       nav.querySelector('.andes-breadcrumb-page')?.textContent?.trim(),
     ).toBe('Current');
+  });
+
+  // Regression coverage for breadcrumb.css being dead CSS: AndesBreadcrumbList/Item/Link/Page/
+  // Separator are directives applied to elements the consumer authors and Angular projects in
+  // via <ng-content>, so under the default (Emulated) view encapsulation those elements never
+  // carry AndesBreadcrumb's own scope attribute and its stylesheet's selectors never match them.
+  // A test asserting `list.classList.toContain('andes-breadcrumb-list')` (as earlier tests in
+  // this file do, for structural coverage) would stay green even if every rule in breadcrumb.css
+  // were dead, because it never asks the browser/jsdom CSS engine to actually resolve a
+  // selector - only real computed styles, read off the actually-compiled component, can catch
+  // that regression.
+  describe('applies real layout/color styles to the projected list (not dead CSS)', () => {
+    function renderStyledTrail() {
+      const fixture = TestBed.createComponent(TrailHostComponent);
+      fixture.detectChanges();
+      const nav = fixture.nativeElement.querySelector('nav') as HTMLElement;
+      const list = nav.querySelector('ol') as HTMLOListElement;
+      const item = nav.querySelector('li') as HTMLLIElement;
+      const link = nav.querySelector('a') as HTMLAnchorElement;
+      const separator = nav.querySelector(
+        '.andes-breadcrumb-separator',
+      ) as HTMLElement;
+      return { fixture, list, item, link, separator };
+    }
+
+    it('lays the <ol> out as a wrapping, centered flex row with a real gap', () => {
+      const { list } = renderStyledTrail();
+      const style = getComputedStyle(list);
+
+      expect(style.display).toBe('flex');
+      expect(style.flexWrap).toBe('wrap');
+      expect(style.alignItems).toBe('center');
+      // Not asserting the literal --andes-space-2 value: jsdom's CSSOM doesn't resolve custom
+      // properties, but a non-empty/non-"normal" gap still proves the rule (and not the
+      // display: block browser default for <ol>, which has no gap at all) actually matched.
+      expect(style.gap).not.toBe('');
+      expect(style.gap).not.toBe('normal');
+      expect(style.margin).toBe('0px');
+      expect(style.getPropertyValue('list-style')).toBe('none');
+    });
+
+    it('lays each <li> item out as a centered inline-flex group', () => {
+      const { item } = renderStyledTrail();
+      const style = getComputedStyle(item);
+
+      expect(style.display).toBe('inline-flex');
+      expect(style.alignItems).toBe('center');
+    });
+
+    it('styles the crumb <a> as a plain, underline-free link (not the browser default blue)', () => {
+      const { link } = renderStyledTrail();
+      const style = getComputedStyle(link);
+
+      expect(style.getPropertyValue('text-decoration')).toBe('none');
+      // jsdom's UA stylesheet gives an unstyled <a> "rgb(0, 0, 238)" - proving the color is no
+      // longer that default (it now inherits --andes-color-muted-foreground from the list) is
+      // enough to show `.andes-breadcrumb-link` actually matched, without hard-coding a
+      // resolved token value jsdom won't compute anyway.
+      expect(style.color).not.toBe('rgb(0, 0, 238)');
+    });
+
+    it('lays the separator out inline and sizes its default chevron icon explicitly', async () => {
+      const { fixture, separator } = renderStyledTrail();
+      await fixture.whenStable();
+      const style = getComputedStyle(separator);
+      const svg = separator.querySelector('svg') as SVGElement;
+
+      expect(style.display).toBe('inline-flex');
+      expect(style.alignItems).toBe('center');
+      // The default chevron is inserted imperatively via Renderer2 (see breadcrumb.ts) using the
+      // consumer's own renderer, so it can never be reached by breadcrumb.css's scoped selectors
+      // either - it must carry an explicit size so it can't fall back to a replaced element's
+      // ~300x150px browser default.
+      expect(svg.getAttribute('width')).toBe('14');
+      expect(svg.getAttribute('height')).toBe('14');
+    });
   });
 });

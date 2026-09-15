@@ -3,7 +3,17 @@
    of. `packages/tokens/src/theme.css` has no font-size scale yet (only --andes-font-family and
    --andes-font-weight-medium - see docs/research/components/breadcrumb.md #6), so sizes below
    are hardcoded rem values consistent with AndesButton's own xs size (button.css) rather than a
-   token that doesn't exist. */
+   token that doesn't exist.
+
+   Plain class selectors, not `:host(...)`: most of these classes live on `@Directive` hosts
+   (`AndesBreadcrumbList`/`Item`/`Link`/`Page`/`Separator`) applied to elements the CONSUMER
+   authored and Angular projects in via `<ng-content>` - under emulated view encapsulation those
+   elements never carry `AndesBreadcrumb`'s own scope attribute (only the two `@Component`s that
+   include this file via `styleUrl`, `AndesBreadcrumb` and `AndesBreadcrumbEllipsis`, do), and
+   `:host()` only ever matches an actual component host element, never a directive's. Both of
+   those components opt out of scoping with `encapsulation: ViewEncapsulation.None` (see
+   breadcrumb.ts) specifically so this file's plain class selectors match by class name
+   wherever they're used, exactly like a hand-authored global stylesheet would. */
 
 .andes-breadcrumb {
   font-family: var(--andes-font-family), sans-serif;
@@ -74,10 +84,6 @@
   height: 1rem;
 }
 
-/* Visually hidden but not display:none, so the node still exists in layout - standard sr-only
-   technique. Kept even though the ellipsis host is itself aria-hidden (see breadcrumb.ts) so the
-   text is ready to become real accessible content if a future composition moves aria-hidden off
-   the outer element. */
 .andes-breadcrumb-ellipsis__sr-only {
   position: absolute;
   width: 1px;
