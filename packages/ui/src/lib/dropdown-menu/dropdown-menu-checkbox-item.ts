@@ -21,6 +21,10 @@ import { AndesDropdownMenu } from './dropdown-menu';
  * `encapsulation: ViewEncapsulation.None`: its BEM classes live only in `host: {
  * class: ... }`, which emulated encapsulation's own-component-only scoping can never
  * match.
+ *
+ * The checkmark is inline SVG rather than a `✓` text glyph so the checked state does
+ * not depend on the consuming app's `--andes-font-family` happening to contain that
+ * codepoint - see the comment on `.andes-dropdown-menu__indicator svg`.
  */
 @Component({
   selector: 'andes-dropdown-menu-checkbox-item',
@@ -33,7 +37,16 @@ import { AndesDropdownMenu } from './dropdown-menu';
   template: `
     <span class="andes-dropdown-menu__indicator" aria-hidden="true">
       @if (checked()) {
-        ✓
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
       }
     </span>
     <ng-content />

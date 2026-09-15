@@ -94,6 +94,7 @@ function pressKey(target: EventTarget, key: string): KeyboardEvent {
       </button>
       <andes-dropdown-menu-content>
         <andes-dropdown-menu-item id="edit" (activated)="edited.set(true)">
+          <svg id="editIcon" slot="icon-start" viewBox="0 0 24 24"></svg>
           Edit
         </andes-dropdown-menu-item>
         <andes-dropdown-menu-item
@@ -420,6 +421,65 @@ describe('AndesDropdownMenu', () => {
       expect(style.height).toBe('1px');
       expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
       expect(style.backgroundColor).not.toBe('');
+    });
+
+    // The checked state of a checkbox/radio item is the one part of this component
+    // that is *only* visual - `aria-checked` already carries it for assistive tech,
+    // so an indicator that is in the DOM but renders as a zero-size or `display:
+    // none` box fails silently for sighted users while every structural assertion
+    // above it stays green.
+    it('renders a real, laid-out check mark only while a checkbox item is checked', async () => {
+      const { fixture, host, trigger, item } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      const indicator = () =>
+        item('showHidden').querySelector(
+          '.andes-dropdown-menu__indicator',
+        ) as HTMLElement;
+
+      expect(indicator().querySelector('svg')).toBeNull();
+
+      host.showHidden.set(true);
+      fixture.detectChanges();
+
+      expect(indicator().querySelector('svg')).toBeTruthy();
+      // `inline` is what an unstyled `<span>` computes to, so proving it is
+      // `inline-flex` proves the indicator rule actually matched.
+      expect(getComputedStyle(indicator()).display).toBe('inline-flex');
+      expect(getComputedStyle(indicator()).width).not.toBe('auto');
+      expect(getComputedStyle(indicator()).height).not.toBe('auto');
+    });
+
+    it('renders a real, laid-out dot only on the selected radio item', async () => {
+      const { fixture, trigger, item } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      const dot = (id: string) =>
+        item(id).querySelector('.andes-dropdown-menu__indicator svg');
+
+      expect(dot('sortName')).toBeNull();
+      expect(dot('sortDate')).toBeNull();
+
+      item('sortName').click();
+      fixture.detectChanges();
+
+      expect(dot('sortName')).toBeTruthy();
+      expect(dot('sortDate')).toBeNull();
+    });
+
+    it('sizes an icon projected into an item instead of letting it render at its intrinsic size', async () => {
+      const { fixture, trigger } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      const icon = document.querySelector('#editIcon') as SVGElement;
+      const style = getComputedStyle(icon);
+
+      expect(style.width).toBe('1em');
+      expect(style.height).toBe('1em');
+      expect(style.flexShrink).toBe('0');
     });
   });
 

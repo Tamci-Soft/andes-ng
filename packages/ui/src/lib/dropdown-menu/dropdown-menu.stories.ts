@@ -1,4 +1,10 @@
-import { NgIcon } from '@ng-icons/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideChevronDown,
+  lucideCopy,
+  lucidePencil,
+  lucideTrash2,
+} from '@ng-icons/lucide';
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { AndesButton } from '../button/button';
@@ -61,6 +67,20 @@ export const WithIconsAndShortcuts: Story = {
         AndesDropdownMenuItem,
         AndesDropdownMenuSeparator,
         AndesDropdownMenuShortcut,
+      ],
+      // `NgIcon` renders nothing (and only warns to the console) for a name that was
+      // never registered, so a story using icons the global `provideIcons` in
+      // `.storybook/preview.ts` does not list silently loses them. Registering the
+      // four this story needs here keeps that dependency next to the markup that has
+      // it - `provideIcons` is `multi: true`, so this adds to the global set rather
+      // than replacing it.
+      providers: [
+        provideIcons({
+          lucideChevronDown,
+          lucideCopy,
+          lucidePencil,
+          lucideTrash2,
+        }),
       ],
     },
     template: `
