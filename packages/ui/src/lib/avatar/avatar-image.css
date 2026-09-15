@@ -6,6 +6,14 @@ img {
   display: block;
   width: 100%;
   height: 100%;
+  /* Clip to the root avatar's shape rather than relying on the root's own
+     `overflow: hidden`: a projected `andes-avatar-badge` makes the root drop
+     that (it would slice the corner dot in half), and without this the photo
+     would then render as a bare square inside a circular frame. The custom
+     property is published by avatar.css and inherits through this host's
+     `display: contents`; the `0` fallback covers a stand-alone
+     AndesAvatarImage used outside any AndesAvatar. */
+  border-radius: var(--andes-avatar-radius, 0);
   object-fit: cover;
 }
 

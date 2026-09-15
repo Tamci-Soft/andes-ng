@@ -1,1 +1,30 @@
-{{ label() }}
+@if (interactive()) {
+<!--
+    A real <button>, not a tabindex'd host: this is the WAI-ARIA tooltip
+    pattern, whose trigger has to be reachable by keyboard and expose a
+    button role and an accessible name ("+N", its own text) for the panel to
+    hang off via aria-describedby. Hover comes from the host (so the pointer
+    can cross the chip's ring without flicker); focus/blur and Escape come
+    from the button itself. A tap counts as a focus, so touch users get the
+    panel too, and tapping elsewhere blurs and dismisses it.
+  -->
+<button
+  type="button"
+  class="andes-avatar-group-count__trigger"
+  [attr.aria-describedby]="open() ? panelId : null"
+  (focus)="onOpen()"
+  (blur)="onClose()"
+  (keydown.escape)="onClose()"
+>
+  {{ label() }}
+</button>
+
+@if (open()) {
+<div [id]="panelId" role="tooltip" class="andes-avatar-group-count__panel">
+  @if (overflowLabel()) {
+  <p class="andes-avatar-group-count__panel-label">{{ overflowLabel() }}</p>
+  } @for (name of hiddenNames(); track name) {
+  <span class="andes-avatar-group-count__name">{{ name }}</span>
+  }
+</div>
+} } @else { {{ label() }} }
