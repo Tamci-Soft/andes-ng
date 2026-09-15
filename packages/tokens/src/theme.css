@@ -45,6 +45,14 @@
   --andes-color-input: #d1d5db;
   --andes-color-focus-ring: #2563eb;
 
+  /* Fixed regardless of light/dark - ghost mode sits on arbitrary colored/dark backdrops,
+     not the page's own background, so it doesn't follow the page theme. Brighter than the
+     solid-button shades on purpose: those are tuned for legibility as a fill color, not as
+     standalone text/border on a dark or colored backdrop. */
+  --andes-color-ghost: #ffffff;
+  --andes-color-primary-ghost: #60a5fa;
+  --andes-color-danger-ghost: #fca5a5;
+
   --andes-font-family: system-ui, sans-serif;
   --andes-font-weight-medium: 500;
 
