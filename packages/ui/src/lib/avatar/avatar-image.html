@@ -1,0 +1,9 @@
+<img
+  [src]="src()"
+  [attr.alt]="alt()"
+  [attr.referrerpolicy]="referrerPolicy()"
+  [attr.crossorigin]="crossOrigin()"
+  [hidden]="state.status() !== 'loaded'"
+  (load)="onLoad()"
+  (error)="onError()"
+/>

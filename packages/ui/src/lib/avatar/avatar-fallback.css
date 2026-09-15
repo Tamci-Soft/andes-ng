@@ -1,0 +1,17 @@
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  text-transform: uppercase;
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+::ng-deep svg {
+  width: 1em;
+  height: 1em;
+}
