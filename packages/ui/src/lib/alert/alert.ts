@@ -58,8 +58,17 @@ export class AndesAlert {
     () => this.role() ?? (this.severity() === 'danger' ? 'alert' : 'status'),
   );
 
+  /**
+   * `no-icon` / `closable` are layout facts the stylesheet can't otherwise derive: the grid
+   * has to collapse its icon gutter when no glyph is rendered, and has to reserve inline-end
+   * room for the out-of-flow close button. Driving both from a class rather than `:has()`
+   * keeps the two layouts assertable from a unit test.
+   */
   protected readonly classes = computed(() =>
-    clsx('andes-alert', `andes-alert--${this.severity()}`),
+    clsx('andes-alert', `andes-alert--${this.severity()}`, {
+      'andes-alert--no-icon': !this.showIcon(),
+      'andes-alert--closable': this.closable(),
+    }),
   );
 
   protected dismiss(): void {
