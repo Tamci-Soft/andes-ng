@@ -1,0 +1,52 @@
+:host {
+  display: block;
+}
+
+.andes-skeleton {
+  display: block;
+  background-color: var(--andes-color-muted);
+  animation: andes-skeleton-pulse 2s ease-in-out infinite;
+}
+
+.andes-skeleton--static {
+  animation: none;
+}
+
+/* Users who ask the OS for less motion get a static placeholder instead of a pulsing one -
+   the loading affordance (the shape itself) still shows, only the animation is dropped. */
+@media (prefers-reduced-motion: reduce) {
+  .andes-skeleton {
+    animation: none;
+  }
+}
+
+@keyframes andes-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Shape variants - sane default dimensions, overridable per-instance via the width/height
+   inputs (applied as inline styles, so they always win over these class defaults). */
+
+.andes-skeleton--text {
+  width: 100%;
+  height: 1em;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-skeleton--circular {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-skeleton--rectangular {
+  width: 100%;
+  height: 100px;
+  border-radius: var(--andes-radius-md);
+}
