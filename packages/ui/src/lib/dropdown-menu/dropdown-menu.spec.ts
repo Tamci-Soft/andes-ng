@@ -53,6 +53,7 @@ const KEY_CODES: Record<string, number> = {
   ArrowDown: 40,
   Home: 36,
   End: 35,
+  Tab: 9,
   Enter: 13,
   Escape: 27,
   ' ': 32,
@@ -357,6 +358,95 @@ describe('AndesDropdownMenu', () => {
       fixture.detectChanges();
       expect(item('sortName').getAttribute('aria-checked')).toBe('false');
       expect(item('sortDate').getAttribute('aria-checked')).toBe('true');
+    });
+  });
+
+  // Regression coverage for dropdown-menu.css being dead CSS: every sub-component puts
+  // its BEM class only in `host: { class: ... }`, which Angular's default (Emulated)
+  // view encapsulation can never match (see the comment on `AndesDropdownMenuContent`).
+  // A test asserting `menu()!.classList.toContain('andes-dropdown-menu__content')` (as
+  // other tests in this file do, for structural coverage) would stay green even if
+  // every rule in dropdown-menu.css were dead, because it never asks the browser/jsdom
+  // CSS engine to actually resolve a selector - only real computed styles, read off the
+  // actually-compiled component, can catch that regression.
+  describe('applies real layout/color styles to the open panel (not dead CSS)', () => {
+    it('gives the content panel a real background, border-radius, padding and shadow', async () => {
+      const { fixture, trigger, menu } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      const style = getComputedStyle(menu()!);
+
+      expect(style.display).toBe('flex');
+      expect(style.flexDirection).toBe('column');
+      // jsdom's UA default for an unstyled element is transparent - proving the
+      // background is no longer that is enough to show `.andes-dropdown-menu__content`
+      // actually matched, without hard-coding a resolved custom-property value jsdom
+      // won't compute anyway.
+      expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+      expect(style.backgroundColor).not.toBe('');
+      expect(style.borderRadius).not.toBe('0px');
+      expect(style.padding).not.toBe('0px');
+      expect(style.boxShadow).not.toBe('none');
+      expect(style.boxShadow).not.toBe('');
+    });
+
+    it('lays a menu item out as a flex row with real padding, not inline text', async () => {
+      const { fixture, trigger, item } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      const style = getComputedStyle(item('edit'));
+
+      // `display: inline` (the browser default for an unstyled custom element) has no
+      // box to apply padding/gap to at all - proving it is no longer `inline` is what
+      // actually distinguishes a real match from dead CSS.
+      expect(style.display).toBe('flex');
+      expect(style.alignItems).toBe('center');
+      expect(style.padding).not.toBe('0px');
+      expect(style.cursor).toBe('pointer');
+    });
+
+    it('gives the separator a real height and background, not a collapsed empty element', async () => {
+      const { fixture, trigger, menu } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      const separator = menu()!.querySelector(
+        '[role="separator"]',
+      ) as HTMLElement;
+      const style = getComputedStyle(separator);
+
+      expect(style.height).toBe('1px');
+      expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+      expect(style.backgroundColor).not.toBe('');
+    });
+  });
+
+  describe('Tab key', () => {
+    it('closes the menu and clears aria-expanded when Tab is pressed on a focused item', async () => {
+      const { fixture, trigger, item, menu } = createHost();
+      trigger().click();
+      await open(fixture);
+      expect(menu()).toBeTruthy();
+      expect(trigger().getAttribute('aria-expanded')).toBe('true');
+
+      pressKey(item('edit'), 'Tab');
+      fixture.detectChanges();
+
+      expect(menu()).toBeNull();
+      expect(trigger().getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it("returns focus to the trigger so Tab's own default action continues from there", async () => {
+      const { fixture, trigger, item } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      pressKey(item('edit'), 'Tab');
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(trigger());
     });
   });
 });

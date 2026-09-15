@@ -6,6 +6,7 @@ import {
   inject,
   input,
   output,
+  ViewEncapsulation,
 } from '@angular/core';
 
 import { AndesDropdownMenu } from './dropdown-menu';
@@ -17,6 +18,11 @@ export type AndesDropdownMenuItemVariant = 'default' | 'destructive';
  *
  * `role="menuitem"`, the roving `tabindex`, and the `data-active`/`data-disabled`
  * styling hooks come from the composed `AndesListNavigationItem`.
+ *
+ * See the class-level comment on `AndesDropdownMenuContent` for why this needs
+ * `encapsulation: ViewEncapsulation.None`: its BEM class lives only in `host: {
+ * class: ... }`, which emulated encapsulation's own-component-only scoping can never
+ * match.
  */
 @Component({
   selector: 'andes-dropdown-menu-item',
@@ -33,6 +39,7 @@ export type AndesDropdownMenuItemVariant = 'default' | 'destructive';
   `,
   styleUrl: './dropdown-menu.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
   host: {
     role: 'menuitem',
     class: 'andes-dropdown-menu__item',
