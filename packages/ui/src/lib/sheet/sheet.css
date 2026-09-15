@@ -1,0 +1,103 @@
+.andes-sheet__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 20%);
+  outline: none;
+  overflow-y: auto;
+}
+
+.andes-sheet__panel[data-side='right'] {
+  width: min(100%, 24rem);
+  border-left: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-right 0.25s ease-out;
+}
+
+.andes-sheet__panel[data-side='left'] {
+  width: min(100%, 24rem);
+  border-right: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-left 0.25s ease-out;
+}
+
+.andes-sheet__panel[data-side='top'] {
+  height: min(100%, 20rem);
+  border-bottom: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-top 0.25s ease-out;
+}
+
+.andes-sheet__panel[data-side='bottom'] {
+  height: min(100%, 20rem);
+  border-top: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-bottom 0.25s ease-out;
+}
+
+/* Header/footer/title/description are their own small components (see
+   sheet-parts.ts) with their own inline styles - a class here would never match
+   them, since projected content carries the *consumer's* emulated-encapsulation
+   attribute, not AndesSheet's. */
+
+.andes-sheet__close {
+  position: absolute;
+  top: var(--andes-space-3);
+  right: var(--andes-space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-sheet__close:hover {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-sheet__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+@keyframes andes-sheet-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
