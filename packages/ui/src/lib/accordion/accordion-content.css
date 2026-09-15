@@ -16,9 +16,21 @@
   grid-template-rows: 1fr;
 }
 
+/* The grid item that actually collapses. It must stay a *pure* clipping box with no padding or
+   border of its own: `overflow: hidden` clips to the PADDING box, not the content box, so any
+   padding here survives the collapse as a band of still-painted content. With
+   `padding-bottom: var(--andes-space-4)` on this element a closed panel kept a 16px-tall padding
+   box and the first 16px of the projected text was painted inside it - the panel read as
+   "collapsed" to `data-state`/`inert` while the user could plainly still read a line of it. */
 .andes-accordion-content__inner {
   overflow: hidden;
   min-height: 0;
+}
+
+/* The panel's breathing room lives one level in, on a plain (non-grid-item, non-clipping) box.
+   When open it contributes its padding to the `1fr` track exactly as before; when closed the
+   clipping box above collapses to a true 0px and takes this element's padding with it. */
+.andes-accordion-content__body {
   padding-bottom: var(--andes-space-4);
   color: var(--andes-color-foreground);
 }
