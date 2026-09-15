@@ -1,0 +1,185 @@
+/* The `<thead>`/`<tbody>`/`<tr>`/`<th>`/`<td>` elements are declared by the consumer and
+   projected into this component's `<table>`, so they keep the consumer's style
+   encapsulation context. `::ng-deep` is the sanctioned way to reach them (same reason
+   button.css uses it for projected icons) - and it is what lets the markup stay a real,
+   unwrapped native table instead of a div grid. Every deep selector stays anchored to
+   `.andes-table`, which is scoped to this component's own template. */
+
+:host {
+  display: block;
+}
+
+.andes-table__container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.andes-table {
+  width: 100%;
+  border-collapse: collapse;
+  caption-side: bottom;
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  text-align: start;
+}
+
+.andes-table--caption-top {
+  caption-side: top;
+}
+
+.andes-table--bordered {
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-md);
+}
+
+/* Caption */
+
+.andes-table ::ng-deep .andes-table__caption {
+  padding-block: var(--andes-space-3);
+  color: var(--andes-color-muted-foreground);
+  font-size: 0.875rem;
+  text-align: start;
+}
+
+/* Header */
+
+.andes-table ::ng-deep .andes-table__header {
+  background-color: var(--andes-color-muted);
+}
+
+/* Header text is the strong foreground, not `--andes-color-muted-foreground`: that token
+   on `--andes-color-muted` is only 4.35:1, which fails WCAG AA for 14px text (axe flags it
+   as a serious color-contrast violation). Ant Design's `headerColor` is likewise a strong
+   near-black rather than a muted gray, so `font-weight` carries the header emphasis. */
+.andes-table ::ng-deep .andes-table__head {
+  color: var(--andes-color-foreground);
+  font-weight: var(--andes-font-weight-medium);
+  text-align: start;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Footer */
+
+.andes-table ::ng-deep .andes-table__footer {
+  background-color: var(--andes-color-muted);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+/* Rows and cells */
+
+.andes-table ::ng-deep .andes-table__row {
+  border-bottom: 1px solid var(--andes-color-border);
+  transition: background-color 0.15s ease;
+}
+
+.andes-table ::ng-deep .andes-table__body .andes-table__row:last-child {
+  border-bottom: none;
+}
+
+.andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row:hover {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-table ::ng-deep .andes-table__cell {
+  vertical-align: middle;
+}
+
+.andes-table--bordered ::ng-deep .andes-table__cell,
+.andes-table--bordered ::ng-deep .andes-table__head {
+  border: 1px solid var(--andes-color-border);
+}
+
+/* Alignment */
+
+.andes-table ::ng-deep .andes-table__align--start {
+  text-align: start;
+}
+
+.andes-table ::ng-deep .andes-table__align--center {
+  text-align: center;
+}
+
+.andes-table ::ng-deep .andes-table__align--end {
+  text-align: end;
+}
+
+/* Density */
+
+.andes-table--compact ::ng-deep .andes-table__head,
+.andes-table--compact ::ng-deep .andes-table__cell {
+  padding: var(--andes-space-2);
+}
+
+.andes-table--default ::ng-deep .andes-table__head,
+.andes-table--default ::ng-deep .andes-table__cell {
+  padding-block: var(--andes-space-3);
+  padding-inline: var(--andes-space-4);
+}
+
+.andes-table--comfortable ::ng-deep .andes-table__head,
+.andes-table--comfortable ::ng-deep .andes-table__cell {
+  padding: var(--andes-space-4);
+}
+
+/* Sortable headers */
+
+.andes-table ::ng-deep .andes-table__head--sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.andes-table ::ng-deep .andes-table__head--sortable:hover {
+  background-color: var(--andes-color-accent-hover);
+}
+
+.andes-table ::ng-deep .andes-table__head--sortable:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.andes-table ::ng-deep .andes-table__head--sorted {
+  background-color: var(--andes-color-accent-hover);
+}
+
+/* Direction indicator. A mask rather than generated text, so assistive tech reads the
+   header's `aria-sort` and never an arrow glyph, and the glyph inherits `currentColor`. */
+.andes-table ::ng-deep .andes-table__head--sortable::after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-inline-start: var(--andes-space-1);
+  vertical-align: -0.2em;
+  background-color: currentcolor;
+  /* Dimmed while unsorted, but still clears the 3:1 non-text contrast minimum. */
+  opacity: 0.6;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m7 15 5 5 5-5'/><path d='m7 9 5-5 5 5'/></svg>");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m7 15 5 5 5-5'/><path d='m7 9 5-5 5 5'/></svg>");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.andes-table ::ng-deep .andes-table__head[data-sort='asc']::after {
+  opacity: 1;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m18 15-6-6-6 6'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m18 15-6-6-6 6'/></svg>");
+}
+
+.andes-table ::ng-deep .andes-table__head[data-sort='desc']::after {
+  opacity: 1;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-table ::ng-deep .andes-table__row {
+    transition: none;
+  }
+}
