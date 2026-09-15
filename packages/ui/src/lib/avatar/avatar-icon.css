@@ -1,0 +1,32 @@
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Inherited from AndesAvatar when nested, and a sane default when the icon
+     is used stand-alone. Keeps the icon clipped to the avatar's own shape in
+     the badge case, where the avatar itself has to drop `overflow: hidden`
+     so a corner badge can escape its clipping box (see avatar.css). */
+  border-radius: var(--andes-avatar-radius, 0);
+  color: var(--andes-color-muted-foreground);
+}
+
+/* `:host ::ng-deep`, not a leading `::ng-deep`: the icon is declared in the
+   CONSUMER's template, so reaching it needs to pierce this component's
+   encapsulation - but a LEADING `::ng-deep` disables scoping entirely and
+   would emit a global `svg { ... }` that resizes every SVG on the page. See
+   the same note in avatar-fallback.css. */
+:host ::ng-deep svg {
+  width: 60%;
+  height: 60%;
+}
+
+/* `@ng-icons` wraps its SVG in an `<ng-icon>` host, which would otherwise
+   become the flex item and make the 60% above resolve against that wrapper's
+   auto-sized box instead of the avatar. `display: contents` drops the wrapper
+   from layout so the SVG itself is the flex item. */
+:host ::ng-deep ng-icon {
+  display: contents;
+}

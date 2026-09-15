@@ -1,0 +1,63 @@
+:host {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  box-sizing: border-box;
+  /* `em`, not a fixed px/rem step: the badge is a child of AndesAvatar, which
+     sets a different `font-size` per size token (0.625rem at `xs` up to
+     1.375rem at `xl`), so an `em`-sized dot tracks the avatar's size scale
+     without this component having to duplicate that scale - or take a `size`
+     input that could drift out of sync with its parent's. */
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: var(--andes-radius-full);
+  /* Ring in the page background, mirroring the separator AndesAvatarGroup
+     draws between overlapping avatars - it keeps the dot readable against a
+     photo of any colour. */
+  box-shadow: 0 0 0 0.125em var(--andes-color-background);
+}
+
+/* Placement - a corner of the avatar's box. For a circle, `0` on both axes
+   puts the dot's centre almost exactly on the 45-degree point of the
+   circumference (the arc is inset ~14.6% from the corner, and half the dot is
+   ~13% of the box), so no per-shape offset is needed. */
+
+:host(.andes-avatar-badge--bottom-end) {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+
+:host(.andes-avatar-badge--bottom-start) {
+  inset-block-end: 0;
+  inset-inline-start: 0;
+}
+
+:host(.andes-avatar-badge--top-end) {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}
+
+:host(.andes-avatar-badge--top-start) {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+
+/* Status colours. Colour is never the only channel: `label` is a required
+   input and is exposed as the host's accessible name (see avatar-badge.ts),
+   which is what keeps this out of WCAG 1.4.1 territory. */
+
+:host(.andes-avatar-badge--online) {
+  background-color: var(--andes-color-success);
+}
+
+:host(.andes-avatar-badge--busy) {
+  background-color: var(--andes-color-danger);
+}
+
+:host(.andes-avatar-badge--away) {
+  background-color: var(--andes-color-warning);
+}
+
+:host(.andes-avatar-badge--offline) {
+  background-color: var(--andes-color-muted-foreground);
+}
