@@ -11,6 +11,7 @@
     <span class="andes-accordion-trigger__text"><ng-content /></span>
     <svg
       class="andes-accordion-trigger__icon"
+      [attr.data-state]="isOpen() ? 'open' : 'closed'"
       aria-hidden="true"
       viewBox="0 0 24 24"
       fill="none"
