@@ -85,6 +85,36 @@ describe('AndesSwitch', () => {
     expect(button.hasAttribute('data-unchecked')).toBe(true);
   });
 
+  it('re-syncs to an external checked=false set directly after a click (regression)', () => {
+    // The gap the earlier `linkedSignal` fix left open: with `linkedSignal`, the click only
+    // ever wrote to the *derived* `isChecked` signal, never to the `checked` input signal
+    // itself - so `checked` (the linkedSignal's "source") stayed at `false` the entire time,
+    // and a later external write of `false` back onto it was a same-value no-op that never
+    // reached the derived signal at all. `checked` is now the single `model()` signal that
+    // both the click and an external write land on directly, so this write is a genuine
+    // true -> false transition on the one signal that drives rendering, not a no-op against a
+    // value nothing ever actually changed.
+    //
+    // This is exercised via `componentRef.setInput`, which writes straight to the component's
+    // input the way Angular does for components created imperatively (e.g. via
+    // `ViewContainerRef.createComponent`, as overlay/portal-based components in this library
+    // are) - a realistic path that does not go through a parent template binding at all.
+    const fixture = TestBed.createComponent(AndesSwitch);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('button');
+
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-checked')).toBe('true');
+
+    fixture.componentRef.setInput('checked', false);
+    fixture.detectChanges();
+
+    expect(button.getAttribute('aria-checked')).toBe('false');
+    expect(button.hasAttribute('data-checked')).toBe(false);
+    expect(button.hasAttribute('data-unchecked')).toBe(true);
+  });
+
   it('reflects the checked input on aria-checked and data-checked', () => {
     const { fixture, button } = createHost();
     fixture.componentInstance.checked.set(true);
@@ -214,10 +244,14 @@ describe('AndesSwitch', () => {
     expect(fixture.nativeElement.textContent.trim()).toBe('On');
   });
 
-  it('treats bare boolean attributes (no brackets) as true, not the string ""', () => {
+  it('treats a bare "disabled" attribute (no brackets) as true, not the string ""', () => {
+    // `checked` is now a `model()`, and `model()` does not support the `transform` option that
+    // makes a bare boolean attribute work on `input()` fields (see the doc comment on
+    // `checked`) - so it is exercised here via a property binding instead, while `disabled`
+    // (still a plain `input()` with `booleanAttribute`) keeps its bare-attribute coverage.
     @Component({
       imports: [AndesSwitch],
-      template: `<andes-switch checked disabled />`,
+      template: `<andes-switch [checked]="true" disabled />`,
     })
     class BareAttrHost {}
 
@@ -279,12 +313,10 @@ describe('AndesSwitch', () => {
       // The rendered DOM must reflect checked...
       expect(button.getAttribute('aria-checked')).toBe('true');
       expect(button.hasAttribute('data-checked')).toBe(true);
-      // ...and so must the component's own internal displayed-state signal, not just the
-      // FormControl's value (which would still read `true` even if writeValue's effect had
-      // been clobbered - it's the internal signal that drives what actually renders).
-      expect(
-        (switchInstance as unknown as { isChecked: () => boolean }).isChecked(),
-      ).toBe(true);
+      // ...and so must the component's own `checked` model signal, not just the FormControl's
+      // value (which would still read `true` even if writeValue's write had been clobbered -
+      // it's this signal that drives what actually renders).
+      expect(switchInstance.checked()).toBe(true);
       expect(fixture.componentInstance.control.value).toBe(true);
     });
 
