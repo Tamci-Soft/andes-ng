@@ -21,3 +21,8 @@ export type {
   AndesTextareaSize,
 } from './lib/textarea/textarea';
 export { AndesCheckbox } from './lib/checkbox/checkbox';
+export { AndesProgress } from './lib/progress/progress';
+export type {
+  AndesProgressSize,
+  AndesProgressVariant,
+} from './lib/progress/progress';
