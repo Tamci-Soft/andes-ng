@@ -17,8 +17,15 @@ interface AndesToastTimer {
   remaining: number;
   /** `Date.now()` when `handle` was last (re)started, so `pause()` can compute elapsed time. */
   startedAt: number | null;
-  /** True while paused for a reason other than "not visible yet" (i.e. pointer hover). */
-  hoverPaused: boolean;
+  /**
+   * Reference count of active pause sources (pointer hover, keyboard focus-within - see
+   * `AndesToastViewport`'s `mouseenter`/`focusin` and `mouseleave`/`focusout` wiring). Kept as
+   * a count rather than a boolean so overlapping sources don't fight each other: e.g. a mouse
+   * still hovering a toast when keyboard focus leaves it (or vice versa) must not resume the
+   * countdown while the other source is still "in" - only the matching number of `resume()`
+   * calls, back to zero, actually restarts the timer.
+   */
+  pauseCount: number;
 }
 
 /**
@@ -147,12 +154,22 @@ export class AndesToastService {
 
   /**
    * Pauses a visible toast's auto-dismiss countdown, preserving whatever time is left.
-   * `AndesToastViewport` calls this on `mouseenter`. A no-op for a toast with no running
-   * timer (already paused, queued, or `duration: false`).
+   * `AndesToastViewport` calls this on `mouseenter` (pointer hover) and `focusin` (keyboard
+   * focus anywhere within the toast, e.g. Tab-ing to its action button) - both are equally
+   * valid reasons a user needs the countdown to hold still, per WCAG 2.2.1. Reentrant: calling
+   * this while already paused just increments the pause count instead of stopping an
+   * already-stopped timer, so hover and focus overlapping doesn't desync from `resume()`.
+   * A no-op for a toast with no running timer and no existing pause (queued or
+   * `duration: false`).
    */
   pause(id: string): void {
     const state = this.timers.get(id);
-    if (!state || state.hoverPaused) {
+    if (!state) {
+      return;
+    }
+    state.pauseCount++;
+    if (state.pauseCount > 1) {
+      // Already paused by another source (hover and focus overlapping) - nothing to stop.
       return;
     }
     if (state.handle !== null && state.startedAt !== null) {
@@ -162,19 +179,24 @@ export class AndesToastService {
     }
     state.handle = null;
     state.startedAt = null;
-    state.hoverPaused = true;
   }
 
   /**
-   * Resumes a toast paused by `pause()`, continuing with whatever time remained.
-   * `AndesToastViewport` calls this on `mouseleave`.
+   * Balances one `pause()` call, continuing with whatever time remained once every pause
+   * source has cleared. `AndesToastViewport` calls this on `mouseleave` and `focusout`. Only
+   * actually resumes the timer once the pause count reaches zero - if hover ends while focus
+   * is still within the toast (or vice versa), the countdown correctly stays paused.
    */
   resume(id: string): void {
     const state = this.timers.get(id);
-    if (!state || !state.hoverPaused) {
+    if (!state || state.pauseCount === 0) {
       return;
     }
-    state.hoverPaused = false;
+    state.pauseCount--;
+    if (state.pauseCount > 0) {
+      // Still paused by another source - stay stopped.
+      return;
+    }
     if (state.remaining <= 0) {
       // The countdown had already reached zero while paused - dismiss right away instead
       // of scheduling a zero/negative-delay timer.
@@ -185,15 +207,17 @@ export class AndesToastService {
   }
 
   /**
-   * Routes the toast's text through Angular CDK's `LiveAnnouncer` in addition to the
-   * `role`/`aria-live` markup `AndesToastItem` renders on the toast itself. Belt-and-braces
-   * on purpose: an aria-live region whose content and presence appear in the DOM in the same
-   * update is not reliably announced by every browser/screen-reader pairing (this is exactly
-   * the open question shadcn's own docs punt to Base UI's reference on), whereas
+   * Routes the toast's text through Angular CDK's `LiveAnnouncer` - the *only* live-region
+   * mechanism a shown toast gets. `AndesToastItem` itself renders no `role`/`aria-live` (see
+   * its doc comment): an aria-live region whose content and presence appear in the DOM in the
+   * same update is not reliably announced by every browser/screen-reader pairing (this is
+   * exactly the open question shadcn's own docs punt to Base UI's reference on, and the
+   * decoupled-announcer requirement called out in this component's research doc), whereas
    * `LiveAnnouncer` mutates a persistent, already-live hidden node - the same mechanism
-   * Angular Material relies on - which is the reliable half of the two. Errors get
-   * `'assertive'` (interrupting), everything else `'polite'` (announced once the screen
-   * reader is idle), matching the `role="alert"` vs `role="status"` split on the visible node.
+   * Angular Material relies on - which is the reliable half of the two. Having both fire would
+   * double-announce every toast, so this must stay the single source of truth. Errors get
+   * `'assertive'` (interrupting), everything else `'polite'` (announced once the screen reader
+   * is idle), matching the severity's visual urgency.
    */
   private announce(toast: AndesToast): void {
     const politeness: AriaLivePoliteness =
@@ -233,7 +257,7 @@ export class AndesToastService {
         handle: null,
         remaining: toast.duration,
         startedAt: null,
-        hoverPaused: false,
+        pauseCount: 0,
       };
       this.timers.set(toast.id, state);
       this.startTimer(toast.id, state);

@@ -123,6 +123,33 @@ describe('AndesToastService', () => {
     expect(service.toasts().map((t) => t.id)).not.toContain(id);
   });
 
+  it('pause()/resume() are reference-counted so overlapping pause sources (hover + focus) do not desync', () => {
+    vi.useFakeTimers();
+    const service = createService();
+
+    const id = service.show({
+      message: 'Hoverable and focusable',
+      duration: 2000,
+    });
+
+    // Two independent sources both pause it (e.g. pointer hover, then keyboard focus).
+    service.pause(id);
+    service.pause(id);
+
+    // One source clears (e.g. mouse leaves) while the other (focus) is still active - must
+    // stay paused, well past the original duration.
+    service.resume(id);
+    vi.advanceTimersByTime(10_000);
+    expect(service.toasts().map((t) => t.id)).toContain(id);
+
+    // The second source now clears too - only now does the countdown actually resume.
+    service.resume(id);
+    vi.advanceTimersByTime(1999);
+    expect(service.toasts().map((t) => t.id)).toContain(id);
+    vi.advanceTimersByTime(1);
+    expect(service.toasts().map((t) => t.id)).not.toContain(id);
+  });
+
   it('resume() without a prior pause() is a no-op', () => {
     vi.useFakeTimers();
     const service = createService();
