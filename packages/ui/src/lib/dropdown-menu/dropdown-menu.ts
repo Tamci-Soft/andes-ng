@@ -93,6 +93,18 @@ export class AndesDropdownMenu {
     this.overlay.closed
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.navigation.clearActive());
+
+    // `AndesListNavigation.tabOut` exists precisely so a menu/popup can close itself
+    // and hand focus back when the user tabs away - the overlay's content sits at the
+    // end of `<body>` with no focus trap (correct: menus shouldn't trap focus), so
+    // without this a Tab press leaves the menu open (`aria-expanded="true"` on the
+    // trigger stays true) while focus has already moved out of it entirely. Closing
+    // with reason `'trigger'` restores focus to the trigger synchronously, before the
+    // browser's own default Tab action runs, so Tab then continues naturally onward
+    // from the trigger instead of from wherever it would otherwise have landed.
+    this.navigation.tabOut
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.overlay.close('trigger'));
   }
 
   /** Opens the menu, focusing its first enabled item. A no-op if already open. */

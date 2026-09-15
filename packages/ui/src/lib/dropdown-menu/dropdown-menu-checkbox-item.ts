@@ -6,6 +6,7 @@ import {
   inject,
   input,
   model,
+  ViewEncapsulation,
 } from '@angular/core';
 
 import { AndesDropdownMenu } from './dropdown-menu';
@@ -15,6 +16,11 @@ import { AndesDropdownMenu } from './dropdown-menu';
  *
  * `checked` is a `model()`, so it is two-way bindable (`[(checked)]`) or listened to
  * one-way (`(checkedChange)`).
+ *
+ * See the class-level comment on `AndesDropdownMenuContent` for why this needs
+ * `encapsulation: ViewEncapsulation.None`: its BEM classes live only in `host: {
+ * class: ... }`, which emulated encapsulation's own-component-only scoping can never
+ * match.
  */
 @Component({
   selector: 'andes-dropdown-menu-checkbox-item',
@@ -34,6 +40,7 @@ import { AndesDropdownMenu } from './dropdown-menu';
   `,
   styleUrl: './dropdown-menu.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
   host: {
     role: 'menuitemcheckbox',
     class: 'andes-dropdown-menu__item andes-dropdown-menu__checkbox-item',
