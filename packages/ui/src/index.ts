@@ -13,3 +13,5 @@ export {
   AndesBreadcrumbPage,
   AndesBreadcrumbSeparator,
 } from './lib/breadcrumb/breadcrumb';
+export { AndesSwitch } from './lib/switch/switch';
+export type { AndesSwitchSize } from './lib/switch/switch';
