@@ -3,13 +3,19 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
+  DestroyRef,
   forwardRef,
+  inject,
   input,
   model,
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+
+import {
+  ANDES_CHECKBOX_SELECT_ALL,
+  AndesCheckboxGroupState,
+} from './checkbox-group-state';
 
 @Component({
   selector: 'andes-checkbox',
@@ -35,6 +41,21 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
   ],
 })
 export class AndesCheckbox implements ControlValueAccessor {
+  /**
+   * The enclosing `AndesCheckboxGroup`'s shared state, or `null` when this checkbox is used on
+   * its own - which is the whole point of `{ optional: true }`: group participation is opt-in
+   * by placement alone, and a standalone checkbox keeps exactly the behavior it always had.
+   */
+  private readonly group = inject(AndesCheckboxGroupState, { optional: true });
+
+  /**
+   * True when `AndesCheckboxSelectAll` sits on this same element. Such a checkbox lives inside
+   * the group but must never register as one of its ITEMS - it summarizes them, so counting
+   * itself would make the aggregate depend on its own output.
+   */
+  private readonly isSelectAll =
+    inject(ANDES_CHECKBOX_SELECT_ALL, { optional: true, self: true }) !== null;
+
   /**
    * Single source of truth for the rendered `checked` state - AND the two-way binding
    * surface for it (`model()` auto-generates the `checkedChange` output, enabling
@@ -110,25 +131,54 @@ export class AndesCheckbox implements ControlValueAccessor {
    * model it derives from - it's a pure formatter for the native property setter, not a
    * second piece of state.
    */
-  protected readonly checkedProp = computed(() =>
-    booleanAttribute(this.checked()),
-  );
+  protected readonly checkedProp = computed(() => {
+    // Inside a group, the group's selection array - not this checkbox's own `checked` model -
+    // is the source of truth, so that a checkbox added, removed or re-rendered at any time
+    // always shows the group's current answer rather than a stale local copy of it.
+    const fromGroup = this.selectedInGroup();
+
+    return fromGroup ?? booleanAttribute(this.checked());
+  });
   protected readonly indeterminateProp = computed(() =>
     booleanAttribute(this.indeterminate()),
   );
 
+  /** `null` when this checkbox is not a group item (standalone, select-all, or no `value`). */
+  private readonly selectedInGroup = computed<boolean | null>(() => {
+    const value = this.value();
+
+    return this.isGroupItem() && value !== undefined
+      ? (this.group?.isSelected(value) ?? null)
+      : null;
+  });
+
+  private isGroupItem(): boolean {
+    return this.group !== null && !this.isSelectAll;
+  }
+
   private readonly formDisabled = signal(false);
-  protected readonly isDisabled = signal(false);
+  protected readonly isDisabled = computed(
+    () =>
+      this.disabled() ||
+      this.formDisabled() ||
+      (this.group?.disabled() ?? false),
+  );
 
   private onChange: (value: boolean) => void = () => undefined;
   private onTouched: () => void = () => undefined;
 
   constructor() {
-    effect(() => {
-      const disabled = this.disabled();
-      const formDisabled = this.formDisabled();
-      this.isDisabled.set(disabled || formDisabled);
-    });
+    const group = this.group;
+    if (group !== null && this.isGroupItem()) {
+      // Registered unconditionally (rather than only while `value` is set) so the item object
+      // stays stable for this checkbox's whole lifetime - `value` and `disabled` are handed
+      // over as signals, so the group re-reads them itself instead of needing a re-register.
+      const unregister = group.registerItem({
+        value: this.value,
+        disabled: this.isDisabled,
+      });
+      inject(DestroyRef).onDestroy(unregister);
+    }
   }
 
   protected onNativeClick(event: MouseEvent): void {
@@ -150,6 +200,14 @@ export class AndesCheckbox implements ControlValueAccessor {
     // The browser already cleared the DOM property on this same interaction - mirror it into
     // the model rather than letting the next render fight the user's click.
     this.indeterminate.set(nativeInput.indeterminate);
+
+    // Inside a group, the click also has to reach the group's shared selection - that is what
+    // `checkedProp` renders from, so without this the DOM would snap straight back.
+    const group = this.group;
+    const value = this.value();
+    if (group !== null && this.isGroupItem() && value !== undefined) {
+      group.toggleItem(value, nativeInput.checked);
+    }
 
     this.onChange(nativeInput.checked);
   }
