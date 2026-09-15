@@ -11,6 +11,7 @@ import { AndesCheckbox } from './checkbox';
     [disabled]="disabled()"
     [indeterminate]="indeterminate()"
     [required]="required()"
+    [readOnly]="readOnly()"
     [name]="name()"
     [value]="value()"
     (checkedChange)="checkedChange($event)"
@@ -23,6 +24,7 @@ class HostComponent {
   readonly disabled = signal(false);
   readonly indeterminate = signal(false);
   readonly required = signal(false);
+  readonly readOnly = signal(false);
   readonly name = signal<string | undefined>(undefined);
   readonly value = signal<string | undefined>(undefined);
 
@@ -117,6 +119,47 @@ describe('AndesCheckbox', () => {
     expect(input.hasAttribute('required')).toBe(true);
     expect(input.getAttribute('name')).toBe('terms');
     expect(input.getAttribute('value')).toBe('accepted');
+  });
+
+  describe('readOnly', () => {
+    it('stays focusable and visually enabled, unlike disabled', () => {
+      const { fixture, input } = createHost();
+      fixture.componentInstance.readOnly.set(true);
+      fixture.detectChanges();
+
+      expect(input.disabled).toBe(false);
+      expect(input.getAttribute('aria-readonly')).toBe('true');
+    });
+
+    it('prevents toggling checked on click', () => {
+      const { fixture, input } = createHost();
+      fixture.componentInstance.readOnly.set(true);
+      fixture.detectChanges();
+
+      input.dispatchEvent(new MouseEvent('click', { cancelable: true }));
+      fixture.detectChanges();
+
+      expect(input.checked).toBe(false);
+      expect(fixture.componentInstance.lastCheckedChange).toBeUndefined();
+    });
+
+    it('still allows toggling once readOnly is cleared', () => {
+      const { fixture, input } = createHost();
+      fixture.componentInstance.readOnly.set(true);
+      fixture.detectChanges();
+      input.dispatchEvent(new MouseEvent('click', { cancelable: true }));
+      fixture.detectChanges();
+      expect(input.checked).toBe(false);
+
+      fixture.componentInstance.readOnly.set(false);
+      fixture.detectChanges();
+
+      input.checked = true;
+      input.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.lastCheckedChange).toBe(true);
+    });
   });
 
   describe('indeterminate', () => {
