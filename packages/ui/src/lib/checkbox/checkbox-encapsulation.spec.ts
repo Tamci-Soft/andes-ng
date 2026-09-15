@@ -96,8 +96,9 @@ describe('AndesCheckbox style encapsulation', () => {
     fixture.componentInstance.indeterminate.set(options.indeterminate);
     fixture.detectChanges();
 
-    mounted = withRuntimeScope(fixture.nativeElement as HTMLElement);
-    const input = mounted.querySelector('input') as HTMLInputElement;
+    const root = withRuntimeScope(fixture.nativeElement as HTMLElement);
+    mounted = root;
+    const input = root.querySelector('input') as HTMLInputElement;
     // `cloneNode` copies the `checked` ATTRIBUTE (`defaultChecked`) and skips `indeterminate`
     // entirely - both `:checked` and `:indeterminate` match on the live DOM PROPERTY, so they
     // have to be re-applied by hand here.
@@ -110,7 +111,7 @@ describe('AndesCheckbox style encapsulation', () => {
     document.body.appendChild(mounted);
 
     const opacityOf = (selector: string) =>
-      getComputedStyle(mounted!.querySelector(selector) as Element).opacity;
+      getComputedStyle(root.querySelector(selector) as Element).opacity;
 
     return { input, opacityOf };
   }
