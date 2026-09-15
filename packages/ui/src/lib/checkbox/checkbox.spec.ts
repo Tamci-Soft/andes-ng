@@ -91,6 +91,40 @@ describe('AndesCheckbox', () => {
     expect(input.checked).toBe(false);
   });
 
+  it('resyncs checked from the bound input after a user click diverged it (linkedSignal regression)', () => {
+    // Regression test for the "controlled-but-locally-overridable" pattern `checkedState`
+    // implements: a user click is allowed to locally diverge it from the `checked` input
+    // (see `onNativeChange`), but the parent must still be able to win back control the next
+    // time it asserts a value on `checked` - it must never get permanently stuck reflecting
+    // the stale, click-driven value. A plain `signal()` + `effect()` mirror is prone to
+    // exactly this kind of staleness because the effect only mutates `checkedState` and
+    // never resets it against a fresh read the way a derived `linkedSignal` does.
+    const { fixture, input } = createHost();
+    expect(input.checked).toBe(false);
+
+    // User clicks the checkbox: internal state diverges to `true` while the bound `checked`
+    // input is still `false`.
+    input.checked = true;
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(input.checked).toBe(true);
+
+    // The parent, unaware of (or rejecting) that local change, asserts its own `checked`
+    // value on the control. It must win over the diverged, click-driven state every time
+    // its value changes - here first re-affirming `true`, then flipping to `false`.
+    fixture.componentInstance.checked.set(true);
+    fixture.detectChanges();
+    expect(input.checked).toBe(true);
+
+    fixture.componentInstance.checked.set(false);
+    fixture.detectChanges();
+
+    // The `checked` DOM property is this component's single source of visual truth - the
+    // `:checked` box/checkmark styling in checkbox.css is driven entirely off it, there is
+    // no separate `andes-checkbox--checked` class to assert on.
+    expect(input.checked).toBe(false);
+  });
+
   it('toggles checked and emits checkedChange on user interaction', () => {
     const { fixture, input } = createHost();
 
@@ -192,6 +226,38 @@ describe('AndesCheckbox', () => {
       expect(input.indeterminate).toBe(false);
       expect(fixture.componentInstance.lastIndeterminateChange).toBe(false);
       expect(fixture.componentInstance.lastCheckedChange).toBe(true);
+    });
+
+    it('resyncs indeterminate from the bound input after a user click diverged it (linkedSignal regression)', () => {
+      // Same "controlled-but-locally-overridable" regression as the `checked` test above,
+      // but for `indeterminate`: a user click clears the native `indeterminate` property
+      // (the browser's own behavior), locally diverging `indeterminateState` from whatever
+      // the `indeterminate` input currently holds. The parent must still be able to win
+      // back control - re-showing the "mixed" dash - the next time it asserts a value,
+      // rather than the checkbox getting stuck on the click-cleared state forever.
+      const { fixture, input } = createHost();
+      fixture.componentInstance.indeterminate.set(true);
+      fixture.detectChanges();
+      expect(input.indeterminate).toBe(true);
+
+      // Simulate the browser's own native behavior: clicking an indeterminate checkbox
+      // clears the DOM property itself, independent of the bound `indeterminate` input.
+      input.indeterminate = false;
+      input.checked = true;
+      input.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+      expect(input.indeterminate).toBe(false);
+
+      // Parent flips `indeterminate` off then on again - it must win over the diverged,
+      // click-cleared state every time its value changes.
+      fixture.componentInstance.indeterminate.set(false);
+      fixture.detectChanges();
+      expect(input.indeterminate).toBe(false);
+
+      fixture.componentInstance.indeterminate.set(true);
+      fixture.detectChanges();
+
+      expect(input.indeterminate).toBe(true);
     });
 
     it('does not emit indeterminateChange when it was already false', () => {
