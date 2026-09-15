@@ -38,6 +38,10 @@ import {
   type AndesOverlayContent,
 } from './overlay-config';
 import {
+  AndesOverlayInertRegistry,
+  type AndesOverlayInertHandle,
+} from './overlay-inert';
+import {
   andesImpliedSize,
   createAndesPositionStrategy,
 } from './overlay-positioning';
@@ -132,12 +136,20 @@ function toClassList(
  * ordering is by call time). `z-index` comes from `--andes-z-index-*` per layer, so
  * a Popover opened from inside a Dialog stacks above it without either component
  * hard-coding a number.
+ *
+ * ## Modality
+ *
+ * A modal overlay needs three separate things, and `aria-modal` is only the weakest
+ * of them: `trapFocus` for Tab, `ariaModal` as a hint, and `inertBackground` to
+ * actually mark every other body child `inert` so a screen reader's browse mode
+ * cannot walk into the page behind it. The modal presets turn on all three.
  */
 @Injectable()
 export class AndesOverlayPrimitive {
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);
   private readonly focusTrapFactory = inject(ConfigurableFocusTrapFactory);
+  private readonly inertRegistry = inject(AndesOverlayInertRegistry);
   private readonly hostViewContainerRef = inject(ViewContainerRef, {
     optional: true,
   });
@@ -150,6 +162,7 @@ export class AndesOverlayPrimitive {
   private readonly _panelElement = signal<HTMLElement | null>(null);
   private readonly _backdropElement = signal<HTMLElement | null>(null);
   private readonly _contentElement = signal<HTMLElement | null>(null);
+  private readonly _isBackgroundInert = signal(false);
 
   /** The resolved behavior configuration. */
   readonly config = this._config.asReadonly();
@@ -163,6 +176,12 @@ export class AndesOverlayPrimitive {
   readonly backdropElement = this._backdropElement.asReadonly();
   /** The element carrying `andesOverlayContent`, while open. */
   readonly contentElement = this._contentElement.asReadonly();
+  /**
+   * Whether this overlay currently holds the page's background inert. False for a
+   * non-modal overlay, and false again as soon as it closes — even if an outer
+   * overlay still keeps the background inert for its own sake.
+   */
+  readonly isBackgroundInert = this._isBackgroundInert.asReadonly();
 
   /**
    * Stable id shared by the trigger's `aria-controls`/`aria-describedby` and the
@@ -192,6 +211,7 @@ export class AndesOverlayPrimitive {
 
   private overlayRef: OverlayRef | null = null;
   private focusTrap: ConfigurableFocusTrap | null = null;
+  private inertHandle: AndesOverlayInertHandle | null = null;
   private focusOrigin: HTMLElement | null = null;
   private explicitRestoreTarget: HTMLElement | null = null;
   private openSubscriptions = new Subscription();
@@ -214,9 +234,9 @@ export class AndesOverlayPrimitive {
    *
    * While the overlay is open, `positioning`, `size` and `layer` are re-applied
    * immediately. The structural flags (`hasBackdrop`, `trapFocus`, `lockScroll`,
-   * `autoFocus`) take effect on the next `open()`; the dismissal flags
-   * (`closeOnEscape`, `closeOnOutsideClick`) are read at event time and so apply
-   * immediately.
+   * `inertBackground`, `autoFocus`) take effect on the next `open()`; the
+   * dismissal flags (`closeOnEscape`, `closeOnOutsideClick`) are read at event
+   * time and so apply immediately.
    */
   configure(patch: Partial<AndesOverlayConfig>): void {
     this._config.update((current) => ({ ...current, ...patch }));
@@ -305,6 +325,7 @@ export class AndesOverlayPrimitive {
     this._backdropElement.set(ref.backdropElement);
     this._isOpen.set(true);
 
+    this.applyInertBackground(ref, config);
     this.wireDismissal(ref);
     this.installFocusManagement(ref, config);
 
@@ -323,6 +344,10 @@ export class AndesOverlayPrimitive {
 
       this.openSubscriptions.unsubscribe();
       this.openSubscriptions = new Subscription();
+
+      // Before restoring focus: an element inside an inert subtree cannot be
+      // focused, so releasing late would silently drop focus on `document.body`.
+      this.releaseInertBackground();
 
       this.focusTrap?.destroy();
       this.focusTrap = null;
@@ -488,6 +513,32 @@ export class AndesOverlayPrimitive {
     this.openSubscriptions.add(
       ref.detachments().subscribe(() => this.close('destroyed')),
     );
+  }
+
+  /**
+   * Makes the page outside the overlay inert, so AT browsing the document — not
+   * just tabbing through it — cannot reach content behind a modal. The pane and
+   * backdrop are exempt, and the registry reference-counts across nested overlays.
+   */
+  private applyInertBackground(
+    ref: OverlayRef,
+    config: AndesOverlayConfig,
+  ): void {
+    if (!config.inertBackground) {
+      return;
+    }
+    this.inertHandle = this.inertRegistry.inertBackgroundExcept([
+      ref.overlayElement,
+      ref.hostElement,
+      ref.backdropElement,
+    ]);
+    this._isBackgroundInert.set(true);
+  }
+
+  private releaseInertBackground(): void {
+    this.inertHandle?.release();
+    this.inertHandle = null;
+    this._isBackgroundInert.set(false);
   }
 
   private installFocusManagement(

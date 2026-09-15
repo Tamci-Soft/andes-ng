@@ -14,6 +14,7 @@ import {
   type AndesOverlayConfig,
 } from './overlay-config';
 import { AndesOverlayClosePrimitive } from './overlay-close-primitive';
+import { AndesOverlayInertRegistry } from './overlay-inert';
 import { AndesOverlayContentPrimitive } from './overlay-content-primitive';
 import {
   AndesOverlayPrimitive,
@@ -161,6 +162,40 @@ describe('AndesOverlayPrimitive', () => {
         cancelable: true,
       }),
     );
+  }
+
+  /**
+   * Page content behind the overlay, as a real `<body>` child.
+   *
+   * It cannot be the fixture's own root element: `DOMTestComponentRenderer`
+   * removes every `[id^=root]` element whenever a fixture is created, so in a
+   * nested-overlay test the first fixture's root is no longer in `<body>` at all.
+   * Its id deliberately does not start with `root`.
+   */
+  function withBackgroundContent() {
+    let background: HTMLElement;
+
+    beforeEach(() => {
+      background = document.createElement('main');
+      background.id = 'page';
+      background.innerHTML =
+        '<button type="button" id="page-button">Behind</button>';
+      document.body.appendChild(background);
+    });
+
+    afterEach(() => background.remove());
+
+    return () => background;
+  }
+
+  function inertBodyChildren(): Element[] {
+    return [...document.body.children].filter((child) =>
+      child.hasAttribute('inert'),
+    );
+  }
+
+  function supportsNativeInert(): boolean {
+    return 'inert' in HTMLElement.prototype;
   }
 
   function clickOn(element: Element) {
@@ -797,8 +832,203 @@ describe('AndesOverlayPrimitive', () => {
     });
   });
 
+  describe('inert background', () => {
+    const background = withBackgroundContent();
+
+    /**
+     * A focus trap only governs Tab. Without `inert` on the rest of the page, a
+     * screen reader in browse mode still walks into the content behind a modal —
+     * `aria-modal` alone is not enough, which is the bug these tests pin down.
+     */
+    it('marks body content outside a dialog inert, and clears it on close', () => {
+      const { fixture, host, overlay, content } = createHost(
+        andesOverlayPreset('dialog'),
+      );
+
+      host.open();
+      fixture.detectChanges();
+
+      expect(background().hasAttribute('inert')).toBe(true);
+      expect(overlay.isBackgroundInert()).toBe(true);
+      // Real browsers reflect the content attribute onto the IDL property; jsdom
+      // does not implement `inert` at all, so only assert reflection where it exists.
+      if (supportsNativeInert()) {
+        expect(background().inert).toBe(true);
+      }
+
+      overlay.close();
+      fixture.detectChanges();
+
+      expect(background().hasAttribute('inert')).toBe(false);
+      expect(overlay.isBackgroundInert()).toBe(false);
+      expect(inertBodyChildren()).toHaveLength(0);
+      expect(content()).toBeNull();
+    });
+
+    it('inerts the fixture root alongside any other body child', () => {
+      const { fixture, host } = createHost(andesOverlayPreset('dialog'));
+
+      host.open();
+      fixture.detectChanges();
+
+      // Every body child outside the overlay, not just the one this test planted.
+      expect(inertBodyChildren()).toContain(background());
+      expect(inertBodyChildren().length).toBeGreaterThan(1);
+    });
+
+    it('tracks exactly the elements it marked, and nothing else', () => {
+      const registry = TestBed.inject(AndesOverlayInertRegistry);
+      const { fixture, host, overlay } = createHost(
+        andesOverlayPreset('dialog'),
+      );
+
+      host.open();
+      fixture.detectChanges();
+
+      expect([...registry.inertElements]).toEqual(inertBodyChildren());
+
+      overlay.close();
+      fixture.detectChanges();
+
+      expect(registry.inertElements).toHaveLength(0);
+    });
+
+    it('leaves the overlay itself interactive, and never inerts <body>', () => {
+      const { fixture, host, content, pane, backdrop } = createHost(
+        andesOverlayPreset('dialog'),
+      );
+      host.open();
+      fixture.detectChanges();
+
+      // Nothing between the content and <body> carries `inert`, so the dialog is
+      // still reachable: inerting <body> or the CDK overlay container would make
+      // the modal itself unusable.
+      expect(content()?.closest('[inert]')).toBeNull();
+      expect(pane()?.closest('[inert]')).toBeNull();
+      expect(backdrop()?.closest('[inert]')).toBeNull();
+      expect(document.body.hasAttribute('inert')).toBe(false);
+      expect(document.documentElement.hasAttribute('inert')).toBe(false);
+    });
+
+    it.each(['alert-dialog', 'drawer'] as const)(
+      'inerts the background for the %s preset too',
+      (preset) => {
+        const { fixture, host, overlay } = createHost(
+          andesOverlayPreset(preset),
+        );
+
+        host.open();
+        fixture.detectChanges();
+        expect(background().hasAttribute('inert')).toBe(true);
+
+        overlay.close();
+        fixture.detectChanges();
+        expect(background().hasAttribute('inert')).toBe(false);
+      },
+    );
+
+    it.each(['popover', 'menu', 'tooltip'] as const)(
+      'inerts nothing for the non-modal %s preset',
+      (preset) => {
+        const { fixture, host, overlay } = createHost(
+          andesOverlayPreset(preset),
+        );
+
+        host.open();
+        fixture.detectChanges();
+
+        expect(inertBodyChildren()).toHaveLength(0);
+        expect(overlay.isBackgroundInert()).toBe(false);
+        expect(background().hasAttribute('inert')).toBe(false);
+        expect(background().hasAttribute('aria-hidden')).toBe(false);
+      },
+    );
+
+    it('is independently toggleable off for a modal-looking overlay', () => {
+      const { fixture, host } = createHost({
+        ...andesOverlayPreset('dialog'),
+        inertBackground: false,
+      });
+
+      host.open();
+      fixture.detectChanges();
+
+      expect(inertBodyChildren()).toHaveLength(0);
+    });
+
+    it('adds the aria-hidden fallback only where the platform lacks native inert', () => {
+      const { fixture, host, overlay } = createHost(
+        andesOverlayPreset('dialog'),
+      );
+
+      host.open();
+      fixture.detectChanges();
+
+      expect(background().getAttribute('aria-hidden')).toBe(
+        supportsNativeInert() ? null : 'true',
+      );
+
+      overlay.close();
+      fixture.detectChanges();
+
+      expect(background().hasAttribute('aria-hidden')).toBe(false);
+    });
+
+    it('leaves an element that was already inert for its own reasons alone', () => {
+      const foreign = document.createElement('div');
+      foreign.setAttribute('inert', '');
+      document.body.appendChild(foreign);
+
+      try {
+        const { fixture, host, overlay } = createHost(
+          andesOverlayPreset('dialog'),
+        );
+        host.open();
+        fixture.detectChanges();
+        overlay.close();
+        fixture.detectChanges();
+
+        // We never claimed it, so we must not clear it either.
+        expect(foreign.hasAttribute('inert')).toBe(true);
+        expect(background().hasAttribute('inert')).toBe(false);
+      } finally {
+        foreign.remove();
+      }
+    });
+
+    it('restores focus to the trigger even though the trigger was inert', async () => {
+      const { fixture, host, overlay, trigger } = createHost(
+        andesOverlayPreset('dialog'),
+      );
+      host.open();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      overlay.close();
+      fixture.detectChanges();
+
+      // The release has to happen before focus restoration: focusing an element
+      // inside an inert subtree is a no-op in a real browser.
+      expect(trigger().closest('[inert]')).toBeNull();
+      expect(document.activeElement).toBe(trigger());
+    });
+
+    it('releases the inert background when the providing component is destroyed', () => {
+      const { fixture, host } = createHost(andesOverlayPreset('dialog'));
+      host.open();
+      fixture.detectChanges();
+      expect(background().hasAttribute('inert')).toBe(true);
+
+      fixture.destroy();
+
+      expect(background().hasAttribute('inert')).toBe(false);
+      expect(inertBodyChildren()).toHaveLength(0);
+    });
+  });
+
   describe('nested overlays', () => {
     withScrollableDocument();
+    const background = withBackgroundContent();
 
     function openTwoDialogs() {
       const outer = createHost(andesOverlayPreset('dialog'));
@@ -823,6 +1053,72 @@ describe('AndesOverlayPrimitive', () => {
       outer.overlay.close();
       outer.fixture.detectChanges();
       expect(locked()).toBe(false);
+    });
+
+    it('keeps the background inert while an inner overlay opens and closes', () => {
+      const { outer, inner } = openTwoDialogs();
+
+      expect(background().hasAttribute('inert')).toBe(true);
+
+      inner.overlay.close();
+      inner.fixture.detectChanges();
+
+      // The inner dialog released its own claim, but the outer one still holds
+      // the background inert — un-inerting here would expose the page behind a
+      // dialog that is still open.
+      expect(background().hasAttribute('inert')).toBe(true);
+      expect(inner.overlay.isBackgroundInert()).toBe(false);
+      expect(outer.overlay.isBackgroundInert()).toBe(true);
+
+      outer.overlay.close();
+      outer.fixture.detectChanges();
+
+      expect(background().hasAttribute('inert')).toBe(false);
+      expect(inertBodyChildren()).toHaveLength(0);
+    });
+
+    it('holds the background inert until the last modal closes, in any order', () => {
+      const { outer, inner } = openTwoDialogs();
+
+      // Closing the outer one first is unusual but legal; the count, not the
+      // stack order, decides when the page comes back.
+      outer.overlay.close();
+      outer.fixture.detectChanges();
+      expect(background().hasAttribute('inert')).toBe(true);
+
+      inner.overlay.close();
+      inner.fixture.detectChanges();
+      expect(background().hasAttribute('inert')).toBe(false);
+      expect(inertBodyChildren()).toHaveLength(0);
+    });
+
+    it('does not inert the pane of an outer overlay that is still open', () => {
+      const { outer, inner } = openTwoDialogs();
+
+      // Both dialogs portal into the same CDK overlay container, so neither is
+      // ever inside the other's inert background.
+      expect(outer.pane()?.closest('[inert]')).toBeNull();
+      expect(inner.pane()?.closest('[inert]')).toBeNull();
+    });
+
+    it('a non-modal overlay opened over a dialog does not release its inert background', () => {
+      const dialog = createHost(andesOverlayPreset('dialog'));
+      const popover = createHost(andesOverlayPreset('popover'));
+      dialog.host.open();
+      dialog.fixture.detectChanges();
+
+      popover.host.open();
+      popover.fixture.detectChanges();
+      expect(background().hasAttribute('inert')).toBe(true);
+
+      popover.overlay.close();
+      popover.fixture.detectChanges();
+      expect(background().hasAttribute('inert')).toBe(true);
+
+      dialog.overlay.close();
+      dialog.fixture.detectChanges();
+      expect(background().hasAttribute('inert')).toBe(false);
+      expect(inertBodyChildren()).toHaveLength(0);
     });
 
     it('gives the topmost overlay the active focus trap', async () => {
@@ -1005,6 +1301,7 @@ describe('AndesOverlayPrimitive', () => {
       expect(overlay.config()).toEqual(ANDES_OVERLAY_DEFAULT_CONFIG);
       expect(ANDES_OVERLAY_DEFAULT_CONFIG.trapFocus).toBe(false);
       expect(ANDES_OVERLAY_DEFAULT_CONFIG.lockScroll).toBe(false);
+      expect(ANDES_OVERLAY_DEFAULT_CONFIG.inertBackground).toBe(false);
       expect(ANDES_OVERLAY_DEFAULT_CONFIG.hasBackdrop).toBe(false);
     });
 
