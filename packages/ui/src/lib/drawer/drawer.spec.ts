@@ -108,6 +108,40 @@ class HostComponent {
   readonly closeOnOutsideClick = signal(true);
 }
 
+/**
+ * Stands in for a wrapper button component such as `AndesButton`: a
+ * non-focusable custom-element host whose real `<button>` lives in its template.
+ * Deliberately a local stub rather than the real `AndesButton`, so this spec
+ * tests the trigger's contract with *any* such wrapper, not one component.
+ */
+@Component({
+  selector: 'andes-test-wrapper-button',
+  template: '<button type="button"><ng-content /></button>',
+})
+class WrapperButtonComponent {}
+
+@Component({
+  imports: [
+    AndesDrawer,
+    AndesDrawerTrigger,
+    AndesDrawerHeader,
+    AndesDrawerTitle,
+    WrapperButtonComponent,
+  ],
+  template: `
+    <andes-drawer>
+      <andes-test-wrapper-button andesDrawerTrigger
+        >Open</andes-test-wrapper-button
+      >
+
+      <andes-drawer-header>
+        <andes-drawer-title>Move goal</andes-drawer-title>
+      </andes-drawer-header>
+    </andes-drawer>
+  `,
+})
+class WrapperTriggerHostComponent {}
+
 describe('AndesDrawer', () => {
   withElementGeometry();
   withScrollableDocument();
@@ -350,6 +384,30 @@ describe('AndesDrawer', () => {
       fixture.detectChanges();
 
       expect(document.activeElement).toBe(trigger());
+    });
+
+    // Regression: the trigger registers itself as the element focus returns to,
+    // but a wrapper-component host (`<andes-button andesDrawerTrigger>`) is not
+    // focusable - focus() on it no-ops and focus would be stranded on <body>.
+    it('returns focus to the inner control when the trigger is a wrapper component', async () => {
+      const fixture = TestBed.createComponent(WrapperTriggerHostComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const innerButton = fixture.nativeElement.querySelector(
+        'andes-test-wrapper-button button',
+      ) as HTMLElement;
+      innerButton.focus();
+
+      clickOn(innerButton);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(document.activeElement).not.toBe(innerButton);
+
+      pressEscape();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(innerButton);
     });
   });
 
