@@ -93,15 +93,19 @@ export const TemplateDrivenForm: Story = {
 
 export const AllStates: Story = {
   render: () => ({
+    // `checked`/`indeterminate` are `model()`s, which - unlike `disabled`'s plain
+    // `input({ transform: booleanAttribute })` - don't support a transform (a two-way
+    // binding's output must emit exactly the type its input accepts), so a bare, bracket-less
+    // attribute isn't accepted for them; bind the literal with brackets instead.
     template: `
       <div style="display: flex; flex-direction: column; gap: 1rem;">
         <andes-checkbox>Unchecked</andes-checkbox>
-        <andes-checkbox checked>Checked</andes-checkbox>
-        <andes-checkbox indeterminate>Indeterminate</andes-checkbox>
+        <andes-checkbox [checked]="true">Checked</andes-checkbox>
+        <andes-checkbox [indeterminate]="true">Indeterminate</andes-checkbox>
         <andes-checkbox disabled>Disabled unchecked</andes-checkbox>
-        <andes-checkbox disabled checked>Disabled checked</andes-checkbox>
-        <andes-checkbox disabled indeterminate>Disabled indeterminate</andes-checkbox>
-        <andes-checkbox readOnly checked>Read-only checked</andes-checkbox>
+        <andes-checkbox disabled [checked]="true">Disabled checked</andes-checkbox>
+        <andes-checkbox disabled [indeterminate]="true">Disabled indeterminate</andes-checkbox>
+        <andes-checkbox readOnly [checked]="true">Read-only checked</andes-checkbox>
         <andes-checkbox aria-invalid="true">Invalid</andes-checkbox>
       </div>
     `,
