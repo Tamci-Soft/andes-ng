@@ -1,0 +1,11 @@
+@for (toast of toasts(); track toast.id) {
+<andes-toast-item
+  [toast]="toast"
+  (mouseenter)="onPauseStart(toast.id)"
+  (mouseleave)="onPauseEnd(toast.id)"
+  (focusin)="onPauseStart(toast.id)"
+  (focusout)="onPauseEnd(toast.id)"
+  (dismissRequested)="onDismiss(toast.id)"
+  (actionClicked)="onAction(toast)"
+/>
+}
