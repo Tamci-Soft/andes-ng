@@ -15,6 +15,7 @@ Documentación de implementación para agentes que construyan cada componente de
 ## Índice
 
 ### Forms / Data Entry
+
 - [Input](input.md)
 - [Textarea](textarea.md)
 - [Select](select.md)
@@ -27,6 +28,7 @@ Documentación de implementación para agentes que construyan cada componente de
 - [Form](form.md)
 
 ### Overlays
+
 - [Dialog / Modal](dialog-modal.md)
 - [Drawer / Sheet](drawer-sheet.md)
 - [Popover](popover.md)
@@ -34,24 +36,28 @@ Documentación de implementación para agentes que construyan cada componente de
 - [Dropdown Menu](dropdown-menu.md)
 
 ### Data Display
+
 - [Table](table.md)
 - [Card](card.md)
 - [Avatar](avatar.md)
 - [Badge / Tag](badge-tag.md)
 
 ### Feedback
+
 - [Alert](alert.md)
 - [Toast / Notification](toast-notification.md)
 - [Progress](progress.md)
 - [Skeleton](skeleton.md)
 
 ### Navigation / Disclosure
+
 - [Tabs](tabs.md)
 - [Accordion / Collapse](accordion-collapse.md)
 - [Breadcrumb](breadcrumb.md)
 - [Pagination](pagination.md)
 
 ### Ya implementado
+
 - [Button](button.md) — referencia de cómo se ve esta guía aplicada a un componente ya construido en `AndesButton`.
 
 Ver también [../component-library-comparison.md](../component-library-comparison.md) para el panorama general de librerías y la matriz resumen componente × librería.
