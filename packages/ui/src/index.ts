@@ -225,3 +225,14 @@ export type {
 
 export { AndesDatePicker } from './lib/date-picker/date-picker';
 export type { AndesDatePickerValue } from './lib/date-picker/date-picker';
+
+export { AndesCombobox } from './lib/combobox/combobox';
+export type {
+  AndesComboboxCompareWith,
+  AndesComboboxFilterPredicate,
+  AndesComboboxItemToString,
+} from './lib/combobox/combobox';
+export { AndesComboboxContent } from './lib/combobox/combobox-content';
+export { AndesComboboxEmpty } from './lib/combobox/combobox-empty';
+export { AndesComboboxInput } from './lib/combobox/combobox-input';
+export { AndesComboboxItem } from './lib/combobox/combobox-item';
