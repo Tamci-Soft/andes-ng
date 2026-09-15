@@ -11,6 +11,7 @@ const meta: Meta<AndesTextarea> = {
     size: { control: 'select', options: ['sm', 'md', 'lg'] },
     disabled: { control: 'boolean' },
     readonly: { control: 'boolean' },
+    required: { control: 'boolean' },
     placeholder: { control: 'text' },
     rows: { control: 'number' },
     maxLength: { control: 'number' },
@@ -27,6 +28,7 @@ const meta: Meta<AndesTextarea> = {
     size: 'md',
     disabled: false,
     readonly: false,
+    required: false,
     placeholder: 'Type your message…',
     rows: 3,
     showCount: false,
@@ -40,6 +42,7 @@ const meta: Meta<AndesTextarea> = {
         [size]="size"
         [disabled]="disabled"
         [readonly]="readonly"
+        [required]="required"
         [placeholder]="placeholder"
         [rows]="rows"
         [maxLength]="maxLength"
@@ -85,6 +88,16 @@ export const ReadOnly: Story = {
     props: args,
     template: `<div style="width: 320px;">
       <andes-textarea [readonly]="readonly" [rows]="rows" aria-label="Message">This value can't be edited.</andes-textarea>
+    </div>`,
+  }),
+};
+
+export const Required: Story = {
+  render: (args) => ({
+    props: args,
+    template: `<div style="width: 320px;">
+      <label for="required-textarea" style="display: block; font-size: 0.875rem; margin-bottom: 0.25rem;">Message <span aria-hidden="true">*</span></label>
+      <andes-textarea id="required-textarea" [size]="size" required placeholder="Required field" />
     </div>`,
   }),
 };

@@ -45,6 +45,7 @@ export class AndesTextarea implements ControlValueAccessor {
   readonly size = input<AndesTextareaSize>('md');
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly readonly = input(false, { transform: booleanAttribute });
+  readonly required = input(false, { transform: booleanAttribute });
   readonly placeholder = input<string | undefined>(undefined);
   readonly id = input<string | undefined>(undefined);
   readonly name = input<string | undefined>(undefined);
