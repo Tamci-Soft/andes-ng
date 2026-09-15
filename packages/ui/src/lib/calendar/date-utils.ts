@@ -186,6 +186,28 @@ export function isValidDate(value: unknown): value is Date {
 }
 
 /**
+ * Clamps a `numberAttribute`-coerced `weekStartsOn` value into the valid
+ * `AndesWeekday` range (`0`-`6`), falling back to `0` (Sunday) for anything
+ * that is not a whole number in that range (`NaN` from a non-numeric bare
+ * attribute, or an out-of-range integer like `7` or `-1`).
+ *
+ * Shared by `AndesCalendar` and `AndesDatePicker`: both declare their own
+ * `weekStartsOn` input and both need the same guard, because a bare
+ * `weekStartsOn="1"` attribute (no square brackets) reaches Angular as the
+ * *string* `"1"`, not the number `1`. Left uncoerced, that string survives
+ * into {@link weekdayNames}'s `(weekStartsOn + index) % 7`, where `+` on a
+ * string operand is concatenation, not addition — `"1" + 0` produces the
+ * string `"10"`, and `"10" % 7` coerces back to a number for a silently
+ * wrong result (`3`) instead of the intended `1`.
+ */
+export function clampWeekday(value: number): AndesWeekday {
+  if (!Number.isInteger(value) || value < 0 || value > 6) {
+    return 0;
+  }
+  return value as AndesWeekday;
+}
+
+/**
  * How many cells precede the 1st of the month, given which weekday the week
  * starts on. The `+ 7` keeps the modulo positive for e.g. a Sunday 1st in a
  * Monday-first week.
