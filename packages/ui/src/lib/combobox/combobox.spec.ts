@@ -39,7 +39,13 @@ const KEY_CODES: Record<string, number> = {
       <input andesComboboxInput placeholder="Search fruit" />
       <div andesComboboxContent>
         @for (item of comboboxRef.filteredItems(); track item) {
-          <div andesComboboxItem [value]="item">{{ item }}</div>
+          <div
+            andesComboboxItem
+            [value]="item"
+            [disabled]="item === disabledItem()"
+          >
+            {{ item }}
+          </div>
         } @empty {
           <div andesComboboxEmpty>No results found.</div>
         }
@@ -52,6 +58,7 @@ class NgModelHost {
   readonly value = signal<string | null>(null);
   readonly disabled = signal(false);
   readonly autoHighlight = signal(false);
+  readonly disabledItem = signal<string | null>(null);
 }
 
 @Component({
@@ -131,7 +138,20 @@ function harness<
     return event;
   }
 
-  return { ...parts, detect, focus, type, press, mousedown };
+  /** Mouse arriving over a row: the pair of events a real pointer entry always fires. */
+  function hover(el: Element): void {
+    el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+    el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+    detect();
+  }
+
+  /** A pointer that never left the row twitching again, e.g. after an arrow key. */
+  function mousemove(el: Element): void {
+    el.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+    detect();
+  }
+
+  return { ...parts, detect, focus, type, press, mousedown, hover, mousemove };
 }
 
 describe('AndesCombobox', () => {
@@ -223,6 +243,176 @@ describe('AndesCombobox', () => {
       expect(empty).toBeTruthy();
       expect(empty?.getAttribute('role')).toBe('status');
       expect(empty?.textContent?.trim()).toBe('No results found.');
+    });
+
+    it('renders an icon alongside the message', () => {
+      const { type, panel } = createNgModelHost();
+
+      type('zzz');
+
+      const empty = panel()?.querySelector('.andes-combobox-empty');
+      const icon = empty?.querySelector('svg.andes-combobox-empty__icon');
+      expect(icon).toBeTruthy();
+      // Decorative: the role="status" live region must announce the message only.
+      expect(icon?.getAttribute('aria-hidden')).toBe('true');
+      // ...and above it, not in place of it.
+      expect(empty?.firstElementChild).toBe(icon);
+      expect(empty?.textContent?.trim()).toBe('No results found.');
+    });
+  });
+
+  describe('pointer hover highlighting', () => {
+    it('makes a hovered option the active descendant, even when it is not the first', () => {
+      const { focus, hover, input, options } = createNgModelHost();
+      focus();
+
+      hover(options()[2]);
+
+      expect(input.getAttribute('aria-activedescendant')).toBe(options()[2].id);
+      expect(options()[2].hasAttribute('data-active')).toBe(true);
+    });
+
+    it('moves the highlight off whichever option was active before', () => {
+      const { focus, press, hover, input, options } = createNgModelHost();
+      focus();
+      press('ArrowDown');
+      expect(options()[0].hasAttribute('data-active')).toBe(true);
+
+      hover(options()[2]);
+
+      expect(options()[0].hasAttribute('data-active')).toBe(false);
+      expect(input.getAttribute('aria-activedescendant')).toBe(options()[2].id);
+    });
+
+    it('takes the highlight back on the next mousemove after an arrow key moved it away', () => {
+      const { focus, hover, press, mousemove, input, options } =
+        createNgModelHost();
+      focus();
+      hover(options()[2]);
+      press('ArrowDown');
+      expect(input.getAttribute('aria-activedescendant')).toBe(options()[3].id);
+
+      // The pointer never left row 2, so no second mouseenter is ever fired for it.
+      mousemove(options()[2]);
+
+      expect(input.getAttribute('aria-activedescendant')).toBe(options()[2].id);
+    });
+
+    it('commits the hovered option on Enter', () => {
+      const { focus, hover, press, host, options } = createNgModelHost();
+      focus();
+
+      hover(options()[2]);
+      press('Enter');
+
+      expect(host.value()).toBe('Banana');
+    });
+
+    it('never highlights a disabled option', () => {
+      const { fixture, focus, hover, input, options, host } =
+        createNgModelHost();
+      host.disabledItem.set('Banana');
+      fixture.detectChanges();
+      focus();
+
+      hover(options()[2]);
+
+      expect(input.hasAttribute('aria-activedescendant')).toBe(false);
+      expect(options()[2].hasAttribute('data-active')).toBe(false);
+    });
+
+    it('keeps real DOM focus on the input while hovering', () => {
+      const { focus, hover, input, options } = createNgModelHost();
+      input.focus();
+      focus();
+
+      hover(options()[2]);
+
+      expect(document.activeElement).toBe(input);
+    });
+  });
+
+  describe('the selected option indicator', () => {
+    it('renders a trailing check on the selected option only', () => {
+      const { focus, press, options } = createNgModelHost();
+      focus();
+      press('ArrowDown');
+      press('Enter');
+      focus();
+
+      const selected = options().find(
+        (el) => el.textContent?.trim() === 'Apple',
+      );
+      expect(selected?.getAttribute('data-selected')).toBe('');
+      expect(
+        selected?.querySelector('.andes-combobox-item__indicator svg'),
+      ).toBeTruthy();
+      expect(
+        options()
+          .filter((el) => el !== selected)
+          .every(
+            (el) =>
+              !el.hasAttribute('data-selected') &&
+              !el.querySelector('.andes-combobox-item__indicator svg'),
+          ),
+      ).toBe(true);
+    });
+
+    it('reserves the indicator column on every option, so labels stay aligned', () => {
+      const { focus, press, options } = createNgModelHost();
+      focus();
+      press('ArrowDown');
+      press('Enter');
+      focus();
+
+      expect(
+        options().every(
+          (el) =>
+            el.lastElementChild?.className === 'andes-combobox-item__indicator',
+        ),
+      ).toBe(true);
+    });
+
+    it('hides the indicator from assistive tech, which reads aria-selected instead', () => {
+      const { focus, press, options } = createNgModelHost();
+      focus();
+      press('ArrowDown');
+      press('Enter');
+      focus();
+
+      const indicator = options()[0].querySelector(
+        '.andes-combobox-item__indicator',
+      );
+      expect(indicator?.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('drops the indicator again once the selection is edited away', () => {
+      const { focus, press, type, options } = createNgModelHost();
+      focus();
+      press('ArrowDown');
+      press('Enter');
+      focus();
+      expect(
+        options()[0].querySelector('.andes-combobox-item__indicator svg'),
+      ).toBeTruthy();
+
+      type('App');
+
+      expect(
+        options()[0].querySelector('.andes-combobox-item__indicator svg'),
+      ).toBeNull();
+    });
+  });
+
+  describe('the panel', () => {
+    it('fills the width the overlay sizes to the input, rather than its own content', () => {
+      const { focus, panel } = createNgModelHost();
+      focus();
+
+      // The CDK's .cdk-overlay-pane is itself a flex container already sized to the
+      // anchor, so a content-sized panel would leave every row short of the input's
+      // right edge - see the note in combobox.css.
+      expect(getComputedStyle(panel() as HTMLElement).width).toBe('100%');
     });
   });
 
