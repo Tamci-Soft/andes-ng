@@ -12,6 +12,7 @@ const meta: Meta<AndesCheckbox> = {
     disabled: { control: 'boolean' },
     indeterminate: { control: 'boolean' },
     required: { control: 'boolean' },
+    readOnly: { control: 'boolean' },
     name: { control: 'text' },
     value: { control: 'text' },
   },
@@ -20,10 +21,11 @@ const meta: Meta<AndesCheckbox> = {
     disabled: false,
     indeterminate: false,
     required: false,
+    readOnly: false,
   },
   render: (args) => ({
     props: args,
-    template: `<andes-checkbox [checked]="checked" [disabled]="disabled" [indeterminate]="indeterminate" [required]="required" [name]="name" [value]="value">Accept terms and conditions</andes-checkbox>`,
+    template: `<andes-checkbox [checked]="checked" [disabled]="disabled" [indeterminate]="indeterminate" [required]="required" [readOnly]="readOnly" [name]="name" [value]="value">Accept terms and conditions</andes-checkbox>`,
   }),
 };
 
@@ -53,6 +55,10 @@ export const DisabledChecked: Story = {
 
 export const DisabledIndeterminate: Story = {
   args: { disabled: true, indeterminate: true },
+};
+
+export const ReadOnly: Story = {
+  args: { readOnly: true, checked: true },
 };
 
 export const Invalid: Story = {
@@ -95,6 +101,7 @@ export const AllStates: Story = {
         <andes-checkbox disabled>Disabled unchecked</andes-checkbox>
         <andes-checkbox disabled checked>Disabled checked</andes-checkbox>
         <andes-checkbox disabled indeterminate>Disabled indeterminate</andes-checkbox>
+        <andes-checkbox readOnly checked>Read-only checked</andes-checkbox>
         <andes-checkbox aria-invalid="true">Invalid</andes-checkbox>
       </div>
     `,

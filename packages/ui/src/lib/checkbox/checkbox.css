@@ -12,6 +12,13 @@
   opacity: 0.6;
 }
 
+/* Distinct from disabled on purpose - stays fully opaque (it's a normal, focusable control
+   the user just can't change), only the pointer cursor changes to signal it won't toggle. */
+.andes-checkbox--readonly,
+.andes-checkbox--readonly .andes-checkbox__input {
+  cursor: default;
+}
+
 .andes-checkbox__control {
   position: relative;
   display: inline-flex;
