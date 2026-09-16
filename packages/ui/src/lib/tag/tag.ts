@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -23,6 +24,7 @@ export type AndesTagVariant = 'outlined' | 'filled' | 'solid';
 
 @Component({
   selector: 'andes-tag',
+  imports: [NgTemplateOutlet],
   templateUrl: './tag.html',
   styleUrl: './tag.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

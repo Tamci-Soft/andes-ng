@@ -110,6 +110,14 @@ describe('AndesTag', () => {
     ) as HTMLButtonElement;
 
     expect(closeButton).toBeTruthy();
+    // Regression guard: closable used to sit in its own `@if` branch with its own copy of
+    // `<ng-content>`, and Angular only ever renders the projected label into ONE of several
+    // structurally-identical `<ng-content>` copies spread across `@if`/`@else if` branches -
+    // silently dropping it in every other branch, even though only one is ever in the DOM at
+    // a time. Re-querying the tag here (not the `tag` from `createHost()`, which is a
+    // reference to the branch that was live *before* this `set(true)` swapped it out) is
+    // what makes this assertion meaningful.
+    expect(queryTag(fixture).textContent?.trim()).toBe('Beta');
     closeButton.click();
     fixture.detectChanges();
 
@@ -150,6 +158,7 @@ describe('AndesTag', () => {
     expect(tag.tagName).toBe('A');
     expect(tag.getAttribute('href')).toBe('https://andes-ng.dev');
     expect(tag.getAttribute('target')).toBe('_blank');
+    expect(tag.textContent?.trim()).toBe('Beta');
 
     tag.dispatchEvent(new MouseEvent('click', { cancelable: true }));
     fixture.detectChanges();
@@ -180,6 +189,29 @@ describe('AndesTag', () => {
     ).toBeTruthy();
   });
 
+  it('keeps its own font-family on the native <a>/<button> forms, not the page ambient font', () => {
+    // Regression guard: `button.andes-tag, a.andes-tag` used to carry `font: inherit`, meant
+    // to override the browser's UA default button font - but at (0,1,1) it outranks the
+    // plain `.andes-tag { font-family: ... }` rule at (0,1,0) regardless of source order, so
+    // it silently won and reset font-family to whatever's ambient (nothing in particular,
+    // e.g. the browser's serif default in Storybook) instead of the design system's font.
+    const outlined = createHost();
+    const outlinedFont = getComputedStyle(outlined.tag).fontFamily;
+
+    const { fixture } = createHost();
+    fixture.componentInstance.href.set('https://andes-ng.dev');
+    fixture.detectChanges();
+    const linkFont = getComputedStyle(queryTag(fixture)).fontFamily;
+
+    fixture.componentInstance.href.set(undefined);
+    fixture.componentInstance.checkable.set(true);
+    fixture.detectChanges();
+    const buttonFont = getComputedStyle(queryTag(fixture)).fontFamily;
+
+    expect(linkFont).toBe(outlinedFont);
+    expect(buttonFont).toBe(outlinedFont);
+  });
+
   it('renders as a native button when checkable, ignoring color/variant', () => {
     const { fixture } = createHost();
     fixture.componentInstance.checkable.set(true);
@@ -191,6 +223,7 @@ describe('AndesTag', () => {
     expect(tag.getAttribute('aria-pressed')).toBe('false');
     expect(tag.classList).toContain('andes-tag--checkable');
     expect(tag.classList).not.toContain('andes-tag--color-danger');
+    expect(tag.textContent?.trim()).toBe('Beta');
   });
 
   it('toggles checked state and emits checkedChange on click', () => {
@@ -232,6 +265,7 @@ describe('AndesTag', () => {
 
     expect(tag.tagName).toBe('BUTTON');
     expect(tag.hasAttribute('aria-pressed')).toBe(false);
+    expect(tag.textContent?.trim()).toBe('Beta');
 
     tag.click();
     fixture.detectChanges();
@@ -275,6 +309,23 @@ describe('AndesTag', () => {
 
     expect(tag.classList).toContain('andes-tag--disabled');
     expect(tag.disabled).toBe(true);
+  });
+
+  it('projects both the icon slot and the default label together when closable', () => {
+    @Component({
+      imports: [AndesTag],
+      template: `<andes-tag closable
+        ><span slot="icon">icon</span>Beta</andes-tag
+      >`,
+    })
+    class WithIconHost {}
+
+    const fixture = TestBed.createComponent(WithIconHost);
+    fixture.detectChanges();
+    const tag = fixture.nativeElement.querySelector('[data-slot="tag"]');
+
+    expect(tag.querySelector('[slot=icon]')?.textContent).toBe('icon');
+    expect(tag.textContent?.trim()).toBe('iconBeta');
   });
 
   it('treats bare boolean attributes (no brackets) as true, not the string ""', () => {
