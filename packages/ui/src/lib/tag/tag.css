@@ -29,11 +29,20 @@
 }
 
 /* Interactive (checkable/clickable) tags render as a native <button>, and link tags as a
-   native <a> - reset their non-tag defaults. */
+   native <a> - reset the cursor a plain <a>/<button> wouldn't otherwise need reset for a
+   tag-shaped control. Deliberately does NOT touch `font`: a native <button> has its own UA
+   font distinct from the page's, and `font: inherit` used to be here to override it - but
+   `font` is a shorthand, so at the same specificity tier as `.andes-tag` (an element+class
+   selector always outweighs a class-only one) it silently clobbered the font-family/size/
+   weight/line-height `.andes-tag` itself sets just above, falling back to whatever font
+   happens to be ambient wherever the tag is used - andes-ng's own font on a page that sets
+   it, but nothing in particular otherwise (a browser's serif default in Storybook, since
+   nothing here sets a page-level font-family). `.andes-tag` already fully specifies the
+   font `<button>`/`<a>` should render in; there is nothing left for `font` to usefully
+   reset. */
 button.andes-tag,
 a.andes-tag {
   cursor: pointer;
-  font: inherit;
 }
 
 button.andes-tag:disabled {
