@@ -1,3 +1,5 @@
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideBell } from '@ng-icons/lucide';
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { AndesBadge } from './badge';
@@ -132,9 +134,18 @@ export const StandaloneStatus: Story = {
 
 export const OnIconButton: Story = {
   render: () => ({
+    moduleMetadata: {
+      imports: [NgIcon],
+      providers: [provideIcons({ lucideBell })],
+    },
     template: `
       <andes-badge [count]="8" variant="danger">
-        <button style="width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid var(--andes-color-border); background: var(--andes-color-background);" aria-label="Notifications">🔔</button>
+        <button
+          style="display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid var(--andes-color-border); background: var(--andes-color-background); color: var(--andes-color-foreground); cursor: pointer;"
+          aria-label="Notifications"
+        >
+          <ng-icon name="lucideBell" style="width: 1.125rem; height: 1.125rem;" />
+        </button>
       </andes-badge>
     `,
   }),
