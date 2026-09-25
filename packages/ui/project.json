@@ -59,7 +59,10 @@
         "configDir": "packages/ui/.storybook",
         "browserTarget": "ui:build-storybook",
         "compodoc": false,
-        "styles": ["packages/tokens/src/theme.css"]
+        "styles": [
+          "packages/tokens/src/theme.css",
+          "node_modules/@angular/cdk/a11y-prebuilt.css"
+        ]
       },
       "configurations": {
         "ci": {
@@ -75,7 +78,10 @@
         "configDir": "packages/ui/.storybook",
         "browserTarget": "ui:build-storybook",
         "compodoc": false,
-        "styles": ["packages/tokens/src/theme.css"]
+        "styles": [
+          "packages/tokens/src/theme.css",
+          "node_modules/@angular/cdk/a11y-prebuilt.css"
+        ]
       },
       "configurations": {
         "ci": {
