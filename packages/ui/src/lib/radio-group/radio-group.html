@@ -1,0 +1,22 @@
+@for (option of normalizedOptions(); track option.value) {
+<andes-radio
+  [value]="option.value"
+  [disabled]="!!option.disabled"
+  [id]="option.id"
+  [attr.title]="option.title ?? null"
+>
+  @if (optionLabel(); as labelTemplate) {
+  <ng-container
+    *ngTemplateOutlet="
+      labelTemplate;
+      context: {
+        $implicit: option,
+        checked: value() === option.value,
+        index: $index,
+      }
+    "
+  />
+  } @else { {{ option.label }} }
+</andes-radio>
+}
+<ng-content />

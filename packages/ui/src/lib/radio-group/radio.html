@@ -1,0 +1,24 @@
+<label class="andes-radio__label" [attr.for]="inputId()">
+  <input
+    #input
+    type="radio"
+    class="andes-radio__input"
+    [id]="inputId()"
+    [name]="name()"
+    [value]="nativeValue()"
+    [checked]="isChecked()"
+    [disabled]="isDisabled()"
+    [required]="required()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-describedby]="ariaDescribedby()"
+    (change)="onChange($event)"
+  />
+  @if (!isButton()) {
+  <span class="andes-radio__control" aria-hidden="true">
+    <span class="andes-radio__dot"></span>
+  </span>
+  }
+  <!-- In button mode this span is the visible segment face (see radio.css), so it stays a
+       sibling after the input and the focus ring can key off input:focus-visible ~ text. -->
+  <span class="andes-radio__text"><ng-content /></span>
+</label>
