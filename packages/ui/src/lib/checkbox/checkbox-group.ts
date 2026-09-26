@@ -42,7 +42,7 @@ export type AndesCheckboxGroupOrientation = 'vertical' | 'horizontal';
  * any other component - and still participate.
  *
  * Alternatively (or additionally), pass `options` and the group renders one checkbox per
- * option itself - Ant Design's `Checkbox.Group options`:
+ * option itself:
  *
  * ```html
  * <andes-checkbox-group [options]="['Apple', 'Banana']" [(value)]="fruits" />
@@ -105,10 +105,10 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
   readonly options = input<readonly (string | AndesCheckboxOption)[]>([]);
 
   /**
-   * Fires with the new selection on every USER change (an item or select-all click) - Ant's
-   * `onChange(checkedValues)`. Unlike `valueChange`, never for a programmatic `[(value)]` or
-   * form write. Named `changed` rather than `change` because items' native `change` events
-   * bubble up to this host (see `AndesCheckbox.changed`).
+   * Fires with the new selection on every USER change (an item or select-all click). Unlike
+   * `valueChange`, never for a programmatic `[(value)]` or form write. Named `changed` rather
+   * than `change` because items' native `change` events bubble up to this host (see
+   * `AndesCheckbox.changed`).
    */
   readonly changed = output<readonly string[]>();
 

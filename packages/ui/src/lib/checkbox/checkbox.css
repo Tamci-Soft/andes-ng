@@ -5,7 +5,7 @@
   gap: var(--andes-space-2);
   font-family: var(--andes-font-family), sans-serif;
   /* Set rather than inherited so the label stays legible in the dark theme even when the page
-     itself never sets a text color (Ant does the same with `colorText`). */
+     itself never sets a text color. */
   color: var(--andes-color-foreground);
   cursor: pointer;
 }

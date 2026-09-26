@@ -25,9 +25,9 @@ import {
 export type AndesCheckboxLabelPosition = 'start' | 'end';
 
 /**
- * Payload of `AndesCheckbox`'s `change` output - the Angular counterpart of Ant Design's
- * `CheckboxChangeEvent` (`e.target.checked` + `e.nativeEvent`), flattened so the common case
- * reads `event.checked` rather than digging through a synthetic `target`.
+ * Payload of `AndesCheckbox`'s `changed` output: the new checked state plus the native event,
+ * flattened so the common case reads `event.checked` rather than digging through a synthetic
+ * `target`.
  */
 export interface AndesCheckboxChange {
   /** The new checked state. */
@@ -146,8 +146,8 @@ export class AndesCheckbox implements ControlValueAccessor {
   readonly labelPosition = input<AndesCheckboxLabelPosition>('end');
 
   /**
-   * Focuses the native input once, right after the first render - Ant's `autoFocus`. Read once
-   * on purpose (like the HTML `autofocus` attribute): toggling it later never steals focus.
+   * Focuses the native input once, right after the first render. Read once on purpose (like the
+   * HTML `autofocus` attribute): toggling it later never steals focus.
    */
   readonly autoFocus = input(false, { transform: booleanAttribute });
 
@@ -155,16 +155,16 @@ export class AndesCheckbox implements ControlValueAccessor {
    * Opts a checkbox placed inside an `AndesCheckboxGroup` out of the group: it keeps its own
    * `checked` model, is not part of the group's `value` array or select-all aggregate, and
    * does not inherit the group's `name`. Like a disabled `<fieldset>`, a disabled group still
-   * disables it - that mirrors Ant Design's `skipGroup`, which only skips the value wiring.
+   * disables it: opting out only skips the value wiring, not the group's disabled state.
    */
   readonly skipGroup = input(false, { transform: booleanAttribute });
 
   /**
    * Fires on every USER toggle (never for programmatic `checked`/form writes), carrying the
-   * new state and the native event - Ant's `onChange`. Deliberately not named `change`: the
-   * inner input's native `change` event already bubbles to `<andes-checkbox>` (and
-   * `AndesCheckboxSelectAll` listens for it), so an output of that name would make `(change)`
-   * fire twice with two different payloads - which is also what `no-output-native` forbids.
+   * new state and the native event. Deliberately not named `change`: the inner input's native
+   * `change` event already bubbles to `<andes-checkbox>` (and `AndesCheckboxSelectAll` listens
+   * for it), so an output of that name would make `(change)` fire twice with two different
+   * payloads - which is also what `no-output-native` forbids.
    */
   readonly changed = output<AndesCheckboxChange>();
 
@@ -255,12 +255,12 @@ export class AndesCheckbox implements ControlValueAccessor {
     });
   }
 
-  /** Moves focus to the native input - Ant's `focus()` method. */
+  /** Moves focus to the native input. */
   focus(options?: FocusOptions): void {
     this.inputRef().nativeElement.focus(options);
   }
 
-  /** Removes focus from the native input - Ant's `blur()` method. */
+  /** Removes focus from the native input. */
   blur(): void {
     this.inputRef().nativeElement.blur();
   }

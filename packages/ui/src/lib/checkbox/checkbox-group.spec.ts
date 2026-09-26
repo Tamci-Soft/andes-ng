@@ -424,7 +424,7 @@ describe('AndesCheckboxGroup', () => {
     });
   });
 
-  describe('changed output (Ant onChange parity)', () => {
+  describe('changed output (user-change event)', () => {
     @Component({
       imports: [AndesCheckbox, AndesCheckboxGroup, AndesCheckboxSelectAll],
       template: `<andes-checkbox-group
