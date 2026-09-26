@@ -147,7 +147,7 @@
   cursor: not-allowed;
 }
 
-/* In a range, the input the next pick fills is underlined, as in Ant. */
+/* In a range, the input the next pick fills is underlined. */
 .andes-date-picker__input[data-active] {
   box-shadow: inset 0 -2px 0 var(--andes-color-primary);
 }
@@ -262,7 +262,7 @@
   display: flex;
 }
 
-/* Presets: a side list, as Ant's `presets`. */
+/* Presets: a side list of one-click values. */
 
 .andes-date-picker__presets {
   display: flex;

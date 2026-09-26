@@ -297,7 +297,7 @@
   border-radius: 0;
 }
 
-/* The range the hovered (or focused) cell would close: Ant's dashed preview, so it
+/* The range the hovered (or focused) cell would close: a dashed preview, so it
    stays distinct from the committed range's solid fill. */
 .andes-calendar__day--in-preview {
   border-style: dashed;
@@ -341,7 +341,7 @@
   opacity: 0.7;
 }
 
-/* Fullscreen: a page-level calendar whose cells hold content (Ant's `fullscreen`).
+/* Fullscreen: a page-level calendar whose cells hold content (`fullscreen`).
    Cells stretch to fill the width and read top-down: the day number, then the
    `cellTemplate` content. */
 

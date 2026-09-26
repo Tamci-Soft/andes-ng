@@ -70,13 +70,13 @@ import {
  */
 export type AndesDatePickerValue = Date | readonly [Date, Date] | null;
 
-/** Field height, matching `AndesButton`'s `sm`/`md`/`lg`. Ant's `small`/`middle`/`large`. */
+/** Field height, matching `AndesButton`'s `sm`/`md`/`lg`. */
 export type AndesDatePickerSize = 'sm' | 'md' | 'lg';
 
 /** Validation styling. `error` also sets `aria-invalid` on the input(s). */
 export type AndesDatePickerStatus = 'error' | 'warning';
 
-/** The field's visual treatment, as Ant's `variant`. */
+/** The field's visual treatment. */
 export type AndesDatePickerVariant =
   'outlined' | 'filled' | 'borderless' | 'underlined';
 
@@ -84,7 +84,7 @@ export type AndesDatePickerVariant =
 export type AndesDatePickerPlacement =
   'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
 
-/** `showTime` options (Ant's `showTime` object, minus the TimePicker-only parts). */
+/** `showTime` options. */
 export interface AndesTimeOptions {
   /** Interval between hour options. Default `1`. */
   readonly hourStep?: number;
@@ -96,7 +96,7 @@ export interface AndesTimeOptions {
   readonly showSecond?: boolean;
 }
 
-/** A one-click value in the panel's side list (Ant's `presets`). */
+/** A one-click value in the panel's side list. */
 export interface AndesDatePickerPreset {
   readonly label: string;
   /** The value, or a function evaluated on click so "Last 7 days" stays current. */
@@ -194,8 +194,7 @@ function sameValue(a: AndesDatePickerValue, b: AndesDatePickerValue): boolean {
 }
 
 /**
- * A date (or range) field with a calendar popover, wired into Angular forms —
- * the andes-ng take on Ant Design's `DatePicker` and `DatePicker.RangePicker`.
+ * A date (or range) field with a calendar popover, wired into Angular forms.
  *
  * Following the shadcn/ui anatomy, this is a *composition*: `AndesCalendar` does
  * the date work, `AndesOverlayPrimitive`'s `popover` preset does the panel work,
@@ -222,7 +221,7 @@ function sameValue(a: AndesDatePickerValue, b: AndesDatePickerValue): boolean {
  *
  * Without `showTime`/`needConfirm` a pick commits at once and closes the panel
  * (after the second day in `range` mode). With `needConfirm` — on by default with
- * `showTime`, as in Ant — picks are pending until the OK button (or Enter), and
+ * `showTime` — picks are pending until the OK button (or Enter), and
  * closing the panel any other way discards them.
  */
 @Component({
@@ -269,16 +268,16 @@ export class AndesDatePicker implements ControlValueAccessor {
 
   protected readonly idPrefix = `andes-date-picker-${nextId++}`;
 
-  /** One date or a span of dates (Ant's `RangePicker`). */
+  /** One date or a span of dates. */
   readonly mode = input<AndesCalendarMode>('single');
 
-  /** Selection granularity, as Ant's `picker`: `date`, `week`, `month`, `quarter` or `year`. */
+  /** Selection granularity: `date`, `week`, `month`, `quarter` or `year`. */
   readonly picker = input<AndesPickerType>('date');
 
-  /** Earliest selectable day, inclusive. Ant's `minDate`. */
+  /** Earliest selectable day, inclusive. */
   readonly min = input<Date | null, unknown>(null, { transform: coerceDate });
 
-  /** Latest selectable day, inclusive. Ant's `maxDate`. */
+  /** Latest selectable day, inclusive. */
   readonly max = input<Date | null, unknown>(null, { transform: coerceDate });
 
   /** BCP 47 tag driving month/weekday names and the display format. */
@@ -304,8 +303,8 @@ export class AndesDatePicker implements ControlValueAccessor {
   readonly fixedWeeks = input(false, { transform: booleanAttribute });
 
   /**
-   * Months shown side by side. Defaults to two for a `range` day/week picker (Ant's
-   * two-panel `RangePicker`), one otherwise.
+   * Months shown side by side. Defaults to two for a `range` day/week picker, one
+   * otherwise.
    */
   readonly numberOfMonths = input<number | undefined, unknown>(undefined, {
     transform: (value: unknown) =>
@@ -315,10 +314,10 @@ export class AndesDatePicker implements ControlValueAccessor {
   /** Prefix each week with its number (always on for `picker="week"`). */
   readonly showWeek = input(false, { transform: booleanAttribute });
 
-  /** Per-date veto, applied on top of `min`/`max`. Ant's `disabledDate`. */
+  /** Per-date veto, applied on top of `min`/`max`. */
   readonly dateDisabled = input<AndesDateDisabledFn | null>(null);
 
-  /** Custom cell content, passed to the calendar (Ant's `cellRender`). */
+  /** Custom cell content, passed to the calendar. */
   readonly cellTemplate = input<TemplateRef<AndesCalendarCellContext> | null>(
     null,
   );
@@ -354,14 +353,14 @@ export class AndesDatePicker implements ControlValueAccessor {
   readonly displayFormat = input<Intl.DateTimeFormatOptions | null>(null);
 
   /**
-   * Token format(s) for display and typed input, as Ant's `format`
-   * (`'DD/MM/YYYY'`, `['DD/MM/YYYY', 'DD/MM/YY']`, …; see `date-format.ts` for the
-   * tokens). The first pattern displays, every pattern parses. A function formats
-   * only; typing then accepts ISO dates. Takes precedence over `displayFormat`.
+   * Token format(s) for display and typed input (`'DD/MM/YYYY'`,
+   * `['DD/MM/YYYY', 'DD/MM/YY']`, …; see `date-format.ts` for the tokens). The
+   * first pattern displays, every pattern parses. A function formats only; typing
+   * then accepts ISO dates. Takes precedence over `displayFormat`.
    */
   readonly format = input<AndesDateFormat | null>(null);
 
-  /** Show a clear button while there is a value (Ant's `allowClear`). */
+  /** Show a clear button while there is a value. */
   readonly allowClear = input(true, { transform: booleanAttribute });
 
   /** Field height. */
@@ -385,8 +384,7 @@ export class AndesDatePicker implements ControlValueAccessor {
   });
 
   /**
-   * Require the OK button to commit. Defaults to on with `showTime`, off without,
-   * as in Ant.
+   * Require the OK button to commit. Defaults to on with `showTime`, off without.
    */
   readonly needConfirm = input<boolean | undefined, unknown>(undefined, {
     transform: (value: unknown) =>
@@ -402,13 +400,13 @@ export class AndesDatePicker implements ControlValueAccessor {
   /** Make the inputs read-only, e.g. to keep a phone's keyboard closed. */
   readonly inputReadOnly = input(false, { transform: booleanAttribute });
 
-  /** Content before the input(s) (Ant's `prefix`). */
+  /** Content before the input(s). */
   readonly prefix = input<TemplateRef<unknown> | null>(null);
 
-  /** Replaces the calendar icon at the end of the field (Ant's `suffixIcon`). */
+  /** Replaces the calendar icon at the end of the field. */
   readonly suffixIcon = input<TemplateRef<unknown> | null>(null);
 
-  /** Extra footer content in the panel (Ant's `renderExtraFooter`). */
+  /** Extra footer content in the panel. */
   readonly extraFooter = input<TemplateRef<unknown> | null>(null);
 
   /** Accessible name for the input (single) or the input group (range). */
@@ -463,12 +461,11 @@ export class AndesDatePicker implements ControlValueAccessor {
   readonly ok = output<AndesDatePickerValue>();
 
   /**
-   * Emits each boundary pick of a range, before it is complete (Ant's
-   * `onCalendarChange`).
+   * Emits each boundary pick of a range, before it is complete.
    */
   readonly calendarChange = output<readonly [Date | null, Date | null]>();
 
-  /** Re-emits the calendar's panel navigation (Ant's `onPanelChange`). */
+  /** Re-emits the calendar's panel navigation. */
   readonly panelChange = output<AndesCalendarPanelChange>();
 
   /** The live day-level selection, including a pending or half-finished one. */
@@ -753,7 +750,7 @@ export class AndesDatePicker implements ControlValueAccessor {
       }
     });
 
-    // Keep each time column scrolled to its selected option, as Ant does.
+    // Keep each time column scrolled to its selected option.
     afterRenderEffect(() => {
       this.timeColumns();
       const pane = this.overlay.panelElement();
@@ -945,8 +942,8 @@ export class AndesDatePicker implements ControlValueAccessor {
 
   /**
    * Keeps focus where it is (the input, usually) when the panel is clicked, so
-   * picking a day never blurs the field — the same trick Ant's popup uses. A
-   * scroll container's own scrollbar is left alone.
+   * picking a day never blurs the field. A scroll container's own scrollbar is
+   * left alone.
    */
   protected onPanelMousedown(event: MouseEvent): void {
     const target = event.target as HTMLElement;
