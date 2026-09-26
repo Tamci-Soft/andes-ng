@@ -40,8 +40,8 @@ const PLACEMENTS: readonly AndesToastPosition[] = [
  * inject(AndesMessageService).success('Copied.');
  * ```
  *
- * Ant's static methods need no mount point; here an explicit mount keeps rendering inside
- * the app's own component tree (SSR-safe, no `ApplicationRef` side-attachment) - the same
+ * Rendering requires this explicit mount point, which keeps toasts inside the app's own
+ * component tree (SSR-safe, no `ApplicationRef` side-attachment) - the same
  * trade-off `<router-outlet>` makes.
  *
  * ## Why not `AndesOverlayPrimitive`

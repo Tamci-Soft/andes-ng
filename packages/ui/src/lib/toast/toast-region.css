@@ -51,7 +51,7 @@
   transform: translateX(-50%);
 }
 
-/* Messages hug the top edge (Ant's 8px) and may be wider than a notification. */
+/* Messages hug the top edge (8px) and may be wider than a notification. */
 :host([data-flavor='message']) {
   padding-top: var(--andes-space-2);
   max-width: 100vw;

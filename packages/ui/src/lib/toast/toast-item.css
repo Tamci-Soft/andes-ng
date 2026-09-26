@@ -50,7 +50,7 @@
   cursor: pointer;
 }
 
-/* Message flavor (Ant's `message`): a compact single-line pill - icon + text, no accent
+/* Message flavor: a compact single-line pill - icon + text, no accent
    border, sized to its content rather than the notification's fixed width range. */
 :host([data-flavor='message']) {
   align-items: center;

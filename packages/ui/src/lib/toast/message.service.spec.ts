@@ -102,7 +102,7 @@ describe('AndesMessageService', () => {
     );
   });
 
-  it('afterClosed resolves once the message closes (Ant: .then(afterClose))', async () => {
+  it('afterClosed resolves once the message closes', async () => {
     vi.useFakeTimers();
     const service = createService();
     const onClose = vi.fn();
@@ -137,7 +137,7 @@ describe('AndesMessageService', () => {
     expect(service.toasts()).toEqual([]);
   });
 
-  it('provideAndesMessageConfig() sets defaults, including an Ant-style dropping maxCount', () => {
+  it('provideAndesMessageConfig() sets defaults, including a dismiss-oldest maxCount', () => {
     const service = createService([
       provideAndesMessageConfig({
         duration: 1000,

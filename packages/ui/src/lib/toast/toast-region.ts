@@ -34,7 +34,7 @@ function toCssLength(value: number | string | undefined): string | null {
  * placement in use (plus one for messages). Internal to `@andes-ng/ui`.
  *
  * Owns the per-region interaction wiring: hover/focus pause of each toast's timer, close and
- * action buttons, body clicks, and the collapsed-stack mode (Ant's `stack`): once more than
+ * action buttons, body clicks, and the collapsed-stack mode (`stack`): once more than
  * `threshold` toasts are open, they collapse into a deck with the newest in front, and expand
  * back to a list while the pointer is over the region or focus is inside it.
  */
