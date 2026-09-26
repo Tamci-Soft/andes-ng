@@ -1,5 +1,12 @@
 <!--
   Everything is projected: the trigger renders in place, while <andes-select-content>
-  renders nothing here and hands its panel template to the overlay on open.
+  renders nothing here and hands its panel template to the overlay on open. When either
+  part is not projected - the usual case with the `options` input - the select renders a
+  default one itself.
 -->
 <ng-content />
+@if (rendersOwnTrigger()) {
+<andes-select-trigger><andes-select-value /></andes-select-trigger>
+} @if (rendersOwnContent()) {
+<andes-select-content />
+}
