@@ -1,8 +1,7 @@
 import { computed, Injectable, Signal } from '@angular/core';
 
 export type AndesRadioGroupOrientation = 'vertical' | 'horizontal';
-/** `default` renders the classic circle + dot; `button` renders a segmented-control face
- *  (Ant Design's `Radio.Button` / `optionType="button"`). */
+/** `default` renders the classic circle + dot; `button` renders a segmented-control face. */
 export type AndesRadioOptionType = 'default' | 'button';
 /** Only affects `optionType="button"`: `outline` tints the checked segment's border/text,
  *  `solid` fills it with the primary color. */
