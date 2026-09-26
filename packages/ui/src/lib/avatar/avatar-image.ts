@@ -1,12 +1,32 @@
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
+  output,
 } from '@angular/core';
 
 import { AndesAvatarState } from './avatar-state';
+
+/**
+ * Emitted by `AndesAvatarImage` `(loadError)`. Ant's `onError` lets the
+ * handler return `false` to keep the image instead of falling back; an
+ * Angular output can't return a value, so this is the cancelable-event
+ * equivalent: call `preventFallback()` from the handler.
+ */
+export interface AndesAvatarImageErrorEvent {
+  /** The native `<img>` `error` event. */
+  readonly event: Event;
+  /**
+   * Keep rendering the `<img>` (the browser's broken-image/`alt` rendering)
+   * instead of switching to `AndesAvatarFallback`. Has to be called
+   * synchronously inside the `(loadError)` handler.
+   */
+  preventFallback(): void;
+}
 
 @Component({
   selector: 'andes-avatar-image',
@@ -40,9 +60,33 @@ export class AndesAvatarImage {
    */
   readonly alt = input.required<string>();
   readonly referrerPolicy = input<string | undefined>(undefined);
-  readonly crossOrigin = input<'anonymous' | 'use-credentials' | undefined>(
-    undefined,
-  );
+  /** CORS mode for the image request. `''` is the same as `'anonymous'`. */
+  readonly crossOrigin = input<
+    'anonymous' | 'use-credentials' | '' | undefined
+  >(undefined);
+  /** Candidate sources for different pixel densities/widths (`<img srcset>`). */
+  readonly srcSet = input<string | undefined>(undefined);
+  /** Source-size hints for a width-descriptor `srcSet` (`<img sizes>`). */
+  readonly sizes = input<string | undefined>(undefined);
+  /**
+   * Whether the image can be dragged. Unset leaves the browser default (which
+   * is draggable, like Ant's default); `false` suits avatars inside
+   * draggable/sortable rows, where dragging the photo would hijack the row's
+   * own drag.
+   */
+  readonly draggable = input<boolean | 'true' | 'false' | undefined>(undefined);
+
+  /**
+   * The image failed to load. Call `preventFallback()` on the event to keep
+   * showing the image rather than the fallback (Ant's `onError` returning
+   * `false`). Not named `error`, which would shadow the native DOM event.
+   */
+  readonly loadError = output<AndesAvatarImageErrorEvent>();
+
+  protected readonly draggableAttr = computed(() => {
+    const value = this.draggable();
+    return value === undefined ? null : String(booleanAttribute(value));
+  });
 
   constructor() {
     // Reset to `loading` whenever `src` changes (including on first render) so
@@ -58,7 +102,14 @@ export class AndesAvatarImage {
     this.state.setLoaded();
   }
 
-  protected onError(): void {
-    this.state.setError();
+  protected onError(event: Event): void {
+    let keepImage = false;
+    this.loadError.emit({
+      event,
+      preventFallback: () => {
+        keepImage = true;
+      },
+    });
+    this.state.setError(keepImage);
   }
 }

@@ -7,11 +7,24 @@
   overflow: hidden;
   vertical-align: middle;
   background-color: var(--andes-color-muted);
-  color: var(--andes-color-muted-foreground);
+  /* `foreground`, not `muted-foreground`: the fallback initials are text and
+     need 4.5:1 (WCAG 1.4.3), but the light theme's muted-foreground on muted
+     is only 4.34:1 (#64748b on #f1f5f9). Foreground on muted is ~16:1 light
+     and ~14:1 dark, and matches shadcn, whose AvatarFallback also leaves the
+     text at the inherited foreground over `bg-muted`. AndesAvatarIcon keeps
+     muted-foreground: an icon is a graphic (WCAG 1.4.11, 3:1). */
+  color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
   line-height: 1;
   user-select: none;
+}
+
+/* `max.count` on AndesAvatarGroup hides the avatars past the limit through
+   the `hidden` attribute; the `display: inline-flex` above would otherwise
+   beat the UA's `[hidden] { display: none }`. */
+:host([hidden]) {
+  display: none;
 }
 
 /* Shapes - `:host(.class)`, not a plain `.class` selector: these rules target
@@ -59,7 +72,9 @@
 }
 
 /* Sizes - fixed box dimensions, not the generic space scale, since these are
-   avatar box dimensions rather than gaps between elements. */
+   avatar box dimensions rather than gaps between elements. A pixel `size`
+   (`andes-avatar--custom-size`) has no rule here: its width, height and
+   font-size are bound inline on the host instead. */
 
 :host(.andes-avatar--xs) {
   width: 1.5rem;

@@ -16,6 +16,22 @@
   display: none;
 }
 
+/* The box that gets measured and scaled for Ant-style text fitting (see
+   `scale` in avatar-fallback.ts). `nowrap` + `flex: none` keep it at the
+   text's natural one-line width even when that's wider than the avatar, so
+   `offsetWidth` reports the real overflow. The host's `justify-content:
+   center` (unsafe centering) then spills any overflow equally on both sides,
+   and a centre transform-origin shrinks it back symmetrically - which is
+   direction-agnostic, unlike Ant's `left: 50%` + `translateX(-50%)`. */
+.andes-avatar-fallback__content {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  white-space: nowrap;
+}
+
 /* `:host ::ng-deep`, not a leading `::ng-deep`: an SVG icon passed as
    projected content is declared in the CONSUMER's own template, so reaching
    it at all requires piercing this component's encapsulation - but
