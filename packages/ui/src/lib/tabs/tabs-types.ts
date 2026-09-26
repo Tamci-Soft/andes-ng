@@ -34,7 +34,7 @@ export type AndesTabsType = 'line' | 'card' | 'editable-card';
  */
 export type AndesTabsPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Preset tab sizes, named after `AndesButton`'s scale (Ant Design's `small`/`middle`/`large`). */
+/** Preset tab sizes, named after `AndesButton`'s scale. */
 export type AndesTabsSize = 'sm' | 'md' | 'lg';
 
 /** Fine-grained form of the `animated` input. */

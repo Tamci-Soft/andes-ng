@@ -128,9 +128,9 @@ export class AndesTabs implements AndesTabsContext {
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** The active tab's value (Ant Design's `activeKey`). Two-way bindable (`[(value)]`) for a
-   * controlled Tabs; when left unbound, `AndesTabs` manages it itself, defaulting to the
-   * first enabled tab. A one-way `[value]` is the equivalent of `defaultActiveKey`. */
+  /** The active tab's value. Two-way bindable (`[(value)]`) for a controlled Tabs; when left
+   * unbound, `AndesTabs` manages it itself, defaulting to the first enabled tab. A one-way
+   * `[value]` sets the initially active tab. */
   readonly value = model<string | undefined>(undefined);
 
   /** Which arrow keys navigate between tabs. Default `'horizontal'`. Superseded by
@@ -273,8 +273,8 @@ export class AndesTabs implements AndesTabsContext {
   /** The value that should currently be shown: the controlled/uncontrolled {@link value}, or
    * the first enabled tab before anything has ever been explicitly selected - or once
    * `value` names a tab that no longer exists (e.g. an `editable-card` tab the consumer just
-   * removed), so the tablist is never left with no selected tab. Like Ant Design, this is a
-   * derived fallback: it does not write `value` or emit `valueChange` by itself. */
+   * removed), so the tablist is never left with no selected tab. This is a derived
+   * fallback: it does not write `value` or emit `valueChange` by itself. */
   readonly activeValue = computed(() => {
     const value = this.value();
     const triggers = this._triggers();

@@ -343,7 +343,7 @@ export const WithIcons: Story = {
   }),
 };
 
-/** The data-driven alternative to projected triggers/panels (Ant Design's `items`). */
+/** The data-driven alternative to projected triggers/panels (`items`). */
 export const Items: Story = {
   render: () => ({
     props: {
