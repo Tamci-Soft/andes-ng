@@ -403,9 +403,12 @@ describe('AndesAvatarGroup', () => {
 
     // The first avatar is excluded by `:not(:first-child)` - it has nothing to
     // overlap - so a negative margin there would push the whole stack left.
-    expect(first.marginInlineStart).not.toBe('-0.625rem');
-    expect(second.marginInlineStart).toBe('-0.625rem');
-    expect(countStyle.marginInlineStart).toBe('-0.625rem');
+    // `toContain`, not `toBe`: the overlap is
+    // `var(--andes-avatar-group-overlap, -0.625rem)`, which jsdom's CSSOM
+    // reports verbatim rather than resolving to the fallback.
+    expect(first.marginInlineStart).not.toContain('-0.625rem');
+    expect(second.marginInlineStart).toContain('-0.625rem');
+    expect(countStyle.marginInlineStart).toContain('-0.625rem');
 
     // The separating ring, without which the overlap reads as one smeared
     // blob rather than a stack.

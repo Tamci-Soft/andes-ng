@@ -1,9 +1,12 @@
 <img
   [src]="src()"
+  [attr.srcset]="srcSet() || null"
+  [attr.sizes]="sizes() || null"
   [attr.alt]="alt()"
   [attr.referrerpolicy]="referrerPolicy()"
   [attr.crossorigin]="crossOrigin()"
-  [hidden]="state.status() !== 'loaded'"
+  [attr.draggable]="draggableAttr()"
+  [hidden]="!state.showsImage()"
   (load)="onLoad()"
-  (error)="onError()"
+  (error)="onError($event)"
 />

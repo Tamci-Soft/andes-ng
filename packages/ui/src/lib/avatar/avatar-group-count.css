@@ -16,7 +16,9 @@
   overflow: visible;
   vertical-align: middle;
   background-color: var(--andes-color-muted);
-  color: var(--andes-color-muted-foreground);
+  /* `foreground`, not `muted-foreground`, for the same 4.5:1 text-contrast
+     reason as avatar.css. */
+  color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
   line-height: 1;
@@ -25,7 +27,8 @@
 
 /* `:host(.class)`, not a plain `.class` selector: see avatar.css for why a
    plain class selector targeting this component's own host-bound BEM
-   classes is dead under Emulated encapsulation. */
+   classes is dead under Emulated encapsulation. A pixel `size`
+   (`--custom-size`) has no rule: its box and font size are bound inline. */
 
 :host(.andes-avatar-group-count--circular) {
   border-radius: var(--andes-radius-full);
@@ -130,6 +133,13 @@
   text-align: start;
   text-transform: none;
   white-space: nowrap;
+}
+
+/* `placement="bottom"` (Ant's `max.popover.placement`) - for a group near
+   the top of the viewport, where a panel above the chip would be cut off. */
+:host(.andes-avatar-group-count--bottom) .andes-avatar-group-count__panel {
+  inset-block-start: calc(100% + var(--andes-space-2));
+  inset-block-end: auto;
 }
 
 .andes-avatar-group-count__panel-label {
