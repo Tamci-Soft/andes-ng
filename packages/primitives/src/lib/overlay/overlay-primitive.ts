@@ -63,7 +63,7 @@ export interface AndesOverlayOpenOptions<C = unknown> {
   readonly injector?: Injector;
   /**
    * Element focus returns to on close, overriding the registered trigger. The
-   * equivalent of Base UI's `finalFocus` / Ant's `focusTriggerAfterClose`.
+   * equivalent of Base UI's `finalFocus`.
    */
   readonly restoreFocusTo?: HTMLElement | ElementRef<HTMLElement> | null;
 }

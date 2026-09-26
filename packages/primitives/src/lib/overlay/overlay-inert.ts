@@ -71,8 +71,8 @@ interface InertEntry {
  * `VO`-arrow, NVDA/JAWS virtual cursor) walks the accessibility tree directly and
  * happily reads — and activates — content behind an open modal. `aria-modal="true"`
  * on the dialog is a *hint* that browsers and AT do not universally honour on its
- * own, which is why Base UI (shadcn) and Ant Design both additionally mark the rest
- * of the page inert. So does this primitive.
+ * own, which is why Base UI (shadcn) additionally marks the rest of the page inert.
+ * So does this primitive.
  *
  * ## What gets marked
  *
