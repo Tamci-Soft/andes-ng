@@ -1,10 +1,15 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import {
   AndesCalendar,
+  type AndesCalendarCellContext,
+  type AndesCalendarHeaderContext,
   type AndesCalendarMode,
+  type AndesCalendarPanelChange,
   type AndesCalendarValue,
+  type AndesDateDisabledFn,
+  type AndesPickerType,
 } from './calendar';
 import {
   toDateKey,
@@ -50,6 +55,64 @@ class CalendarHost {
 
   readonly lastMonthChange = signal<Date | null>(null);
   readonly lastDaySelected = signal<Date | null>(null);
+}
+
+/** Host for the Ant-parity features: pickers, panels, templates. */
+@Component({
+  imports: [AndesCalendar],
+  template: `
+    <ng-template #cell let-date let-cell="cell" let-view="view">
+      <span class="custom-cell" [attr.data-view]="view">{{ cell.text }}*</span>
+    </ng-template>
+    <ng-template #header let-month let-setView="setView" let-goTo="goTo">
+      <div class="custom-header">{{ month.getMonth() }}</div>
+      <button type="button" class="to-years" (click)="setView('year')">
+        years
+      </button>
+      <button type="button" class="to-2030" (click)="goTo(jan2030)">
+        2030
+      </button>
+    </ng-template>
+    <andes-calendar
+      [mode]="mode()"
+      [picker]="picker()"
+      [(value)]="value"
+      [min]="min()"
+      [max]="max()"
+      locale="en-US"
+      [weekStartsOn]="weekStartsOn()"
+      [numberOfMonths]="numberOfMonths()"
+      [showWeek]="showWeek()"
+      [fullscreen]="fullscreen()"
+      [dateDisabled]="dateDisabled()"
+      [defaultMonth]="defaultMonth()"
+      [cellTemplate]="useCellTemplate() ? cellTemplate() : null"
+      [headerTemplate]="useHeaderTemplate() ? headerTemplate() : null"
+      (panelChange)="panelChanges.push($event)"
+    />
+  `,
+})
+class FeatureHost {
+  readonly cellTemplate =
+    viewChild.required<TemplateRef<AndesCalendarCellContext>>('cell');
+  readonly headerTemplate =
+    viewChild.required<TemplateRef<AndesCalendarHeaderContext>>('header');
+  readonly calendar = viewChild.required(AndesCalendar);
+  readonly mode = signal<AndesCalendarMode>('single');
+  readonly picker = signal<AndesPickerType>('date');
+  readonly value = signal<AndesCalendarValue>(null);
+  readonly min = signal<Date | null>(null);
+  readonly max = signal<Date | null>(null);
+  readonly weekStartsOn = signal<AndesWeekday>(0);
+  readonly numberOfMonths = signal(1);
+  readonly showWeek = signal(false);
+  readonly fullscreen = signal(false);
+  readonly dateDisabled = signal<AndesDateDisabledFn | null>(null);
+  readonly defaultMonth = signal<Date | null>(d(2024, 2, 1));
+  readonly useCellTemplate = signal(false);
+  readonly useHeaderTemplate = signal(false);
+  readonly jan2030 = d(2030, 1, 1);
+  readonly panelChanges: AndesCalendarPanelChange[] = [];
 }
 
 describe('AndesCalendar', () => {
@@ -1003,6 +1066,491 @@ describe('AndesCalendar', () => {
         root.querySelectorAll<HTMLElement>('[role="columnheader"]'),
       );
       expect(headers[0].getAttribute('aria-label')).toBe('Sunday');
+    });
+  });
+
+  describe('Ant parity features', () => {
+    function createFeatures(
+      setup: (host: FeatureHost) => void = () => undefined,
+    ) {
+      const fixture = TestBed.createComponent(FeatureHost);
+      setup(fixture.componentInstance);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const cell = (date: Date) =>
+        root.querySelector<HTMLButtonElement>(
+          `[data-date="${toDateKey(date)}"]:not([data-outside])`,
+        ) as HTMLButtonElement;
+      return {
+        fixture,
+        host: fixture.componentInstance,
+        root,
+        cell,
+        caption: () =>
+          root.querySelector<HTMLElement>('[data-slot="calendar-caption"]'),
+        click: (element: HTMLElement | null) => {
+          element?.click();
+          fixture.detectChanges();
+        },
+        press: (key: string, options: KeyboardEventInit = {}) => {
+          root
+            .querySelector<HTMLElement>('[data-date][tabindex="0"]')
+            ?.dispatchEvent(
+              new KeyboardEvent('keydown', { key, bubbles: true, ...options }),
+            );
+          fixture.detectChanges();
+        },
+        active: () =>
+          root
+            .querySelector<HTMLElement>('[data-date][tabindex="0"]')
+            ?.getAttribute('data-date'),
+      };
+    }
+
+    describe('picker="month"', () => {
+      it('renders a 4x3 grid of months captioned with the year', () => {
+        const { root, caption } = createFeatures((host) =>
+          host.picker.set('month'),
+        );
+
+        expect(caption()?.textContent?.trim()).toBe('2024');
+        const rows = root.querySelectorAll('.andes-calendar__period-row');
+        expect(rows).toHaveLength(4);
+        expect(rows[0].querySelectorAll('[role="gridcell"]')).toHaveLength(3);
+        expect(
+          root
+            .querySelector('[data-date="2024-02-01"]')
+            ?.getAttribute('aria-label'),
+        ).toBe('February 2024');
+      });
+
+      it('selects the first day of the clicked month', () => {
+        const { host, click, cell } = createFeatures((h) =>
+          h.picker.set('month'),
+        );
+
+        click(cell(d(2024, 7, 1)));
+
+        expect(toDateKey(host.value() as Date)).toBe('2024-07-01');
+        expect(cell(d(2024, 7, 1)).getAttribute('aria-selected')).toBe('true');
+      });
+
+      it('highlights the month containing a mid-month value', () => {
+        const { cell } = createFeatures((host) => {
+          host.picker.set('month');
+          host.value.set(d(2024, 5, 20));
+        });
+
+        expect(cell(d(2024, 5, 1)).getAttribute('aria-selected')).toBe('true');
+      });
+
+      it('pages by year with the nav buttons', () => {
+        const { root, click, caption } = createFeatures((host) =>
+          host.picker.set('month'),
+        );
+
+        click(root.querySelector('[data-slot="calendar-next"]'));
+        expect(caption()?.textContent?.trim()).toBe('2025');
+        expect(
+          root
+            .querySelector('[data-slot="calendar-next"]')
+            ?.getAttribute('aria-label'),
+        ).toBe('Next year');
+      });
+
+      it('moves by one, by a row and by a year from the keyboard', () => {
+        const { press, active, caption } = createFeatures((host) => {
+          host.picker.set('month');
+          host.value.set(d(2024, 5, 1));
+        });
+
+        expect(active()).toBe('2024-05-01');
+        press('ArrowRight');
+        expect(active()).toBe('2024-06-01');
+        press('ArrowDown');
+        expect(active()).toBe('2024-09-01');
+        press('Home');
+        expect(active()).toBe('2024-07-01');
+        press('End');
+        expect(active()).toBe('2024-09-01');
+        press('PageDown');
+        expect(active()).toBe('2025-09-01');
+        expect(caption()?.textContent?.trim()).toBe('2025');
+      });
+
+      it('disables months wholly outside min/max and asks dateDisabled with the type', () => {
+        const calls: string[] = [];
+        const { cell } = createFeatures((host) => {
+          host.picker.set('month');
+          host.min.set(d(2024, 3, 15));
+          host.dateDisabled.set((date, info) => {
+            calls.push(info.type);
+            return date.getMonth() === 11;
+          });
+        });
+
+        expect(cell(d(2024, 2, 1)).getAttribute('aria-disabled')).toBe('true');
+        // March is only partly before min, so it stays selectable.
+        expect(cell(d(2024, 3, 1)).getAttribute('aria-disabled')).toBeNull();
+        expect(cell(d(2024, 12, 1)).getAttribute('aria-disabled')).toBe('true');
+        expect(calls).toContain('month');
+      });
+    });
+
+    describe('picker="quarter" and picker="year"', () => {
+      it('renders four quarters and selects the quarter start', () => {
+        const { root, host, click, cell } = createFeatures((h) =>
+          h.picker.set('quarter'),
+        );
+
+        const cells = root.querySelectorAll('[role="gridcell"]');
+        expect(Array.from(cells).map((c) => c.textContent?.trim())).toEqual([
+          'Q1',
+          'Q2',
+          'Q3',
+          'Q4',
+        ]);
+        click(cell(d(2024, 7, 1)));
+        expect(toDateKey(host.value() as Date)).toBe('2024-07-01');
+      });
+
+      it('renders a decade with the neighbouring years as outside cells', () => {
+        const { root, caption } = createFeatures((host) =>
+          host.picker.set('year'),
+        );
+
+        expect(caption()?.textContent?.trim()).toBe('2020 – 2029');
+        const cells = Array.from(
+          root.querySelectorAll<HTMLElement>('[role="gridcell"]'),
+        );
+        expect(cells).toHaveLength(12);
+        expect(cells[0].textContent?.trim()).toBe('2019');
+        expect(cells[0].hasAttribute('data-outside')).toBe(true);
+        expect(cells[11].textContent?.trim()).toBe('2030');
+      });
+
+      it('selects January 1st of the clicked year', () => {
+        const { host, click, cell } = createFeatures((h) =>
+          h.picker.set('year'),
+        );
+
+        click(cell(d(2026, 1, 1)));
+        expect(toDateKey(host.value() as Date)).toBe('2026-01-01');
+      });
+
+      it('pages a decade with PageDown', () => {
+        const { press, caption } = createFeatures((host) => {
+          host.picker.set('year');
+          host.value.set(d(2024, 1, 1));
+        });
+
+        press('PageDown');
+        expect(caption()?.textContent?.trim()).toBe('2030 – 2039');
+      });
+    });
+
+    describe('picker="week"', () => {
+      it('shows week numbers and selects the whole week from its first day', () => {
+        const { root, host, click, cell } = createFeatures((h) => {
+          h.picker.set('week');
+          h.weekStartsOn.set(1);
+        });
+
+        expect(root.querySelectorAll('[role="rowheader"]').length).toBe(
+          root.querySelectorAll(
+            '.andes-calendar__row:not(.andes-calendar__row--weekdays)',
+          ).length,
+        );
+        click(cell(d(2024, 2, 14)));
+
+        // Monday of that ISO week.
+        expect(toDateKey(host.value() as Date)).toBe('2024-02-12');
+        for (let day = 12; day <= 18; day++) {
+          expect(cell(d(2024, 2, day)).getAttribute('aria-selected')).toBe(
+            'true',
+          );
+        }
+        expect(cell(d(2024, 2, 19)).getAttribute('aria-selected')).toBe(
+          'false',
+        );
+      });
+    });
+
+    describe('showWeek', () => {
+      it('adds a week-number row header to every week', () => {
+        const { root } = createFeatures((host) => {
+          host.showWeek.set(true);
+          host.weekStartsOn.set(1);
+        });
+
+        const headers = Array.from(
+          root.querySelectorAll<HTMLElement>('[role="rowheader"]'),
+        ).map((header) => header.textContent?.trim());
+        // February 2024, ISO weeks 5-9.
+        expect(headers).toEqual(['5', '6', '7', '8', '9']);
+        expect(
+          root
+            .querySelector(
+              '.andes-calendar__row--weekdays [role="columnheader"]',
+            )
+            ?.getAttribute('aria-label'),
+        ).toBe('Week');
+      });
+    });
+
+    describe('caption drill-up and drill-down', () => {
+      it('climbs from days to months to years, and drills back down', () => {
+        const { root, host, caption, click, cell } = createFeatures();
+
+        click(caption());
+        expect(host.calendar().view()).toBe('month');
+        expect(caption()?.textContent?.trim()).toBe('2024');
+
+        click(caption());
+        expect(host.calendar().view()).toBe('year');
+        // The decade view is the top: its caption is not a button.
+        expect(caption()?.tagName).toBe('SPAN');
+
+        click(cell(d(2026, 1, 1)));
+        expect(host.calendar().view()).toBe('month');
+        expect(caption()?.textContent?.trim()).toBe('2026');
+        // Drilling down navigates; it never selects.
+        expect(host.value()).toBeNull();
+
+        click(cell(d(2026, 8, 1)));
+        expect(host.calendar().view()).toBe('date');
+        expect(caption()?.textContent?.trim()).toBe('August 2026');
+        expect(root.querySelector('[data-date="2026-08-15"]')).toBeTruthy();
+      });
+
+      it('moves focus into the new grid', () => {
+        const { caption, click } = createFeatures();
+
+        click(caption());
+
+        expect(document.activeElement?.getAttribute('data-date')).toMatch(
+          /^2024-\d{2}-01$/,
+        );
+      });
+
+      it('emits panelChange with the view', () => {
+        const { host, caption, click } = createFeatures();
+
+        click(caption());
+
+        expect(host.panelChanges.at(-1)).toEqual({
+          date: d(2024, 2, 1),
+          view: 'month',
+        });
+      });
+    });
+
+    describe('year navigation in the day grid', () => {
+      it('jumps a year with the double-chevron buttons', () => {
+        const { root, caption, click } = createFeatures();
+
+        click(root.querySelector('[data-slot="calendar-next-year"]'));
+        expect(caption()?.textContent?.trim()).toBe('February 2025');
+
+        click(root.querySelector('[data-slot="calendar-previous-year"]'));
+        click(root.querySelector('[data-slot="calendar-previous-year"]'));
+        expect(caption()?.textContent?.trim()).toBe('February 2023');
+      });
+
+      it('moves a month with Shift+Arrow Left/Right', () => {
+        const { press, active } = createFeatures((host) =>
+          host.value.set(d(2024, 2, 15)),
+        );
+
+        press('ArrowRight', { shiftKey: true });
+        expect(active()).toBe('2024-03-15');
+        press('ArrowLeft', { shiftKey: true });
+        expect(active()).toBe('2024-02-15');
+      });
+    });
+
+    describe('numberOfMonths', () => {
+      function twoPanels() {
+        return createFeatures((host) => {
+          host.mode.set('range');
+          host.numberOfMonths.set(2);
+        });
+      }
+
+      it('renders consecutive months with the nav buttons on the outer edges', () => {
+        const { root } = twoPanels();
+
+        const captions = Array.from(
+          root.querySelectorAll('[data-slot="calendar-caption"]'),
+        ).map((caption) => caption.textContent?.trim());
+        expect(captions).toEqual(['February 2024', 'March 2024']);
+        expect(root.querySelectorAll('[role="grid"]')).toHaveLength(2);
+        const panels = root.querySelectorAll('[data-slot="calendar-panel"]');
+        expect(
+          panels[0].querySelector('[data-slot="calendar-previous"]'),
+        ).toBeTruthy();
+        expect(
+          panels[0].querySelector('[data-slot="calendar-next"]'),
+        ).toBeNull();
+        expect(
+          panels[1].querySelector('[data-slot="calendar-next"]'),
+        ).toBeTruthy();
+      });
+
+      it('hides outside days so no date appears twice', () => {
+        const { root } = twoPanels();
+
+        const keys = Array.from(root.querySelectorAll('[data-date]')).map(
+          (cell) => cell.getAttribute('data-date'),
+        );
+        expect(new Set(keys).size).toBe(keys.length);
+      });
+
+      it('keeps both panels still when a range is picked across them', () => {
+        const { host, click, cell, caption } = twoPanels();
+
+        click(cell(d(2024, 3, 10)));
+        expect(caption()?.textContent?.trim()).toBe('February 2024');
+        click(cell(d(2024, 2, 20)));
+
+        expect(caption()?.textContent?.trim()).toBe('February 2024');
+        expect(host.value()).toEqual({
+          start: d(2024, 2, 20),
+          end: d(2024, 3, 10),
+        });
+      });
+
+      it('arrows from the first panel into the second without paging', () => {
+        const { press, active, caption } = createFeatures((host) => {
+          host.numberOfMonths.set(2);
+          host.value.set(d(2024, 2, 29));
+        });
+
+        press('ArrowRight');
+        expect(active()).toBe('2024-03-01');
+        expect(caption()?.textContent?.trim()).toBe('February 2024');
+      });
+
+      it('pages so the target lands in the last panel when arrowing past it', () => {
+        const { press, active, caption } = createFeatures((host) => {
+          host.numberOfMonths.set(2);
+          host.value.set(d(2024, 3, 31));
+        });
+
+        press('ArrowRight');
+        expect(active()).toBe('2024-04-01');
+        expect(caption()?.textContent?.trim()).toBe('March 2024');
+      });
+    });
+
+    describe('range hover preview', () => {
+      it('previews the range the hovered day would close', () => {
+        const { root, click, cell, fixture } = createFeatures((host) =>
+          host.mode.set('range'),
+        );
+        click(cell(d(2024, 2, 10)));
+
+        cell(d(2024, 2, 14)).dispatchEvent(new MouseEvent('mouseenter'));
+        fixture.detectChanges();
+
+        const previewed = Array.from(
+          root.querySelectorAll('[data-in-preview]'),
+        ).map((c) => c.getAttribute('data-date'));
+        expect(previewed).toEqual([
+          '2024-02-11',
+          '2024-02-12',
+          '2024-02-13',
+          '2024-02-14',
+        ]);
+
+        root
+          .querySelector('[role="grid"]')
+          ?.dispatchEvent(new MouseEvent('mouseleave'));
+        fixture.detectChanges();
+        expect(root.querySelectorAll('[data-in-preview]')).toHaveLength(0);
+      });
+
+      it('previews backwards and follows keyboard focus', () => {
+        const { root, click, cell, press } = createFeatures((host) =>
+          host.mode.set('range'),
+        );
+        click(cell(d(2024, 2, 10)));
+
+        press('ArrowLeft');
+        press('ArrowLeft');
+
+        expect(
+          Array.from(root.querySelectorAll('[data-in-preview]')).map((c) =>
+            c.getAttribute('data-date'),
+          ),
+        ).toEqual(['2024-02-08', '2024-02-09']);
+      });
+
+      it('does not preview once the range is complete', () => {
+        const { root, click, cell, fixture } = createFeatures((host) =>
+          host.mode.set('range'),
+        );
+        click(cell(d(2024, 2, 10)));
+        click(cell(d(2024, 2, 12)));
+
+        cell(d(2024, 2, 20)).dispatchEvent(new MouseEvent('mouseenter'));
+        fixture.detectChanges();
+
+        expect(root.querySelectorAll('[data-in-preview]')).toHaveLength(0);
+      });
+    });
+
+    describe('templates', () => {
+      it('renders cellTemplate with the cell context', () => {
+        const { root } = createFeatures((host) =>
+          host.useCellTemplate.set(true),
+        );
+
+        const custom = root.querySelector(
+          '[data-date="2024-02-15"] .custom-cell',
+        );
+        expect(custom?.textContent?.trim()).toBe('15*');
+        expect(custom?.getAttribute('data-view')).toBe('date');
+        // The accessible name is untouched by custom content.
+        expect(
+          root
+            .querySelector('[data-date="2024-02-15"]')
+            ?.getAttribute('aria-label'),
+        ).toBe('Thursday, February 15, 2024');
+      });
+
+      it('keeps the day number above the template in fullscreen', () => {
+        const { root } = createFeatures((host) => {
+          host.useCellTemplate.set(true);
+          host.fullscreen.set(true);
+        });
+
+        const day = root.querySelector('[data-date="2024-02-15"]');
+        expect(
+          day?.querySelector('.andes-calendar__cell-text')?.textContent?.trim(),
+        ).toBe('15');
+        expect(day?.querySelector('.custom-cell')).toBeTruthy();
+        expect(
+          root.querySelector('andes-calendar')?.hasAttribute('data-fullscreen'),
+        ).toBe(true);
+      });
+
+      it('replaces the header with headerTemplate and drives the calendar through it', () => {
+        const { root, click, host } = createFeatures((h) =>
+          h.useHeaderTemplate.set(true),
+        );
+
+        expect(
+          root.querySelector('[data-slot="calendar-previous"]'),
+        ).toBeNull();
+        expect(root.querySelector('.custom-header')?.textContent).toBe('1');
+
+        click(root.querySelector<HTMLElement>('.to-2030'));
+        expect(root.querySelector('[data-date="2030-01-15"]')).toBeTruthy();
+
+        click(root.querySelector<HTMLElement>('.to-years'));
+        expect(host.calendar().view()).toBe('year');
+      });
     });
   });
 });

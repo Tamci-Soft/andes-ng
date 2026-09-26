@@ -1,6 +1,8 @@
-/* The panel lives in the CDK overlay container, not inside this component's DOM,
-   so its styles have to escape view encapsulation - hence the `::ng-deep` block at
-   the bottom. Everything above styles the trigger, which is a normal child. */
+/* The panel is rendered into the CDK overlay container, outside this component's
+   DOM. Its elements are still declared in this component's template, so they carry
+   this component's emulated-encapsulation attribute and the scoped selectors below
+   reach them; the panel root keeps its original `::ng-deep` rule for consumers who
+   already override it. */
 
 :host {
   display: inline-block;
@@ -12,13 +14,14 @@
   width: 100%;
 }
 
-/* Styled to read as a form field even though it is a button: same height, border,
-   radius and typography as a text input, with the value left-aligned. */
-.andes-date-picker__trigger {
+/* The field: one input-looking box holding the input(s), prefix and suffix. */
+
+.andes-date-picker__field {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--andes-space-2);
+  box-sizing: border-box;
   width: 100%;
   min-width: 12rem;
   height: 2.5rem;
@@ -29,54 +32,199 @@
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   font-size: 1rem;
-  text-align: start;
-  cursor: pointer;
+  cursor: text;
   transition:
     border-color 0.15s ease,
     background-color 0.15s ease;
 }
 
-.andes-date-picker__value {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* Mirrors an input's ::placeholder treatment, since this is a field visually. */
-.andes-date-picker__value--placeholder {
-  color: var(--andes-color-muted-foreground);
-}
-
-.andes-date-picker__trigger:hover:not(:disabled) {
+.andes-date-picker__field:hover:not([data-disabled]) {
   border-color: var(--andes-color-primary);
 }
 
-.andes-date-picker__trigger:focus-visible {
+.andes-date-picker__field:focus-within,
+.andes-date-picker__field--open {
+  border-color: var(--andes-color-primary);
+}
+
+.andes-date-picker__field:has(.andes-date-picker__input:focus-visible) {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
-  border-color: var(--andes-color-primary);
 }
 
-.andes-date-picker__trigger:disabled {
+.andes-date-picker__field[data-disabled] {
   opacity: 0.6;
   cursor: not-allowed;
   background-color: var(--andes-color-muted);
 }
 
-.andes-date-picker__icon {
+/* Sizes, matching AndesButton's sm / md / lg heights. */
+
+.andes-date-picker__field--sm {
+  height: 2rem;
+  padding-inline: var(--andes-space-2);
+  font-size: 0.875rem;
+}
+
+.andes-date-picker__field--lg {
+  height: 3rem;
+  padding-inline: var(--andes-space-4);
+  font-size: 1.125rem;
+}
+
+/* Variants. */
+
+.andes-date-picker__field--filled {
+  border-color: transparent;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-date-picker__field--filled:focus-within {
+  background-color: var(--andes-color-background);
+}
+
+.andes-date-picker__field--borderless {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.andes-date-picker__field--borderless:hover:not([data-disabled]),
+.andes-date-picker__field--borderless:focus-within {
+  border-color: transparent;
+}
+
+.andes-date-picker__field--underlined {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Status: after the variants so it wins over their border colors. */
+
+.andes-date-picker__field--error,
+.andes-date-picker__field--error:hover:not([data-disabled]),
+.andes-date-picker__field--error:focus-within {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-date-picker__field--warning,
+.andes-date-picker__field--warning:hover:not([data-disabled]),
+.andes-date-picker__field--warning:focus-within {
+  border-color: var(--andes-color-warning);
+}
+
+.andes-date-picker__field--error:has(.andes-date-picker__input:focus-visible) {
+  outline-color: var(--andes-color-danger);
+}
+
+/* prettier-ignore */
+.andes-date-picker__field--warning:has(.andes-date-picker__input:focus-visible) {
+  outline-color: var(--andes-color-warning);
+}
+
+/* Inputs: the field draws the box, so the inputs themselves are bare. */
+
+.andes-date-picker__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-overflow: ellipsis;
+  outline: none;
+}
+
+.andes-date-picker__input::placeholder {
+  color: var(--andes-color-muted-foreground);
+  opacity: 1;
+}
+
+.andes-date-picker__input:disabled {
+  cursor: not-allowed;
+}
+
+/* In a range, the input the next pick fills is underlined, as in Ant. */
+.andes-date-picker__input[data-active] {
+  box-shadow: inset 0 -2px 0 var(--andes-color-primary);
+}
+
+.andes-date-picker__separator {
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-date-picker__prefix {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   color: var(--andes-color-muted-foreground);
 }
 
-.andes-date-picker__icon svg {
+/* Suffix: the calendar icon, swapped for the clear button on hover. */
+
+.andes-date-picker__suffix {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   width: 1rem;
   height: 1rem;
 }
 
-:host([data-disabled]) .andes-date-picker__icon {
-  opacity: 0.6;
+.andes-date-picker__icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-date-picker__icon svg,
+.andes-date-picker__clear svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-date-picker__icon svg path,
+.andes-date-picker__clear svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-date-picker__clear {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.andes-date-picker__clear:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-date-picker__field:hover .andes-date-picker__clear,
+.andes-date-picker__field:focus-within .andes-date-picker__clear {
+  opacity: 1;
+}
+
+/* prettier-ignore */
+.andes-date-picker__field:hover .andes-date-picker__icon--hidden-on-hover,
+.andes-date-picker__field:focus-within .andes-date-picker__icon--hidden-on-hover {
+  opacity: 0;
 }
 
 /* Panel, rendered into the overlay container. */
@@ -93,4 +241,150 @@
 
 ::ng-deep .andes-date-picker__panel:focus {
   outline: none;
+}
+
+.andes-date-picker__panel {
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+}
+
+.andes-date-picker__panel-layout {
+  display: flex;
+}
+
+.andes-date-picker__panel-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.andes-date-picker__panel-body {
+  display: flex;
+}
+
+/* Presets: a side list, as Ant's `presets`. */
+
+.andes-date-picker__presets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+  min-width: 7.5rem;
+  max-width: 12.5rem;
+  margin: 0;
+  padding: var(--andes-space-2);
+  border-inline-end: 1px solid var(--andes-color-border);
+  list-style: none;
+}
+
+.andes-date-picker__preset {
+  width: 100%;
+  padding: var(--andes-space-1) var(--andes-space-2);
+  border: 0;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.andes-date-picker__preset:hover {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-date-picker__preset:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+/* Time columns beside the calendar. */
+
+.andes-date-picker__time {
+  display: flex;
+  border-inline-start: 1px solid var(--andes-color-border);
+}
+
+/* `height: 0` + `min-height: 100%` makes each column exactly as tall as the
+   calendar beside it (the stretched flex row), however many options it holds. */
+.andes-date-picker__time-column {
+  position: relative;
+  box-sizing: border-box;
+  width: 3.5rem;
+  height: 0;
+  min-height: 100%;
+  margin: 0;
+  padding: var(--andes-space-1);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.andes-date-picker__time-column + .andes-date-picker__time-column {
+  border-inline-start: 1px solid var(--andes-color-border);
+}
+
+.andes-date-picker__time-column:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.andes-date-picker__time-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  border-radius: var(--andes-radius-sm);
+  cursor: pointer;
+}
+
+.andes-date-picker__time-option:hover {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-date-picker__time-option--selected,
+.andes-date-picker__time-option--selected:hover {
+  background-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+/* Footer: extra content on the left, Now / OK on the right. */
+
+.andes-date-picker__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
+  padding: var(--andes-space-2) var(--andes-space-3);
+  border-top: 1px solid var(--andes-color-border);
+}
+
+.andes-date-picker__extra-footer {
+  min-width: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-date-picker__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  margin-inline-start: auto;
+}
+
+.andes-date-picker__now {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--andes-color-primary-text);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.andes-date-picker__now:hover {
+  text-decoration: underline;
+}
+
+.andes-date-picker__now:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
 }

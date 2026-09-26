@@ -1,38 +1,123 @@
 <div class="andes-date-picker">
-  <!-- A button styled as a form field, not a text input: this version has no date
-       parsing, so the trigger never accepts text. `button` also natively supports
-       the aria-haspopup/aria-expanded/aria-controls that andesOverlayTrigger
-       applies, with no role override. -->
-  <button
-    andesOverlayTrigger
-    type="button"
-    class="andes-date-picker__trigger"
+  <!-- The field: looks like one input, holds one (single) or two (range)
+       comboboxes. It is also the overlay's anchor, so a click anywhere in it is
+       "inside" and the panel lines up with its left edge. -->
+  <div
+    #field
+    [class]="fieldClasses()"
     data-slot="date-picker-trigger"
-    [disabled]="isDisabled()"
-    [attr.aria-label]="ariaLabel()"
-    [attr.aria-labelledby]="ariaLabelledby()"
-    (click)="toggle()"
-    (keydown)="onTriggerKeydown($event)"
+    [attr.role]="isRange() ? 'group' : null"
+    [attr.aria-label]="isRange() ? ariaLabel() : null"
+    [attr.aria-labelledby]="isRange() ? ariaLabelledby() : null"
+    [attr.data-disabled]="isDisabled() || null"
+    (mousedown)="onFieldMousedown($event)"
+    (focusout)="onFocusOut($event)"
   >
-    <span
-      class="andes-date-picker__value"
-      [class.andes-date-picker__value--placeholder]="!displayValue()"
-      >{{ displayValue() || placeholder() }}</span
-    >
-
-    <span class="andes-date-picker__icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" focusable="false">
-        <path
-          d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
+    @if (prefix(); as prefixTemplate) {
+    <span class="andes-date-picker__prefix" data-slot="date-picker-prefix">
+      <ng-container [ngTemplateOutlet]="prefixTemplate" />
     </span>
-  </button>
+    }
+
+    <input
+      #startInput
+      type="text"
+      class="andes-date-picker__input"
+      [attr.data-slot]="isRange() ? 'date-picker-input-start' : 'date-picker-input'"
+      role="combobox"
+      autocomplete="off"
+      aria-haspopup="dialog"
+      [attr.aria-expanded]="overlay.isOpen()"
+      [attr.aria-controls]="overlay.isOpen() ? overlay.contentId : null"
+      [attr.aria-label]="isRange() ? startInputLabel() : ariaLabel()"
+      [attr.aria-labelledby]="isRange() ? null : ariaLabelledby()"
+      [attr.aria-invalid]="status() === 'error' || null"
+      [attr.data-active]="
+        isRange() && overlay.isOpen() && activeSide() === 'start' ? '' : null
+      "
+      [placeholder]="placeholders()[0]"
+      [value]="startText()"
+      [disabled]="isDisabled()"
+      [readOnly]="inputReadOnly()"
+      (click)="openPanel()"
+      (focus)="onInputFocus('start')"
+      (input)="onInput('start', $event)"
+      (keydown)="onInputKeydown('start', $event)"
+    />
+
+    @if (isRange()) {
+    <span class="andes-date-picker__separator" aria-hidden="true"
+      >{{ rangeSeparator() }}</span
+    >
+    <input
+      #endInput
+      type="text"
+      class="andes-date-picker__input"
+      data-slot="date-picker-input-end"
+      role="combobox"
+      autocomplete="off"
+      aria-haspopup="dialog"
+      [attr.aria-expanded]="overlay.isOpen()"
+      [attr.aria-controls]="overlay.isOpen() ? overlay.contentId : null"
+      [attr.aria-label]="endInputLabel()"
+      [attr.aria-invalid]="status() === 'error' || null"
+      [attr.data-active]="
+        overlay.isOpen() && activeSide() === 'end' ? '' : null
+      "
+      [placeholder]="placeholders()[1]"
+      [value]="endText()"
+      [disabled]="isDisabled()"
+      [readOnly]="inputReadOnly()"
+      (click)="openPanel()"
+      (focus)="onInputFocus('end')"
+      (input)="onInput('end', $event)"
+      (keydown)="onInputKeydown('end', $event)"
+    />
+    }
+
+    <span class="andes-date-picker__suffix">
+      <span
+        class="andes-date-picker__icon"
+        [class.andes-date-picker__icon--hidden-on-hover]="showClear()"
+        aria-hidden="true"
+      >
+        @if (suffixIcon(); as suffixTemplate) {
+        <ng-container [ngTemplateOutlet]="suffixTemplate" />
+        } @else if (timeOptions()) {
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2" />
+        </svg>
+        } @else {
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path
+            d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+          />
+        </svg>
+        }
+      </span>
+
+      @if (showClear()) {
+      <!-- Pointer-only, as in Ant: keyboard users clear by emptying the text,
+           which commits null on Enter or blur. Keeping it out of the Tab order
+           avoids a stop that would sit between the two range inputs and the
+           rest of the form. -->
+      <button
+        type="button"
+        tabindex="-1"
+        class="andes-date-picker__clear"
+        data-slot="date-picker-clear"
+        [attr.aria-label]="clearLabel()"
+        (click)="clearValue($event)"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15 9l-6 6M9 9l6 6"
+          />
+        </svg>
+      </button>
+      }
+    </span>
+  </div>
 </div>
 
 <ng-template #panel>
@@ -41,21 +126,118 @@
     class="andes-date-picker__panel"
     data-slot="date-picker-panel"
     [attr.aria-label]="panelLabel()"
+    (mousedown)="onPanelMousedown($event)"
+    (focusout)="onFocusOut($event)"
   >
-    <andes-calendar
-      autoFocus
-      [mode]="mode()"
-      [value]="selection()"
-      [min]="min()"
-      [max]="max()"
-      [locale]="locale()"
-      [weekStartsOn]="weekStartsOn()"
-      [showOutsideDays]="showOutsideDays()"
-      [fixedWeeks]="fixedWeeks()"
-      [dateDisabled]="dateDisabled()"
-      [defaultMonth]="defaultMonth()"
-      [disabled]="isDisabled()"
-      (valueChange)="onCalendarValueChange($event)"
-    />
+    <div class="andes-date-picker__panel-layout">
+      @if (presets().length) {
+      <ul
+        class="andes-date-picker__presets"
+        data-slot="date-picker-presets"
+        [attr.aria-label]="presetsLabel()"
+      >
+        @for (preset of presets(); track preset.label) {
+        <li>
+          <button
+            type="button"
+            class="andes-date-picker__preset"
+            (click)="applyPreset(preset)"
+          >
+            {{ preset.label }}
+          </button>
+        </li>
+        }
+      </ul>
+      }
+
+      <div class="andes-date-picker__panel-main">
+        <div class="andes-date-picker__panel-body">
+          <andes-calendar
+            [autoFocus]="focusGridOnOpen()"
+            [mode]="mode()"
+            [picker]="picker()"
+            [value]="selection()"
+            [min]="min()"
+            [max]="max()"
+            [locale]="locale()"
+            [weekStartsOn]="weekStartsOn()"
+            [showOutsideDays]="showOutsideDays()"
+            [fixedWeeks]="fixedWeeks()"
+            [numberOfMonths]="monthCount()"
+            [showWeek]="showWeek()"
+            [cellTemplate]="cellTemplate()"
+            [dateDisabled]="dateDisabled()"
+            [defaultMonth]="defaultMonth()"
+            [disabled]="isDisabled()"
+            (valueChange)="onCalendarValueChange($event)"
+            (panelChange)="panelChange.emit($event)"
+          />
+
+          @if (timeColumns().length) {
+          <div class="andes-date-picker__time" data-slot="date-picker-time">
+            @for (column of timeColumns(); track column.unit) {
+            <!-- Selection follows focus: arrow keys change the value directly,
+                 so the listbox never holds a "focused but unselected" option. -->
+            <div
+              class="andes-date-picker__time-column"
+              role="listbox"
+              tabindex="0"
+              [attr.data-unit]="column.unit"
+              [attr.aria-label]="column.label"
+              [attr.aria-activedescendant]="column.activeId"
+              (keydown)="onTimeKeydown($event, column)"
+            >
+              @for (option of column.options; track option.value) {
+              <div
+                role="option"
+                class="andes-date-picker__time-option"
+                [class.andes-date-picker__time-option--selected]="
+                  option.selected
+                "
+                [id]="option.id"
+                [attr.aria-selected]="option.selected"
+                (mousedown)="onTimeOptionMousedown($event, column.unit, option.value)"
+              >
+                {{ option.text }}
+              </div>
+              }
+            </div>
+            }
+          </div>
+          }
+        </div>
+
+        @if (showFooter()) {
+        <div class="andes-date-picker__footer" data-slot="date-picker-footer">
+          @if (extraFooter(); as footerTemplate) {
+          <div class="andes-date-picker__extra-footer">
+            <ng-container [ngTemplateOutlet]="footerTemplate" />
+          </div>
+          }
+          <div class="andes-date-picker__footer-actions">
+            @if (showNow() && !isRange()) {
+            <button
+              type="button"
+              class="andes-date-picker__now"
+              data-slot="date-picker-now"
+              (click)="selectNow()"
+            >
+              {{ nowText() }}
+            </button>
+            } @if (confirmRequired()) {
+            <andes-button
+              size="sm"
+              data-slot="date-picker-ok"
+              [disabled]="!canConfirm()"
+              (click)="confirm()"
+            >
+              {{ okLabel() }}
+            </andes-button>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
   </div>
 </ng-template>
