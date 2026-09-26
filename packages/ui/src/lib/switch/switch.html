@@ -1,0 +1,50 @@
+<button
+  #control
+  type="button"
+  role="switch"
+  data-slot="switch"
+  [attr.data-size]="size()"
+  [attr.data-checked]="isChecked() ? '' : null"
+  [attr.data-unchecked]="isChecked() ? null : ''"
+  [attr.data-disabled]="isDisabled() ? '' : null"
+  [attr.data-readonly]="readonly() ? '' : null"
+  [attr.data-required]="required() ? '' : null"
+  [attr.data-loading]="loading() ? '' : null"
+  [attr.aria-checked]="isChecked()"
+  [attr.aria-required]="required() || null"
+  [attr.aria-readonly]="readonly() || null"
+  [attr.aria-busy]="loading() || null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="ariaInvalid() || null"
+  [disabled]="isDisabled()"
+  [class]="classes()"
+  (click)="onClick($event)"
+  (blur)="onBlur()"
+>
+  <span class="andes-switch__thumb" data-slot="switch-thumb">
+    @if (loading()) {
+    <span class="andes-switch__spinner" aria-hidden="true"></span>
+    }
+  </span>
+  <!-- Both labels are always rendered, stacked in one grid cell, so the track is sized to the
+       wider of the two and doesn't jump on toggle; the inactive one is only visually hidden.
+       Each select appears exactly once; the string inputs are ng-content fallback content. -->
+  <span class="andes-switch__inner" aria-hidden="true">
+    <span
+      class="andes-switch__content andes-switch__content--checked"
+      [attr.data-active]="isChecked() ? '' : null"
+    >
+      <ng-content select="[slot=checked]">{{ checkedChildren() }}</ng-content>
+    </span>
+    <span
+      class="andes-switch__content andes-switch__content--unchecked"
+      [attr.data-active]="isChecked() ? null : ''"
+    >
+      <ng-content select="[slot=unchecked]"
+        >{{ unCheckedChildren() }}</ng-content
+      >
+    </span>
+  </span>
+</button>
