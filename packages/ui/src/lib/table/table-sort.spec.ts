@@ -1,4 +1,8 @@
-import { andesSortRows, type AndesSortAccessors } from './table-sort';
+import {
+  andesNextSortDirection,
+  andesSortRows,
+  type AndesSortAccessors,
+} from './table-sort';
 
 interface Row {
   readonly id: string;
@@ -280,5 +284,140 @@ describe('andesSortRows', () => {
         ),
       ).toEqual(['a', 'b']);
     });
+  });
+});
+
+describe('andesSortRows with several columns', () => {
+  const rows: readonly Row[] = [
+    row('a', 'Carla', 10, 'red'),
+    row('b', 'Ana', 30, 'blue'),
+    row('c', 'Bruno', 10, 'blue'),
+    row('d', 'Diego', 20, 'red'),
+    row('e', 'Eva', 10, 'red'),
+  ];
+
+  it('sorts by the first state and breaks ties with the next ones, in order', () => {
+    expect(
+      ids(
+        andesSortRows(
+          rows,
+          [
+            { columnId: 'score', direction: 'asc' },
+            { columnId: 'name', direction: 'desc' },
+          ],
+          ACCESSORS,
+        ),
+      ),
+    ).toEqual(['e', 'a', 'c', 'd', 'b']);
+  });
+
+  it('keeps the original order for rows tied on every column', () => {
+    expect(
+      ids(
+        andesSortRows(
+          rows,
+          [
+            { columnId: 'team', direction: 'desc' },
+            { columnId: 'score', direction: 'asc' },
+          ],
+          ACCESSORS,
+        ),
+      ),
+    ).toEqual(['a', 'e', 'd', 'c', 'b']);
+  });
+
+  it('returns the original reference for an empty list or only unknown columns', () => {
+    expect(andesSortRows(rows, [], ACCESSORS)).toBe(rows);
+    expect(
+      andesSortRows(rows, [{ columnId: 'nope', direction: 'asc' }], ACCESSORS),
+    ).toBe(rows);
+  });
+
+  it('skips unknown columns but still applies the known ones', () => {
+    expect(
+      ids(
+        andesSortRows(
+          rows,
+          [
+            { columnId: 'nope', direction: 'asc' },
+            { columnId: 'name', direction: 'asc' },
+          ],
+          ACCESSORS,
+        ),
+      ),
+    ).toEqual(['b', 'c', 'a', 'd', 'e']);
+  });
+});
+
+describe('andesSortRows with a comparator', () => {
+  const PRIORITY = ['high', 'medium', 'low'];
+  const rows = [
+    { id: 'a', priority: 'low' },
+    { id: 'b', priority: 'high' },
+    { id: 'c', priority: 'medium' },
+    { id: 'd', priority: 'high' },
+  ];
+  const accessors = {
+    priority: {
+      compare: (x: (typeof rows)[number], y: (typeof rows)[number]) =>
+        PRIORITY.indexOf(x.priority) - PRIORITY.indexOf(y.priority),
+    },
+  };
+
+  it('uses compare() for ascending order and negates it for descending, stably', () => {
+    expect(
+      andesSortRows(
+        rows,
+        { columnId: 'priority', direction: 'asc' },
+        accessors,
+      ).map((r) => r.id),
+    ).toEqual(['b', 'd', 'c', 'a']);
+    expect(
+      andesSortRows(
+        rows,
+        { columnId: 'priority', direction: 'desc' },
+        accessors,
+      ).map((r) => r.id),
+    ).toEqual(['a', 'c', 'b', 'd']);
+  });
+});
+
+describe('andesNextSortDirection', () => {
+  it('cycles through the directions and then back to unsorted', () => {
+    const cycle = ['asc', 'desc'] as const;
+
+    expect(andesNextSortDirection(null, cycle)).toBe('asc');
+    expect(andesNextSortDirection('asc', cycle)).toBe('desc');
+    expect(andesNextSortDirection('desc', cycle)).toBeNull();
+  });
+
+  it('honours a custom order such as descending first', () => {
+    const cycle = ['desc', 'asc'] as const;
+
+    expect(andesNextSortDirection(null, cycle)).toBe('desc');
+    expect(andesNextSortDirection('desc', cycle)).toBe('asc');
+    expect(andesNextSortDirection('asc', cycle)).toBeNull();
+  });
+
+  it('never returns to unsorted when a direction is repeated (Ant’s trick)', () => {
+    const cycle = ['asc', 'desc', 'asc'] as const;
+    let direction = andesNextSortDirection(null, cycle);
+    const seen = [direction];
+    for (let i = 0; i < 5; i++) {
+      direction = andesNextSortDirection(direction, cycle);
+      seen.push(direction);
+    }
+
+    expect(seen).not.toContain(null);
+  });
+
+  it('treats a single direction as a toggle between it and unsorted', () => {
+    expect(andesNextSortDirection(null, ['asc'])).toBe('asc');
+    expect(andesNextSortDirection('asc', ['asc'])).toBeNull();
+  });
+
+  it('never sorts with an empty list, and resets a direction not in the list', () => {
+    expect(andesNextSortDirection(null, [])).toBeNull();
+    expect(andesNextSortDirection('desc', ['asc'])).toBeNull();
   });
 });
