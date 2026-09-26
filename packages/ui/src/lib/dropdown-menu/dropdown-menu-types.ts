@@ -1,8 +1,8 @@
 import type { TemplateRef } from '@angular/core';
 
 /**
- * What opens the menu. Mirrors Ant Design's `Dropdown.trigger` values, including its
- * camel-cased `'contextMenu'`.
+ * What opens the menu. Note the camel-cased `'contextMenu'`, unlike the kebab-cased
+ * `'context-menu'` open-change source.
  *
  * - `click` - a click (or Enter/Space, which a `<button>` turns into a click) toggles it.
  * - `hover` - pointer hover opens it after `mouseEnterDelay` and closes it
@@ -14,7 +14,7 @@ import type { TemplateRef } from '@angular/core';
  */
 export type AndesDropdownMenuTriggerAction = 'click' | 'hover' | 'contextMenu';
 
-/** Ant Design's twelve `Dropdown.placement` values. */
+/** The twelve placements: a side of the trigger, optionally aligned to one of its ends. */
 export type AndesDropdownMenuPlacement =
   | 'top'
   | 'topLeft'
@@ -34,9 +34,8 @@ export type AndesDropdownMenuArrow =
   boolean | { readonly pointAtCenter: boolean };
 
 /**
- * Why the open state changed. Ant Design reports only `'trigger' | 'menu'`; this is a
- * superset of it - every value except `item`, `tab-out` and `hover` leaving the panel
- * is what Ant would call `'trigger'`.
+ * Why the open state changed. Every value except `item`, `tab-out` and `hover` leaving
+ * the panel is a trigger-side change; those three originate in the menu itself.
  */
 export type AndesDropdownMenuOpenChangeSource =
   | 'trigger'
@@ -49,17 +48,17 @@ export type AndesDropdownMenuOpenChangeSource =
   | 'tab-out'
   | 'programmatic';
 
-/** Payload of `(openStateChange)`: Ant's `onOpenChange(open, info)` as one object. */
+/** Payload of `(openStateChange)`: the new open state and what caused it, as one object. */
 export interface AndesDropdownMenuOpenChange {
   readonly open: boolean;
   readonly source: AndesDropdownMenuOpenChangeSource;
 }
 
-/** Payload of `(itemClick)`: Ant's `menu.onClick({ key, keyPath, domEvent, item })`. */
+/** Payload of `(itemClick)`: which item was activated, where it sits, and by what event. */
 export interface AndesDropdownMenuClickEvent {
   /** The activated item's `key`. */
   readonly key: string;
-  /** The item's key followed by each ancestor submenu's key, innermost first (Ant's order). */
+  /** The item's key followed by each ancestor submenu's key, innermost first. */
   readonly keyPath: readonly string[];
   /** The click or keydown that activated the item. */
   readonly event: Event;
@@ -76,7 +75,7 @@ export interface AndesDropdownMenuSelectEvent extends AndesDropdownMenuClickEven
 /** `string` renders as text; a `TemplateRef` renders as-is. */
 export type AndesDropdownMenuLabelValue = string | TemplateRef<unknown>;
 
-/** A plain, activatable entry of the `items` array (Ant's `MenuItemType`). */
+/** A plain, activatable entry of the `items` array. */
 export interface AndesDropdownMenuItemOption {
   readonly type?: 'item';
   readonly key: string;
@@ -91,7 +90,7 @@ export interface AndesDropdownMenuItemOption {
   readonly title?: string;
 }
 
-/** A nested submenu (Ant's `SubMenuType`). `type` is optional when `children` is present. */
+/** A nested submenu. `type` is optional when `children` is present. */
 export interface AndesDropdownMenuSubmenuOption {
   readonly type?: 'submenu';
   readonly key: string;
@@ -102,7 +101,7 @@ export interface AndesDropdownMenuSubmenuOption {
   readonly children: readonly AndesDropdownMenuItemDef[];
 }
 
-/** A labelled, non-interactive group of items (Ant's `MenuItemGroupType`). */
+/** A labelled, non-interactive group of items. */
 export interface AndesDropdownMenuGroupOption {
   readonly type: 'group';
   readonly key?: string;
@@ -110,7 +109,7 @@ export interface AndesDropdownMenuGroupOption {
   readonly children: readonly AndesDropdownMenuItemDef[];
 }
 
-/** A separator line (Ant's `MenuDividerType`). */
+/** A separator line. */
 export interface AndesDropdownMenuDividerOption {
   readonly type: 'divider';
   readonly key?: string;
@@ -124,7 +123,7 @@ export type AndesDropdownMenuItemDef =
   | AndesDropdownMenuGroupOption
   | AndesDropdownMenuDividerOption;
 
-/** Narrows an `items` entry to a submenu: explicit `type: 'submenu'`, or Ant's implicit `children`. */
+/** Narrows an `items` entry to a submenu: explicit `type: 'submenu'`, or implied by `children`. */
 export function isAndesDropdownMenuSubmenu(
   def: AndesDropdownMenuItemDef,
 ): def is AndesDropdownMenuSubmenuOption {

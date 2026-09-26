@@ -39,8 +39,7 @@ const CARET_SIZES: Readonly<Record<AndesButtonSize, AndesButtonSize>> = {
 };
 
 /**
- * A split button: a main action plus an attached caret that opens a dropdown menu
- * (Ant Design's `Dropdown.Button`).
+ * A split button: a main action plus an attached caret that opens a dropdown menu.
  *
  * ```html
  * <andes-dropdown-button (buttonClick)="save()" (itemClick)="run($event.key)">
@@ -144,7 +143,7 @@ const CARET_SIZES: Readonly<Record<AndesButtonSize, AndesButtonSize>> = {
   },
 })
 export class AndesDropdownButton extends AndesDropdownMenu {
-  /** Visual variant of both halves (Ant's `type`/`danger`). Default `'outline'`, Ant's default look. */
+  /** Visual variant of both halves. Default `'outline'`. */
   readonly variant = input<AndesButtonVariant>('outline');
   /** Size of both halves. Default `'md'`. */
   readonly size = input<AndesButtonSize>('md');
@@ -154,11 +153,11 @@ export class AndesDropdownButton extends AndesDropdownMenu {
   readonly icon = input<TemplateRef<unknown> | undefined>(undefined);
   /** Accessible name of the icon-only caret button. Default `'More actions'`. */
   readonly menuLabel = input('More actions');
-  /** Where the panel opens. Default `'bottomRight'`, aligned under the caret (Ant's default). */
+  /** Where the panel opens. Default `'bottomRight'`, aligned under the caret. */
   override readonly placement =
     input<AndesDropdownMenuPlacement>('bottomRight');
 
-  /** Emits when the main (left) button is clicked (Ant's `onClick`). */
+  /** Emits when the main (left) button is clicked. */
   readonly buttonClick = output<MouseEvent>();
 
   protected readonly caretSize = computed(() => CARET_SIZES[this.size()]);

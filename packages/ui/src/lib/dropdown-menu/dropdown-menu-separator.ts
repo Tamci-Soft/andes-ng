@@ -28,6 +28,6 @@ import {
   },
 })
 export class AndesDropdownMenuSeparator {
-  /** Draw the line dashed (Ant's divider `dashed`). Default `false`. */
+  /** Draw the line dashed. Default `false`. */
   readonly dashed = input(false, { transform: booleanAttribute });
 }
