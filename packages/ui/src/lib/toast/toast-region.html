@@ -1,0 +1,18 @@
+@for (toast of toasts(); track toast.id; let i = $index, count = $count) {
+<andes-toast-item
+  [toast]="toast"
+  [style.--_toast-stack-depth]="count - 1 - i"
+  [attr.data-stack-behind]="stacked() && count - 1 - i > 0 ? '' : null"
+  [attr.data-stack-overflow]="
+    stacked() && count - 1 - i >= stackVisibleDepth ? '' : null
+  "
+  (mouseenter)="onHoverStart(toast)"
+  (mouseleave)="onHoverEnd(toast)"
+  (focusin)="controller().pause(toast.id)"
+  (focusout)="controller().resume(toast.id)"
+  (dismissRequested)="onClose(toast)"
+  (actionClicked)="onAction(toast, toast.action)"
+  (groupActionClicked)="onAction(toast, $event)"
+  (bodyClicked)="onBodyClick(toast)"
+/>
+}

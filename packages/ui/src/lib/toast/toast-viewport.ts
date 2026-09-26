@@ -1,18 +1,31 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   input,
 } from '@angular/core';
 
-import { AndesToastItem } from './toast-item';
+import { AndesMessageService } from './message.service';
+import { AndesToastRegion } from './toast-region';
 import { AndesToastService } from './toast.service';
 import type { AndesToast, AndesToastPosition } from './toast.types';
 
+const PLACEMENTS: readonly AndesToastPosition[] = [
+  'top-left',
+  'top-center',
+  'top-right',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right',
+];
+
 /**
- * Mount this once, e.g. near the root of an app (`app.html`), to render the toast stack
- * `AndesToastService` manages. Fixed-position, always-visible, and deliberately *not* built
- * on `AndesOverlayPrimitive` - see the ADR-style note below.
+ * Mount this once, e.g. near the root of an app (`app.html`), to render both toast flavors:
+ * the notifications `AndesToastService` manages (one fixed stack per placement in use) and
+ * the compact messages `AndesMessageService` manages (always top-center). Fixed-position,
+ * always-visible, and deliberately *not* built on `AndesOverlayPrimitive` - see the
+ * ADR-style note below.
  *
  * ```html
  * <!-- app.html, once -->
@@ -24,7 +37,12 @@ import type { AndesToast, AndesToastPosition } from './toast.types';
  * // anywhere else
  * private readonly toasts = inject(AndesToastService);
  * this.toasts.success('Changes saved.');
+ * inject(AndesMessageService).success('Copied.');
  * ```
+ *
+ * Ant's static methods need no mount point; here an explicit mount keeps rendering inside
+ * the app's own component tree (SSR-safe, no `ApplicationRef` side-attachment) - the same
+ * trade-off `<router-outlet>` makes.
  *
  * ## Why not `AndesOverlayPrimitive`
  *
@@ -51,44 +69,46 @@ import type { AndesToast, AndesToastPosition } from './toast.types';
  */
 @Component({
   selector: 'andes-toast-viewport',
-  imports: [AndesToastItem],
+  imports: [AndesToastRegion],
   templateUrl: './toast-viewport.html',
   styleUrl: './toast-viewport.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'andes-toast-viewport',
-    '[attr.data-position]': 'position()',
+    '[attr.data-position]': 'defaultPlacement()',
   },
 })
 export class AndesToastViewport {
   protected readonly toastService = inject(AndesToastService);
-
-  /** Which corner/edge to anchor the stack to. Default `'bottom-right'`. */
-  readonly position = input<AndesToastPosition>('bottom-right');
-
-  protected readonly toasts = this.toastService.visibleToasts;
-
-  protected onDismiss(id: string): void {
-    this.toastService.dismiss(id);
-  }
+  protected readonly messageService = inject(AndesMessageService);
 
   /**
-   * Pauses a toast's auto-dismiss countdown. Wired to both `mouseenter` (pointer hover) and
-   * `focusin` (keyboard focus anywhere within the toast, e.g. Tab-ing to its action button) -
-   * a keyboard-only user needs the same protection from the timer expiring mid-interaction
-   * that a mouse user gets from hover, per WCAG 2.2.1 (Timing Adjustable).
+   * Where notifications without their own `placement` go. Default: the global `placement`
+   * from `provideAndesToastConfig()` (built-in `'bottom-right'`).
    */
-  protected onPauseStart(id: string): void {
-    this.toastService.pause(id);
-  }
+  readonly position = input<AndesToastPosition | undefined>(undefined);
 
-  /** Resumes a toast paused by `onPauseStart`. Wired to both `mouseleave` and `focusout`. */
-  protected onPauseEnd(id: string): void {
-    this.toastService.resume(id);
-  }
+  protected readonly defaultPlacement = computed(
+    () => this.position() ?? this.toastService.defaults().placement,
+  );
 
-  protected onAction(toast: AndesToast): void {
-    toast.action?.onClick();
-    this.toastService.dismiss(toast.id);
-  }
+  /** Visible notifications grouped by resolved placement, in a stable placement order. */
+  protected readonly regions = computed(() => {
+    const fallback = this.defaultPlacement();
+    const groups = new Map<AndesToastPosition, AndesToast[]>();
+    for (const toast of this.toastService.visibleToasts()) {
+      const placement = toast.placement ?? fallback;
+      const group = groups.get(placement);
+      if (group) {
+        group.push(toast);
+      } else {
+        groups.set(placement, [toast]);
+      }
+    }
+    return PLACEMENTS.filter((placement) => groups.has(placement)).map(
+      (placement) => ({ placement, toasts: groups.get(placement) ?? [] }),
+    );
+  });
+
+  protected readonly messages = this.messageService.visibleToasts;
 }
