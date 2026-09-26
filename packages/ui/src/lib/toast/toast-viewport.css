@@ -1,40 +1,5 @@
+/* The viewport itself is layout-neutral: each placement's fixed-position stack is its own
+   andes-toast-region (see toast-region.css). */
 :host {
-  position: fixed;
-  z-index: var(--andes-z-index-toast);
-  display: flex;
-  flex-direction: column;
-  gap: var(--andes-space-2);
-  padding: var(--andes-space-4);
-  max-width: min(100vw, 24rem);
-  /* Empty space around the stack shouldn't block clicks on whatever is underneath - each
-     andes-toast-item opts back into pointer-events: auto on its own host. */
-  pointer-events: none;
-}
-
-:host([data-position^='top']) {
-  top: 0;
-}
-
-:host([data-position^='bottom']) {
-  bottom: 0;
-  /* Newest toast is appended last; reversing the flex order keeps it nearest the edge it
-     entered from and pushes older toasts up/away, which is how bottom-anchored stacks
-     (Sonner, Ant's bottom placements) read as "new arrivals" rather than "list append". */
-  flex-direction: column-reverse;
-}
-
-:host([data-position$='left']) {
-  left: 0;
-  align-items: flex-start;
-}
-
-:host([data-position$='right']) {
-  right: 0;
-  align-items: flex-end;
-}
-
-:host([data-position$='center']) {
-  left: 50%;
-  align-items: center;
-  transform: translateX(-50%);
+  display: contents;
 }

@@ -1,11 +1,20 @@
-@for (toast of toasts(); track toast.id) {
-<andes-toast-item
-  [toast]="toast"
-  (mouseenter)="onPauseStart(toast.id)"
-  (mouseleave)="onPauseEnd(toast.id)"
-  (focusin)="onPauseStart(toast.id)"
-  (focusout)="onPauseEnd(toast.id)"
-  (dismissRequested)="onDismiss(toast.id)"
-  (actionClicked)="onAction(toast)"
+@for (region of regions(); track region.placement) {
+<andes-toast-region
+  flavor="notification"
+  [placement]="region.placement"
+  [toasts]="region.toasts"
+  [controller]="toastService"
+  [stack]="toastService.defaults().stack"
+  [top]="toastService.defaults().top"
+  [bottom]="toastService.defaults().bottom"
+/>
+} @if (messages().length) {
+<andes-toast-region
+  flavor="message"
+  placement="top-center"
+  [toasts]="messages()"
+  [controller]="messageService"
+  [stack]="messageService.defaults().stack"
+  [top]="messageService.defaults().top"
 />
 }
