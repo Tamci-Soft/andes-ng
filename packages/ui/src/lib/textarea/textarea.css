@@ -5,98 +5,290 @@
   width: 100%;
 }
 
-.andes-textarea {
+/* The wrapper - not the native textarea - is what visually reads as "the field": it owns the
+   border, background, focus ring and the manual-resize grip, and encloses the clear button,
+   which sits outside the textarea's own box. `overflow: hidden` is what lets CSS `resize`
+   apply to a non-textarea element (and clips the textarea to the rounded corners); it does
+   not clip the wrapper's own outline. */
+.andes-textarea-wrapper {
+  position: relative;
   box-sizing: border-box;
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  min-height: 0;
+  overflow: hidden;
   border-radius: var(--andes-radius-md);
   border: 1px solid var(--andes-color-input);
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
-  /* Explicit so `getComputedStyle(...).lineHeight` resolves to a real pixel value for the
-     auto-size row math instead of `normal` - unitless so it still scales correctly with
-     each size variant's own font-size below. */
-  line-height: 1.5;
-  padding: var(--andes-space-2) var(--andes-space-3);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    background-color 0.15s ease,
+    outline-color 0.15s ease;
 }
 
-.andes-textarea::placeholder {
-  color: var(--andes-color-muted-foreground);
-}
-
-.andes-textarea:focus-visible {
+/* Single focus ring, on the wrapper. A textarea matches `:focus-visible` on every focus
+   (mouse included) because it always takes text input, so this is equivalent to
+   `:focus-within` here - `:focus-visible` is kept for parity with the rest of the library.
+   `outline`, not `box-shadow`, so it survives `forced-colors: active`. */
+.andes-textarea-wrapper:has(textarea:focus-visible) {
+  border-color: var(--andes-color-focus-ring);
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
 }
 
-.andes-textarea:disabled {
+.andes-textarea__control {
+  box-sizing: border-box;
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  /* Manual resizing is handled by the wrapper (see the resize modes below), so the border,
+     ring and clear button always follow the dragged size. */
+  resize: none;
+  /* Explicit so `getComputedStyle(...).lineHeight` resolves to a real pixel value for the
+     auto-size row math instead of `normal`; each size overrides it below. */
+  line-height: 1.5;
+  padding: var(--andes-space-2) var(--andes-space-3);
+}
+
+/* Suppress the UA focus ring on the native control - and only there - so exactly one ring
+   (the wrapper's) paints. */
+.andes-textarea__control:focus,
+.andes-textarea__control:focus-visible {
+  outline: none;
+}
+
+.andes-textarea__control::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-textarea__control:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+}
+
+/* With autoSize the measured inline height is authoritative - the textarea must not be
+   stretched or shrunk by the flex column around it. */
+.andes-textarea-wrapper--auto-size .andes-textarea__control {
+  flex: none;
+}
+
+/* Variants */
+
+.andes-textarea-wrapper--filled {
+  border-color: transparent;
   background-color: var(--andes-color-muted);
 }
 
-.andes-textarea:read-only:not(:disabled) {
-  background-color: var(--andes-color-muted);
+.andes-textarea-wrapper--filled:has(textarea:focus-visible) {
+  background-color: var(--andes-color-background);
 }
 
-.andes-textarea--invalid {
+.andes-textarea-wrapper--borderless {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.andes-textarea-wrapper--underlined {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Status - error also sets aria-invalid on the textarea (see textarea.ts). */
+
+.andes-textarea-wrapper--invalid {
   border-color: var(--andes-color-danger);
 }
 
-.andes-textarea--invalid:focus-visible {
+.andes-textarea-wrapper--invalid:has(textarea:focus-visible) {
+  border-color: var(--andes-color-danger);
   outline-color: var(--andes-color-danger);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
-/* Sizes - control font-size, line-height and padding; height is otherwise driven by
-   `rows` (native) or the auto-size measurement, never a fixed size-based height.
-   Line-height is kept at each size's own font-size * 1.5 so the auto-size row math
-   (which reads the computed line-height) stays proportional per size instead of
-   collapsing onto a single shared value. */
+.andes-textarea-wrapper--warning {
+  border-color: var(--andes-color-warning);
+}
 
-.andes-textarea--sm {
+.andes-textarea-wrapper--warning:has(textarea:focus-visible) {
+  border-color: var(--andes-color-warning);
+  outline-color: var(--andes-color-warning);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
+}
+
+.andes-textarea-wrapper--filled.andes-textarea-wrapper--invalid {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-danger) 10%,
+    transparent
+  );
+}
+
+.andes-textarea-wrapper--filled.andes-textarea-wrapper--warning {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-warning) 10%,
+    transparent
+  );
+}
+
+.andes-textarea-wrapper--borderless.andes-textarea-wrapper--invalid {
+  border-color: transparent;
+  color: var(--andes-color-danger);
+}
+
+.andes-textarea-wrapper--borderless.andes-textarea-wrapper--warning {
+  border-color: transparent;
+  color: var(--andes-color-warning-active);
+}
+
+/* Borderless stays borderless while focused, whatever its status - the outline alone marks
+   focus. Must come after the status focus rules it overrides (same specificity). */
+.andes-textarea-wrapper--borderless:has(textarea:focus-visible) {
+  border-color: transparent;
+}
+
+/* Disabled / read-only */
+
+.andes-textarea-wrapper--readonly {
+  background-color: var(--andes-color-muted);
+}
+
+.andes-textarea-wrapper--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-textarea-wrapper--borderless.andes-textarea-wrapper--readonly,
+.andes-textarea-wrapper--borderless.andes-textarea-wrapper--disabled {
+  background-color: transparent;
+}
+
+/* Sizes - font-size lives on the wrapper (the textarea inherits it); line-height and
+   padding on the textarea. Height is otherwise driven by `rows` (native) or the auto-size
+   measurement, never a fixed size-based height. Each size's line-height is its own
+   font-size * 1.5 so the auto-size row math (which reads the computed line-height) stays
+   proportional per size. */
+
+.andes-textarea-wrapper--sm {
   font-size: 0.875rem;
+}
+
+.andes-textarea-wrapper--sm .andes-textarea__control {
   line-height: 1.3125rem;
   padding: var(--andes-space-1) var(--andes-space-2);
 }
 
-.andes-textarea--md {
+.andes-textarea-wrapper--md {
   font-size: 1rem;
+}
+
+.andes-textarea-wrapper--md .andes-textarea__control {
   line-height: 1.5rem;
 }
 
-.andes-textarea--lg {
+.andes-textarea-wrapper--lg {
   font-size: 1.125rem;
+}
+
+.andes-textarea-wrapper--lg .andes-textarea__control {
   line-height: 1.6875rem;
   padding: var(--andes-space-3) var(--andes-space-4);
 }
 
-/* Resize */
+/* Resize - applied to the wrapper; `none` whenever autoSize is on (see effectiveResize). */
 
-.andes-textarea--resize-none {
+.andes-textarea-wrapper--resize-none {
   resize: none;
 }
 
-.andes-textarea--resize-vertical {
+.andes-textarea-wrapper--resize-vertical {
   resize: vertical;
 }
 
-.andes-textarea--resize-horizontal {
+.andes-textarea-wrapper--resize-horizontal {
   resize: horizontal;
 }
 
-.andes-textarea--resize-both {
+.andes-textarea-wrapper--resize-both {
   resize: both;
 }
+
+.andes-textarea-wrapper--disabled.andes-textarea-wrapper--resize-vertical,
+.andes-textarea-wrapper--disabled.andes-textarea-wrapper--resize-horizontal,
+.andes-textarea-wrapper--disabled.andes-textarea-wrapper--resize-both {
+  resize: none;
+}
+
+/* Clear button - pinned to the first line's top-right corner; the textarea reserves room
+   for it so text never runs underneath. */
+
+.andes-textarea-wrapper--clearable .andes-textarea__control {
+  padding-inline-end: calc(1em + var(--andes-space-2) * 2);
+}
+
+.andes-textarea__clear {
+  position: absolute;
+  inset-inline-end: var(--andes-space-2);
+  top: var(--andes-space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5em;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.andes-textarea-wrapper--sm .andes-textarea__clear {
+  top: var(--andes-space-1);
+}
+
+.andes-textarea-wrapper--lg .andes-textarea__clear {
+  top: var(--andes-space-3);
+}
+
+.andes-textarea__clear:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-textarea__clear:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-textarea__clear svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* Character count */
 
 .andes-textarea__count {
   align-self: flex-end;
   font-family: var(--andes-font-family), sans-serif;
   font-size: 0.75rem;
   color: var(--andes-color-muted-foreground);
+}
+
+.andes-textarea__count--exceeded {
+  color: var(--andes-color-danger);
 }
