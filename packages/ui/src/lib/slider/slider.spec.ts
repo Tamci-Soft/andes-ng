@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 
@@ -6,8 +6,16 @@ import {
   AndesSlider,
   AndesSliderMarkInput,
   AndesSliderOrientation,
+  AndesSliderMarks,
+  AndesSliderRangeConfig,
+  AndesSliderTooltip,
+  AndesSliderTooltipPlacement,
   AndesSliderValue,
 } from './slider';
+import {
+  AndesSliderMarkTemplate,
+  AndesSliderTooltipTemplate,
+} from './slider-templates';
 
 @Component({
   imports: [AndesSlider],
@@ -47,7 +55,7 @@ class HostComponent {
   readonly included = signal(true);
   readonly reverse = signal(false);
   readonly marks = signal<readonly AndesSliderMarkInput[]>([]);
-  readonly changes: AndesSliderValue[] = [];
+  readonly changes: (AndesSliderValue | undefined)[] = [];
   readonly commits: AndesSliderValue[] = [];
 }
 
@@ -881,7 +889,7 @@ describe('AndesSlider', () => {
       />`,
     })
     class TwoWayHost {
-      bound: AndesSliderValue = 10;
+      bound: AndesSliderValue | undefined = 10;
     }
 
     const fixture = TestBed.createComponent(TwoWayHost);
@@ -1109,6 +1117,646 @@ describe('AndesSlider', () => {
       fixture.detectChanges();
 
       expect(fixture.componentInstance.control.touched).toBe(true);
+    });
+  });
+
+  // --- Ant Design parity ----------------------------------------------------
+
+  describe('Ant Design parity', () => {
+    @Component({
+      imports: [AndesSlider],
+      template: `<andes-slider
+        [value]="value()"
+        [min]="min()"
+        [max]="max()"
+        [step]="step()"
+        [range]="range()"
+        [disabled]="disabled()"
+        [dots]="dots()"
+        [included]="included()"
+        [marks]="marks()"
+        [orientation]="orientation()"
+        [tooltip]="tooltip()"
+        [tooltipPlacement]="placement()"
+        [tooltipFormatter]="tooltipFormatter()"
+        [valueFormatter]="valueFormatter()"
+        [thumbAriaLabel]="thumbAriaLabel()"
+        aria-label="Volume"
+        (valueChange)="changes.push($event)"
+        (valueCommit)="commits.push($event)"
+      />`,
+    })
+    class ParityHost {
+      readonly slider = viewChild.required(AndesSlider);
+      readonly value = signal<AndesSliderValue | undefined>(undefined);
+      readonly min = signal(0);
+      readonly max = signal(100);
+      readonly step = signal<number | null>(1);
+      readonly range = signal<boolean | AndesSliderRangeConfig>(false);
+      readonly disabled = signal<boolean | readonly boolean[]>(false);
+      readonly dots = signal(false);
+      readonly included = signal(true);
+      readonly marks = signal<AndesSliderMarks>([]);
+      readonly orientation = signal<AndesSliderOrientation>('horizontal');
+      readonly tooltip = signal<AndesSliderTooltip>('always');
+      readonly placement = signal<AndesSliderTooltipPlacement | undefined>(
+        undefined,
+      );
+      readonly tooltipFormatter = signal<
+        ((value: number, index: number) => string | null) | null | undefined
+      >(undefined);
+      readonly valueFormatter = signal<
+        ((value: number, index: number) => string) | undefined
+      >(undefined);
+      readonly thumbAriaLabel = signal<
+        ((index: number, count: number) => string) | undefined
+      >(undefined);
+      readonly changes: (AndesSliderValue | undefined)[] = [];
+      readonly commits: AndesSliderValue[] = [];
+    }
+
+    function mount(setup: (host: ParityHost) => void = () => undefined) {
+      const fixture = TestBed.createComponent(ParityHost);
+      setup(fixture.componentInstance);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const all = (selector: string) =>
+        Array.from(root.querySelectorAll<HTMLElement>(selector));
+
+      return {
+        fixture,
+        host: fixture.componentInstance,
+        root,
+        get slider() {
+          return root.querySelector('andes-slider') as HTMLElement;
+        },
+        get control() {
+          return root.querySelector(
+            '[data-slot="slider-control"]',
+          ) as HTMLElement;
+        },
+        get track() {
+          return root.querySelector(
+            '[data-slot="slider-track"]',
+          ) as HTMLElement;
+        },
+        get indicator() {
+          return root.querySelector(
+            '[data-slot="slider-indicator"]',
+          ) as HTMLElement;
+        },
+        get thumbs() {
+          return all('[data-slot="slider-thumb"]');
+        },
+        get dots() {
+          return all('[data-slot="slider-dot"]');
+        },
+        get markLabels() {
+          return all('[data-slot="slider-mark"]');
+        },
+        get tooltips() {
+          return all('.andes-slider__tooltip');
+        },
+        values() {
+          return all('[data-slot="slider-thumb"]').map((thumb) =>
+            Number(thumb.getAttribute('aria-valuenow')),
+          );
+        },
+        fillSize() {
+          return this.indicator.style.getPropertyValue(
+            '--andes-slider-fill-size',
+          );
+        },
+        detect() {
+          fixture.detectChanges();
+        },
+      };
+    }
+
+    // marks ---------------------------------------------------------------
+
+    it('accepts Ant Design keyed marks with per-mark style and class', () => {
+      const view = mount((host) =>
+        host.marks.set({
+          0: '0°C',
+          26: { label: '26°C', class: 'warm' },
+          100: { label: '100°C', style: { color: 'rgb(255, 0, 0)' } },
+        }),
+      );
+
+      const labels = view.markLabels;
+      expect(labels.map((label) => label.textContent?.trim())).toEqual([
+        '0°C',
+        '26°C',
+        '100°C',
+      ]);
+      expect(labels[1].classList.contains('warm')).toBe(true);
+      expect(labels[1].classList.contains('andes-slider__mark-label')).toBe(
+        true,
+      );
+      expect(labels[2].style.color).toBe('rgb(255, 0, 0)');
+      expect(view.dots.length).toBe(3);
+    });
+
+    it('flags mark labels and dots inside the included segment as active', () => {
+      const view = mount((host) => {
+        host.marks.set([
+          { value: 0, label: 'A' },
+          { value: 50, label: 'B' },
+          { value: 100, label: 'C' },
+        ]);
+        host.value.set(60);
+      });
+
+      const activeLabels = view.markLabels.map((label) =>
+        label.classList.contains('andes-slider__mark-label--active'),
+      );
+      const activeDots = view.dots.map((dot) =>
+        dot.classList.contains('andes-slider__dot--active'),
+      );
+      expect(activeLabels).toEqual([true, true, false]);
+      expect(activeDots).toEqual([true, true, false]);
+
+      view.host.included.set(false);
+      view.detect();
+      expect(
+        view.markLabels.some((label) =>
+          label.classList.contains('andes-slider__mark-label--active'),
+        ),
+      ).toBe(false);
+    });
+
+    it('renders a custom mark template for every mark, labelled or not', () => {
+      @Component({
+        imports: [AndesSlider, AndesSliderMarkTemplate],
+        template: `<andes-slider
+          [value]="50"
+          [marks]="[0, 50, { value: 100, label: 'Max' }]"
+          aria-label="Volume"
+        >
+          <ng-template
+            andesSliderMark
+            let-mark
+            let-active="active"
+            let-label="label"
+          >
+            <b class="custom"
+              >{{ label ?? mark.value + '%' }}{{ active ? '*' : '' }}</b
+            >
+          </ng-template>
+        </andes-slider>`,
+      })
+      class MarkTemplateHost {}
+
+      const fixture = TestBed.createComponent(MarkTemplateHost);
+      fixture.detectChanges();
+      const custom = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('b.custom'),
+      ).map((node) => node.textContent?.trim());
+
+      expect(custom).toEqual(['0%*', '50%*', 'Max']);
+    });
+
+    it('moves the nearest handle to a clicked mark and commits', () => {
+      const view = mount((host) => {
+        host.range.set(true);
+        host.value.set([10, 90]);
+        host.marks.set([
+          { value: 20, label: 'Low' },
+          { value: 70, label: 'High' },
+        ]);
+      });
+
+      view.markLabels[1].click();
+      view.detect();
+
+      expect(view.values()).toEqual([10, 70]);
+      expect(view.host.commits).toEqual([[10, 70]]);
+    });
+
+    it('ignores mark clicks while disabled', () => {
+      const view = mount((host) => {
+        host.disabled.set(true);
+        host.value.set(10);
+        host.marks.set([{ value: 70, label: 'High' }]);
+      });
+
+      view.markLabels[0].click();
+      view.detect();
+
+      expect(view.values()).toEqual([10]);
+      expect(view.host.commits).toEqual([]);
+    });
+
+    // dots ----------------------------------------------------------------
+
+    it('draws a dot at every step when dots is set without marks', () => {
+      const view = mount((host) => {
+        host.dots.set(true);
+        host.step.set(25);
+        host.value.set(50);
+      });
+
+      expect(view.dots.length).toBe(5);
+      expect(
+        view.dots.map((dot) =>
+          dot.classList.contains('andes-slider__dot--active'),
+        ),
+      ).toEqual([true, true, true, false, false]);
+    });
+
+    it('skips step dots that would crowd the rail', () => {
+      const view = mount((host) => {
+        host.dots.set(true);
+        host.max.set(1000);
+      });
+
+      expect(view.dots.length).toBe(0);
+    });
+
+    it('keeps decimal step dots free of float drift', () => {
+      const view = mount((host) => {
+        host.dots.set(true);
+        host.max.set(1);
+        host.step.set(0.1);
+      });
+
+      expect(view.dots.length).toBe(11);
+      expect(
+        view.dots[3].style.getPropertyValue('--andes-slider-dot-offset'),
+      ).toBe('30%');
+    });
+
+    // included ------------------------------------------------------------
+
+    it('drops the fill in range mode too when included is false', () => {
+      const view = mount((host) => {
+        host.range.set(true);
+        host.included.set(false);
+        host.value.set([20, 60]);
+      });
+
+      expect(view.fillSize()).toBe('0%');
+    });
+
+    // tooltip -------------------------------------------------------------
+
+    it('places the tooltip on top by default and at the inline end when vertical', () => {
+      const view = mount((host) => host.value.set(30));
+      expect(view.tooltips[0].getAttribute('data-placement')).toBe('top');
+
+      view.host.orientation.set('vertical');
+      view.detect();
+      expect(view.tooltips[0].getAttribute('data-placement')).toBe('end');
+
+      view.host.placement.set('left');
+      view.detect();
+      expect(view.tooltips[0].getAttribute('data-placement')).toBe('left');
+    });
+
+    it('formats tooltip text separately from aria-valuetext', () => {
+      const view = mount((host) => {
+        host.value.set(30);
+        host.valueFormatter.set((value) => `${value} percent`);
+        host.tooltipFormatter.set((value) => `${value}%`);
+      });
+
+      expect(view.tooltips[0].textContent?.trim()).toBe('30%');
+      expect(view.thumbs[0].getAttribute('aria-valuetext')).toBe('30 percent');
+    });
+
+    it('hides a tooltip whose formatter returns null, and all of them for a null formatter', () => {
+      const view = mount((host) => {
+        host.range.set(true);
+        host.value.set([20, 80]);
+        host.tooltipFormatter.set((value) => (value > 50 ? `${value}` : null));
+      });
+
+      expect(view.thumbs[0].querySelector('.andes-slider__tooltip')).toBeNull();
+      expect(
+        view.thumbs[1]
+          .querySelector('.andes-slider__tooltip')
+          ?.textContent?.trim(),
+      ).toBe('80');
+
+      view.host.tooltipFormatter.set(null);
+      view.detect();
+      expect(view.tooltips.length).toBe(0);
+    });
+
+    it('renders a custom tooltip template with the value and index', () => {
+      @Component({
+        imports: [AndesSlider, AndesSliderTooltipTemplate],
+        template: `<andes-slider
+          range
+          [value]="[10, 40]"
+          tooltip="always"
+          startAriaLabel="Min"
+          endAriaLabel="Max"
+        >
+          <ng-template andesSliderTooltip let-value let-index="index">
+            <i class="tip">#{{ index }}={{ value }}</i>
+          </ng-template>
+        </andes-slider>`,
+      })
+      class TooltipTemplateHost {}
+
+      const fixture = TestBed.createComponent(TooltipTemplateHost);
+      fixture.detectChanges();
+      const tips = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('i.tip'),
+      ).map((node) => node.textContent?.trim());
+
+      expect(tips).toEqual(['#0=10', '#1=40']);
+    });
+
+    // multi-handle range --------------------------------------------------
+
+    it('keeps every handle of a multi-handle range, sorted and uncrossable', () => {
+      const view = mount((host) => {
+        host.range.set(true);
+        host.value.set([70, 10, 40]);
+        host.thumbAriaLabel.set(
+          (index, count) => `Handle ${index + 1} of ${count}`,
+        );
+      });
+
+      expect(view.values()).toEqual([10, 40, 70]);
+      expect(view.thumbs[1].getAttribute('aria-label')).toBe('Handle 2 of 3');
+
+      view.thumbs[1].dispatchEvent(key('End'));
+      view.detect();
+      expect(view.values()).toEqual([10, 70, 70]);
+
+      view.thumbs[1].dispatchEvent(key('Home'));
+      view.detect();
+      expect(view.values()).toEqual([10, 10, 70]);
+    });
+
+    it('writes the value back into the model on interaction', () => {
+      const view = mount((host) => host.value.set(20));
+
+      view.thumbs[0].dispatchEvent(key('ArrowRight'));
+      view.detect();
+
+      expect(view.host.slider().value()).toBe(21);
+      expect(view.host.changes).toEqual([21]);
+    });
+
+    it('keeps a writeValue when only min/max change afterwards', () => {
+      const view = mount((host) => host.value.set(20));
+      view.host.slider().writeValue(60);
+      view.host.max.set(90);
+      view.detect();
+
+      expect(view.values()).toEqual([60]);
+    });
+
+    // draggableTrack ------------------------------------------------------
+
+    it('drags the whole range by its track, keeping the spacing', () => {
+      const view = mount((host) => {
+        host.range.set({ draggableTrack: true });
+        host.value.set([20, 40]);
+        host.step.set(5);
+      });
+      const rect = stubRect(view.track, { left: 0, width: 100 });
+
+      view.control.dispatchEvent(pointer('pointerdown', rect.left + 30, 0));
+      view.control.dispatchEvent(pointer('pointermove', rect.left + 52, 0));
+      view.detect();
+      expect(view.values()).toEqual([40, 60]);
+
+      // Stops as a whole at the bound instead of squeezing the range.
+      view.control.dispatchEvent(pointer('pointermove', rect.left + 200, 0));
+      view.control.dispatchEvent(pointer('pointerup', rect.left + 200, 0));
+      view.detect();
+      expect(view.values()).toEqual([80, 100]);
+      expect(view.host.commits).toEqual([[80, 100]]);
+      expect(view.slider.hasAttribute('data-draggable-track')).toBe(true);
+    });
+
+    it('moves the nearest handle when pressing outside the range', () => {
+      const view = mount((host) => {
+        host.range.set({ draggableTrack: true });
+        host.value.set([20, 40]);
+      });
+      const rect = stubRect(view.track, { left: 0, width: 100 });
+
+      view.control.dispatchEvent(pointer('pointerdown', rect.left + 80, 0));
+      view.control.dispatchEvent(pointer('pointerup', rect.left + 80, 0));
+      view.detect();
+
+      expect(view.values()).toEqual([20, 80]);
+    });
+
+    // editable ------------------------------------------------------------
+
+    it('adds a handle where the rail is clicked in an editable range', () => {
+      const view = mount((host) => {
+        host.range.set({ editable: true, maxCount: 3 });
+        host.value.set([20, 80]);
+      });
+      const rect = stubRect(view.track, { left: 0, width: 100 });
+
+      view.control.dispatchEvent(pointer('pointerdown', rect.left + 50, 0));
+      view.control.dispatchEvent(pointer('pointermove', rect.left + 55, 0));
+      view.control.dispatchEvent(pointer('pointerup', rect.left + 55, 0));
+      view.detect();
+
+      expect(view.values()).toEqual([20, 55, 80]);
+      expect(view.host.changes).toEqual([
+        [20, 50, 80],
+        [20, 55, 80],
+      ]);
+
+      // maxCount reached: the next click moves the nearest handle instead.
+      view.control.dispatchEvent(pointer('pointerdown', rect.left + 90, 0));
+      view.control.dispatchEvent(pointer('pointerup', rect.left + 90, 0));
+      view.detect();
+      expect(view.values()).toEqual([20, 55, 90]);
+    });
+
+    it('does not add a handle when pressing an existing one', () => {
+      const view = mount((host) => {
+        host.range.set({ editable: true });
+        host.value.set([20, 80]);
+      });
+      stubRect(view.track, { left: 0, width: 100 });
+
+      view.thumbs[0].dispatchEvent(pointer('pointerdown', 20, 0));
+      view.control.dispatchEvent(pointer('pointerup', 20, 0));
+      view.detect();
+
+      expect(view.values()).toEqual([20, 80]);
+    });
+
+    it('removes the focused handle with Delete, down to minCount', async () => {
+      const view = mount((host) => {
+        host.range.set({ editable: true, minCount: 2 });
+        host.value.set([10, 50, 90]);
+      });
+
+      view.thumbs[1].dispatchEvent(key('Delete'));
+      view.detect();
+      await view.fixture.whenStable();
+      expect(view.values()).toEqual([10, 90]);
+      expect(view.host.commits).toEqual([[10, 90]]);
+      expect(document.activeElement).toBe(view.thumbs[1]);
+
+      view.thumbs[0].dispatchEvent(key('Backspace'));
+      view.detect();
+      expect(view.values()).toEqual([10, 90]);
+    });
+
+    it('ignores Delete outside an editable range', () => {
+      const view = mount((host) => {
+        host.range.set(true);
+        host.value.set([10, 90]);
+      });
+
+      view.thumbs[0].dispatchEvent(key('Delete'));
+      view.detect();
+
+      expect(view.values()).toEqual([10, 90]);
+    });
+
+    it('removes a handle dragged far off the track, on release', () => {
+      const view = mount((host) => {
+        host.range.set({ editable: true });
+        host.value.set([10, 50, 90]);
+      });
+      const rect = stubRect(view.track, {
+        left: 0,
+        top: 100,
+        width: 100,
+        height: 4,
+      });
+
+      view.thumbs[1].dispatchEvent(pointer('pointerdown', 50, 102));
+      view.control.dispatchEvent(pointer('pointermove', 50, 102 + 200));
+      view.detect();
+      expect(view.thumbs[1].hasAttribute('data-removing')).toBe(true);
+      expect(view.values()).toEqual([10, 50, 90]);
+
+      view.control.dispatchEvent(pointer('pointerup', 50, rect.bottom + 200));
+      view.detect();
+      expect(view.values()).toEqual([10, 90]);
+      expect(view.host.commits).toEqual([[10, 90]]);
+    });
+
+    it('cancels a pending removal when the handle comes back to the track', () => {
+      const view = mount((host) => {
+        host.range.set({ editable: true });
+        host.value.set([10, 50, 90]);
+      });
+      stubRect(view.track, { left: 0, top: 100, width: 100, height: 4 });
+
+      view.thumbs[1].dispatchEvent(pointer('pointerdown', 50, 102));
+      view.control.dispatchEvent(pointer('pointermove', 50, 400));
+      view.control.dispatchEvent(pointer('pointermove', 60, 110));
+      view.control.dispatchEvent(pointer('pointerup', 60, 110));
+      view.detect();
+
+      expect(view.values()).toEqual([10, 60, 90]);
+    });
+
+    it('lets editable win over draggableTrack, as in Ant Design', () => {
+      const view = mount((host) => {
+        host.range.set({ editable: true, draggableTrack: true });
+        host.value.set([20, 80]);
+      });
+
+      expect(view.slider.hasAttribute('data-draggable-track')).toBe(false);
+      expect(view.slider.hasAttribute('data-editable')).toBe(true);
+    });
+
+    it('trims an editable range to maxCount and pads it to minCount', () => {
+      const view = mount((host) => {
+        host.range.set({ editable: true, minCount: 3, maxCount: 4 });
+        host.value.set([10]);
+      });
+      expect(view.values()).toEqual([10, 10, 10]);
+
+      view.host.value.set([1, 2, 3, 4, 5, 6]);
+      view.detect();
+      expect(view.values()).toEqual([1, 2, 3, 4]);
+    });
+
+    // per-handle disabled -------------------------------------------------
+
+    it('disables individual handles from a boolean array', () => {
+      const view = mount((host) => {
+        host.range.set(true);
+        host.value.set([20, 60]);
+        host.disabled.set([true, false]);
+      });
+      const rect = stubRect(view.track, { left: 0, width: 100 });
+
+      expect(view.slider.hasAttribute('data-disabled')).toBe(false);
+      expect(view.thumbs[0].getAttribute('tabindex')).toBe('-1');
+      expect(view.thumbs[0].getAttribute('aria-disabled')).toBe('true');
+      expect(view.thumbs[1].getAttribute('tabindex')).toBe('0');
+
+      view.thumbs[0].dispatchEvent(key('ArrowRight'));
+      // Nearer to the disabled handle, but only the enabled one may move.
+      view.control.dispatchEvent(pointer('pointerdown', rect.left + 25, 0));
+      view.control.dispatchEvent(pointer('pointerup', rect.left + 25, 0));
+      view.detect();
+
+      expect(view.values()).toEqual([20, 25]);
+    });
+
+    // stacked handles -----------------------------------------------------
+
+    it('lets the drag direction pick between stacked handles', () => {
+      const view = mount((host) => {
+        host.range.set(true);
+        host.value.set([50, 50]);
+      });
+      const rect = stubRect(view.track, { left: 0, width: 100 });
+
+      view.control.dispatchEvent(pointer('pointerdown', rect.left + 50, 0));
+      view.control.dispatchEvent(pointer('pointermove', rect.left + 30, 0));
+      view.control.dispatchEvent(pointer('pointerup', rect.left + 30, 0));
+      view.detect();
+
+      expect(view.values()).toEqual([30, 50]);
+    });
+
+    // focus -----------------------------------------------------------------
+
+    it('focuses the first handle on autoFocus and exposes focus()/blur()', async () => {
+      @Component({
+        imports: [AndesSlider],
+        template: `<andes-slider
+          autoFocus
+          range
+          [value]="[10, 20]"
+          startAriaLabel="Min"
+          endAriaLabel="Max"
+        />`,
+      })
+      class AutoFocusHost {
+        readonly slider = viewChild.required(AndesSlider);
+      }
+
+      const fixture = TestBed.createComponent(AutoFocusHost);
+      document.body.appendChild(fixture.nativeElement);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const thumbs = (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '[data-slot="slider-thumb"]',
+      );
+
+      expect(document.activeElement).toBe(thumbs[0]);
+
+      fixture.componentInstance.slider().focus(1);
+      expect(document.activeElement).toBe(thumbs[1]);
+
+      fixture.componentInstance.slider().blur();
+      expect(document.activeElement).toBe(document.body);
+      fixture.nativeElement.remove();
     });
   });
 });

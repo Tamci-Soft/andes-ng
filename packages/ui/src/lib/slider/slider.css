@@ -1,7 +1,20 @@
 /* Positioning uses logical properties throughout (inset-inline-start / margin-inline-start
    rather than left + translateX) so an RTL context mirrors the track, fill, thumbs, dots and
    marks for free, with no transform to un-mirror. The pointer math in slider.ts mirrors to
-   match. */
+   match.
+
+   Colour hooks are read with a fallback instead of being declared on :host, so a consumer
+   rule on the element (andes-slider { --andes-slider-track-color: ... }) is never outranked
+   by the component's own :host rule:
+     --andes-slider-rail-color          unfilled track
+     --andes-slider-track-color         filled segment
+     --andes-slider-handle-color        thumb border
+     --andes-slider-handle-hover-color  thumb border on hover
+     --andes-slider-handle-background   thumb fill
+     --andes-slider-dot-color           tick dot border
+     --andes-slider-dot-active-color    tick dot border inside the filled segment
+   Every part also carries a data-slot attribute (slider-control, -track, -indicator, -dot,
+   -thumb, -tooltip, -marks, -mark) for structural styling. */
 
 :host {
   --andes-slider-thumb-size: 1rem;
@@ -55,7 +68,7 @@
 .andes-slider__track {
   position: relative;
   border-radius: var(--andes-radius-full);
-  background-color: var(--andes-color-muted);
+  background-color: var(--andes-slider-rail-color, var(--andes-color-muted));
 }
 
 :host([data-orientation='horizontal']) .andes-slider__track {
@@ -73,7 +86,7 @@
 .andes-slider__indicator {
   position: absolute;
   border-radius: inherit;
-  background-color: var(--andes-color-primary);
+  background-color: var(--andes-slider-track-color, var(--andes-color-primary));
 }
 
 :host([data-orientation='horizontal']) .andes-slider__indicator {
@@ -92,6 +105,33 @@
   background-color: var(--andes-color-muted-foreground);
 }
 
+/* A draggable range track: the 4px fill is too thin to aim at, so a transparent
+   pseudo-element stretches its hit area (and grab cursor) to the full thumb height. The
+   pointer math itself decides by value, not by which element was hit. */
+
+:host([data-draggable-track]:not([data-disabled])) .andes-slider__indicator {
+  cursor: grab;
+}
+
+:host([data-draggable-track][data-dragging]) .andes-slider__indicator {
+  cursor: grabbing;
+}
+
+:host([data-draggable-track]) .andes-slider__indicator::before {
+  content: '';
+  position: absolute;
+  inset: calc(
+      (var(--andes-slider-thumb-size) - var(--andes-slider-rail-size)) / -2
+    )
+    0;
+}
+
+:host([data-draggable-track][data-orientation='vertical'])
+  .andes-slider__indicator::before {
+  inset: 0
+    calc((var(--andes-slider-thumb-size) - var(--andes-slider-rail-size)) / -2);
+}
+
 /* Tick dots */
 
 .andes-slider__dot {
@@ -99,7 +139,7 @@
   box-sizing: border-box;
   inline-size: var(--andes-slider-dot-size);
   block-size: var(--andes-slider-dot-size);
-  border: 2px solid var(--andes-color-border);
+  border: 2px solid var(--andes-slider-dot-color, var(--andes-color-border));
   border-radius: var(--andes-radius-full);
   background-color: var(--andes-color-background);
   pointer-events: none;
@@ -120,7 +160,10 @@
 }
 
 .andes-slider__dot--active {
-  border-color: var(--andes-color-primary);
+  border-color: var(
+    --andes-slider-dot-active-color,
+    var(--andes-color-primary)
+  );
 }
 
 /* Thumb: the real focusable control, role="slider". */
@@ -130,13 +173,17 @@
   box-sizing: border-box;
   inline-size: var(--andes-slider-thumb-size);
   block-size: var(--andes-slider-thumb-size);
-  border: 2px solid var(--andes-color-primary);
+  border: 2px solid var(--andes-slider-handle-color, var(--andes-color-primary));
   border-radius: var(--andes-radius-full);
-  background-color: var(--andes-color-background);
+  background-color: var(
+    --andes-slider-handle-background,
+    var(--andes-color-background)
+  );
   cursor: grab;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
 }
 
 :host([data-orientation='horizontal']) .andes-slider__thumb {
@@ -154,7 +201,10 @@
 }
 
 .andes-slider__thumb:hover {
-  border-color: var(--andes-color-primary-hover);
+  border-color: var(
+    --andes-slider-handle-hover-color,
+    var(--andes-color-primary-hover)
+  );
 }
 
 .andes-slider__thumb:focus-visible {
@@ -168,29 +218,59 @@
     color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
 }
 
-:host([data-disabled]) .andes-slider__thumb {
+:host([data-disabled]) .andes-slider__thumb,
+.andes-slider__thumb[data-disabled] {
   cursor: not-allowed;
   border-color: var(--andes-color-muted-foreground);
 }
 
-/* Value tooltip. A zero-offset flex box inside the thumb, so the bubble overflows
-   symmetrically and stays centered without a direction-sensitive transform. */
+/* Editable range: a handle dragged off the track fades to preview its removal on release. */
+
+.andes-slider__thumb[data-removing] {
+  opacity: 0.35;
+}
+
+/* Value tooltip. A zero-offset flex box beside the thumb, so the bubble overflows
+   symmetrically and stays centered without a direction-sensitive transform. This is a
+   minimal built-in bubble, not AndesTooltip (not merged yet): no portal, no collision
+   flipping. The default placements are logical (top, or the inline end when vertical, which
+   RTL mirrors); an explicit left/right is physical, as in Ant Design. */
 
 .andes-slider__tooltip {
   position: absolute;
-  inset-inline: 0;
-  inset-block-end: calc(100% + var(--andes-space-2));
   display: flex;
-  justify-content: center;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
 }
 
-:host([data-orientation='vertical']) .andes-slider__tooltip {
+.andes-slider__tooltip[data-placement='top'] {
+  inset-inline: 0;
+  inset-block-end: calc(100% + var(--andes-space-2));
+  justify-content: center;
+}
+
+.andes-slider__tooltip[data-placement='bottom'] {
+  inset-inline: 0;
+  inset-block-start: calc(100% + var(--andes-space-2));
+  justify-content: center;
+}
+
+.andes-slider__tooltip[data-placement='end'] {
   inset-block: 0;
   inset-inline-start: calc(100% + var(--andes-space-2));
-  inset-inline-end: auto;
+  align-items: center;
+}
+
+.andes-slider__tooltip[data-placement='left'] {
+  inset-block: 0;
+  right: calc(100% + var(--andes-space-2));
+  align-items: center;
+}
+
+.andes-slider__tooltip[data-placement='right'] {
+  inset-block: 0;
+  left: calc(100% + var(--andes-space-2));
   align-items: center;
 }
 
@@ -210,6 +290,10 @@
 .andes-slider__thumb:focus-visible .andes-slider__tooltip,
 .andes-slider__thumb[data-dragging] .andes-slider__tooltip {
   opacity: 1;
+}
+
+.andes-slider__thumb[data-removing] .andes-slider__tooltip {
+  opacity: 0;
 }
 
 /* Mark labels */
@@ -253,4 +337,14 @@
   line-height: 1.25;
   color: var(--andes-color-muted-foreground);
   white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.andes-slider__mark-label--active {
+  color: var(--andes-color-foreground);
+}
+
+:host([data-disabled]) .andes-slider__mark-label {
+  cursor: not-allowed;
 }
