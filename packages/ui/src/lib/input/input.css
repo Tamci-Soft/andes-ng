@@ -1,8 +1,19 @@
+/* The outermost element: lays the optional addon-before / field / addon-after / search button
+   out as one attached row. It is the component's surface root, so it carries the font-family
+   too (the wrapper keeps its own copy so the field reads the same with or without addons). */
+.andes-input-group {
+  display: inline-flex;
+  align-items: stretch;
+  width: 100%;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
 .andes-input-wrapper {
   display: inline-flex;
   align-items: center;
   gap: var(--andes-space-2);
   width: 100%;
+  min-width: 0;
   border-radius: var(--andes-radius-md);
   border: 1px solid var(--andes-color-input);
   background-color: var(--andes-color-background);
@@ -30,6 +41,32 @@
   outline-offset: 2px;
 }
 
+/* Variants. Declared after the base focus rule (so the stylesheet's first `:has(...:focus-visible)`
+   rule stays the canonical ring) and before the status rules, which must win over a variant's
+   border color at equal specificity. */
+
+.andes-input-wrapper--filled {
+  border-color: transparent;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-input-wrapper--filled:has(.andes-input__control:focus-visible) {
+  background-color: var(--andes-color-background);
+}
+
+.andes-input-wrapper--borderless {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+/* Only the bottom edge is drawn, so status/focus border colors (set on all four sides) keep
+   applying to just that edge without per-variant overrides. */
+.andes-input-wrapper--underlined {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background-color: transparent;
+}
+
 .andes-input-wrapper--invalid {
   border-color: var(--andes-color-danger);
 }
@@ -39,6 +76,19 @@
   outline-color: var(--andes-color-danger);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+/* Status: `--invalid` (aria-invalid or status="error") is above; this is the warning tier. */
+
+.andes-input-wrapper--warning {
+  border-color: var(--andes-color-warning);
+}
+
+.andes-input-wrapper--warning:has(.andes-input__control:focus-visible) {
+  border-color: var(--andes-color-warning);
+  outline-color: var(--andes-color-warning);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
 }
 
 .andes-input-wrapper--disabled {
@@ -54,6 +104,9 @@
   background-color: transparent;
   color: inherit;
   font-family: inherit;
+  /* Native inputs don't inherit font-size (the UA gives them its own small-control size), so
+     without this the sm/md/lg font-size on the wrapper never reached the typed text. */
+  font-size: inherit;
 }
 
 /* Suppress the browser's own default focus ring on the native input - and *only* there.
@@ -96,13 +149,15 @@
    otherwise let this component's styles touch (same rationale as AndesButton). */
 .andes-input__prefix ::ng-deep svg,
 .andes-input__suffix ::ng-deep svg,
-.andes-input__clear svg {
+.andes-input__clear svg,
+.andes-input__password-toggle svg {
   width: 1em;
   height: 1em;
   flex-shrink: 0;
 }
 
-.andes-input__clear {
+.andes-input__clear,
+.andes-input__password-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -114,8 +169,129 @@
   cursor: pointer;
 }
 
-.andes-input__clear:hover {
+.andes-input__clear:hover,
+.andes-input__password-toggle:hover:not(:disabled) {
   color: var(--andes-color-foreground);
+}
+
+/* These buttons are reachable by keyboard on their own, so they carry their own ring. It never
+   coincides with the wrapper's: that one is keyed off the text control's focus, and only one
+   element can be focused at a time. */
+.andes-input__clear:focus-visible,
+.andes-input__password-toggle:focus-visible {
+  border-radius: var(--andes-radius-sm);
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-input__password-toggle:disabled {
+  cursor: not-allowed;
+}
+
+/* Character count (showCount). */
+
+.andes-input__count {
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+  font-size: 0.875em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.andes-input__count--exceeded {
+  color: var(--andes-color-danger);
+}
+
+/* Addons (addonBefore / addonAfter): attached segments outside the field's own border, as
+   opposed to prefix/suffix, which sit inside it. An addon with nothing projected and no text
+   input is `:empty` and takes no room at all. */
+
+.andes-input__addon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--andes-space-2);
+  padding-inline: var(--andes-space-3);
+  border: 1px solid var(--andes-color-input);
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-foreground);
+  white-space: nowrap;
+}
+
+.andes-input__addon:empty {
+  display: none;
+}
+
+.andes-input__addon--before {
+  border-inline-end: 0;
+  border-start-start-radius: var(--andes-radius-md);
+  border-end-start-radius: var(--andes-radius-md);
+}
+
+.andes-input__addon--after {
+  border-inline-start: 0;
+  border-start-end-radius: var(--andes-radius-md);
+  border-end-end-radius: var(--andes-radius-md);
+}
+
+.andes-input__addon ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* The field squares off whichever side an addon (or the search button) is attached to. Kept on
+   one line each: Angular's style shim mis-scopes a compound selector split across lines. */
+/* prettier-ignore */
+.andes-input-group:has(.andes-input__addon--before:not(:empty)) > .andes-input-wrapper {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/* prettier-ignore */
+.andes-input-group:has(.andes-input__addon--after:not(:empty)) > .andes-input-wrapper {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* Lift the focused field above its siblings so the after-addon / search button (later in paint
+   order) doesn't cover the right edge of its focus outline. */
+/* prettier-ignore */
+.andes-input-group > .andes-input-wrapper:has(.andes-input__control:focus-visible) {
+  position: relative;
+  z-index: 1;
+}
+
+.andes-input-group--search > .andes-input-wrapper,
+.andes-input-group--search > .andes-input__addon--after {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.andes-input-group--disabled .andes-input__addon {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Search variant: the attached button (an AndesButton) and the hidden native cancel button -
+   the component's own clear button (clearable) already covers it, and emits (search). */
+
+.andes-input__search-button {
+  display: flex;
+  flex-shrink: 0;
+  margin-inline-start: -1px;
+}
+
+/* prettier-ignore */
+.andes-input__search-button ::ng-deep .andes-button {
+  height: auto;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/* prettier-ignore */
+.andes-input-wrapper--search .andes-input__control::-webkit-search-cancel-button {
+  appearance: none;
 }
 
 /* Sizes */
@@ -135,5 +311,17 @@
 .andes-input-wrapper--lg {
   height: 3rem;
   padding-inline: var(--andes-space-4);
+  font-size: 1.125rem;
+}
+
+.andes-input-group--sm {
+  font-size: 0.875rem;
+}
+
+.andes-input-group--md {
+  font-size: 1rem;
+}
+
+.andes-input-group--lg {
   font-size: 1.125rem;
 }

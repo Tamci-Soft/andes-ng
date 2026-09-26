@@ -1,0 +1,117 @@
+.andes-input-otp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+  color: var(--andes-color-foreground);
+}
+
+.andes-input-otp__cell {
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: var(--andes-radius-md);
+  border: 1px solid var(--andes-color-input);
+  background-color: var(--andes-color-background);
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    outline-color 0.15s ease;
+}
+
+/* Each cell is its own native control, so its focus ring goes straight on it: this authored
+   `outline` replaces the UA ring on the very same element, leaving exactly one ring. Keyed off
+   `:focus-visible` like every other control in the library, and an `outline` (not a
+   `box-shadow`) so it survives `forced-colors: active`. */
+.andes-input-otp__cell:focus-visible {
+  border-color: var(--andes-color-focus-ring);
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-input-otp__cell:disabled {
+  cursor: not-allowed;
+}
+
+.andes-input-otp__separator {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Sizes: square cells matching AndesInput's heights. */
+
+.andes-input-otp--sm {
+  font-size: 0.875rem;
+}
+
+.andes-input-otp--sm .andes-input-otp__cell {
+  width: 2rem;
+  height: 2rem;
+}
+
+.andes-input-otp--md {
+  font-size: 1rem;
+}
+
+.andes-input-otp--md .andes-input-otp__cell {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.andes-input-otp--lg {
+  font-size: 1.125rem;
+}
+
+.andes-input-otp--lg .andes-input-otp__cell {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Variants (same set and meaning as AndesInput's). */
+
+.andes-input-otp--filled .andes-input-otp__cell {
+  border-color: transparent;
+  background-color: var(--andes-color-muted);
+}
+
+.andes-input-otp--filled .andes-input-otp__cell:focus-visible {
+  border-color: var(--andes-color-focus-ring);
+  background-color: var(--andes-color-background);
+}
+
+.andes-input-otp--borderless .andes-input-otp__cell {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.andes-input-otp--underlined .andes-input-otp__cell {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Status */
+
+.andes-input-otp--invalid .andes-input-otp__cell {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-input-otp--invalid .andes-input-otp__cell:focus-visible {
+  border-color: var(--andes-color-danger);
+  outline-color: var(--andes-color-danger);
+}
+
+.andes-input-otp--warning .andes-input-otp__cell {
+  border-color: var(--andes-color-warning);
+}
+
+.andes-input-otp--warning .andes-input-otp__cell:focus-visible {
+  border-color: var(--andes-color-warning);
+  outline-color: var(--andes-color-warning);
+}
+
+.andes-input-otp--disabled .andes-input-otp__cell {
+  opacity: 0.6;
+  background-color: var(--andes-color-muted);
+}
