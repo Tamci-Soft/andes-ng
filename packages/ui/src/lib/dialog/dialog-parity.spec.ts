@@ -12,7 +12,7 @@ import type {
 } from './dialog-base';
 
 /**
- * Ant Design `Modal` parity: the built-in footer, placement and sizing, mask and
+ * Extended dialog behavior: the built-in footer, placement and sizing, mask and
  * z-index, loading, lazy/kept-alive content and the lifecycle outputs.
  */
 
@@ -168,7 +168,7 @@ class ParityHost {
   readonly openChanges: boolean[] = [];
 }
 
-describe('AndesDialog - Ant Modal parity', () => {
+describe('AndesDialog - extended behavior', () => {
   withElementGeometry();
 
   beforeEach(() => {
@@ -245,7 +245,7 @@ describe('AndesDialog - Ant Modal parity', () => {
       expect(inDialog('andes-dialog-actions')).toBeNull();
     });
 
-    it('emits ok on OK and stays open, like Ant', async () => {
+    it('emits ok on OK and stays open', async () => {
       const { fixture, host, action, surface, open } = createHost();
       await open();
 
@@ -709,7 +709,7 @@ class AlertParityHost {
   cancelled = 0;
 }
 
-describe('AndesAlertDialog - Ant Modal parity', () => {
+describe('AndesAlertDialog - extended behavior', () => {
   withElementGeometry();
 
   async function createHost() {

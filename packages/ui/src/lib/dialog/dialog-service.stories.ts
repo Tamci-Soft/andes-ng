@@ -154,13 +154,13 @@ class DialogServiceDemo {
 }
 
 /**
- * `AndesDialogService` is the Angular counterpart of Ant's `Modal.confirm()` /
- * `info()` / `success()` / `error()` / `warning()`. Each call returns a ref with
+ * `AndesDialogService` opens dialogs imperatively through `confirm()` / `info()` /
+ * `success()` / `error()` / `warning()`. Each call returns a ref with
  * `update()`, `destroy()` and an awaitable `result`; an `onOk` that returns a promise
  * holds OK in its loading state until it settles (reject to keep the dialog open).
  */
 const meta: Meta<DialogServiceDemo> = {
-  title: 'Dialog/Service (Modal.confirm)',
+  title: 'Dialog/Service',
   component: DialogServiceDemo,
 };
 

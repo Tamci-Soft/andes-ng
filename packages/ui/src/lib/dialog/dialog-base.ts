@@ -32,10 +32,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { AndesButtonVariant } from '../button/button';
 
 /**
- * Max-width step of a dialog surface. Neither reference library exposes a size
- * enum (shadcn styles `DialogContent` with utility classes, Ant takes a free-form
- * `width`), but a token-driven scale is the andes-ng equivalent of both and keeps
- * consumers off magic pixel values.
+ * Max-width step of a dialog surface. A token-driven scale keeps consumers off magic
+ * pixel values; `width` remains available for the rare surface that needs an exact
+ * size.
  */
 export type AndesDialogSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -47,10 +46,8 @@ export type AndesDialogSize = 'sm' | 'md' | 'lg' | 'xl';
 export const ANDES_DIALOG_BACKDROP_CLASS = 'andes-dialog-backdrop';
 
 /**
- * Viewport breakpoints a responsive `width` can key on. Same names and thresholds as
- * Ant's grid (`xs` < 576px, `sm` >= 576px, `md` >= 768px, `lg` >= 992px,
- * `xl` >= 1200px, `xxl` >= 1600px, `xxxl` >= 1920px), so a width object ports
- * across unchanged.
+ * Viewport breakpoints a responsive `width` can key on: `xs` < 576px, `sm` >= 576px,
+ * `md` >= 768px, `lg` >= 992px, `xl` >= 1200px, `xxl` >= 1600px, `xxxl` >= 1920px.
  */
 export type AndesDialogBreakpoint =
   'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl';
@@ -67,20 +64,18 @@ const DIALOG_BREAKPOINTS: readonly AndesDialogBreakpoint[] = [
 
 /**
  * Explicit surface width, overriding the `size` step: a number (px), any CSS length,
- * or a per-breakpoint map of either. Mirrors Ant's `width`, including its responsive
- * object form. The surface still never grows past the viewport.
+ * or a per-breakpoint map of either. The surface still never grows past the viewport.
  */
 export type AndesDialogWidth =
   number | string | Partial<Record<AndesDialogBreakpoint, number | string>>;
 
-/** Which built-in footer button receives initial focus. Mirrors Ant's `autoFocusButton`. */
+/** Which built-in footer button receives initial focus; `null` leaves the default target. */
 export type AndesDialogAutoFocusButton = 'ok' | 'cancel' | null;
 
 /**
  * What a custom `footer` template receives: the two actions the built-in footer would
  * have wired, so a bespoke footer (three buttons, a checkbox beside the actions) keeps
- * the same OK/Cancel semantics. The Angular counterpart of the `{ OkBtn, CancelBtn }`
- * argument Ant passes to a footer render function.
+ * the same OK/Cancel semantics.
  */
 export interface AndesDialogFooterContext {
   /** The same object as the named fields, for `let-actions`. */
@@ -101,7 +96,7 @@ export interface AndesDialogFooterActions {
  * The footer a root renders under the consumer's content.
  *
  * - `null` (default): nothing - compose your own `andesDialogFooter` part, the
- *   shadcn way. Also Ant's `footer={null}`.
+ *   shadcn way.
  * - `'default'`: the built-in Cancel/OK pair, driven by `okText`, `okType`,
  *   `confirmLoading` and friends.
  * - a `TemplateRef`: custom footer content, laid out in the standard footer box and
@@ -111,9 +106,8 @@ export type AndesDialogFooterOption =
   'default' | TemplateRef<AndesDialogFooterContext> | null;
 
 /**
- * Close reasons that count as the user backing out, and so emit `cancelled`. Mirrors
- * the set of paths Ant routes through `onCancel` (Esc, mask click, the "x", Cancel).
- * A consumer's own `andesDialogClose` control is deliberately not in it: it reports
+ * Close reasons that count as the user backing out, and so emit `cancelled`: Esc, a
+ * mask click, the "x" and Cancel all route through one cancel path. A consumer's own `andesDialogClose` control is deliberately not in it: it reports
  * `'close-button'` too, but a "Save" wired to close must not read as a cancel.
  */
 const CANCEL_REASONS: ReadonlySet<AndesOverlayCloseReason> = new Set([
@@ -122,7 +116,7 @@ const CANCEL_REASONS: ReadonlySet<AndesOverlayCloseReason> = new Set([
   'backdrop-click',
 ]);
 
-/** Normalizes a width value to a CSS length: bare numbers are pixels, as in Ant. */
+/** Normalizes a width value to a CSS length: bare numbers are pixels. */
 function toCssLength(value: number | string): string {
   return typeof value === 'number' ? `${value}px` : value;
 }
@@ -216,7 +210,7 @@ export abstract class AndesDialogRoot {
   abstract readonly size: Signal<AndesDialogSize>;
   /** Explicit surface width, overriding `size`. */
   abstract readonly width: Signal<AndesDialogWidth | null>;
-  /** Centre the surface vertically; off parks it near the top, the way Ant does. */
+  /** Centre the surface vertically; off parks it near the top. */
   abstract readonly centered: Signal<boolean>;
   /** Show a skeleton in place of the body while content loads. */
   abstract readonly loading: Signal<boolean>;
@@ -248,7 +242,7 @@ export abstract class AndesDialogRoot {
   abstract hide(reason?: AndesOverlayCloseReason): void;
   /** Opens the dialog if closed, closes it if open. */
   abstract toggle(): void;
-  /** The built-in OK action: emits `ok`. Does not close, as in Ant. */
+  /** The built-in OK action: emits `ok`. Does not close; the consumer decides when. */
   abstract requestOk(): void;
   /**
    * The built-in Cancel/"x" action: emits `cancelled` and closes, reporting
@@ -290,32 +284,32 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
 
   /** Two-way open state, the equivalent of shadcn's `open`/`onOpenChange`. */
   readonly open = model(false);
-  /** Escape closes the dialog. Mirrors Ant's `keyboard`. */
+  /** Escape closes the dialog. */
   readonly closeOnEscape = input(true, { transform: booleanAttribute });
-  /** Block document scroll while open. Mirrors Ant's `scrollLock`. */
+  /** Block document scroll while open. */
   readonly lockScroll = input(true, { transform: booleanAttribute });
   /** Max-width step of the surface. */
   readonly size = input<AndesDialogSize>('md');
   /**
    * Explicit surface width, overriding `size`: px number, CSS length, or a
-   * per-breakpoint map (`{ xs: '90%', md: 640 }`). Mirrors Ant's `width`.
+   * per-breakpoint map (`{ xs: '90%', md: 640 }`).
    */
   readonly width = input<AndesDialogWidth | null>(null);
   /**
    * Centre the surface vertically. On by default - the shadcn placement this
-   * component shipped with; set it off for Ant's default, a surface parked near the
-   * top of the viewport that does not jump as its content grows.
+   * component shipped with; set it off to park the surface near the top of the
+   * viewport, where it does not jump as its content grows.
    */
   readonly centered = input(true, { transform: booleanAttribute });
   /**
-   * Render the backdrop scrim. Mirrors Ant's `mask`. Takes effect on the next open.
+   * Render the backdrop scrim. Takes effect on the next open.
    * Without it the page behind stays visible but is still inert: focus stays
    * trapped and scroll stays locked.
    */
   readonly mask = input(true, { transform: booleanAttribute });
   /**
    * Explicit `z-index` for the dialog and its backdrop, overriding the
-   * `--andes-z-index-modal` layer. Mirrors Ant's `zIndex`; reach for it only to
+   * `--andes-z-index-modal` layer. Reach for it only to
    * stack above third-party overlays, since the token layers already order andes-ng's
    * own.
    */
@@ -324,20 +318,19 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
   });
   /**
    * Replace the body with a skeleton while its data loads, keeping the header (so the
-   * dialog stays labelled) and hiding the footer. Mirrors Ant's `loading`.
+   * dialog stays labelled) and hiding the footer.
    */
   readonly loading = input(false, { transform: booleanAttribute });
   /**
    * Destroy the surface's content when the dialog closes, re-creating it on the next
-   * open. On by default - the reverse of Ant's `destroyOnHidden` default, because an
-   * Angular template view only exists while attached and lazy creation is what this
+   * open. On by default, because an Angular template view only exists while attached and lazy creation is what this
    * component always did. Turn it off to keep form state and child components alive
    * across a close.
    */
   readonly destroyOnClose = input(true, { transform: booleanAttribute });
   /**
    * Create the surface's content up front, before the first open, and keep it alive
-   * from then on. Mirrors Ant's `forceRender`: child components are constructed (and
+   * from then on: child components are constructed (and
    * can start loading data) before the user asks for the dialog.
    */
   readonly forceRender = input(false, { transform: booleanAttribute });
@@ -349,28 +342,27 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
 
   /** The footer rendered after the content. See `AndesDialogFooterOption`. */
   readonly footer = input<AndesDialogFooterOption>(null);
-  /** Built-in footer: OK label. Mirrors Ant's `okText`. */
+  /** Built-in footer: OK label. */
   readonly okText = input('OK');
-  /** Built-in footer: Cancel label. Mirrors Ant's `cancelText`. */
+  /** Built-in footer: Cancel label. */
   readonly cancelText = input('Cancel');
   /**
-   * Built-in footer: OK button variant. Mirrors Ant's `okType`; `'danger'` is the
-   * equivalent of `okButtonProps={{ danger: true }}`.
+   * Built-in footer: OK button variant; `'danger'` marks a destructive confirm.
    */
   readonly okType = input<AndesButtonVariant>('primary');
-  /** Built-in footer: disable OK. Ant's `okButtonProps.disabled`. */
+  /** Built-in footer: disable OK. */
   readonly okDisabled = input(false, { transform: booleanAttribute });
-  /** Built-in footer: disable Cancel. Ant's `cancelButtonProps.disabled`. */
+  /** Built-in footer: disable Cancel. */
   readonly cancelDisabled = input(false, { transform: booleanAttribute });
-  /** Built-in footer: OK shows a spinner and is inert. Mirrors Ant's `confirmLoading`. */
+  /** Built-in footer: OK shows a spinner and is inert. */
   readonly confirmLoading = input(false, { transform: booleanAttribute });
-  /** Built-in footer: Cancel shows a spinner. Ant's `cancelButtonProps.loading`. */
+  /** Built-in footer: Cancel shows a spinner. */
   readonly cancelLoading = input(false, { transform: booleanAttribute });
   /** Built-in footer: render the Cancel button. Off gives an OK-only acknowledgement. */
   readonly showCancel = input(true, { transform: booleanAttribute });
   /**
    * Built-in footer: button that receives initial focus instead of the first tabbable
-   * element. Mirrors Ant's `autoFocusButton`.
+   * element.
    */
   readonly autoFocusButton = input<AndesDialogAutoFocusButton>(null);
 
@@ -378,24 +370,23 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
   readonly opened = output<void>();
   /**
    * Emits why the dialog closed, after it has closed and focus has been restored.
-   * This is Ant's `afterClose`: there is no exit animation to wait for.
+   * There is no exit animation to wait for.
    */
   readonly closed = output<AndesOverlayCloseReason>();
   /**
-   * The built-in OK button (or a custom footer's `ok()`) was activated. Mirrors
-   * Ant's `onOk`, and like it does not close the dialog: set `open` to false when the
+   * The built-in OK button (or a custom footer's `ok()`) was activated. Does not
+   * close the dialog, so async work can finish first: set `open` to false when the
    * work is done, typically after toggling `confirmLoading` around it.
    */
   readonly ok = output<void>();
   /**
    * The user backed out: Escape, a backdrop/outside click, the built-in "x" or the
-   * built-in Cancel. Emits the close reason, just before `closed`. Mirrors Ant's
-   * `onCancel`.
+   * built-in Cancel. Emits the close reason, just before `closed`.
    */
   readonly cancelled = output<AndesOverlayCloseReason>();
   /**
    * Emits `true` once the open transition has finished and `false` once the dialog
-   * has closed. Mirrors Ant's `afterOpenChange`.
+   * has closed.
    */
   readonly afterOpenChange = output<boolean>();
 
