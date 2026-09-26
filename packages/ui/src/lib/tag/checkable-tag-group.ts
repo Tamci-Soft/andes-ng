@@ -18,20 +18,19 @@ export interface AndesCheckableTagOption {
 }
 
 /**
- * Single selection holds one value (or `null`); `multiple` holds an array. Ant's
- * `Tag.CheckableTagGroup` uses the same shape.
+ * Single selection holds one value (or `null`); `multiple` holds an array.
  */
 export type AndesCheckableTagGroupValue =
   AndesCheckableTagValue | readonly AndesCheckableTagValue[] | null;
 
 /**
- * Ant's `Tag.CheckableTagGroup`: renders one checkable `andes-tag` per option and manages the
+ * A group of checkable tags: renders one checkable `andes-tag` per option and manages the
  * selection as a single `[(value)]`. Each tag stays a native toggle `<button aria-pressed>`
  * (Tab moves between them, Enter/Space toggles), grouped under `role="group"` - name it with
  * `aria-label`.
  *
- * Single mode behaves like Ant's rather than like a radio group: clicking the selected tag
- * clears the selection back to `null`.
+ * Single mode deliberately does not behave like a radio group: clicking the selected tag
+ * clears the selection back to `null`, so it can be emptied without a separate reset control.
  */
 @Component({
   selector: 'andes-checkable-tag-group',

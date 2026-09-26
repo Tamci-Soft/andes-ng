@@ -94,7 +94,7 @@ describe('AndesCheckableTagGroup', () => {
     expect(pressed()).toEqual(['false', 'true', 'false', 'false']);
   });
 
-  it('single mode: clicking the selected tag clears the selection to null (Ant behavior)', () => {
+  it('single mode: clicking the selected tag clears the selection to null', () => {
     const { fixture, click, pressed } = create((host) =>
       host.value.set('books'),
     );

@@ -247,7 +247,7 @@ describe('AndesBadge', () => {
   });
 });
 
-describe('AndesBadge status / text (Ant status indicator)', () => {
+describe('AndesBadge status / text (inline status indicator)', () => {
   function create(apply: (host: HostComponent) => void) {
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();

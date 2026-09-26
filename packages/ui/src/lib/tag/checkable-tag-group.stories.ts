@@ -36,7 +36,7 @@ export default meta;
 
 type Story = StoryObj<AndesCheckableTagGroup>;
 
-/** Single selection - clicking the selected tag clears it back to `null`, like Ant. */
+/** Single selection - clicking the selected tag clears it back to `null`. */
 export const Single: Story = {
   args: { value: 'books' },
 };
