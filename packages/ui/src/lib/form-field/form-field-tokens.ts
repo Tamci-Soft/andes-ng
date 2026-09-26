@@ -2,7 +2,7 @@ import { InjectionToken, type Signal } from '@angular/core';
 import type { ValidationErrors } from '@angular/forms';
 
 /**
- * Validation status of a field - Ant Design's `Form.Item` `validateStatus` vocabulary.
+ * Validation status of a field, as used by `AndesFormField`'s `validateStatus`.
  * `null` means "no status yet" (untouched, or nothing to report).
  */
 export type AndesFormValidateStatus =
@@ -14,7 +14,7 @@ export type AndesFormLayout = 'horizontal' | 'vertical' | 'inline';
 
 export type AndesFormLabelAlign = 'left' | 'right';
 
-/** Same `sm`/`md`/`lg` vocabulary as `AndesButtonSize` (Ant's `small`/`middle`/`large`). */
+/** Same `sm`/`md`/`lg` vocabulary as `AndesButtonSize`. */
 export type AndesFormSize = 'sm' | 'md' | 'lg';
 
 /** `true` marks required fields with an asterisk, `false` marks nothing, `'optional'` marks
@@ -23,7 +23,7 @@ export type AndesFormRequiredMark = boolean | 'optional';
 
 /**
  * Width of the label or control column in `horizontal` layout. A number is a span out of 24
- * (Ant's grid - `8` is one third); a string is used verbatim as a CSS track size
+ * (a 24-column grid - `8` is one third); a string is used verbatim as a CSS track size
  * (`'10rem'`, `'120px'`, `'30%'`, `'auto'`).
  */
 export type AndesFormColumn = number | string;
@@ -64,7 +64,7 @@ export type AndesFormErrorMessages = Readonly<
  * how `@angular/material`'s `MAT_FORM_FIELD` token decouples `MatFormField` from every
  * control that plugs into it.
  *
- * It doubles as the `Form.Item.useStatus()` equivalent: any control can
+ * It doubles as a status hook for custom controls: any control can
  * `inject(ANDES_FORM_FIELD, { optional: true })` and read `status()`/`hasFeedback()` to draw
  * status styling or a feedback icon of its own.
  */
@@ -134,9 +134,8 @@ export const ANDES_FORM_DESCRIPTION = new InjectionToken<unknown>(
 export const ANDES_FORM_ERROR = new InjectionToken<unknown>('AndesFormError');
 
 /**
- * Form-wide presentation defaults an `AndesForm` provides to every field below it - the
- * Angular (DI) counterpart of the props Ant's `<Form>` cascades to its `Form.Item`s. Each
- * field-level input of the same name wins over it.
+ * Form-wide presentation defaults an `AndesForm` provides to every field below it through
+ * DI. Each field-level input of the same name wins over it.
  */
 export interface AndesFormApi {
   readonly layout: Signal<AndesFormLayout>;
@@ -154,7 +153,7 @@ export interface AndesFormApi {
 export const ANDES_FORM = new InjectionToken<AndesFormApi>('AndesForm');
 
 /**
- * App- or subtree-wide error messages (Ant's `validateMessages`), merged between the built-in
+ * App- or subtree-wide error messages, merged between the built-in
  * defaults and any `AndesForm`/`AndesFormField` `errorMessages` input. Register with
  * {@link provideAndesFormErrorMessages}.
  */

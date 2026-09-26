@@ -16,10 +16,9 @@ import { ANDES_FORM_ERROR, ANDES_FORM_FIELD } from './form-field-tokens';
  * untouched required field happens to be empty.
  *
  * Rendered with `role="alert"` so assistive technology announces the message the moment it
- * appears, since screen-reader announcement of validation errors is explicitly flagged as
- * undocumented/unaddressed upstream in both shadcn/RHF and Ant Design's own guides (see
- * `docs/research/components/form.md`, section 6) - andes-ng makes it an explicit, tested
- * behavior instead of leaving it to each consumer to wire up.
+ * appears, since screen-reader announcement of validation errors is commonly left
+ * undocumented/unaddressed by form libraries (shadcn/RHF included) - andes-ng makes it an
+ * explicit, tested behavior instead of leaving it to each consumer to wire up.
  */
 @Component({
   selector: 'andes-form-error',

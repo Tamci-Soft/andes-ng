@@ -25,7 +25,7 @@ import type {
 } from './form-field-tokens';
 
 /**
- * Coverage for the Ant Design `Form.Item` presentation features layered onto AndesFormField
+ * Coverage for the presentation features layered onto AndesFormField
  * (validateStatus, hasFeedback, help/extra, generated error messages, required mark, colon,
  * tooltip, layout/columns, noStyle, submit-reveals-errors). The original anatomy/a11y
  * contract stays covered, unchanged, in form-field.spec.ts.
@@ -90,7 +90,7 @@ function setup(configure?: (host: FieldHost) => void) {
   return { fixture, el, input, root, help, feedback, blur, type, update };
 }
 
-describe('AndesFormField - Ant Design Form.Item parity', () => {
+describe('AndesFormField - presentation features', () => {
   describe('validateStatus', () => {
     it('reports no status on a pristine, untouched field even though it is invalid', () => {
       const { root } = setup();

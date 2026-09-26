@@ -11,8 +11,8 @@ import { ANDES_FORM_FIELD, ANDES_FORM_LABEL } from './form-field-tokens';
 
 /**
  * Label for the control inside an `AndesFormField`. Renders a real `<label for="...">`
- * associated to the control via native HTML semantics (matching both shadcn's and Ant's
- * documented approach), using the id the enclosing `AndesFormField` generated - no manual
+ * associated to the control via native HTML semantics (matching shadcn's documented
+ * approach), using the id the enclosing `AndesFormField` generated - no manual
  * id coordination required.
  *
  * The `<label>` also carries an id of its own (`AndesFormField.labelId()`). That is what makes
