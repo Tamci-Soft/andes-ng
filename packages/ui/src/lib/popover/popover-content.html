@@ -1,15 +1,50 @@
 <div
   andesOverlayContent
   class="andes-popover-content"
-  [attr.data-side]="popover.side()"
-  [attr.data-align]="popover.align()"
+  [attr.data-side]="popover.resolvedSide()"
+  [attr.data-align]="popover.resolvedAlign()"
+  [attr.aria-labelledby]="popover.panelLabelledBy()"
+  [attr.aria-describedby]="popover.panelDescribedBy()"
+  (mouseenter)="popover.handlePanelEnter()"
+  (mouseleave)="popover.handlePanelLeave()"
+  (focusout)="popover.handleFocusOut($event)"
 >
-  <ng-content />
   @if (popover.showArrow()) {
   <span
     class="andes-popover-arrow"
-    [attr.data-side]="popover.side()"
+    [attr.data-side]="popover.resolvedSide()"
+    [style.left.px]="
+      popover.resolvedSide() === 'top' || popover.resolvedSide() === 'bottom'
+        ? popover.arrowOffset()
+        : null
+    "
+    [style.top.px]="
+      popover.resolvedSide() === 'left' || popover.resolvedSide() === 'right'
+        ? popover.arrowOffset()
+        : null
+    "
     aria-hidden="true"
   ></span>
+  } @if (popover.panelTitle(); as title) {
+  <div class="andes-popover-title" [id]="popover.titleId">
+    @if (isTemplate(title)) {
+    <div
+      class="andes-popover-slot"
+      [andesPopoverOutlet]="title"
+      andesPopoverOutletKey="title"
+    ></div>
+    } @else { {{ title }} }
+  </div>
+  } @if (popover.panelBody(); as body) {
+  <div class="andes-popover-body" [id]="popover.bodyId">
+    @if (isTemplate(body)) {
+    <div
+      class="andes-popover-slot"
+      [andesPopoverOutlet]="body"
+      andesPopoverOutletKey="content"
+    ></div>
+    } @else { {{ body }} }
+  </div>
   }
+  <ng-content />
 </div>

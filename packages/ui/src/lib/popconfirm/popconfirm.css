@@ -1,0 +1,56 @@
+/* The root component only orchestrates the trigger + the portalled panel - it
+   should never itself take part in layout. */
+:host {
+  display: contents;
+}
+
+/* The surface itself (background, border, radius, shadow, font-family, arrow)
+   is `andes-popover-content`; this is only the confirmation layout inside it. */
+.andes-popconfirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-3);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.andes-popconfirm-message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--andes-space-2);
+}
+
+.andes-popconfirm-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  height: 1.5em;
+  color: var(--andes-color-warning);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.andes-popconfirm-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+  min-width: 0;
+}
+
+.andes-popconfirm-title {
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-popconfirm-description {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-popconfirm-slot {
+  display: contents;
+}
+
+.andes-popconfirm-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--andes-space-2);
+}
