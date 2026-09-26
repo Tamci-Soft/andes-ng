@@ -1,0 +1,171 @@
+/*
+ * Disabled-trigger wrapper: browsers do not reliably send pointer events to
+ * a disabled form control, so while the trigger is disabled it is made
+ * `pointer-events: none` and this host catches the hover instead. It needs a box of its own to do that.
+ */
+:host([data-disabled-trigger]) {
+  display: inline-block;
+  cursor: not-allowed;
+}
+
+/*
+ * Deliberately theme-following rather than a fixed high-contrast "spotlight"
+ * background (near-black regardless of theme): andes-ng has no
+ * dedicated token for that today, and adding one is a design-system decision
+ * for whoever owns `packages/tokens/src/theme.css`, not something to bake in
+ * here. `--andes-color-popover` already flips appropriately between the
+ * light and dark themes.
+ *
+ * `--andes-tooltip-background`, `--andes-tooltip-foreground` and
+ * `--andes-tooltip-max-width` are the component's public styling hooks. They
+ * are only ever *read* here (never declared on `.andes-tooltip` itself, bar
+ * the `color` presets), so a value set on `:root` or on a `tooltipClass`
+ * selector reaches the portalled tooltip.
+ */
+.andes-tooltip {
+  position: relative;
+  box-sizing: border-box;
+  max-width: var(--andes-tooltip-max-width, 20rem);
+  padding-block: var(--andes-space-1);
+  padding-inline: var(--andes-space-2);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-tooltip-background, var(--andes-color-popover));
+  color: var(--andes-tooltip-foreground, var(--andes-color-popover-foreground));
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  /* A drop-shadow rather than a box-shadow so the arrow is outlined too -
+     otherwise a white arrow on a white page would simply vanish. */
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.15));
+  /* A tooltip never receives pointer input - letting events pass through
+     avoids it ever intercepting the mouse-leave that would otherwise close
+     it, even for the rare case where sideOffset is small enough to overlap
+     the trigger. */
+  pointer-events: none;
+  animation: andes-tooltip-in 0.1s ease-out;
+}
+
+.andes-tooltip[data-side='top'] {
+  transform-origin: bottom center;
+}
+
+.andes-tooltip[data-side='bottom'] {
+  transform-origin: top center;
+}
+
+.andes-tooltip[data-side='left'] {
+  transform-origin: center right;
+}
+
+.andes-tooltip[data-side='right'] {
+  transform-origin: center left;
+}
+
+/* Semantic presets: each maps onto an existing token pair. */
+.andes-tooltip--primary {
+  --andes-tooltip-background: var(--andes-color-primary);
+  --andes-tooltip-foreground: var(--andes-color-primary-foreground);
+}
+
+.andes-tooltip--secondary {
+  --andes-tooltip-background: var(--andes-color-secondary);
+  --andes-tooltip-foreground: var(--andes-color-secondary-foreground);
+}
+
+.andes-tooltip--success {
+  --andes-tooltip-background: var(--andes-color-success);
+  --andes-tooltip-foreground: var(--andes-color-success-foreground);
+}
+
+.andes-tooltip--warning {
+  --andes-tooltip-background: var(--andes-color-warning);
+  --andes-tooltip-foreground: var(--andes-color-warning-foreground);
+}
+
+.andes-tooltip--danger {
+  --andes-tooltip-background: var(--andes-color-danger);
+  --andes-tooltip-foreground: var(--andes-color-danger-foreground);
+}
+
+.andes-tooltip--info {
+  --andes-tooltip-background: var(--andes-color-info);
+  --andes-tooltip-foreground: var(--andes-color-info-foreground);
+}
+
+/*
+ * An arbitrary `color`: black or white text, whichever reads better, picked
+ * from the background's OKLCH lightness with relative color syntax. Browsers
+ * without it keep the white fallback.
+ */
+.andes-tooltip--custom-color {
+  color: #fff;
+  color: oklch(
+    from var(--andes-tooltip-background) clamp(0, (0.65 - l) * 1000, 1) 0 0
+  );
+}
+
+/*
+ * The arrow: a triangle clipped out of a small box painted with the same
+ * background as the tooltip, so it always matches `color`. It sits on the
+ * edge facing the trigger and, along that edge, at
+ * `--andes-tooltip-arrow-offset` - measured so it keeps pointing at the
+ * trigger after a flip or a viewport shift.
+ */
+.andes-tooltip__arrow {
+  position: absolute;
+  background-color: var(--andes-tooltip-background, var(--andes-color-popover));
+}
+
+.andes-tooltip[data-side='top'] > .andes-tooltip__arrow {
+  top: calc(100% - 1px);
+  left: var(--andes-tooltip-arrow-offset, 50%);
+  width: 12px;
+  height: 7px;
+  transform: translateX(-50%);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.andes-tooltip[data-side='bottom'] > .andes-tooltip__arrow {
+  bottom: calc(100% - 1px);
+  left: var(--andes-tooltip-arrow-offset, 50%);
+  width: 12px;
+  height: 7px;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.andes-tooltip[data-side='left'] > .andes-tooltip__arrow {
+  left: calc(100% - 1px);
+  top: var(--andes-tooltip-arrow-offset, 50%);
+  width: 7px;
+  height: 12px;
+  transform: translateY(-50%);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.andes-tooltip[data-side='right'] > .andes-tooltip__arrow {
+  right: calc(100% - 1px);
+  top: var(--andes-tooltip-arrow-offset, 50%);
+  width: 7px;
+  height: 12px;
+  transform: translateY(-50%);
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+
+@keyframes andes-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-tooltip {
+    animation: none;
+  }
+}

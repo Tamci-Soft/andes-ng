@@ -1,0 +1,27 @@
+<ng-content />
+
+<ng-template #overlayTemplate>
+  <div
+    andesOverlayContent
+    [class]="panelClasses()"
+    [attr.data-side]="renderedSide()"
+    [style.--andes-tooltip-background]="customColor()"
+    [style.--andes-tooltip-max-width]="maxWidthValue()"
+    [style.--andes-tooltip-arrow-offset]="arrowOffsetValue()"
+  >
+    @if (arrow()) {
+    <span class="andes-tooltip__arrow" aria-hidden="true"></span>
+    }
+  </div>
+</ng-template>
+
+<!-- The content itself: rendered into #bodyCache's view, then moved into the
+     overlay element above on every open (see AndesTooltip.attachBody). -->
+<ng-template #bodyTemplate>
+  <div class="andes-tooltip__body">
+    @if (richContent(); as tpl) {
+    <ng-container *ngTemplateOutlet="tpl" />
+    } @else { {{ textContent() }} }
+  </div>
+</ng-template>
+<ng-container #bodyCache />
