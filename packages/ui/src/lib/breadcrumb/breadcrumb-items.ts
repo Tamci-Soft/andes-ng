@@ -1,8 +1,8 @@
 import type { TemplateRef } from '@angular/core';
 
 /**
- * Data model behind `AndesBreadcrumb`'s `[items]` input - the Ant Design `items`/`ItemType` API
- * translated to Angular. Kept in its own file, free of any Angular runtime import, so the path,
+ * Data model behind `AndesBreadcrumb`'s `[items]` input - the data-driven way to build a trail.
+ * Kept in its own file, free of any Angular runtime import, so the path,
  * params and collapse rules below are plain functions that can be unit-tested without a TestBed.
  */
 
@@ -18,7 +18,7 @@ export type AndesBreadcrumbParams = Readonly<
  * One entry of a crumb's dropdown menu, and of the ellipsis dropdown that lists collapsed crumbs.
  *
  * A plain data shape rather than projected markup: the caller already holds these as data (a route
- * array, an Ant-Design-style `menu.items` list) and would otherwise have to re-author each of them
+ * array, a `menu.items` list from a config) and would otherwise have to re-author each of them
  * as a `<andes-dropdown-menu-item>` by hand.
  */
 export interface AndesBreadcrumbMenuItem {
@@ -41,7 +41,7 @@ export interface AndesBreadcrumbMenuItem {
   readonly onClick?: (event: MouseEvent) => void;
 }
 
-/** A crumb of the `[items]` input - Ant Design's `RouteItemType`. */
+/** A crumb of the `[items]` input. */
 export interface AndesBreadcrumbRouteItem {
   readonly type?: 'item';
   /** Visible text. `:param` placeholders are replaced from the root's `params`. */
@@ -65,7 +65,7 @@ export interface AndesBreadcrumbRouteItem {
 }
 
 /**
- * An explicit separator entry - Ant Design's `SeparatorType`. It replaces the automatic separator
+ * An explicit separator entry. It replaces the automatic separator
  * that would otherwise sit at that position, which is how one position gets a different glyph.
  */
 export interface AndesBreadcrumbSeparatorItem {
@@ -164,7 +164,7 @@ export function isSeparatorItem(
 
 /**
  * Replaces every `:key` whose `key` is present in `params` - unknown placeholders are left as
- * written, like Ant Design does, so a literal `:` in a title survives.
+ * written, so a literal `:` in a title survives.
  */
 export function interpolateBreadcrumbParams(
   text: string,
@@ -184,8 +184,8 @@ export function interpolateBreadcrumbParams(
  * separator entry already sits there), and - when there are more than `maxItems` crumbs - an
  * ellipsis standing in for the middle ones.
  *
- * `path` hrefs are root-relative (`/a/b`), not Ant Design's hash-router `#/a/b`: Angular apps use
- * path-location routing by default, and anyone on a hash strategy renders `routerLink`s through
+ * `path` hrefs are root-relative (`/a/b`): Angular apps use path-location routing by default,
+ * and anyone on a hash strategy renders `routerLink`s through
  * `itemRender` anyway.
  */
 export function buildBreadcrumbNodes(
@@ -290,7 +290,7 @@ export function buildBreadcrumbNodes(
       crumb: segment.crumb,
     });
   });
-  // Separator entries after the last crumb are rendered as written (Ant Design parity).
+  // Separator entries after the last crumb are rendered as written, not dropped.
   pushSeparators(pending, false, 'sep-trailing');
 
   return nodes;
