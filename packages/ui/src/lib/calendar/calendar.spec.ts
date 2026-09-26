@@ -57,7 +57,7 @@ class CalendarHost {
   readonly lastDaySelected = signal<Date | null>(null);
 }
 
-/** Host for the Ant-parity features: pickers, panels, templates. */
+/** Host for the extended features: pickers, panels, templates. */
 @Component({
   imports: [AndesCalendar],
   template: `
@@ -1069,7 +1069,7 @@ describe('AndesCalendar', () => {
     });
   });
 
-  describe('Ant parity features', () => {
+  describe('extended features', () => {
     function createFeatures(
       setup: (host: FeatureHost) => void = () => undefined,
     ) {

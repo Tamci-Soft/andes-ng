@@ -85,8 +85,8 @@ type Story = StoryObj<AndesDatePicker>;
 export const Single: Story = {};
 
 /**
- * Ant's `RangePicker`: two inputs in one field and two months side by side. After
- * the first pick, hovering previews the range the second pick would close.
+ * `mode="range"`: two inputs in one field and two months side by side. After the
+ * first pick, hovering previews the range the second pick would close.
  */
 export const Range: Story = {
   args: { mode: 'range' },
@@ -247,7 +247,7 @@ export const MonthPickerOpen: Story = {
 };
 
 /**
- * `format` (Ant's token format) drives both display and typing. With a list, the
+ * `format` (a token pattern) drives both display and typing. With a list, the
  * first pattern displays and every pattern parses — type `15/02/2024`,
  * `15/02/24` or ISO `2024-02-15`, then Enter or Tab.
  */

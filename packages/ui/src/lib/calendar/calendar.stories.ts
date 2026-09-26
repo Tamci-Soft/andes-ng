@@ -157,8 +157,8 @@ export const Locales: Story = {
 };
 
 /**
- * `picker` sets the selection granularity, as Ant's `picker`. The caption climbs
- * to the coarser grid (days → months → years); picking there drills back down.
+ * `picker` sets the selection granularity. The caption climbs to the coarser
+ * grid (days → months → years); picking there drills back down.
  */
 export const PickerModes: Story = {
   render: () => ({
@@ -212,8 +212,8 @@ export const MonthRange: Story = {
 };
 
 /**
- * `cellTemplate` (Ant's `cellRender`) customises each cell. The context carries
- * the date, the resolved cell state and the grid it belongs to.
+ * `cellTemplate` customises each cell. The context carries the date, the
+ * resolved cell state and the grid it belongs to.
  */
 export const CustomCells: Story = {
   render: () => ({
@@ -235,8 +235,8 @@ export const CustomCells: Story = {
 };
 
 /**
- * `fullscreen` (Ant's default `Calendar` look): a full-width grid whose cells hold
- * `cellTemplate` content under the day number.
+ * `fullscreen`: a full-width grid whose cells hold `cellTemplate` content under
+ * the day number.
  */
 export const Fullscreen: Story = {
   parameters: { layout: 'fullscreen' },
@@ -268,8 +268,8 @@ export const Fullscreen: Story = {
 };
 
 /**
- * `headerTemplate` (Ant's `headerRender`) replaces the navigation header. The
- * context exposes the visible month plus `goTo` and `setView`.
+ * `headerTemplate` replaces the navigation header. The context exposes the
+ * visible month plus `goTo` and `setView`.
  */
 export const CustomHeader: Story = {
   render: () => ({

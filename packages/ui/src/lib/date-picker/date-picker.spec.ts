@@ -144,7 +144,7 @@ class NgModelHost {
   readonly defaultMonth = d(2024, 2, 1);
 }
 
-/** Host for the Ant-parity inputs; every one is a signal a test can flip. */
+/** Host for the extended inputs; every one is a signal a test can flip. */
 @Component({
   imports: [AndesDatePicker, ReactiveFormsModule],
   template: `
@@ -838,7 +838,7 @@ describe('AndesDatePicker', () => {
     });
   });
 
-  describe('Ant parity features', () => {
+  describe('extended features', () => {
     function createFeature(
       setup: (host: FeatureHost) => void = () => undefined,
     ) {

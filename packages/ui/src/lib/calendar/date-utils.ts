@@ -418,9 +418,9 @@ export function today(): Date {
 // --- Periods: week / month / quarter / year --------------------------------
 
 /**
- * The granularity a picker selects at. Mirrors Ant Design's `picker` prop: a
- * `month` picker's value is the first day of the chosen month, a `week` picker's
- * value the first day of the chosen week, and so on.
+ * The granularity a picker selects at. A `month` picker's value is the first
+ * day of the chosen month, a `week` picker's value the first day of the chosen
+ * week, and so on.
  */
 export type AndesPickerType = 'date' | 'week' | 'month' | 'quarter' | 'year';
 

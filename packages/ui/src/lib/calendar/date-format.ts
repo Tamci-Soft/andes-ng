@@ -2,8 +2,8 @@
  * Token-based date formatting and parsing for `AndesDatePicker`'s typed input.
  *
  * Built on `Intl` and plain regular expressions — no `dayjs`/`date-fns`, matching
- * `date-utils.ts`. The token vocabulary is the dayjs one Ant Design documents for
- * its `format` prop, so an Ant format string ports over unchanged:
+ * `date-utils.ts`. The token vocabulary is the familiar dayjs one, so existing
+ * format strings port over unchanged:
  *
  * | Token          | Meaning                                  | Example        |
  * | -------------- | ---------------------------------------- | -------------- |
@@ -35,9 +35,9 @@ import {
 } from './date-utils';
 
 /**
- * What a picker's `format` input accepts, following Ant Design: one pattern, a
- * list of patterns (the first formats, all of them parse), or a function (formats
- * only — a function cannot be inverted, so typed input then falls back to ISO).
+ * What a picker's `format` input accepts: one pattern, a list of patterns (the
+ * first formats, all of them parse), or a function (formats only — a function
+ * cannot be inverted, so typed input then falls back to ISO).
  */
 export type AndesDateFormat =
   string | readonly string[] | ((date: Date) => string);
