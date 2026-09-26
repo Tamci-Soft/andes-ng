@@ -1,0 +1,5 @@
+/* The viewport itself is layout-neutral: each placement's fixed-position stack is its own
+   andes-toast-region (see toast-region.css). */
+:host {
+  display: contents;
+}

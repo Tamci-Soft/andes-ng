@@ -1,0 +1,207 @@
+:host {
+  /* Component-local accent (not a design token): drives the inline-start border, the
+     status icon and the progress bar from one place per severity. */
+  --_toast-accent: var(--andes-color-border);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--andes-space-3);
+  box-sizing: border-box;
+  min-width: 18rem;
+  max-width: 24rem;
+  padding: var(--andes-space-3) var(--andes-space-4);
+  border-radius: var(--andes-radius-lg);
+  border: 1px solid var(--andes-color-border);
+  border-inline-start: 4px solid var(--_toast-accent);
+  background-color: var(--andes-color-card);
+  color: var(--andes-color-card-foreground);
+  box-shadow:
+    0 4px 12px rgb(15 23 42 / 15%),
+    0 2px 4px rgb(15 23 42 / 10%);
+  font-family: var(--andes-font-family), sans-serif;
+  /* Clips the progress bar to the rounded corners. */
+  overflow: hidden;
+  /* The region disables pointer-events on itself so empty space around a toast doesn't
+     block clicks - pointer-events is inherited, so each toast opts back in. */
+  pointer-events: auto;
+}
+
+:host([data-severity='success']) {
+  --_toast-accent: var(--andes-color-success);
+}
+
+:host([data-severity='error']) {
+  --_toast-accent: var(--andes-color-danger);
+}
+
+:host([data-severity='warning']) {
+  --_toast-accent: var(--andes-color-warning);
+}
+
+:host([data-severity='info']) {
+  --_toast-accent: var(--andes-color-info);
+}
+
+:host([data-severity='loading']) {
+  --_toast-accent: var(--andes-color-primary);
+}
+
+:host([data-clickable]) {
+  cursor: pointer;
+}
+
+/* Message flavor: a compact single-line pill - icon + text, no accent
+   border, sized to its content rather than the notification's fixed width range. */
+:host([data-flavor='message']) {
+  align-items: center;
+  gap: var(--andes-space-2);
+  min-width: 0;
+  max-width: min(calc(100vw - 2 * var(--andes-space-4)), 40rem);
+  padding: var(--andes-space-2) var(--andes-space-3);
+  border-inline-start: 1px solid var(--andes-color-border);
+}
+
+/* A card peeking out from behind the front of a collapsed stack shows only its edge - its
+   content is hidden (which also takes it out of the tab order and accessibility tree until
+   the stack expands). */
+:host([data-stack-behind]) > * {
+  visibility: hidden;
+}
+
+.andes-toast__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--_toast-accent);
+}
+
+:host([data-flavor='message']) .andes-toast__icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-toast__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.andes-toast__spinner {
+  animation: andes-toast-spin 0.8s linear infinite;
+}
+
+.andes-toast__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.andes-toast__title {
+  margin: 0 0 var(--andes-space-1);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-toast__message {
+  margin: 0;
+  font-size: 0.875rem;
+  overflow-wrap: break-word;
+}
+
+.andes-toast__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--andes-space-2);
+  margin-top: var(--andes-space-3);
+}
+
+.andes-toast__action {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--andes-color-primary-text);
+  font-family: inherit;
+  font-weight: var(--andes-font-weight-medium);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.andes-toast__action:hover {
+  text-decoration: underline;
+}
+
+.andes-toast__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.andes-toast__close:hover {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-toast__close-icon {
+  display: inline-flex;
+  font-size: 1rem;
+}
+
+.andes-toast__close:focus-visible,
+.andes-toast__action:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Drains over the auto-dismiss countdown. Pauses exactly when AndesToastQueue's timer does:
+   on hover (unless pauseOnHover is off) and whenever focus is inside the toast. */
+.andes-toast__progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 3px;
+  background-color: var(--_toast-accent);
+  transform-origin: left center;
+  animation-name: andes-toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+:host([data-severity='neutral']) .andes-toast__progress {
+  background-color: var(--andes-color-primary);
+}
+
+:host(:focus-within) .andes-toast__progress,
+:host([data-pause-on-hover]:hover) .andes-toast__progress {
+  animation-play-state: paused;
+}
+
+@keyframes andes-toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes andes-toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-toast__spinner {
+    animation-duration: 2.4s;
+  }
+}

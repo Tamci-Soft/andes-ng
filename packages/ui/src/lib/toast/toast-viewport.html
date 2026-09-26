@@ -1,0 +1,20 @@
+@for (region of regions(); track region.placement) {
+<andes-toast-region
+  flavor="notification"
+  [placement]="region.placement"
+  [toasts]="region.toasts"
+  [controller]="toastService"
+  [stack]="toastService.defaults().stack"
+  [top]="toastService.defaults().top"
+  [bottom]="toastService.defaults().bottom"
+/>
+} @if (messages().length) {
+<andes-toast-region
+  flavor="message"
+  placement="top-center"
+  [toasts]="messages()"
+  [controller]="messageService"
+  [stack]="messageService.defaults().stack"
+  [top]="messageService.defaults().top"
+/>
+}
