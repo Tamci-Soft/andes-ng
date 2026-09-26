@@ -1,70 +1,82 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, Signal } from '@angular/core';
+
+export type AndesRadioGroupOrientation = 'vertical' | 'horizontal';
+/** `default` renders the classic circle + dot; `button` renders a segmented-control face
+ *  (Ant Design's `Radio.Button` / `optionType="button"`). */
+export type AndesRadioOptionType = 'default' | 'button';
+/** Only affects `optionType="button"`: `outline` tints the checked segment's border/text,
+ *  `solid` fills it with the primary color. */
+export type AndesRadioButtonStyle = 'outline' | 'solid';
+/** Only affects `optionType="button"` - heights mirror `AndesButton`'s sm/md/lg. */
+export type AndesRadioSize = 'sm' | 'md' | 'lg';
+export type AndesRadioLabelPlacement = 'end' | 'start';
+
+/**
+ * What an `AndesRadioGroup` exposes to its items. The group owns every signal (its inputs
+ * and its `value` model are the single source of truth); the items only ever read them and
+ * report user selection back through `select()`.
+ */
+export interface AndesRadioGroupSource {
+  readonly name: Signal<string>;
+  readonly value: Signal<unknown>;
+  readonly disabled: Signal<boolean>;
+  readonly required: Signal<boolean>;
+  readonly optionType: Signal<AndesRadioOptionType>;
+  readonly buttonStyle: Signal<AndesRadioButtonStyle>;
+  readonly size: Signal<AndesRadioSize>;
+  readonly orientation: Signal<AndesRadioGroupOrientation>;
+  readonly block: Signal<boolean>;
+  readonly labelPlacement: Signal<AndesRadioLabelPlacement>;
+  select(value: unknown, event: Event): void;
+}
 
 /**
  * DI-scoped shared state for one `AndesRadioGroup` instance and its `AndesRadio` children.
  *
  * `AndesRadioGroup` provides a fresh instance of this service in its own `providers: [...]`
- * array (see radio-group.ts); every `AndesRadio` projected into it injects that same instance
- * via the normal element-injector hierarchy. This is Angular's equivalent of React Context -
- * no `@ContentChildren` query or manual parent/child registration is needed, and each group on
- * the page gets its own isolated instance automatically.
+ * array (see radio-group.ts) and `connect()`s itself to it from its constructor; every
+ * `AndesRadio` - whether projected by the consumer or generated from the group's `options`
+ * input - injects that same instance via the normal element-injector hierarchy. This is
+ * Angular's equivalent of React Context - no `@ContentChildren` query or manual parent/child
+ * registration is needed, and each group on the page gets its own isolated instance.
+ *
+ * The state reads straight through to the group's signals rather than mirroring them via
+ * `effect()`s, so a `writeValue()`/`value.set()` is visible to the items synchronously, with
+ * no change-detection round-trip in between.
  */
-let nextGroupId = 0;
-
-function noop(): void {
-  /* no-op default until registerOnChange/registerOnTouched is called by Angular forms */
-}
-
 @Injectable()
 export class AndesRadioGroupState {
-  private readonly _name = signal(`andes-radio-group-${++nextGroupId}`);
-  private readonly _value = signal<string | null>(null);
-  private readonly _disabled = signal(false);
-  private readonly _required = signal(false);
+  private source: AndesRadioGroupSource | undefined;
 
-  /** Shared `name` attribute every native radio input in the group renders - this is what
-   *  gives the group free browser-native roving-tabindex/arrow-key navigation. */
-  readonly name = this._name.asReadonly();
-  readonly value = this._value.asReadonly();
-  readonly disabled = this._disabled.asReadonly();
-  readonly required = this._required.asReadonly();
+  readonly name = computed(() => this.group.name());
+  readonly value = computed(() => this.group.value());
+  readonly disabled = computed(() => this.group.disabled());
+  readonly required = computed(() => this.group.required());
+  readonly optionType = computed(() => this.group.optionType());
+  readonly buttonStyle = computed(() => this.group.buttonStyle());
+  readonly size = computed(() => this.group.size());
+  readonly orientation = computed(() => this.group.orientation());
+  readonly block = computed(() => this.group.block());
+  readonly labelPlacement = computed(() => this.group.labelPlacement());
 
-  private onChange: (value: string | null) => void = noop;
-  private onTouched: () => void = noop;
+  /** Called once by `AndesRadioGroup`'s constructor - always before any item is created,
+   *  since the group's host component is instantiated before its content/view children. */
+  connect(source: AndesRadioGroupSource): void {
+    this.source = source;
+  }
 
-  setName(name: string | undefined): void {
-    if (name) {
-      this._name.set(name);
+  /** Called by an `AndesRadio` item when the user selects it (a real user interaction). */
+  select(value: unknown, event: Event): void {
+    this.group.select(value, event);
+  }
+
+  private get group(): AndesRadioGroupSource {
+    if (!this.source) {
+      throw new Error(
+        'AndesRadioGroupState used before an AndesRadioGroup connected to it - ' +
+          '<andes-radio> must be placed inside an <andes-radio-group>.',
+      );
     }
-  }
-
-  setDisabled(disabled: boolean): void {
-    this._disabled.set(disabled);
-  }
-
-  setRequired(required: boolean): void {
-    this._required.set(required);
-  }
-
-  /** Called by `AndesRadioGroup.writeValue()` - programmatic writes never notify the CVA
-   *  `onChange` callback back, matching standard `ControlValueAccessor` semantics. */
-  setValue(value: string | null): void {
-    this._value.set(value);
-  }
-
-  /** Called by an `AndesRadio` item when the user selects it - a real user interaction, so it
-   *  notifies both `onChange` and `onTouched`. */
-  selectFromItem(value: string): void {
-    this._value.set(value);
-    this.onChange(value);
-    this.onTouched();
-  }
-
-  registerOnChange(fn: (value: string | null) => void): void {
-    this.onChange = fn;
-  }
-
-  registerOnTouched(fn: () => void): void {
-    this.onTouched = fn;
+    return this.source;
   }
 }
