@@ -45,9 +45,9 @@
 }
 
 /* No dedicated elevation/shadow token exists yet in packages/tokens/src/theme.css for this
-   (the same gap flagged against Ant's `boxShadowTertiary` in tooltip.md/dropdown-menu.md/
-   card.md) - derive the hover shadow from an existing color token via color-mix rather than
-   inventing a new token or hard-coding an unrelated color. */
+   (the same gap tooltip and dropdown-menu have) - derive the hover shadow from an existing
+   color token via color-mix rather than inventing a new token or hard-coding an unrelated
+   color. */
 :host(.andes-card--hoverable:hover) {
   box-shadow: 0 4px 16px
     color-mix(in srgb, var(--andes-color-foreground) 16%, transparent);
@@ -56,9 +56,9 @@
 :host(.andes-card__header) {
   display: grid;
   grid-template-columns: 1fr auto;
-  /* Centres the title against a taller header action when they share the only row (Ant's
-     title/extra alignment). With a description the title row is only as tall as the title, so
-     this is a no-op there and the action keeps its own top alignment. */
+  /* Centres the title against a taller header action when they share the only row. With a
+     description the title row is only as tall as the title, so this is a no-op there and the
+     action keeps its own top alignment. */
   align-items: center;
   gap: var(--andes-space-1);
   padding-inline: var(--andes-card-spacing, var(--andes-space-4));
@@ -69,7 +69,7 @@
   grid-template-rows: auto auto;
 }
 
-/* type="inner" (Ant's nested-card style): a tinted head divided from the body, so a card inside a
+/* type="inner" (nested-card style): a tinted head divided from the body, so a card inside a
    card reads as a sub-section rather than a second, competing surface. */
 :host(.andes-card__header--inner) {
   padding-block: var(--andes-space-3);
@@ -84,9 +84,8 @@
 }
 
 /* Header tab strip. Bleeds to the card's edges (negative inline margin + matching padding) so its
-   baseline rule spans the full card width, as Ant's head tabs do. The rule is an inset shadow on
-   the strip rather than a border, so the active tab's own indicator paints over it instead of
-   stacking beneath it. */
+   baseline rule spans the full card width. The rule is an inset shadow on the strip rather than
+   a border, so the active tab's own indicator paints over it instead of stacking beneath it. */
 .andes-card__tabs {
   grid-column: 1 / -1;
   display: flex;
@@ -228,8 +227,8 @@
   border-block-start: 1px solid var(--andes-color-border);
 }
 
-/* Loading skeleton (Ant renders a 4-row, title-less Skeleton here). Internal markup because no
-   Skeleton component is available to this package yet. */
+/* Loading skeleton: four title-less rows. Internal markup because no Skeleton component is
+   available to this package yet. */
 .andes-card__skeleton {
   display: flex;
   flex-direction: column;
@@ -266,7 +265,7 @@
   }
 }
 
-/* Card.Meta: avatar beside a title/description column. */
+/* AndesCardMeta: avatar beside a title/description column. */
 :host(.andes-card__meta) {
   display: flex;
   align-items: flex-start;
@@ -292,7 +291,7 @@
   gap: var(--andes-space-1);
 }
 
-/* Card.Grid cell. Each cell draws the rules on its own trailing and bottom edges as 1px outer
+/* AndesCardGrid cell. Each cell draws the rules on its own trailing and bottom edges as 1px outer
    shadows; the card's overflow clipping hides the ones that land on its outer edge, leaving
    only the internal dividers. */
 :host(.andes-card__grid) {

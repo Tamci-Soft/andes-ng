@@ -165,7 +165,7 @@ export const WithCoverImage: Story = {
         />
         <andes-card-header>
           <andes-card-title>Mountain view</andes-card-title>
-          <andes-card-description>Placed before the header, as documented by both reference libraries.</andes-card-description>
+          <andes-card-description>Placed before the header so it runs edge to edge.</andes-card-description>
         </andes-card-header>
         <andes-card-content>
           <p style="margin: 0;">No dedicated cover sub-component is needed - the card's own overflow clipping does the work.</p>
@@ -224,7 +224,7 @@ export const Overview: Story = {
   }),
 };
 
-/** Ant Design's signature card: cover, `Card.Meta` body and a divided actions bar. */
+/** A cover, an `AndesCardMeta` body and a divided actions bar. */
 export const MetaWithActions: Story = {
   render: (args) => ({
     props: { ...args, avatarStyle: AVATAR_STYLE },
@@ -396,8 +396,7 @@ const TAB_BODIES: Record<string, string> = {
 
 /**
  * `[(activeTabKey)]` is two-way; the card only switches the selected tab - rendering the
- * matching body is up to the consumer, exactly as with Ant's `tabList`. Arrow keys, Home and
- * End move between enabled tabs.
+ * matching body is up to the consumer. Arrow keys, Home and End move between enabled tabs.
  */
 export const WithTabs: Story = {
   render: (args) => ({
