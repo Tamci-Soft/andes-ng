@@ -1,0 +1,134 @@
+<div [class]="barClasses()">
+  <div class="andes-tabs__extra andes-tabs__extra--left">
+    <ng-content select="[andesTabsExtraLeft]" />
+    @if (extraLeft(); as extra) {
+    <ng-container [ngTemplateOutlet]="extra" />
+    }
+  </div>
+
+  <div class="andes-tabs__nav-group">
+    <!-- Pointer-only affordances: keyboard users reach every tab with the arrow keys, and
+         focusing a tab scrolls it into view natively, so these stay out of the tab order
+         and the accessibility tree. -->
+    @if (overflowing()) {
+    <button
+      type="button"
+      class="andes-tabs__scroll andes-tabs__scroll--prev"
+      tabindex="-1"
+      aria-hidden="true"
+      [disabled]="!canScrollPrev()"
+      (click)="scrollByPage(-1)"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+    </button>
+    }
+
+    <div #scroller class="andes-tabs__nav-wrap" (scroll)="onScroll()">
+      <div #nav class="andes-tabs__nav">
+        <ng-content select="andes-tabs-list" />
+        @if (items(); as items) {
+        <andes-tabs-list>
+          @for (item of items; track item.key) {
+          <andes-tabs-trigger
+            [value]="item.key"
+            [disabled]="!!item.disabled"
+            [closable]="item.closable ?? true"
+            [closeIcon]="item.closeIcon"
+            [icon]="item.icon"
+          >
+            @if (asTemplate(item.label); as label) {
+            <ng-container [ngTemplateOutlet]="label" />
+            } @else { {{ item.label }} }
+          </andes-tabs-trigger>
+          }
+        </andes-tabs-list>
+        } @if (showInkBar()) {
+        <span
+          [class]="inkBarClasses()"
+          [style]="inkBarStyle()"
+          aria-hidden="true"
+        ></span>
+        }
+      </div>
+    </div>
+
+    @if (overflowing()) {
+    <button
+      type="button"
+      class="andes-tabs__scroll andes-tabs__scroll--next"
+      tabindex="-1"
+      aria-hidden="true"
+      [disabled]="!canScrollNext()"
+      (click)="scrollByPage(1)"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m9 18 6-6-6-6" />
+      </svg>
+    </button>
+    } @if (showAdd()) {
+    <button
+      type="button"
+      class="andes-tabs__add"
+      [attr.aria-label]="addLabel()"
+      (click)="onAdd($event)"
+    >
+      @if (addIcon(); as icon) {
+      <ng-container [ngTemplateOutlet]="icon" />
+      } @else {
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12h14" />
+        <path d="M12 5v14" />
+      </svg>
+      }
+    </button>
+    }
+  </div>
+
+  <div class="andes-tabs__extra andes-tabs__extra--right">
+    <ng-content select="[andesTabsExtraRight]" />
+    @if (extraRight(); as extra) {
+    <ng-container [ngTemplateOutlet]="extra" />
+    }
+  </div>
+</div>
+
+<div class="andes-tabs__panels">
+  <ng-content />
+  @if (items(); as items) { @for (item of items; track item.key) {
+  <andes-tabs-content
+    [value]="item.key"
+    [destroyOnHidden]="item.destroyOnHidden"
+    [forceRender]="!!item.forceRender"
+  >
+    <ng-template andesTabsContentLazy>
+      @if (asTemplate(item.content); as content) {
+      <ng-container [ngTemplateOutlet]="content" />
+      } @else { {{ item.content }} }
+    </ng-template>
+  </andes-tabs-content>
+  } }
+</div>

@@ -1,0 +1,39 @@
+/* Spacing between the tab bar and the panel is the parent Tabs' flex `gap`, so it follows
+   the bar to whichever side `tabPosition` puts it on. */
+:host {
+  display: block;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+/* An author `display` rule outranks the UA stylesheet's `[hidden] { display: none }`, so
+   the `hidden` attribute has to be honored explicitly here. */
+:host([hidden]) {
+  display: none;
+}
+
+:host(:focus-visible) {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+:host(.andes-tabs-content--animated) {
+  animation: andes-tabs-pane-in 0.3s ease;
+}
+
+@keyframes andes-tabs-pane-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host(.andes-tabs-content--animated) {
+    animation: none;
+  }
+}
