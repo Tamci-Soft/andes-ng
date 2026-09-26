@@ -20,7 +20,7 @@ export type AndesInputVariant =
   'outlined' | 'filled' | 'borderless' | 'underlined';
 export type AndesInputStatus = 'error' | 'warning';
 
-/** What `countFormatter` receives - the same shape as Ant Design's `showCount.formatter`. */
+/** What `countFormatter` receives. */
 export interface AndesInputCountInfo {
   value: string;
   count: number;
@@ -29,7 +29,7 @@ export interface AndesInputCountInfo {
 
 export type AndesInputCountFormatter = (info: AndesInputCountInfo) => string;
 
-/** `cursor` mirrors Ant Design's `focus({ cursor })` option. */
+/** `cursor` places the caret at the start or end, or selects all the text, after focusing. */
 export interface AndesInputFocusOptions extends FocusOptions {
   cursor?: 'start' | 'end' | 'all';
 }
@@ -49,9 +49,8 @@ let nextId = 0;
  * Everything `andes-input`, `andes-input-password` and `andes-input-search` share: they render
  * the exact same template (`input.html`) and differ only in the handful of protected hooks
  * below, which the variants override. Kept abstract so the three public components stay
- * separate selectors - mirroring Ant Design's `Input` / `Input.Password` / `Input.Search` -
- * without each one re-forwarding ~20 inputs and a second ControlValueAccessor onto a wrapped
- * `andes-input`.
+ * separate selectors without each one re-forwarding ~20 inputs and a second
+ * ControlValueAccessor onto a wrapped `andes-input`.
  */
 @Directive()
 export abstract class AndesInputBase implements ControlValueAccessor {
@@ -93,9 +92,9 @@ export abstract class AndesInputBase implements ControlValueAccessor {
     transform: booleanAttribute,
   });
 
-  /** Enter pressed in the field (never mid-IME-composition) - Ant Design's `onPressEnter`. */
+  /** Enter pressed in the field (never mid-IME-composition). */
   readonly pressEnter = output<KeyboardEvent>();
-  /** The clear button emptied the field - Ant Design's `onClear`. */
+  /** The clear button emptied the field. */
   readonly cleared = output<void>();
 
   private readonly disabledByForm = signal(false);
@@ -116,7 +115,7 @@ export abstract class AndesInputBase implements ControlValueAccessor {
     () => this.disabled() || this.disabledByForm(),
   );
 
-  /** `status="error"` is announced too, not just painted - unlike Ant, which leaves that to you. */
+  /** `status="error"` is announced too (via `aria-invalid`), not just painted. */
   protected readonly isInvalid = computed(
     () => this.ariaInvalid() || this.status() === 'error',
   );
@@ -217,7 +216,7 @@ export abstract class AndesInputBase implements ControlValueAccessor {
     this.disabledByForm.set(isDisabled);
   }
 
-  /** Focuses the native input, optionally placing the caret (Ant Design's `focus({ cursor })`). */
+  /** Focuses the native input, optionally placing the caret (see `AndesInputFocusOptions`). */
   focus(options?: AndesInputFocusOptions): void {
     const element = this.nativeInput().nativeElement;
     element.focus({ preventScroll: options?.preventScroll });
