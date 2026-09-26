@@ -16,11 +16,12 @@ import {
   type Signal,
 } from '@angular/core';
 
-import { AndesCombobox } from './combobox';
+import type { AndesCombobox } from './combobox';
 import {
   ANDES_COMBOBOX_SELECTED_ICON,
   createAndesComboboxIcon,
 } from './combobox-icons';
+import { ANDES_COMBOBOX } from './combobox-token';
 
 let nextItemId = 0;
 
@@ -72,7 +73,7 @@ export class AndesComboboxItem<T = string>
   /** `AndesListNavigationItemRef`'s contract; a plain alias for {@link disabled}. */
   readonly isDisabled: Signal<boolean> = this.disabled;
 
-  private readonly combobox = inject(AndesCombobox) as AndesCombobox<T>;
+  private readonly combobox = inject(ANDES_COMBOBOX) as AndesCombobox<T>;
   private readonly navigation = inject(AndesListNavigation);
   private readonly renderer = inject(Renderer2);
 
@@ -134,7 +135,7 @@ export class AndesComboboxItem<T = string>
   }
 
   getLabel(): string {
-    return this.combobox.itemToStringValue()(this.value());
+    return this.combobox.labelOf(this.value());
   }
 
   /** Never called: `AndesListNavigation` only invokes this in `'roving-tabindex'` mode. */

@@ -1,4 +1,105 @@
-<ng-content select="[andesComboboxInput]" />
+<div class="andes-combobox-field">
+  @if (usesOptions()) {
+  <input andesComboboxInput type="text" [attr.id]="inputId() ?? null" />
+  } @else {
+  <ng-content select="[andesComboboxInput]" />
+  } @if (hasSuffix()) {
+  <span class="andes-combobox-suffix">
+    @if (loading()) {
+    <span class="andes-combobox-spinner" aria-hidden="true"></span>
+    } @if (showClear()) {
+    <!-- Out of the tab order, like Ant Design's: keyboard users already clear with
+         Ctrl/Cmd+A, Backspace. mousedown is cancelled so the input never blurs. -->
+    <button
+      type="button"
+      class="andes-combobox-clear"
+      tabindex="-1"
+      [attr.aria-label]="clearLabel()"
+      (mousedown)="$event.preventDefault()"
+      (click)="clearValue()"
+    >
+      @if (clearIcon(); as icon) {
+      <ng-container *ngTemplateOutlet="icon" />
+      } @else {
+      <svg
+        class="andes-combobox-clear__icon"
+        viewBox="0 0 16 16"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M4 4l8 8M12 4l-8 8"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+        />
+      </svg>
+      }
+    </button>
+    }
+  </span>
+  }
+</div>
+
 <ng-template #panel>
+  @if (usesOptions()) {
+  <div
+    andesComboboxContent
+    [attr.data-hidden]="hidePopup() ? '' : null"
+    (scroll)="onPopupScroll($event)"
+  >
+    @if (loading()) {
+    <div class="andes-combobox-loading" role="status">
+      <span class="andes-combobox-spinner" aria-hidden="true"></span>
+      {{ loadingText() }}
+    </div>
+    } @else { @for (entry of renderedOptions(); track entry.key) { @if
+    (entry.kind === 'group') {
+    <div
+      class="andes-combobox-group"
+      role="group"
+      [attr.aria-labelledby]="entry.key"
+    >
+      <div
+        class="andes-combobox-group__label"
+        role="presentation"
+        [id]="entry.key"
+      >
+        {{ entry.label }}
+      </div>
+      @for (option of entry.options; track option.value) {
+      <ng-container
+        *ngTemplateOutlet="optionRow; context: { $implicit: option }"
+      />
+      }
+    </div>
+    } @else {
+    <ng-container
+      *ngTemplateOutlet="optionRow; context: { $implicit: entry.option }"
+    />
+    } } @empty { @if (notFoundContent() !== null) {
+    <div andesComboboxEmpty>
+      @if (notFoundTemplate(); as template) {
+      <ng-container *ngTemplateOutlet="template" />
+      } @else { {{ notFoundContent() }} }
+    </div>
+    } } }
+  </div>
+  } @else {
   <ng-content select="[andesComboboxContent]" />
+  }
+</ng-template>
+
+<ng-template #optionRow let-option>
+  <div andesComboboxItem [value]="option.value" [disabled]="!!option.disabled">
+    @if (optionTemplate(); as template) {
+    <span class="andes-combobox-item__label">
+      <ng-container
+        *ngTemplateOutlet="template; context: { $implicit: option, query: query() }"
+      />
+    </span>
+    } @else {
+    <span class="andes-combobox-item__label">{{ optionLabel(option) }}</span>
+    }
+  </div>
 </ng-template>
