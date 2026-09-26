@@ -31,7 +31,9 @@
       role="slider"
       [attr.data-index]="thumb.index"
       [attr.data-dragging]="dragging() && activeIndex() === thumb.index ? '' : null"
-      [attr.tabindex]="isDisabled() ? -1 : 0"
+      [attr.data-disabled]="thumb.disabled ? '' : null"
+      [attr.data-removing]="thumb.removing ? '' : null"
+      [attr.tabindex]="thumb.disabled ? -1 : 0"
       [attr.aria-orientation]="orientation()"
       [attr.aria-valuemin]="min()"
       [attr.aria-valuemax]="max()"
@@ -40,14 +42,25 @@
       [attr.aria-label]="thumb.ariaLabel"
       [attr.aria-labelledby]="thumb.ariaLabelledby"
       [attr.aria-describedby]="thumb.ariaDescribedby"
-      [attr.aria-disabled]="isDisabled() ? 'true' : null"
+      [attr.aria-disabled]="thumb.disabled ? 'true' : null"
       [style.--andes-slider-thumb-offset]="thumb.offset"
       (keydown)="onKeydown($event, thumb.index)"
       (blur)="onBlur()"
     >
-      @if (tooltip() !== 'never') {
-      <span class="andes-slider__tooltip" aria-hidden="true">
-        <span class="andes-slider__tooltip-bubble">{{ thumb.label }}</span>
+      @if (thumb.label !== null) {
+      <span
+        class="andes-slider__tooltip"
+        aria-hidden="true"
+        [attr.data-placement]="tooltipSide()"
+      >
+        <span class="andes-slider__tooltip-bubble" data-slot="slider-tooltip">
+          @if (tooltipTemplate(); as custom) {
+          <ng-container
+            [ngTemplateOutlet]="custom.templateRef"
+            [ngTemplateOutletContext]="{ $implicit: thumb.value, index: thumb.index, label: thumb.label }"
+          />
+          } @else { {{ thumb.label }} }
+        </span>
       </span>
       }
     </div>
@@ -56,13 +69,29 @@
 </div>
 
 @if (markViews().length > 0) {
+<!-- Mark labels are a pointer shortcut only (click to jump); keyboard users already reach
+     every value with the arrow keys, so the row stays aria-hidden. -->
 <div class="andes-slider__marks" data-slot="slider-marks" aria-hidden="true">
   @for (mark of markViews(); track mark.value) {
   <span
     class="andes-slider__mark"
     [style.--andes-slider-mark-offset]="mark.offset"
   >
-    <span class="andes-slider__mark-label">{{ mark.label }}</span>
+    <span
+      class="andes-slider__mark-label"
+      data-slot="slider-mark"
+      [class]="mark.className"
+      [class.andes-slider__mark-label--active]="mark.active"
+      [style]="mark.style"
+      (click)="onMarkClick(mark.value)"
+    >
+      @if (markTemplate(); as custom) {
+      <ng-container
+        [ngTemplateOutlet]="custom.templateRef"
+        [ngTemplateOutletContext]="{ $implicit: mark.mark, value: mark.value, label: mark.label, active: mark.active }"
+      />
+      } @else { {{ mark.label }} }
+    </span>
   </span>
   }
 </div>
