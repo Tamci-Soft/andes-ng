@@ -1,46 +1,184 @@
-/* This component only ever wraps a heading + button pair - it should never introduce its own
-   box in the layout. */
+/* This component only ever wraps a header row - it should never introduce its own box in the
+   layout.
+
+   Every size/variant/mode rule below keys off a `data-*` attribute on the element it styles
+   (a single compound selector, no combinators), for the same reason as the chevron rule at the
+   bottom of this file - see its comment. */
 :host {
   display: contents;
 }
 
-.andes-accordion-trigger__heading {
+/* The header row: owns the size/variant padding, so it is identical whichever part of it is
+   the actual button (see accordion-trigger.ts). `position: relative` anchors the stretched
+   `::after` of a whole-row button. */
+.andes-accordion-trigger__header {
+  position: relative;
   display: flex;
-  margin: 0;
-  font: inherit;
-}
-
-.andes-accordion-trigger__button {
-  display: flex;
-  flex: 1;
   align-items: center;
-  justify-content: space-between;
   gap: var(--andes-space-2);
-  width: 100%;
   padding-block: var(--andes-space-4);
-  background: none;
-  border: none;
   font-family: var(--andes-font-family), sans-serif;
   font-size: 1rem;
   font-weight: var(--andes-font-weight-medium);
   color: var(--andes-color-foreground);
+}
+
+.andes-accordion-trigger__header[data-size='sm'] {
+  padding-block: var(--andes-space-2);
+  font-size: 0.875rem;
+}
+
+.andes-accordion-trigger__header[data-size='lg'] {
+  padding-block: var(--andes-space-5);
+  font-size: 1.125rem;
+}
+
+/* Bordered: a tinted header band with inline padding, like Ant Design's default Collapse. */
+.andes-accordion-trigger__header[data-variant='bordered'] {
+  padding: var(--andes-space-3) var(--andes-space-4);
+  background-color: var(--andes-color-muted);
+}
+
+.andes-accordion-trigger__header[data-variant='bordered'][data-size='sm'] {
+  padding: var(--andes-space-2) var(--andes-space-3);
+}
+
+.andes-accordion-trigger__header[data-variant='bordered'][data-size='lg'] {
+  padding: var(--andes-space-4) var(--andes-space-5);
+}
+
+.andes-accordion-trigger__heading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--andes-space-2);
+  min-width: 0;
+  margin: 0;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.andes-accordion-trigger__button {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--andes-space-2);
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
   text-align: start;
   cursor: pointer;
   transition: color 0.15s ease;
+}
+
+/* Default (and disabled) mode: the button fills the heading, and its `::after` is stretched over
+   the whole header row, so the row's padding toggles (or shows the disabled cursor) too. */
+.andes-accordion-trigger__button[data-collapsible='full'],
+.andes-accordion-trigger__button[data-collapsible='disabled'] {
+  flex: 1;
+}
+
+.andes-accordion-trigger__button[data-collapsible='full']::after,
+.andes-accordion-trigger__button[data-collapsible='disabled']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.andes-accordion-trigger__text {
+  flex: 1;
+  min-width: 0;
 }
 
 .andes-accordion-trigger__button:hover:not(:disabled) {
   color: var(--andes-color-primary-text);
 }
 
-.andes-accordion-trigger__button:focus-visible {
+.andes-accordion-trigger__button:focus-visible,
+.andes-accordion-trigger__icon-button:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
+}
+
+/* A whole-row button draws its focus ring around the row (its stretched `::after`), so the ring
+   still outlines the full clickable area now that the padding lives on the row. */
+.andes-accordion-trigger__button[data-collapsible='full']:focus-visible {
+  outline: none;
+}
+
+.andes-accordion-trigger__button[data-collapsible='full']:focus-visible::after {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--andes-radius-sm);
+}
+
+/* A bordered accordion clips its children to its rounded corners (see accordion.css), which
+   would cut an outward ring off - draw it just inside the row instead. */
+.andes-accordion-trigger__button[data-variant='bordered'][data-collapsible='full']:focus-visible::after {
+  outline-offset: -2px;
 }
 
 .andes-accordion-trigger__button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.andes-accordion-trigger__icon-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  color: inherit;
+  cursor: pointer;
+}
+
+.andes-accordion-trigger__icon-button:hover {
+  color: var(--andes-color-primary-text);
+}
+
+.andes-accordion-trigger__icon-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  /* In collapsible="header" mode the text button hugs its content (`flex: 0 1 auto`, so the
+     blank part of the row is inert) - push the trailing icon to the end of the row anyway. */
+  margin-inline-start: auto;
+  cursor: pointer;
+}
+
+.andes-accordion-trigger__icon-slot {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Interactive extras must sit above a whole-row button's stretched `::after`, otherwise clicks
+   on them would toggle the panel. */
+.andes-accordion-trigger__extra {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--andes-space-2);
+  font-weight: normal;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-accordion-trigger__extra:empty {
+  display: none;
 }
 
 .andes-accordion-trigger__icon {
