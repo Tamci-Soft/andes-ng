@@ -1,0 +1,282 @@
+/* The bar and the panels are laid out along the host's own flex axis; `bottom`/`right`
+   reverse it visually while keeping the tablist first in DOM (and so in Tab order). */
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-3);
+  min-width: 0;
+  font-family: var(--andes-font-family), sans-serif;
+  color: var(--andes-color-foreground);
+}
+
+:host([data-position='bottom']) {
+  flex-direction: column-reverse;
+}
+
+:host([data-position='left']) {
+  flex-direction: row;
+}
+
+:host([data-position='right']) {
+  flex-direction: row-reverse;
+}
+
+.andes-tabs__panels {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.andes-tabs__panels:empty {
+  display: none;
+}
+
+/* ---- Bar ------------------------------------------------------------------------------ */
+
+.andes-tabs__bar {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: var(--andes-space-2);
+  flex: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+.andes-tabs__bar--vertical {
+  flex-direction: column;
+}
+
+/* The divider line runs under the whole bar (extra content included). It is drawn as a
+   pseudo-element under `.andes-tabs__nav-group` (which is lifted above it with z-index) so a
+   selected card can paint over it and visually open into its panel. */
+.andes-tabs__bar::before {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  border-bottom: 1px solid var(--andes-color-border);
+  pointer-events: none;
+}
+
+.andes-tabs__bar--bottom::before {
+  inset: 0 0 auto 0;
+  border-bottom: none;
+  border-top: 1px solid var(--andes-color-border);
+}
+
+.andes-tabs__bar--left::before {
+  inset-block: 0;
+  inset-inline: auto 0;
+  border-bottom: none;
+  border-inline-end: 1px solid var(--andes-color-border);
+}
+
+.andes-tabs__bar--right::before {
+  inset-block: 0;
+  inset-inline: 0 auto;
+  border-bottom: none;
+  border-inline-start: 1px solid var(--andes-color-border);
+}
+
+.andes-tabs__extra {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.andes-tabs__extra:empty {
+  display: none;
+}
+
+.andes-tabs__extra--right {
+  margin-inline-start: auto;
+}
+
+.andes-tabs__bar--vertical .andes-tabs__extra--right {
+  margin-inline-start: 0;
+  margin-block-start: auto;
+}
+
+.andes-tabs__nav-group {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.andes-tabs__bar--vertical .andes-tabs__nav-group {
+  flex-direction: column;
+}
+
+.andes-tabs__bar--centered .andes-tabs__nav-group {
+  margin-inline: auto;
+}
+
+.andes-tabs__bar--centered.andes-tabs__bar--vertical .andes-tabs__nav-group {
+  margin-inline: 0;
+  margin-block: auto;
+}
+
+/* ---- Scrolling nav ---------------------------------------------------------------------- */
+
+.andes-tabs__nav-wrap {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+.andes-tabs__nav-wrap::-webkit-scrollbar {
+  display: none;
+}
+
+.andes-tabs__bar--vertical .andes-tabs__nav-wrap {
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.andes-tabs__nav {
+  position: relative;
+  display: flex;
+  flex: none;
+}
+
+.andes-tabs__bar--vertical .andes-tabs__nav {
+  flex-direction: column;
+}
+
+/* ---- Ink bar ------------------------------------------------------------------------------ */
+
+.andes-tabs__ink-bar {
+  position: absolute;
+  background: var(--andes-color-primary);
+  pointer-events: none;
+}
+
+.andes-tabs__bar--top .andes-tabs__ink-bar {
+  bottom: 0;
+  height: 2px;
+}
+
+.andes-tabs__bar--bottom .andes-tabs__ink-bar {
+  top: 0;
+  height: 2px;
+}
+
+.andes-tabs__bar--left .andes-tabs__ink-bar {
+  inset-inline-end: 0;
+  width: 2px;
+}
+
+.andes-tabs__bar--right .andes-tabs__ink-bar {
+  inset-inline-start: 0;
+  width: 2px;
+}
+
+.andes-tabs__ink-bar--animated {
+  transition:
+    left 0.3s ease,
+    width 0.3s ease,
+    top 0.3s ease,
+    height 0.3s ease;
+}
+
+/* ---- Scroll arrows and add button --------------------------------------------------------- */
+
+.andes-tabs__scroll,
+.andes-tabs__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  font-family: var(--andes-font-family), sans-serif;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-tabs__scroll {
+  width: 1.75rem;
+  border: none;
+  background: none;
+}
+
+.andes-tabs__bar--vertical .andes-tabs__scroll {
+  width: auto;
+  height: 1.75rem;
+}
+
+.andes-tabs__bar--vertical .andes-tabs__scroll svg {
+  transform: rotate(90deg);
+}
+
+.andes-tabs__scroll:hover:not(:disabled),
+.andes-tabs__add:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-tabs__scroll:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.andes-tabs__scroll svg,
+.andes-tabs__add svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-tabs__add {
+  min-width: 2.25rem;
+  margin-inline-start: var(--andes-space-1);
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-md) var(--andes-radius-md) 0 0;
+  background: var(--andes-color-muted);
+  transition: color 0.15s ease;
+}
+
+.andes-tabs__bar--bottom .andes-tabs__add {
+  border-radius: 0 0 var(--andes-radius-md) var(--andes-radius-md);
+}
+
+.andes-tabs__bar--vertical .andes-tabs__add {
+  min-height: 2.25rem;
+  margin-inline-start: 0;
+  margin-block-start: var(--andes-space-1);
+}
+
+.andes-tabs__bar--left .andes-tabs__add {
+  border-start-start-radius: var(--andes-radius-md);
+  border-start-end-radius: 0;
+  border-end-start-radius: var(--andes-radius-md);
+  border-end-end-radius: 0;
+}
+
+.andes-tabs__bar--right .andes-tabs__add {
+  border-start-start-radius: 0;
+  border-start-end-radius: var(--andes-radius-md);
+  border-end-start-radius: 0;
+  border-end-end-radius: var(--andes-radius-md);
+}
+
+.andes-tabs__add:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-tabs__nav-wrap {
+    scroll-behavior: auto;
+  }
+
+  .andes-tabs__ink-bar--animated {
+    transition: none;
+  }
+}
