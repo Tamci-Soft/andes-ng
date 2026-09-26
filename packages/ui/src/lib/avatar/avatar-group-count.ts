@@ -20,11 +20,11 @@ import {
 
 let nextPanelId = 0;
 
-/** Where the reveal panel opens relative to the `+N` chip (Ant's `max.popover.placement`). */
+/** Where the reveal panel opens relative to the `+N` chip (`max.popover.placement`). */
 export type AndesAvatarGroupCountPlacement = 'top' | 'bottom';
 
 /**
- * What opens the reveal panel (Ant's `max.popover.trigger`).
+ * What opens the reveal panel (`max.popover.trigger`).
  *
  * - `hover` (default): pointer hover, plus keyboard focus and tap - a
  *   hover-only trigger would lock keyboard and touch users out. The panel is a
@@ -91,9 +91,8 @@ export class AndesAvatarGroupCount {
   /**
    * Names of the avatars this chip stands in for. When non-empty the chip
    * turns into a real focusable trigger that reveals them on hover and on
-   * keyboard focus - the behaviour Ant Design's `Avatar.Group` gives its
-   * `maxCount` overflow indicator (`maxPopoverTrigger`), where a static `+N`
-   * is otherwise a dead end for anyone trying to find out WHO is hidden.
+   * keyboard focus, because a static `+N` is otherwise a dead end for anyone
+   * trying to find out WHO is hidden.
    *
    * Left empty (and with no `panelTemplate`) the chip stays exactly what it
    * was: inert, non-focusable text. That keeps a group whose hidden members
@@ -114,7 +113,7 @@ export class AndesAvatarGroupCount {
 
   /**
    * Custom panel content, replacing the plain list of names - e.g. the hidden
-   * people rendered as avatars with links, which is what Ant's popover shows.
+   * people rendered as avatars with links.
    * Receives the names and count (`AndesAvatarGroupCountPanelContext`). With
    * the `hover` trigger the panel is a tooltip, so keep it non-interactive;
    * use `trigger="click"` for links or buttons.

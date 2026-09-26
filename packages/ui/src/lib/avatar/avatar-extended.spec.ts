@@ -20,7 +20,7 @@ import {
 } from './avatar-size';
 
 /**
- * Coverage for the Ant Design `Avatar` / `Avatar.Group` parity features:
+ * Coverage for the extended avatar and avatar-group features:
  * pixel and responsive sizes, group-wide size/shape, `max` (with its
  * generated, revealing `+N` chip), the extra `<img>` attributes, the
  * cancelable `loadError`, and fallback text auto-scaling.
@@ -427,7 +427,7 @@ describe('AndesAvatarGroup max', () => {
     expect(count()?.textContent?.trim()).toBe('+3');
   });
 
-  it("applies max.class and max.style to the chip (Ant's max.style)", () => {
+  it('applies max.class and max.style to the chip', () => {
     const { count } = create({
       count: 2,
       class: 'my-overflow',
@@ -688,7 +688,7 @@ describe('AndesAvatarImage attributes and loadError', () => {
     expect(fallback.hidden).toBe(false);
   });
 
-  it("keeps the image when the handler calls preventFallback() (Ant's onError returning false)", () => {
+  it('keeps the image when the handler calls preventFallback()', () => {
     const { fixture, img, fallback, avatar } = create();
     fixture.componentInstance.keepImage = true;
 
@@ -770,7 +770,7 @@ describe('AndesAvatarFallback text auto-scaling', () => {
     expect(content.style.transform).toBe('');
   });
 
-  it("shrinks overlong text to the avatar width minus gap on each side (Ant's rule)", async () => {
+  it('shrinks overlong text to the avatar width minus gap on each side', async () => {
     // (40 - 2 * 4) / 64 = 0.5
     const { content } = await create(40, 64);
 

@@ -12,7 +12,7 @@ export type AndesAvatarBadgePlacement =
 
 /**
  * Small status dot pinned to a corner of an `AndesAvatar` (shadcn's
- * avatar-with-status-dot pattern, Ant's `Badge.dot` wrapped around an avatar).
+ * avatar-with-status-dot pattern).
  *
  * Projected into `AndesAvatar` rather than driven by a `status` input on the
  * avatar itself, which keeps it consistent with the rest of this library's

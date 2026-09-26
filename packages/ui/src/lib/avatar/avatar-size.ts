@@ -16,8 +16,8 @@ import {
 export type AndesAvatarSizePreset = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 /**
- * Viewport breakpoints for a responsive `size`, with Ant Design's (and
- * Bootstrap's) min-widths: `xs` < 576px <= `sm` < 768px <= `md` < 992px <=
+ * Viewport breakpoints for a responsive `size`, with the common (Bootstrap)
+ * min-widths: `xs` < 576px <= `sm` < 768px <= `md` < 992px <=
  * `lg` < 1200px <= `xl` < 1600px <= `xxl`. There's no breakpoint token in
  * `@andes-ng/tokens` yet, so they live here.
  */
@@ -28,10 +28,9 @@ export type AndesAvatarBreakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
  *
  * Mobile-first: at a given viewport the avatar uses the value of the largest
  * breakpoint that is both matched and provided, so `{ xs: 24, lg: 64 }` is
- * 24px below 992px and 64px from there up. That's a deliberate improvement on
- * Ant, which only reads the exact current breakpoint's key and falls back to
- * the default size whenever that one key is missing. With no match at all
- * (`{ lg: 64 }` on a phone) the avatar falls back to `md`, same as Ant.
+ * 24px below 992px and 64px from there up, rather than dropping to the
+ * default size whenever the exact current breakpoint's key is missing. With
+ * no match at all (`{ lg: 64 }` on a phone) the avatar falls back to `md`.
  */
 export type AndesAvatarResponsiveSize = Partial<
   Record<AndesAvatarBreakpoint, AndesAvatarSizePreset | number>
@@ -180,7 +179,7 @@ export function injectAvatarBreakpoint(
  * `AndesAvatar` and `AndesAvatarGroupCount` so a `+N` chip always matches the
  * avatars it's stacked against.
  *
- * Precedence follows Ant: the element's own input, then the enclosing
+ * Precedence: the element's own input, then the enclosing
  * `AndesAvatarGroup`'s, then the default (`md`, `circular`). That's why the
  * inputs default to `undefined` rather than `'md'`/`'circular'` - a default
  * value would be indistinguishable from an explicit one and would always

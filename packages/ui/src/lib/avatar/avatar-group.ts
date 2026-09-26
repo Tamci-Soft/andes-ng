@@ -22,7 +22,7 @@ import {
 } from './avatar-group-context';
 import type { AndesAvatarSizeInput } from './avatar-size';
 
-/** The overflow panel of `max` - Ant's `max.popover`, minus React's `PopoverProps`. */
+/** The overflow panel of `max`: where it opens, what opens it and what it shows. */
 export interface AndesAvatarGroupPopover {
   /** Default `top`. */
   readonly placement?: AndesAvatarGroupCountPlacement;
@@ -35,18 +35,18 @@ export interface AndesAvatarGroupPopover {
 }
 
 /**
- * Ant's `Avatar.Group` `max`. Style hooks are Angular's `class`/`style`
- * rather than a React `CSSProperties` object.
+ * Overflow settings for `AndesAvatarGroup`'s `max`. Style hooks are Angular's
+ * `class`/`style` so the chip is styled the same way as any other element.
  */
 export interface AndesAvatarGroupMax {
   /** How many avatars stay visible; the rest collapse into a `+N` chip. */
   readonly count: number;
-  /** Extra classes for the `+N` chip (Ant's `max.style`, class form). */
+  /** Extra classes for the `+N` chip. */
   readonly class?: string;
-  /** Inline styles for the `+N` chip (Ant's `max.style`). */
+  /** Inline styles for the `+N` chip. */
   readonly style?: Readonly<Record<string, string | number>>;
   /**
-   * The panel listing who's hidden. On by default (as in Ant); `false` leaves
+   * The panel listing who's hidden. On by default; `false` leaves
    * an inert `+N`.
    */
   readonly popover?: boolean | AndesAvatarGroupPopover;

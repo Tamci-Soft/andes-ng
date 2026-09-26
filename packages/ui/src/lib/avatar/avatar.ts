@@ -61,7 +61,7 @@ export class AndesAvatar {
   protected readonly state = inject(AndesAvatarState);
 
   /**
-   * `circular` (Ant's `circle`), `rounded` or `square`. Left unset, the
+   * `circular`, `rounded` or `square`. Left unset, the
    * avatar takes its enclosing `AndesAvatarGroup`'s shape, else `circular`.
    */
   readonly shape = input<AndesAvatarShape | undefined>(undefined);
