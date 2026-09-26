@@ -244,9 +244,12 @@
   color: var(--andes-color-muted-foreground);
 }
 
-.andes-dropdown-menu__item:hover:not([data-disabled]) .andes-dropdown-menu__item-icon,
-.andes-dropdown-menu__item[data-active]:not([data-disabled]) .andes-dropdown-menu__item-icon,
-.andes-dropdown-menu__item[data-variant='destructive'] .andes-dropdown-menu__item-icon {
+.andes-dropdown-menu__item:hover:not([data-disabled])
+  .andes-dropdown-menu__item-icon,
+.andes-dropdown-menu__item[data-active]:not([data-disabled])
+  .andes-dropdown-menu__item-icon,
+.andes-dropdown-menu__item[data-variant='destructive']
+  .andes-dropdown-menu__item-icon {
   color: inherit;
 }
 
@@ -268,9 +271,11 @@
   color: var(--andes-color-muted-foreground);
 }
 
-.andes-dropdown-menu__sub-trigger[data-state='open'] .andes-dropdown-menu__expand-icon,
+.andes-dropdown-menu__sub-trigger[data-state='open']
+  .andes-dropdown-menu__expand-icon,
 .andes-dropdown-menu__sub-trigger:hover .andes-dropdown-menu__expand-icon,
-.andes-dropdown-menu__sub-trigger[data-active] .andes-dropdown-menu__expand-icon {
+.andes-dropdown-menu__sub-trigger[data-active]
+  .andes-dropdown-menu__expand-icon {
   color: inherit;
 }
 
