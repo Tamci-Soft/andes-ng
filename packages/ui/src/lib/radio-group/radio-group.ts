@@ -35,7 +35,7 @@ export type {
   AndesRadioSize,
 } from './radio-group-state';
 
-/** One entry of `AndesRadioGroup`'s `options` input (Ant Design's `CheckboxOptionType`). */
+/** One entry of `AndesRadioGroup`'s `options` input. */
 export interface AndesRadioOption<T = unknown> {
   label: string;
   value: T;
@@ -58,7 +58,7 @@ export interface AndesRadioOptionLabelContext<T = unknown> {
 }
 
 /** Payload of the group's `(selectionChange)` output - emitted only for user selections, never for
- *  programmatic writes (`[value]`, `writeValue()`), matching Ant Design's `onChange`. */
+ *  programmatic writes (`[value]`, `writeValue()`). */
 export interface AndesRadioChange<T = unknown> {
   value: T;
   /** The native `change` event of the `<input type="radio">` the user selected. */
@@ -137,10 +137,10 @@ export class AndesRadioGroup<T = unknown> implements ControlValueAccessor {
     alias: 'aria-labelledby',
   });
 
-  /** Ant Design's `onChange(e)`: fires only when the user selects an item (click, Space or
-   *  arrow keys) - not for programmatic writes. Named `selectionChange` rather than `change`
-   *  because a `change` output would collide with the native `change` event bubbling up from
-   *  the inner `<input type="radio">` (Angular binds `(change)` to both). */
+  /** Fires only when the user selects an item (click, Space or arrow keys) - not for
+   *  programmatic writes. Named `selectionChange` rather than `change` because a `change`
+   *  output would collide with the native `change` event bubbling up from the inner
+   *  `<input type="radio">` (Angular binds `(change)` to both). */
   readonly selectionChange = output<AndesRadioChange<T>>();
 
   /** Set via `setDisabledState()` when bound through `[formControl]`/`[(ngModel)]` and the

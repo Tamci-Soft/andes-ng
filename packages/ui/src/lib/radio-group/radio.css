@@ -106,7 +106,7 @@
   justify-content: center;
 }
 
-/* Button option type (Ant Design's Radio.Button): the text span becomes the segment face.
+/* Button option type: the text span becomes the segment face.
    Adjacent segments overlap by 1px so their borders collapse into a single line; the
    checked/focused segment is raised above its neighbours so its colored border wins. */
 
@@ -205,7 +205,7 @@
   font-size: 1.125rem;
 }
 
-/* Hover (unchecked, enabled): tint the text like Ant's outline buttons. */
+/* Hover (unchecked, enabled): tint the text, as outline buttons do. */
 
 /* prettier-ignore */
 :host(.andes-radio--button:not(.andes-radio--checked):not(.andes-radio--disabled)) .andes-radio__label:hover .andes-radio__text {

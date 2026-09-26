@@ -146,8 +146,8 @@ export const AllStates: Story = {
   }),
 };
 
-/** Ant Design's `Radio.Button`: `optionType="button"` turns the items into a segmented
- *  control. Arrow keys still move focus AND selection (native radio behavior). */
+/** `optionType="button"` turns the items into a segmented control. Arrow keys still move
+ *  focus AND selection (native radio behavior). */
 export const ButtonOutline: Story = {
   args: { optionType: 'button' },
 };
@@ -282,8 +282,8 @@ export const OptionsWithLabelTemplate: Story = {
   }),
 };
 
-/** Ant's `onChange(e)`: `(selectionChange)` emits `{ value, event }` for user selections
- *  only - `[(value)]` writes do not emit it. */
+/** `(selectionChange)` emits `{ value, event }` for user selections only - `[(value)]`
+ *  writes do not emit it. */
 export const ChangeEvent: Story = {
   render: () => {
     const log: string[] = [];
