@@ -246,9 +246,9 @@ export const Invalid: Story = {
 };
 
 /**
- * Ant Design's AutoComplete shape: pass `[options]` (`{ value, label }` objects) and the
- * component renders the input, the popup and every option itself. The model holds the
- * option's `value`; the input shows its `label`.
+ * Data-driven mode: pass `[options]` (`{ value, label }` objects) and the component
+ * renders the input, the popup and every option itself. The model holds the option's
+ * `value`; the input shows its `label`.
  */
 export const Options: Story = {
   render: () => ({
@@ -369,7 +369,7 @@ export const Backfill: Story = {
   }),
 };
 
-/** `[(open)]` two-way binds the popup, like Ant Design's `open`/`onOpenChange`. */
+/** `[(open)]` two-way binds the popup. */
 export const ControlledOpen: Story = {
   render: () => ({
     props: { options: FRUIT_OPTIONS, open: false, caption: CAPTION },
@@ -460,7 +460,7 @@ export const PopupMatchSelectWidth: Story = {
   }),
 };
 
-/** A custom message, or `null` to hide the popup while nothing matches (Ant Design's AutoComplete default). */
+/** A custom message, or `null` to hide the popup while nothing matches. */
 export const NotFoundContent: Story = {
   render: () => ({
     props: { options: FRUIT_OPTIONS, caption: CAPTION, stack: STACK },
