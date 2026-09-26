@@ -1,0 +1,43 @@
+/* Shared by the composite andes-skeleton and every andes-skeleton-* element: the placeholder
+   fill and the `active` shimmer. Kept in one stylesheet (listed first in each component's
+   styleUrls) so every placeholder shape looks and moves the same.
+
+   The fill is --andes-color-secondary rather than --andes-color-muted: in dark mode muted is the
+   same color as --andes-color-card (#1e293b), so a skeleton inside a card disappeared entirely.
+   secondary stays distinguishable from both the page background and a card surface in both
+   themes. */
+
+.andes-skeleton-fill {
+  background-color: var(--andes-color-secondary);
+}
+
+/* Shimmer: a lighter/darker band sweeping across the bar. The gradient runs
+   secondary -> secondary-hover -> secondary, so it follows the theme (darker band in light mode,
+   lighter band in dark mode) without any new token. */
+.andes-skeleton-fill--active {
+  background-image: linear-gradient(
+    90deg,
+    var(--andes-color-secondary) 25%,
+    var(--andes-color-secondary-hover) 37%,
+    var(--andes-color-secondary) 63%
+  );
+  background-size: 400% 100%;
+  animation: andes-skeleton-shimmer 1.4s ease infinite;
+}
+
+/* Users who ask the OS for less motion get a static placeholder - at background-position 0 only
+   the first quarter of the gradient (plain secondary) is visible, so it reads as a flat fill. */
+@media (prefers-reduced-motion: reduce) {
+  .andes-skeleton-fill--active {
+    animation: none;
+  }
+}
+
+@keyframes andes-skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}

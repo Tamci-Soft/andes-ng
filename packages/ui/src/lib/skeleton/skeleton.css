@@ -1,0 +1,123 @@
+:host {
+  display: block;
+}
+
+/* --- Block mode (the original single-bar API, `shape` set) ------------------------------------ */
+
+.andes-skeleton {
+  display: block;
+  animation: andes-skeleton-pulse 2s ease-in-out infinite;
+}
+
+.andes-skeleton--static {
+  animation: none;
+}
+
+/* Users who ask the OS for less motion get a static placeholder instead of a pulsing one -
+   the loading affordance (the shape itself) still shows, only the animation is dropped. */
+@media (prefers-reduced-motion: reduce) {
+  .andes-skeleton {
+    animation: none;
+  }
+}
+
+@keyframes andes-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Shape variants - sane default dimensions, overridable per-instance via the width/height
+   inputs (applied as inline styles, so they always win over these class defaults). */
+
+.andes-skeleton--text {
+  width: 100%;
+  height: 1em;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-skeleton--circular {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-skeleton--rectangular {
+  width: 100%;
+  height: 100px;
+  border-radius: var(--andes-radius-md);
+}
+
+/* --- Composite mode (avatar + title + paragraph) ---------------------------------------------- */
+
+.andes-skeleton-composite {
+  display: block;
+  width: 100%;
+}
+
+.andes-skeleton-composite__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--andes-space-4);
+  width: 100%;
+}
+
+.andes-skeleton-composite__header {
+  flex: none;
+  line-height: 0;
+}
+
+.andes-skeleton-composite__content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.andes-skeleton-composite__title {
+  width: 100%;
+  height: 1rem;
+  border-radius: var(--andes-radius-sm);
+}
+
+/* Beside an avatar, nudge the title down so it lines up with the avatar's upper half. */
+.andes-skeleton-composite--with-avatar .andes-skeleton-composite__title {
+  margin-top: var(--andes-space-3);
+}
+
+.andes-skeleton-composite__paragraph {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-4);
+}
+
+.andes-skeleton-composite__title + .andes-skeleton-composite__paragraph {
+  margin-top: var(--andes-space-5);
+}
+
+.andes-skeleton-composite__row {
+  width: 100%;
+  height: 1rem;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-skeleton-composite--round .andes-skeleton-composite__title,
+.andes-skeleton-composite--round .andes-skeleton-composite__row {
+  border-radius: var(--andes-radius-full);
+}
+
+/* The busy region's single accessible text - visually hidden, read by assistive technology. */
+.andes-skeleton-composite__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  font-family: var(--andes-font-family), sans-serif;
+}

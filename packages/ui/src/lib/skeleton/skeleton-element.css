@@ -1,0 +1,120 @@
+/* Standalone placeholder shapes (andes-skeleton-avatar/-button/-input/-image/-node). Heights
+   follow AndesButton's size scale (sm 2rem, md 2.5rem, lg 3rem) so a Button/Input placeholder
+   occupies exactly the space of the control it stands in for. Widths are fixed multiples of the
+   height (button = 2x, input = 5x). */
+
+:host {
+  display: inline-block;
+  vertical-align: top;
+  line-height: 0;
+}
+
+:host(.andes-skeleton-element--block) {
+  display: block;
+  width: 100%;
+}
+
+.andes-skeleton-element {
+  display: inline-block;
+  box-sizing: border-box;
+  vertical-align: top;
+  border-radius: var(--andes-radius-md);
+}
+
+.andes-skeleton-element--block {
+  display: block;
+  width: 100%;
+}
+
+/* Avatar */
+
+.andes-skeleton-avatar {
+  --andes-skeleton-size: 2.5rem;
+  width: var(--andes-skeleton-size);
+  height: var(--andes-skeleton-size);
+}
+
+.andes-skeleton-avatar--circle {
+  border-radius: var(--andes-radius-full);
+}
+
+/* Button */
+
+.andes-skeleton-button {
+  --andes-skeleton-size: 2.5rem;
+  width: calc(var(--andes-skeleton-size) * 2);
+  min-width: calc(var(--andes-skeleton-size) * 2);
+  height: var(--andes-skeleton-size);
+}
+
+.andes-skeleton-button--round {
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-skeleton-button--circle {
+  width: var(--andes-skeleton-size);
+  min-width: var(--andes-skeleton-size);
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-skeleton-button--square {
+  width: var(--andes-skeleton-size);
+  min-width: var(--andes-skeleton-size);
+}
+
+/* Input */
+
+.andes-skeleton-input {
+  --andes-skeleton-size: 2.5rem;
+  width: calc(var(--andes-skeleton-size) * 5);
+  min-width: calc(var(--andes-skeleton-size) * 5);
+  height: var(--andes-skeleton-size);
+}
+
+.andes-skeleton-element--block.andes-skeleton-button,
+.andes-skeleton-element--block.andes-skeleton-input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Shared size scale for avatar/button/input */
+
+.andes-skeleton-element--sm {
+  --andes-skeleton-size: 2rem;
+}
+
+.andes-skeleton-element--md {
+  --andes-skeleton-size: 2.5rem;
+}
+
+.andes-skeleton-element--lg {
+  --andes-skeleton-size: 3rem;
+}
+
+/* Image and Node: a fixed box (overridable through width/height) with centered content. */
+
+.andes-skeleton-image,
+.andes-skeleton-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 6rem;
+  line-height: normal;
+}
+
+.andes-skeleton-image {
+  color: var(--andes-color-secondary-active);
+}
+
+.andes-skeleton-image__icon {
+  width: 50%;
+  height: 50%;
+  max-width: 3rem;
+  max-height: 3rem;
+}
+
+.andes-skeleton-node {
+  color: var(--andes-color-muted-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+}
