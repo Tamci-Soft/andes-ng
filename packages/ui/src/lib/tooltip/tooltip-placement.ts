@@ -1,7 +1,7 @@
 import type { AndesOverlayAlign, AndesOverlaySide } from '@andes-ng/primitives';
 
 /**
- * Ant Design's 12 named placements. A convenience shorthand over the
+ * The 12 named placements. A convenience shorthand over the
  * `side` + `align` pair the rest of andes-ng's overlays speak: `topLeft` is
  * `side="top" align="start"`, `leftBottom` is `side="left" align="end"`, and so
  * on. `start`/`end` follow the CDK's logical alignment, so under `dir="rtl"`
@@ -44,12 +44,12 @@ const PLACEMENTS: Readonly<
   rightBottom: { side: 'right', align: 'end' },
 };
 
-/** Every placement name, in Ant Design's documentation order. */
+/** Every placement name, side by side: top, bottom, left, right. */
 export const ANDES_TOOLTIP_PLACEMENTS = Object.keys(
   PLACEMENTS,
 ) as readonly AndesTooltipPlacement[];
 
-/** Translates an Ant-style placement name into andes-ng's `side`/`align`. */
+/** Translates a named placement into andes-ng's `side`/`align`. */
 export function andesTooltipPlacementToSideAlign(
   placement: AndesTooltipPlacement,
 ): AndesTooltipSideAlign {
@@ -59,8 +59,7 @@ export function andesTooltipPlacementToSideAlign(
 /**
  * Arrow configuration, normalized. `pointAtCenter` makes an edge-aligned
  * tooltip (`topLeft`, `rightBottom`, ...) shift itself so its arrow lands on
- * the trigger's center instead of just inside the trigger's edge - Ant's
- * `arrow={{ pointAtCenter: true }}`.
+ * the trigger's center instead of just inside the trigger's edge.
  */
 export interface AndesTooltipArrowConfig {
   readonly pointAtCenter: boolean;
@@ -89,7 +88,7 @@ export function andesTooltipArrowAttribute(
 /**
  * Arrow geometry, in px. The arrow is a `ARROW_WIDTH` x `ARROW_HEIGHT`
  * triangle; `ARROW_INSET` is how far from an edge-aligned tooltip's edge its
- * center sits (Ant's `topLeft` arrow is likewise "just inside" the corner);
+ * center sits, so a `topLeft` arrow sits "just inside" the corner;
  * `ARROW_EDGE_MIN` keeps it clear of the rounded corner when clamping.
  */
 export const ANDES_TOOLTIP_ARROW_HEIGHT = 6;

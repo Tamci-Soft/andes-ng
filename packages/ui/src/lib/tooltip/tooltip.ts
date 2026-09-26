@@ -72,18 +72,16 @@ export const ANDES_TOOLTIP_DEFAULT_CLOSE_DELAY = 0;
 export const ANDES_TOOLTIP_DEFAULT_INSTANT_REOPEN_WINDOW = 400;
 
 /**
- * Default triggers. Ant Design defaults to `hover` alone; andes-ng adds
- * `focus` so keyboard users get the same hint mouse users do, per the
- * WAI-ARIA tooltip pattern.
+ * Default triggers. `focus` is included alongside `hover` so keyboard users
+ * get the same hint mouse users do, per the WAI-ARIA tooltip pattern.
  */
 export const ANDES_TOOLTIP_DEFAULT_TRIGGERS: readonly AndesTooltipTriggerAction[] =
   ['hover', 'focus'];
 
 /**
  * Semantic color presets, each backed by an existing `--andes-color-*` /
- * `--andes-color-*-foreground` token pair. Ant's palette names (`pink`,
- * `geekblue`, ...) have no andes-ng token equivalent; pass any CSS color
- * instead.
+ * `--andes-color-*-foreground` token pair. For a hue with no andes-ng token,
+ * pass any CSS color instead.
  */
 export const ANDES_TOOLTIP_PRESET_COLORS = [
   'primary',
@@ -171,19 +169,17 @@ export class AndesTooltip {
     inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   /**
-   * Tooltip content: plain text, or a `TemplateRef` for rich content (Ant's
-   * `title`, which andes-ng does not use as an input name because a static
-   * `title` attribute would also give the host a native browser tooltip). A
-   * projected `<ng-template andesTooltipContent>` takes precedence. With no
-   * content at all the tooltip does not open, as in Ant Design.
+   * Tooltip content: plain text, or a `TemplateRef` for rich content. It is not
+   * named `title` because a static `title` attribute would also give the host a
+   * native browser tooltip. A projected `<ng-template andesTooltipContent>`
+   * takes precedence. With no content at all the tooltip does not open.
    */
   readonly content = input<string | TemplateRef<unknown> | null | undefined>(
     '',
   );
 
   /**
-   * Ant-style placement shorthand (`top`, `topLeft`, `rightBottom`, ... - all
-   * 12). When set, it overrides `side` and `align`.
+   * Named placement shorthand (`top`, `topLeft`, `rightBottom`, ... - all 12). When set, it overrides `side` and `align`.
    */
   readonly placement = input<AndesTooltipPlacement | null | undefined>(null);
   /** Preferred side of the trigger. Default `'top'`. Overridden by `placement`. */
@@ -202,7 +198,7 @@ export class AndesTooltip {
    * Whether to draw an arrow pointing at the trigger. `{ pointAtCenter: true }`
    * shifts an edge-aligned tooltip (`topLeft`, ...) so the arrow lands on the
    * trigger's center. The arrow follows the tooltip through flips and shifts.
-   * Default `true`, as in Ant Design.
+   * Default `true`.
    */
   readonly arrow = input<
     AndesTooltipArrowConfig | false,
@@ -229,9 +225,9 @@ export class AndesTooltip {
    */
   readonly disabled = input(false, { transform: booleanAttribute });
 
-  /** Hover/focus delay, in ms, before the tooltip opens (Ant's `mouseEnterDelay`, in s). */
+  /** Hover/focus delay, in ms, before the tooltip opens. */
   readonly openDelay = input(ANDES_TOOLTIP_DEFAULT_OPEN_DELAY);
-  /** Delay, in ms, before the tooltip closes after mouse-leave/blur (Ant's `mouseLeaveDelay`, in s). */
+  /** Delay, in ms, before the tooltip closes after mouse-leave/blur. */
   readonly closeDelay = input(ANDES_TOOLTIP_DEFAULT_CLOSE_DELAY);
   /** Grouping window, in ms, for the cross-tooltip "instant reopen" pattern. */
   readonly instantReopenWindow = input(
@@ -267,9 +263,9 @@ export class AndesTooltip {
   readonly zIndex = input<number | null>(null);
 
   /**
-   * Destroy the rendered content when the tooltip closes. By default (as in
-   * Ant Design) it is kept, detached, and re-attached on the next open, so a
-   * component inside rich content keeps its state across openings.
+   * Destroy the rendered content when the tooltip closes. By default it is
+   * kept, detached, and re-attached on the next open, so a component inside
+   * rich content keeps its state across openings.
    */
   readonly destroyOnHidden = input(false, { transform: booleanAttribute });
 
@@ -423,8 +419,8 @@ export class AndesTooltip {
       });
     });
 
-    // Like Ant Design, only a tooltip the user opened by clicking is closed
-    // by clicking elsewhere. A hover/focus tooltip already closes on leave
+    // Only a tooltip the user opened by clicking is closed by clicking
+    // elsewhere. A hover/focus tooltip already closes on leave
     // or blur, and closing a programmatically-opened one on any page click
     // would fight `[(open)]`.
     effect(() => {
@@ -500,8 +496,8 @@ export class AndesTooltip {
     }
 
     // A disabled trigger is `pointer-events: none` inside the host, which
-    // has turned `inline-block` around it - anchor to that wrapper, like
-    // Ant's `<span>`, so the outside-click check sees the wrapper as "inside".
+    // has turned `inline-block` around it - anchor to that wrapper, so the
+    // outside-click check sees the wrapper as "inside".
     const anchor = this.intent.triggerDisabled()
       ? this.hostElement
       : (this.intent.triggerTarget() ?? this.overlay.anchor());
