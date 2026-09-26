@@ -38,7 +38,7 @@
 }
 
 /* andes-ng has no dedicated "selected option" colour yet, so the chosen option is
-   tinted from the primary colour the way Ant's `optionSelectedBg` is; the custom
+   tinted from the primary colour; the custom
    property is honoured if a token is ever added. */
 .andes-select__option[data-selected] {
   background-color: var(

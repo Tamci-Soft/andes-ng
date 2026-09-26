@@ -365,7 +365,7 @@ const note = (text: string) =>
 
 /**
  * `mode="multiple"`: the value is an array, rendered as removable tags, and the panel
- * stays open between picks. Search is on by default, as in Ant Design; `Backspace` in the
+ * stays open between picks. Search is on by default in this mode; `Backspace` in the
  * empty input removes the last tag.
  */
 export const Multiple: Story = {
@@ -543,7 +543,7 @@ export const Variants: Story = {
   }),
 };
 
-/** `placement` in Ant's vocabulary; `side`/`align` on the content still win when set. */
+/** `placement` shorthand (`bottomLeft`, ...); `side`/`align` on the content still win when set. */
 export const Placement: Story = {
   render: () => ({
     moduleMetadata: { imports: SELECT_IMPORTS },
