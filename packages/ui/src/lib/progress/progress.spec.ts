@@ -160,7 +160,7 @@ describe('AndesProgress', () => {
   });
 });
 
-describe('AndesProgress (Ant Design parity)', () => {
+describe('AndesProgress (extended options)', () => {
   function create(inputs: Record<string, unknown> = {}) {
     const fixture = TestBed.createComponent(AndesProgress);
     for (const [name, value] of Object.entries(inputs)) {
@@ -479,7 +479,7 @@ describe('AndesProgress (Ant Design parity)', () => {
     it.each([
       ['small', 'andes-progress--sm'],
       ['default', 'andes-progress--md'],
-    ] as const)('maps Ant preset %s to %s', (size, cls) => {
+    ] as const)('maps named preset %s to %s', (size, cls) => {
       const { root } = create({ percent: 50, size });
 
       expect(root.classList).toContain(cls);

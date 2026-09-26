@@ -15,13 +15,13 @@ export type AndesProgressVariant = 'primary' | 'success' | 'warning' | 'danger';
 export type AndesProgressType = 'line' | 'circle' | 'dashboard';
 
 /**
- * Ant Design-compatible status. `success`/`exception` override the {@link AndesProgressVariant}
- * color and swap the default info text for a check/close icon; `active` animates a shimmer
- * across a line bar.
+ * Semantic status. `success`/`exception` override the {@link AndesProgressVariant} color and
+ * swap the default info text for a check/close icon; `active` animates a shimmer across a line
+ * bar.
  */
 export type AndesProgressStatus = 'normal' | 'success' | 'exception' | 'active';
 
-/** Named presets. `small`/`default` are Ant Design's names for `sm`/`md`. */
+/** Named presets. `small`/`default` are aliases for `sm`/`md`. */
 export type AndesProgressSizePreset = 'sm' | 'md' | 'lg' | 'small' | 'default';
 
 /**
@@ -87,7 +87,7 @@ type InfoKind = 'template' | 'text' | 'success-icon' | 'exception-icon';
 const VIEW_BOX = 100;
 const HALF = VIEW_BOX / 2;
 const CIRCLE_DEFAULT_STROKE_WIDTH = 6;
-/** Keeps a tiny ring's stroke at least ~3px wide, like Ant Design. */
+/** Keeps a tiny ring's stroke at least ~3px wide so it stays visible. */
 const CIRCLE_MIN_STROKE_PX = 3;
 /** At or below this diameter the ring is an inline icon-sized glyph with no room for text. */
 const CIRCLE_TINY_SIZE = 20;
@@ -97,7 +97,7 @@ const CIRCLE_SIZES: Record<'sm' | 'md' | 'lg', number> = {
   md: 120,
   lg: 160,
 };
-/** Per-step [width, height] for line steps, matching Ant Design's 14x8 / 2x8 blocks. */
+/** Per-step [width, height] for line steps. */
 const STEP_SIZES: Record<'sm' | 'md' | 'lg', [number, number]> = {
   sm: [2, 8],
   md: [14, 8],
@@ -206,8 +206,8 @@ export class AndesProgress {
   readonly min = input(0);
   readonly max = input(100);
   /**
-   * Ant Design-style completion percentage (0-100). When set it takes precedence over
-   * `value`/`min`/`max` and the meter is never indeterminate.
+   * Completion percentage (0-100). When set it takes precedence over `value`/`min`/`max` and
+   * the meter is never indeterminate.
    */
   readonly percent = input<number | undefined>(undefined);
   readonly type = input<AndesProgressType>('line');
@@ -243,7 +243,7 @@ export class AndesProgress {
   readonly gapPlacement = input<'top' | 'bottom' | 'start' | 'end' | undefined>(
     undefined,
   );
-  /** @deprecated Use `gapPlacement` (Ant Design renamed it too). */
+  /** @deprecated Use `gapPlacement` (logical `start`/`end` instead of `left`/`right`). */
   readonly gapPosition = input<'top' | 'bottom' | 'left' | 'right' | undefined>(
     undefined,
   );

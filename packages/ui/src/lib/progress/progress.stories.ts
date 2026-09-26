@@ -117,7 +117,7 @@ export const AllVariants: Story = {
   }),
 };
 
-// --- Ant Design parity ------------------------------------------------------
+// --- Extended options -------------------------------------------------------
 
 export const WithInfo: Story = {
   args: { value: 42, showInfo: true },
@@ -279,7 +279,7 @@ export const Steps: Story = {
   }),
 };
 
-export const AntSizes: Story = {
+export const FlexibleSizes: Story = {
   render: () => ({
     template: `
       <div style="display: flex; flex-direction: column; gap: 1rem; width: 360px;">
