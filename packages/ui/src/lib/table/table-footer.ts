@@ -1,11 +1,10 @@
 import { booleanAttribute, Directive, input } from '@angular/core';
 
 /**
- * Styles a native `<tfoot>` - the place for a totals or summary row (Ant's
- * `summary`).
+ * Styles a native `<tfoot>` - the place for a totals or summary row.
  *
  * `fixed` keeps the summary pinned to the bottom of the scroll area while the body
- * scrolls, when the table has a `scrollY` (Ant's `Table.Summary fixed`).
+ * scrolls, when the table has a `scrollY`.
  */
 @Directive({
   selector: 'tfoot[andesTableFooter]',
