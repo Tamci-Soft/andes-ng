@@ -1,19 +1,26 @@
 .andes-switch {
   --andes-switch-track-height: 1.5rem;
+  /* A minimum, not a fixed width: the track grows to fit checked/unchecked track content
+     (Ant Design's checkedChildren/unCheckedChildren behave the same way). */
   --andes-switch-track-width: 2.75rem;
   --andes-switch-thumb-size: 1.125rem;
   --andes-switch-track-padding: 0.1875rem;
+  /* Gap between track content and the track edge on the side away from the thumb. */
+  --andes-switch-inner-margin: 0.25rem;
 
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   height: var(--andes-switch-track-height);
-  width: var(--andes-switch-track-width);
-  padding-inline: var(--andes-switch-track-padding);
+  min-width: var(--andes-switch-track-width);
+  padding: 0;
   border-radius: var(--andes-radius-full);
   border: 1px solid transparent;
   background-color: var(--andes-color-input);
+  /* A native <button> does not inherit font-family, so projected/string track content would
+     otherwise fall back to the UA's default (serif/Arial) face. */
+  font-family: var(--andes-font-family), sans-serif;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -25,6 +32,7 @@
   --andes-switch-track-width: 2.25rem;
   --andes-switch-thumb-size: 0.875rem;
   --andes-switch-track-padding: 0.1875rem;
+  --andes-switch-inner-margin: 0.1875rem;
 }
 
 .andes-switch[data-checked] {
@@ -50,6 +58,13 @@
   cursor: default;
 }
 
+/* Matches the disabled dimming (Ant Design renders loading as disabled), but the button stays
+   enabled and focusable - see the `loading` input's doc comment. */
+.andes-switch--loading {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .andes-switch--invalid {
   border-color: var(--andes-color-danger);
 }
@@ -60,59 +75,92 @@
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
-/* Thumb */
+/* Thumb - absolutely positioned (rather than a flex item nudged by a transform) so its
+   checked position tracks the actual track width, which grows with track content. */
 
 .andes-switch__thumb {
-  position: relative;
+  position: absolute;
   z-index: 1;
-  display: inline-block;
+  top: 50%;
+  inset-inline-start: var(--andes-switch-track-padding);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: var(--andes-switch-thumb-size);
   width: var(--andes-switch-thumb-size);
-  flex-shrink: 0;
   border-radius: var(--andes-radius-full);
   background-color: var(--andes-color-background);
   box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
-  transition: transform 0.15s ease;
-  transform: translateX(0);
+  transform: translateY(-50%);
+  transition: inset-inline-start 0.15s ease;
   pointer-events: none;
 }
 
 .andes-switch[data-checked] .andes-switch__thumb {
-  transform: translateX(
-    calc(
-      var(--andes-switch-track-width) - var(--andes-switch-thumb-size) - 2 *
-        var(--andes-switch-track-padding)
-    )
+  inset-inline-start: calc(
+    100% - var(--andes-switch-thumb-size) - var(--andes-switch-track-padding)
   );
 }
 
-/* Content projected inside the track (Ant Design's checkedChildren/unCheckedChildren
-   equivalent) - sits on the opposite side of the track from the thumb, out of its way. */
+.andes-switch__spinner {
+  width: 70%;
+  height: 70%;
+  border: 1.5px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: var(--andes-radius-full);
+  color: var(--andes-color-muted-foreground);
+  animation: andes-switch-spin 0.6s linear infinite;
+}
 
-.andes-switch__content {
-  position: absolute;
-  inset-block: 0;
-  display: inline-flex;
-  align-items: center;
+.andes-switch[data-checked] .andes-switch__spinner {
+  color: var(--andes-color-primary);
+}
+
+@keyframes andes-switch-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Track content (Ant Design's checkedChildren/unCheckedChildren equivalent), on the opposite
+   side of the track from the thumb. Both labels share one grid cell so the track is as wide as
+   the wider of the two and does not change width on toggle; only the active one is visible. */
+
+.andes-switch__inner {
+  display: grid;
+  flex: 1 1 auto;
+  align-self: stretch;
   font-size: 0.625rem;
   line-height: 1;
-  white-space: nowrap;
   pointer-events: none;
 }
 
+.andes-switch__content {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  visibility: hidden;
+}
+
+.andes-switch__content[data-active] {
+  visibility: visible;
+}
+
 .andes-switch__content--checked {
-  inset-inline-start: var(--andes-switch-track-padding);
-  inset-inline-end: calc(
-    var(--andes-switch-thumb-size) + var(--andes-switch-track-padding)
+  padding-inline-start: var(--andes-switch-inner-margin);
+  padding-inline-end: calc(
+    var(--andes-switch-thumb-size) + 2 * var(--andes-switch-track-padding)
   );
   color: var(--andes-color-primary-foreground);
 }
 
 .andes-switch__content--unchecked {
-  inset-inline-start: calc(
-    var(--andes-switch-thumb-size) + var(--andes-switch-track-padding)
+  padding-inline-start: calc(
+    var(--andes-switch-thumb-size) + 2 * var(--andes-switch-track-padding)
   );
-  inset-inline-end: var(--andes-switch-track-padding);
+  padding-inline-end: var(--andes-switch-inner-margin);
   /* --andes-color-muted-foreground only reaches ~3.2:1 on --andes-color-input, below
      WCAG AA for this text's size - --andes-color-foreground clears it comfortably. */
   color: var(--andes-color-foreground);

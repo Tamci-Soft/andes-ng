@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-import { AndesSwitch, AndesSwitchSize } from './switch';
+import { AndesSwitch, AndesSwitchChangeEvent, AndesSwitchSize } from './switch';
 
 @Component({
   imports: [AndesSwitch],
@@ -236,12 +236,312 @@ describe('AndesSwitch', () => {
     const fixture = TestBed.createComponent(ContentHost);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent.trim()).toBe('Off');
+    // Both labels stay in the DOM (stacked, so the track is sized to the wider one); only the
+    // one for the current state is marked active and visible.
+    const active = () =>
+      (
+        fixture.nativeElement.querySelector(
+          '.andes-switch__content[data-active]',
+        ) as HTMLElement
+      ).textContent?.trim();
+
+    expect(active()).toBe('Off');
+    expect(
+      fixture.nativeElement.querySelectorAll(
+        '.andes-switch__content[data-active]',
+      ).length,
+    ).toBe(1);
 
     fixture.componentInstance.checked.set(true);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent.trim()).toBe('On');
+    expect(active()).toBe('On');
+  });
+
+  it('hides track content from assistive tech so the accessible name never flips with state', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<andes-switch
+        checkedChildren="On"
+        unCheckedChildren="Off"
+        aria-label="Wi-Fi"
+      />`,
+    })
+    class HiddenContentHost {}
+
+    const fixture = TestBed.createComponent(HiddenContentHost);
+    fixture.detectChanges();
+    const inner = fixture.nativeElement.querySelector('.andes-switch__inner');
+
+    expect(inner.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('renders checkedChildren/unCheckedChildren strings as track content', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<andes-switch
+        [(checked)]="checked"
+        checkedChildren="Enabled"
+        unCheckedChildren="Disabled"
+      />`,
+    })
+    class StringContentHost {
+      readonly checked = signal(false);
+    }
+
+    const fixture = TestBed.createComponent(StringContentHost);
+    fixture.detectChanges();
+    const content = (modifier: string) =>
+      fixture.nativeElement.querySelector(
+        `.andes-switch__content--${modifier}`,
+      );
+
+    expect(content('checked').textContent.trim()).toBe('Enabled');
+    expect(content('unchecked').textContent.trim()).toBe('Disabled');
+    expect(content('unchecked').hasAttribute('data-active')).toBe(true);
+
+    fixture.nativeElement.querySelector('button').click();
+    fixture.detectChanges();
+
+    expect(content('checked').hasAttribute('data-active')).toBe(true);
+    expect(content('unchecked').hasAttribute('data-active')).toBe(false);
+  });
+
+  it('lets a projected slot override the string fallback for that state only', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<andes-switch
+        checkedChildren="ignored"
+        unCheckedChildren="Off"
+      >
+        <b slot="checked">ON</b>
+      </andes-switch>`,
+    })
+    class OverrideHost {}
+
+    const fixture = TestBed.createComponent(OverrideHost);
+    fixture.detectChanges();
+    const checked = fixture.nativeElement.querySelector(
+      '.andes-switch__content--checked',
+    );
+    const unchecked = fixture.nativeElement.querySelector(
+      '.andes-switch__content--unchecked',
+    );
+
+    expect(checked.textContent.trim()).toBe('ON');
+    expect(checked.querySelector('b')).not.toBeNull();
+    expect(unchecked.textContent.trim()).toBe('Off');
+  });
+
+  describe('loading', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<andes-switch
+        [checked]="false"
+        [loading]="loading()"
+        (changed)="changes = changes + 1"
+        (clicked)="clicks = clicks + 1"
+      />`,
+    })
+    class LoadingHost {
+      readonly loading = signal(true);
+      changes = 0;
+      clicks = 0;
+    }
+
+    function createLoadingHost() {
+      const fixture = TestBed.createComponent(LoadingHost);
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector(
+        'button',
+      ) as HTMLButtonElement;
+      return { fixture, button };
+    }
+
+    it('marks the switch busy and renders a spinner inside the thumb', () => {
+      const { button } = createLoadingHost();
+
+      expect(button.getAttribute('aria-busy')).toBe('true');
+      expect(button.hasAttribute('data-loading')).toBe(true);
+      expect(button.classList).toContain('andes-switch--loading');
+      expect(
+        button.querySelector('.andes-switch__thumb .andes-switch__spinner'),
+      ).not.toBeNull();
+    });
+
+    it('blocks toggling and both outputs, but stays enabled and focusable', () => {
+      const { fixture, button } = createLoadingHost();
+
+      expect(button.disabled).toBe(false);
+      button.focus();
+      expect(document.activeElement).toBe(button);
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(button.getAttribute('aria-checked')).toBe('false');
+      expect(fixture.componentInstance.changes).toBe(0);
+      expect(fixture.componentInstance.clicks).toBe(0);
+    });
+
+    it('drops aria-busy and the spinner and toggles again once loading clears', () => {
+      const { fixture, button } = createLoadingHost();
+      fixture.componentInstance.loading.set(false);
+      fixture.detectChanges();
+
+      expect(button.hasAttribute('aria-busy')).toBe(false);
+      expect(button.hasAttribute('data-loading')).toBe(false);
+      expect(button.querySelector('.andes-switch__spinner')).toBeNull();
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(button.getAttribute('aria-checked')).toBe('true');
+      expect(fixture.componentInstance.changes).toBe(1);
+    });
+  });
+
+  describe('changed / clicked outputs', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<andes-switch
+        [(checked)]="checked"
+        [readonly]="readonly()"
+        [disabled]="disabled()"
+        (changed)="changes.push($event)"
+        (clicked)="clicks.push($event)"
+      />`,
+    })
+    class OutputHost {
+      readonly checked = signal(false);
+      readonly readonly = signal(false);
+      readonly disabled = signal(false);
+      readonly changes: AndesSwitchChangeEvent[] = [];
+      readonly clicks: AndesSwitchChangeEvent[] = [];
+    }
+
+    function createOutputHost() {
+      const fixture = TestBed.createComponent(OutputHost);
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector(
+        'button',
+      ) as HTMLButtonElement;
+      return { fixture, button, host: fixture.componentInstance };
+    }
+
+    it('emits changed and clicked with the new state and the originating event on a user toggle', () => {
+      const { fixture, button, host } = createOutputHost();
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(host.changes).toHaveLength(1);
+      expect(host.changes[0].checked).toBe(true);
+      expect(host.changes[0].event).toBeInstanceOf(MouseEvent);
+      expect(host.changes[0].event.type).toBe('click');
+      expect(host.clicks).toEqual([host.changes[0]]);
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(host.changes.map((c) => c.checked)).toEqual([true, false]);
+    });
+
+    it('does not emit changed for a parent-driven checked change', () => {
+      const { fixture, host, button } = createOutputHost();
+
+      host.checked.set(true);
+      fixture.detectChanges();
+
+      expect(button.getAttribute('aria-checked')).toBe('true');
+      expect(host.changes).toHaveLength(0);
+    });
+
+    it('emits clicked (unchanged state) but not changed when readonly', () => {
+      const { fixture, button, host } = createOutputHost();
+      host.readonly.set(true);
+      fixture.detectChanges();
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(host.changes).toHaveLength(0);
+      expect(host.clicks).toHaveLength(1);
+      expect(host.clicks[0].checked).toBe(false);
+    });
+
+    it('emits nothing when disabled', () => {
+      const { fixture, button, host } = createOutputHost();
+      host.disabled.set(true);
+      fixture.detectChanges();
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(host.changes).toHaveLength(0);
+      expect(host.clicks).toHaveLength(0);
+    });
+
+    it('does not emit changed for a ControlValueAccessor writeValue', () => {
+      @Component({
+        imports: [AndesSwitch, ReactiveFormsModule],
+        template: `<andes-switch
+          [formControl]="control"
+          (changed)="changes = changes + 1"
+        />`,
+      })
+      class CvaOutputHost {
+        readonly control = new FormControl(false, { nonNullable: true });
+        changes = 0;
+      }
+
+      const fixture = TestBed.createComponent(CvaOutputHost);
+      fixture.detectChanges();
+      fixture.componentInstance.control.setValue(true);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.changes).toBe(0);
+    });
+  });
+
+  describe('focus management', () => {
+    it('focus() and blur() move focus to and from the real button', () => {
+      const fixture = TestBed.createComponent(AndesSwitch);
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector('button');
+
+      fixture.componentInstance.focus();
+      expect(document.activeElement).toBe(button);
+
+      fixture.componentInstance.blur();
+      expect(document.activeElement).not.toBe(button);
+    });
+
+    it('focuses the button on mount when autoFocus is set', async () => {
+      @Component({
+        imports: [AndesSwitch],
+        template: `<andes-switch autoFocus />`,
+      })
+      class AutoFocusHost {}
+
+      const fixture = TestBed.createComponent(AutoFocusHost);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(document.activeElement).toBe(
+        fixture.nativeElement.querySelector('button'),
+      );
+    });
+
+    it('does not steal focus on mount without autoFocus', async () => {
+      const fixture = TestBed.createComponent(AndesSwitch);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(document.activeElement).not.toBe(
+        fixture.nativeElement.querySelector('button'),
+      );
+    });
   });
 
   it('treats a bare "disabled" attribute (no brackets) as true, not the string ""', () => {
@@ -291,6 +591,14 @@ describe('AndesSwitch', () => {
     expect(button.getAttribute('aria-checked')).toBe('true');
     expect(button.hasAttribute('data-checked')).toBe(true);
     expect(button.hasAttribute('data-unchecked')).toBe(false);
+
+    // And the first click must turn it OFF: toggling the raw model (`!""` === true) instead of
+    // the coerced state left it stuck on.
+    button.click();
+    fixture.detectChanges();
+
+    expect(button.getAttribute('aria-checked')).toBe('false');
+    expect(button.hasAttribute('data-unchecked')).toBe(true);
   });
 
   describe('ControlValueAccessor', () => {
