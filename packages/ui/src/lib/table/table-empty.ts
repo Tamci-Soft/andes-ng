@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 /**
- * Empty state for a table body (Ant's `locale.emptyText`): an illustration and a
- * message, "No data" unless you project your own. Put it in a single cell that
- * spans every column, typically from a `@for`'s `@empty` block:
+ * Empty state for a table body: an illustration and a message, "No data" unless
+ * you project your own. Put it in a single cell that spans every column,
+ * typically from a `@for`'s `@empty` block:
  *
  * ```html
  * @for (row of rows(); track row.id) { ... } @empty {

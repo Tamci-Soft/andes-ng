@@ -12,7 +12,7 @@
  * ```
  */
 
-/** A single value a column filter can hold (Ant's `filters[].value`). */
+/** A single value a column filter can hold. */
 export type AndesFilterValue = string | number | boolean;
 
 /**
@@ -23,7 +23,7 @@ export type AndesTableFilters = Readonly<
   Record<string, readonly AndesFilterValue[]>
 >;
 
-/** Whether `row` matches one selected filter `value` (Ant's `onFilter`). */
+/** Whether `row` matches one selected filter `value`. */
 export type AndesFilterPredicate<TRow> = (
   value: AndesFilterValue,
   row: TRow,
@@ -38,7 +38,7 @@ export type AndesFilterPredicates<TRow> = Readonly<
  * Keeps the rows that pass every active column filter.
  *
  * Within one column the selected values are OR-ed (a row matching any of them
- * passes); across columns they are AND-ed - the same semantics as Ant's Table.
+ * passes); across columns they are AND-ed.
  * Columns without a predicate are ignored. Returns `rows` itself, untouched, when
  * nothing is filtered.
  */

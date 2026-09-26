@@ -111,8 +111,8 @@
 
 /* Header text is the strong foreground, not `--andes-color-muted-foreground`: that token
    on `--andes-color-muted` is only 4.35:1, which fails WCAG AA for 14px text (axe flags it
-   as a serious color-contrast violation). Ant Design's `headerColor` is likewise a strong
-   near-black rather than a muted gray, so `font-weight` carries the header emphasis. */
+   as a serious color-contrast violation). A strong near-black also reads as a header
+   rather than as secondary text, and `font-weight` carries the header emphasis. */
 .andes-table ::ng-deep .andes-table__head {
   color: var(--andes-color-foreground);
   font-weight: var(--andes-font-weight-medium);
@@ -144,7 +144,7 @@
   background-color: var(--andes-color-accent);
 }
 
-/* Selected rows: a light primary tint (Ant's rowSelectedBg). There is no dedicated
+/* Selected rows: a light primary tint. There is no dedicated
    tinted-primary token yet, so it is mixed from the existing primary and background. */
 .andes-table ::ng-deep .andes-table__row--selected {
   background-color: color-mix(
@@ -267,8 +267,8 @@
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
 }
 
-/* Control columns (selection, expand) shrink to their control, like Ant's 32px
-   selection column, instead of taking a share of the free width. */
+/* Control columns (selection, expand) shrink to their control instead of taking a
+   share of the free width. */
 /* prettier-ignore */
 .andes-table ::ng-deep :is(th, td):has(> andes-table-selection, > andes-table-select-all, > andes-table-expand-toggle) {
   width: 1px;

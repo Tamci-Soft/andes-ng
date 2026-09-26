@@ -25,9 +25,8 @@ export type AndesSortValue =
 export type AndesSortAccessor<TRow> = (row: TRow) => AndesSortValue;
 
 /**
- * Full comparator for a column whose order an accessor can't express (Ant's
- * `sorter: (a, b) => number`). `compare` defines the *ascending* order; descending
- * negates it. Empty-value handling is the comparator's own business.
+ * Full comparator for a column whose order an accessor can't express.
+ * `compare` defines the *ascending* order; descending negates it. Empty-value handling is the comparator's own business.
  */
 export interface AndesSortComparator<TRow> {
   readonly compare: (a: TRow, b: TRow) => number;
@@ -50,9 +49,8 @@ export type AndesSortInput =
 
 /**
  * Next step of a header's sort cycle: each of `directions` in turn, then back to
- * unsorted. Mirrors Ant's `sortDirections`, including its trick of repeating a
- * direction (`['asc', 'desc', 'asc']`) to make a column that never returns to
- * unsorted once activated.
+ * unsorted. Repeating a direction (`['asc', 'desc', 'asc']`) makes a column that
+ * never returns to unsorted once activated.
  */
 export function andesNextSortDirection(
   current: AndesSortDirection | null,
@@ -135,7 +133,7 @@ function toColumns<TRow>(
  * Sorts `rows` by the column(s) named in `sort`, using the matching accessors.
  *
  * With several sort states the first is the primary key and each later one only
- * breaks ties left by the ones before it (Ant's `sorter.multiple` priority).
+ * breaks ties left by the ones before it.
  *
  * Guarantees:
  * - **Stable**: rows whose sort values compare equal keep their original relative

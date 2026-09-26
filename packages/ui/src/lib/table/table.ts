@@ -28,7 +28,7 @@ import {
   type AndesSortState,
 } from './table-sort';
 
-/** Cell padding scale. Mirrors Ant Design's `size`, named for what it does. */
+/** Cell padding scale, named for what it does rather than as a size. */
 export type AndesTableDensity = 'compact' | 'default' | 'comfortable';
 
 /** Visual placement of `<caption>`, independent of its required first-child position. */
@@ -37,7 +37,7 @@ export type AndesTableCaptionSide = 'top' | 'bottom';
 /** Horizontal alignment of a header or data cell. Logical, so it follows writing direction. */
 export type AndesTableAlign = 'start' | 'center' | 'end';
 
-/** Row selection control kind - Ant's `rowSelection.type`. */
+/** Row selection control kind. */
 export type AndesTableSelectionType = 'checkbox' | 'radio';
 
 /** CSS `table-layout`. `fixed` is what makes `ellipsis` cells truncate predictably. */
@@ -125,17 +125,17 @@ export class AndesTable {
    */
   readonly loading = input(false, { transform: booleanAttribute });
 
-  /** Text announced to assistive tech while `loading` (Ant's Spin `tip`). */
+  /** Text announced to assistive tech while `loading`. */
   readonly loadingLabel = input('Loading');
 
   /**
-   * Minimum table width (Ant's `scroll.x`): a number of pixels or any CSS length,
+   * Minimum table width: a number of pixels or any CSS length,
    * e.g. `'max-content'`. Narrower containers scroll horizontally.
    */
   readonly scrollX = input<string | number | undefined>(undefined);
 
   /**
-   * Maximum body height (Ant's `scroll.y`): a number of pixels or any CSS length.
+   * Maximum body height: a number of pixels or any CSS length.
    * When set the table scrolls vertically inside its container and the header
    * row sticks to the top of it.
    */
@@ -149,9 +149,8 @@ export class AndesTable {
   readonly sort = model<AndesSortState | null>(null);
 
   /**
-   * Sort several columns at once (Ant's `sorter.multiple`). Activating a header
-   * then cycles only that column and keeps the others; state lives in `sorts`
-   * instead of `sort`.
+   * Sort several columns at once. Activating a header then cycles only that
+   * column and keeps the others; state lives in `sorts` instead of `sort`.
    */
   readonly multiSort = input(false, { transform: booleanAttribute });
 
@@ -164,7 +163,7 @@ export class AndesTable {
 
   /**
    * Directions every sortable header cycles through before returning to
-   * unsorted (Ant's `sortDirections`). A header's own `sortDirections` wins.
+   * unsorted. A header's own `sortDirections` wins.
    */
   readonly sortDirections = input<readonly AndesSortDirection[]>([
     'asc',
@@ -181,16 +180,15 @@ export class AndesTable {
   readonly selectionType = input<AndesTableSelectionType>('checkbox');
 
   /**
-   * Keys of the selected rows (Ant's `selectedRowKeys`). Two-way bindable.
-   * Keys of rows that are not currently rendered are kept, like Ant's
-   * `preserveSelectedRowKeys`.
+   * Keys of the selected rows. Two-way bindable. Keys of rows that are not
+   * currently rendered are kept, so selection survives paging and filtering.
    */
   readonly selectedKeys = model<readonly AndesTableRowKey[]>([]);
 
-  /** Keys of the expanded rows (Ant's `expandedRowKeys`). Two-way bindable. */
+  /** Keys of the expanded rows. Two-way bindable. */
   readonly expandedKeys = model<readonly AndesTableRowKey[]>([]);
 
-  /** Toggle a keyed row's expansion by clicking anywhere in it (Ant's `expandRowByClick`). */
+  /** Toggle a keyed row's expansion by clicking anywhere in it. */
   readonly expandRowByClick = input(false, { transform: booleanAttribute });
 
   /** Shared `name` for this table's radio buttons, so they form one group. */
@@ -372,7 +370,7 @@ export class AndesTable {
   /**
    * Selects or deselects one row. For radios this makes it the only selection.
    * With `extendRange` (a Shift-click on a checkbox) every enabled row between the
-   * previous anchor and `key` takes the new state too, as in Ant v5.
+   * previous anchor and `key` takes the new state too.
    */
   toggleSelected(key: AndesTableRowKey, extendRange = false): void {
     if (this.selectionType() === 'radio') {
@@ -441,9 +439,8 @@ export class AndesTable {
 
   /**
    * Gives every pinned cell without an explicit `fixedOffset` its distance from
-   * the pinned edge: the summed width of the pinned cells before it in its row
-   * (Ant computes the same from column widths). Written as a custom property the
-   * stylesheet reads, so an explicit `fixedOffset` inline style still wins.
+   * the pinned edge: the summed width of the pinned cells before it in its row.
+   * Written as a custom property the stylesheet reads, so an explicit `fixedOffset` inline style still wins.
    */
   private syncFixedOffsets(): void {
     const table = this.container().nativeElement.querySelector('table');
