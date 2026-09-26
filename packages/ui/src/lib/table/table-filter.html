@@ -1,0 +1,74 @@
+<button
+  #trigger
+  type="button"
+  class="andes-table-filter__trigger"
+  [class.andes-table-filter__trigger--active]="active()"
+  [class.andes-table-filter__trigger--open]="open()"
+  aria-haspopup="dialog"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="open() ? id : null"
+  [attr.aria-label]="label()"
+  [attr.data-active]="active() ? '' : null"
+  (click)="toggle()"
+>
+  <span class="andes-table-filter__icon" aria-hidden="true"></span>
+</button>
+@if (open()) {
+<div
+  #panelEl
+  class="andes-table-filter__panel"
+  popover="manual"
+  role="dialog"
+  [id]="id"
+  [attr.aria-label]="label()"
+>
+  @if (panel(); as panelTemplate) {
+  <ng-container
+    [ngTemplateOutlet]="panelTemplate"
+    [ngTemplateOutletContext]="panelContext()"
+  />
+  } @else { @if (searchable()) {
+  <input
+    type="search"
+    class="andes-table-filter__search"
+    [placeholder]="searchPlaceholder()"
+    [attr.aria-label]="searchPlaceholder()"
+    [value]="query()"
+    (input)="onSearch($event)"
+  />
+  }
+  <div
+    class="andes-table-filter__options"
+    [attr.role]="multiple() ? 'group' : 'radiogroup'"
+    [attr.aria-label]="label()"
+  >
+    @for (option of visibleOptions(); track option.value) {
+    <label class="andes-table-filter__option">
+      <input
+        class="andes-table-filter__input"
+        [type]="multiple() ? 'checkbox' : 'radio'"
+        [name]="id"
+        [checked]="isChecked(option.value)"
+        (change)="toggleOption(option.value)"
+      />
+      <span>{{ option.text }}</span>
+    </label>
+    } @empty {
+    <p class="andes-table-filter__no-match">{{ noMatchText() }}</p>
+    }
+  </div>
+  <div class="andes-table-filter__actions">
+    <andes-button
+      variant="link"
+      size="sm"
+      [disabled]="draft().length === 0"
+      (click)="reset()"
+      >{{ resetText() }}</andes-button
+    >
+    <andes-button size="sm" (click)="confirm()"
+      >{{ confirmText() }}</andes-button
+    >
+  </div>
+  }
+</div>
+}

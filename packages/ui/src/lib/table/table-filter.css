@@ -1,0 +1,158 @@
+:host {
+  display: inline-block;
+  float: inline-end;
+  /* Pull the button's extra height out of the line box so a filterable header's text
+     sits exactly where a plain header's does. */
+  margin-block: calc((1lh - 1.5rem) / 2);
+  margin-inline-start: var(--andes-space-1);
+  vertical-align: middle;
+}
+
+.andes-table-filter__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.andes-table-filter__trigger:hover,
+.andes-table-filter__trigger--open {
+  background-color: var(--andes-color-accent-hover);
+  color: var(--andes-color-foreground);
+}
+
+.andes-table-filter__trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-table-filter__trigger--active {
+  color: var(--andes-color-primary-text);
+}
+
+.andes-table-filter__icon {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+  background-color: currentcolor;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linejoin='round'><path d='M3 4h18l-7 8.5V19l-4 2v-8.5z'/></svg>");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linejoin='round'><path d='M3 4h18l-7 8.5V19l-4 2v-8.5z'/></svg>");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+/* The panel lives in the top layer, so it inherits nothing useful from the header
+   cell's typography - every text property is set explicitly here. */
+.andes-table-filter__panel {
+  position: fixed;
+  inset: auto;
+  z-index: var(--andes-z-index-dropdown);
+  box-sizing: border-box;
+  min-width: 10rem;
+  max-width: min(20rem, calc(100vw - 1rem));
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  font-weight: normal;
+  line-height: 1.5;
+  text-align: start;
+  white-space: normal;
+}
+
+.andes-table-filter__search {
+  box-sizing: border-box;
+  display: block;
+  width: calc(100% - 2 * var(--andes-space-2));
+  margin: var(--andes-space-2);
+  margin-block-end: 0;
+  padding-block: var(--andes-space-1);
+  padding-inline: var(--andes-space-2);
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+}
+
+.andes-table-filter__search:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -1px;
+}
+
+.andes-table-filter__options {
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: var(--andes-space-1);
+}
+
+.andes-table-filter__option {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  padding-block: var(--andes-space-1);
+  padding-inline: var(--andes-space-2);
+  border-radius: var(--andes-radius-sm);
+  cursor: pointer;
+}
+
+.andes-table-filter__option:hover {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-table-filter__input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--andes-color-primary);
+  cursor: pointer;
+}
+
+.andes-table-filter__input:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-table-filter__no-match {
+  margin: 0;
+  padding: var(--andes-space-2);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-table-filter__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
+  padding: var(--andes-space-2);
+  border-top: 1px solid var(--andes-color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-table-filter__trigger {
+    transition: none;
+  }
+}
