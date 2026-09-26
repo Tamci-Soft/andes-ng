@@ -531,7 +531,7 @@ function stubScroll(
   }
 }
 
-describe('AndesTabs (Ant Design parity)', () => {
+describe('AndesTabs (extended features)', () => {
   async function createFeatureHost(
     setup?: (host: FeatureHost) => void,
   ): Promise<{
