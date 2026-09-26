@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, type TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import {
@@ -11,6 +11,13 @@ import {
   AndesBreadcrumbPage,
   AndesBreadcrumbSeparator,
 } from './breadcrumb';
+import type {
+  AndesBreadcrumbItemClickEvent,
+  AndesBreadcrumbItemRenderContext,
+  AndesBreadcrumbItemType,
+  AndesBreadcrumbMenuClickEvent,
+  AndesBreadcrumbSeparatorContent,
+} from './breadcrumb-items';
 
 /**
  * jsdom reports zero geometry for every element, which makes CDK's `InteractivityChecker` treat
@@ -724,6 +731,567 @@ describe('Breadcrumb', () => {
 
       expect(trigger.querySelector('#customGlyph')).toBeTruthy();
       expect(trigger.querySelector('svg')).toBeNull();
+    });
+  });
+
+  // Separator inheritance and per-separator overrides, in projected mode.
+  describe('separator content', () => {
+    @Component({
+      imports: [
+        AndesBreadcrumb,
+        AndesBreadcrumbList,
+        AndesBreadcrumbItem,
+        AndesBreadcrumbSeparator,
+        AndesBreadcrumbPage,
+      ],
+      template: `
+        <ng-template #star><b class="star">*</b></ng-template>
+        <andes-breadcrumb [separator]="separator()">
+          <ol andesBreadcrumbList>
+            <li andesBreadcrumbItem>A</li>
+            <li andesBreadcrumbSeparator id="inherit"></li>
+            <li andesBreadcrumbItem>B</li>
+            <li [andesBreadcrumbSeparator]="override()" id="override"></li>
+            <li andesBreadcrumbItem>C</li>
+            <li andesBreadcrumbSeparator id="own">|</li>
+            <li andesBreadcrumbItem><span andesBreadcrumbPage>D</span></li>
+          </ol>
+        </andes-breadcrumb>
+      `,
+    })
+    class SeparatorHost {
+      readonly star = viewChild.required<TemplateRef<unknown>>('star');
+      readonly separator = signal<AndesBreadcrumbSeparatorContent | undefined>(
+        undefined,
+      );
+      readonly override = signal<AndesBreadcrumbSeparatorContent>('');
+    }
+
+    async function render() {
+      const fixture = TestBed.createComponent(SeparatorHost);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      const get = (id: string) => root.querySelector(`#${id}`) as HTMLElement;
+      const update = async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+      };
+      return { fixture, host: fixture.componentInstance, get, update };
+    }
+
+    it('inherits the root separator string into empty separators', async () => {
+      const { host, get, update } = await render();
+      expect(get('inherit').querySelector('svg')).toBeTruthy();
+
+      host.separator.set('/');
+      await update();
+
+      expect(get('inherit').textContent).toBe('/');
+      expect(get('inherit').querySelector('svg')).toBeNull();
+      expect(get('override').textContent).toBe('/');
+    });
+
+    it('renders a root separator template', async () => {
+      const { host, get, update } = await render();
+      host.separator.set(host.star());
+      await update();
+
+      expect(get('inherit').querySelector('b.star')?.textContent).toBe('*');
+    });
+
+    it('renders nothing for an empty root separator', async () => {
+      const { host, get, update } = await render();
+      host.separator.set('');
+      await update();
+
+      expect(get('inherit').childNodes.length).toBe(0);
+    });
+
+    it('lets [andesBreadcrumbSeparator] override the root separator for one position', async () => {
+      const { host, get, update } = await render();
+      host.separator.set('/');
+      host.override.set('>');
+      await update();
+
+      expect(get('inherit').textContent).toBe('/');
+      expect(get('override').textContent).toBe('>');
+
+      host.override.set(host.star());
+      await update();
+
+      expect(get('override').querySelector('b.star')).toBeTruthy();
+      expect(get('override').textContent).toBe('*');
+    });
+
+    it('never touches a separator with its own projected content', async () => {
+      const { host, get, update } = await render();
+      host.separator.set('/');
+      await update();
+
+      expect(get('own').textContent).toBe('|');
+    });
+  });
+
+  describe('[items]', () => {
+    withElementGeometry();
+
+    @Component({
+      imports: [AndesBreadcrumb],
+      template: `
+        <ng-template
+          #render
+          let-title="title"
+          let-paths="paths"
+          let-last="last"
+          let-params="params"
+        >
+          <span
+            class="custom"
+            [attr.data-paths]="paths.join('/')"
+            [attr.data-last]="last"
+            [attr.data-id]="params.id"
+            >{{ title }}</span
+          >
+        </ng-template>
+        <ng-template #caret><i class="custom-caret">v</i></ng-template>
+        <ng-template #dot><i class="dot">•</i></ng-template>
+        <andes-breadcrumb
+          [items]="items()"
+          [params]="params()"
+          [separator]="separator()"
+          [itemRender]="useRender() ? render : undefined"
+          [dropdownIcon]="useCaret() ? caret : undefined"
+          [maxItems]="maxItems()"
+          [itemsBeforeCollapse]="before()"
+          [itemsAfterCollapse]="after()"
+          ellipsisLabel="Más"
+          (itemClick)="clicks.push($event)"
+          (menuClick)="menuClicks.push($event)"
+        >
+          <p id="projected">projected</p>
+        </andes-breadcrumb>
+      `,
+    })
+    class ItemsHost {
+      readonly dot = viewChild.required<TemplateRef<unknown>>('dot');
+      readonly render =
+        viewChild.required<TemplateRef<AndesBreadcrumbItemRenderContext>>(
+          'render',
+        );
+      readonly items = signal<AndesBreadcrumbItemType[] | undefined>([
+        { title: 'Home', href: '/' },
+        { title: 'Users', path: 'users' },
+        { title: 'User :id', path: ':id', className: 'is-user' },
+      ]);
+      readonly params = signal<Record<string, string | number>>({ id: 42 });
+      readonly separator = signal<AndesBreadcrumbSeparatorContent | undefined>(
+        undefined,
+      );
+      readonly useRender = signal(false);
+      readonly useCaret = signal(false);
+      readonly maxItems = signal<number | undefined>(undefined);
+      readonly before = signal(1);
+      readonly after = signal(1);
+      readonly clicks: AndesBreadcrumbItemClickEvent[] = [];
+      readonly menuClicks: AndesBreadcrumbMenuClickEvent[] = [];
+    }
+
+    async function render(setup?: (host: ItemsHost) => void) {
+      const fixture = TestBed.createComponent(ItemsHost);
+      setup?.(fixture.componentInstance);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      const list = () => root.querySelector('ol') as HTMLOListElement;
+      return {
+        fixture,
+        root,
+        host: fixture.componentInstance,
+        list,
+        children: () => Array.from(list().children) as HTMLElement[],
+        update: async () => {
+          fixture.detectChanges();
+          await fixture.whenStable();
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          fixture.detectChanges();
+        },
+        menuItems: () =>
+          Array.from(
+            document.querySelectorAll('[role="menuitem"]'),
+          ) as HTMLElement[],
+      };
+    }
+
+    it('renders an ol of li crumbs and separators, ignoring projected content', async () => {
+      const { root, children } = await render();
+
+      expect(root.querySelector('nav')?.getAttribute('aria-label')).toBe(
+        'breadcrumb',
+      );
+      expect(root.querySelector('#projected')).toBeNull();
+      expect(children().map((li) => li.tagName)).toEqual([
+        'LI',
+        'LI',
+        'LI',
+        'LI',
+        'LI',
+      ]);
+      expect(
+        children().map((li) => li.className.includes('separator')),
+      ).toEqual([false, true, false, true, false]);
+    });
+
+    it('falls back to projected content when items is unset', async () => {
+      const { root } = await render((host) => host.items.set(undefined));
+
+      expect(root.querySelector('#projected')).toBeTruthy();
+      expect(root.querySelector('ol')).toBeNull();
+    });
+
+    it('joins paths into hrefs, interpolates params and renders the last crumb as the page', async () => {
+      const { root } = await render();
+      const links = Array.from(
+        root.querySelectorAll('a'),
+      ) as HTMLAnchorElement[];
+
+      expect(links.map((a) => a.getAttribute('href'))).toEqual(['/', '/users']);
+      expect(
+        links.every((a) => a.classList.contains('andes-breadcrumb-link')),
+      ).toBe(true);
+
+      // The last crumb has a path too, but it is the current page - not a link.
+      const page = root.querySelector('.andes-breadcrumb-page') as HTMLElement;
+      expect(page.tagName).toBe('SPAN');
+      expect(page.textContent?.trim()).toBe('User 42');
+      expect(page.getAttribute('aria-current')).toBe('page');
+      expect(root.querySelectorAll('[aria-current]')).toHaveLength(1);
+    });
+
+    it('adds an item className to its li without dropping the item class', async () => {
+      const { children } = await render();
+      const last = children()[4];
+
+      expect(last.classList).toContain('is-user');
+      expect(last.classList).toContain('andes-breadcrumb-item');
+    });
+
+    it('renders the default chevron, a string or a template separator', async () => {
+      const { host, children, update } = await render();
+      expect(children()[1].querySelector('svg')).toBeTruthy();
+
+      host.separator.set('/');
+      await update();
+      expect(children()[1].textContent).toBe('/');
+
+      host.separator.set(host.dot());
+      await update();
+      expect(children()[1].querySelector('i.dot')).toBeTruthy();
+    });
+
+    it('lets a separator entry override one position', async () => {
+      const { host, children, update } = await render();
+      host.separator.set('/');
+      host.items.set([
+        { title: 'A', href: '/a' },
+        { type: 'separator', separator: ':' },
+        { title: 'B', href: '/b' },
+        { title: 'C' },
+      ]);
+      await update();
+
+      expect(children().map((li) => li.textContent?.trim())).toEqual([
+        'A',
+        ':',
+        'B',
+        '/',
+        'C',
+      ]);
+    });
+
+    it('emits (itemClick) and calls onClick with the crumb and the MouseEvent', async () => {
+      const onClick = vi.fn((event: MouseEvent) => event.preventDefault());
+      const { root, host } = await render((h) =>
+        h.items.set([{ title: 'Home', href: '/', onClick }, { title: 'Here' }]),
+      );
+      const link = root.querySelector('a') as HTMLAnchorElement;
+      link.click();
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(host.clicks).toHaveLength(1);
+      expect(host.clicks[0].item.title).toBe('Home');
+      expect(host.clicks[0].index).toBe(0);
+      expect(host.clicks[0].event).toBeInstanceOf(MouseEvent);
+      expect(host.clicks[0].event.defaultPrevented).toBe(true);
+    });
+
+    it('renders a crumb with onClick but no href as a keyboard-reachable button', async () => {
+      const onClick = vi.fn();
+      const { root, host } = await render((h) =>
+        h.items.set([
+          { title: 'Action', onClick },
+          { title: 'Text' },
+          { title: 'Here' },
+        ]),
+      );
+      const button = root.querySelector(
+        'button.andes-breadcrumb-link',
+      ) as HTMLButtonElement;
+
+      expect(button.type).toBe('button');
+      expect(button.textContent?.trim()).toBe('Action');
+      expect(root.querySelector('.andes-breadcrumb-text')?.textContent).toBe(
+        'Text',
+      );
+
+      button.click();
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(host.clicks[0].item.title).toBe('Action');
+    });
+
+    it('hands each crumb to itemRender with title, params, paths and last', async () => {
+      const { root } = await render((h) => h.useRender.set(true));
+      const custom = Array.from(
+        root.querySelectorAll('.custom'),
+      ) as HTMLElement[];
+
+      expect(custom.map((el) => el.textContent)).toEqual([
+        'Home',
+        'Users',
+        'User 42',
+      ]);
+      expect(custom.map((el) => el.dataset['paths'])).toEqual([
+        '',
+        'users',
+        'users/42',
+      ]);
+      expect(custom.map((el) => el.dataset['last'])).toEqual([
+        'false',
+        'false',
+        'true',
+      ]);
+      expect(custom[0].dataset['id']).toBe('42');
+      // The template owns the crumb: no default link/page is rendered around it.
+      expect(root.querySelector('a')).toBeNull();
+    });
+
+    describe('per-item menu', () => {
+      const menuItems = [
+        { label: 'General', href: '/general' },
+        { label: 'Layout' },
+        { label: 'Archived', href: '/archived', disabled: true },
+      ];
+
+      async function renderMenu(setup?: (host: ItemsHost) => void) {
+        const onEntry = vi.fn();
+        const result = await render((h) => {
+          h.items.set([
+            { title: 'Home', href: '/' },
+            {
+              title: 'Component',
+              menu: {
+                items: menuItems.map((entry) => ({
+                  ...entry,
+                  onClick: onEntry,
+                })),
+              },
+            },
+            { title: 'Button' },
+          ]);
+          setup?.(h);
+        });
+        const trigger = result.root.querySelector(
+          '.andes-breadcrumb-menu-trigger',
+        ) as HTMLButtonElement;
+        return { ...result, trigger, onEntry };
+      }
+
+      it('renders the crumb as a caret dropdown trigger', async () => {
+        const { trigger } = await renderMenu();
+
+        expect(trigger.tagName).toBe('BUTTON');
+        expect(trigger.textContent?.trim()).toBe('Component');
+        expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
+        expect(trigger.getAttribute('aria-expanded')).toBe('false');
+        expect(
+          trigger.querySelector('svg.andes-breadcrumb-menu-trigger__icon'),
+        ).toBeTruthy();
+        expect(trigger.hasAttribute('aria-current')).toBe(false);
+      });
+
+      it('uses the dropdownIcon template instead of the default caret', async () => {
+        const { trigger } = await renderMenu((h) => h.useCaret.set(true));
+
+        expect(trigger.querySelector('i.custom-caret')).toBeTruthy();
+        expect(trigger.querySelector('svg')).toBeNull();
+      });
+
+      it('opens the menu entries and reports a click via onClick and (menuClick)', async () => {
+        const {
+          trigger,
+          update,
+          menuItems: entries,
+          host,
+          onEntry,
+        } = await renderMenu();
+        trigger.click();
+        await update();
+
+        expect(entries().map((el) => el.textContent?.trim())).toEqual([
+          'General',
+          'Layout',
+          'Archived',
+        ]);
+        expect(entries()[0].querySelector('a')?.getAttribute('href')).toBe(
+          '/general',
+        );
+
+        entries()[1].click();
+        await update();
+
+        expect(onEntry).toHaveBeenCalledTimes(1);
+        expect(host.menuClicks).toHaveLength(1);
+        expect(host.menuClicks[0].item.title).toBe('Component');
+        expect(host.menuClicks[0].menuItem.label).toBe('Layout');
+        expect(host.menuClicks[0].event).toBeInstanceOf(MouseEvent);
+        expect(document.querySelector('[role="menu"]')).toBeNull();
+      });
+
+      it('activates an entry from the keyboard exactly once', async () => {
+        const {
+          trigger,
+          update,
+          menuItems: entries,
+          host,
+        } = await renderMenu();
+        trigger.click();
+        await update();
+
+        pressKey(entries()[0], 'Enter');
+        await update();
+
+        expect(host.menuClicks.map((c) => c.menuItem.label)).toEqual([
+          'General',
+        ]);
+      });
+
+      it('keeps a disabled href entry from navigating or reporting', async () => {
+        const {
+          trigger,
+          update,
+          menuItems: entries,
+          host,
+        } = await renderMenu();
+        trigger.click();
+        await update();
+
+        const anchor = entries()[2].querySelector('a') as HTMLAnchorElement;
+        const click = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+        });
+        anchor.dispatchEvent(click);
+
+        expect(click.defaultPrevented).toBe(true);
+        expect(host.menuClicks).toHaveLength(0);
+      });
+
+      it('marks a last crumb with a menu as the current page', async () => {
+        const { root } = await render((h) =>
+          h.items.set([
+            { title: 'Home', href: '/' },
+            { title: 'Here', menu: { items: [{ label: 'Sibling' }] } },
+          ]),
+        );
+        const trigger = root.querySelector(
+          '.andes-breadcrumb-menu-trigger',
+        ) as HTMLElement;
+
+        expect(trigger.getAttribute('aria-current')).toBe('page');
+        expect(root.querySelector('.andes-breadcrumb-page')).toBeNull();
+      });
+    });
+
+    describe('collapse (maxItems)', () => {
+      const long: AndesBreadcrumbItemType[] = [
+        { title: 'Home', href: '/' },
+        { title: 'Docs', path: 'docs' },
+        { title: 'Guides', path: 'guides' },
+        { title: 'Forms', path: 'forms' },
+        { title: 'Validation' },
+      ];
+
+      it('does not collapse unless maxItems is set', async () => {
+        const { root } = await render((h) => h.items.set(long));
+
+        expect(root.querySelector('andes-breadcrumb-ellipsis')).toBeNull();
+        expect(root.querySelectorAll('.andes-breadcrumb-item')).toHaveLength(5);
+      });
+
+      it('collapses the middle crumbs into an ellipsis dropdown', async () => {
+        const {
+          root,
+          children,
+          update,
+          menuItems: entries,
+        } = await render((h) => {
+          h.items.set(long);
+          h.maxItems.set(3);
+          h.after.set(2);
+        });
+
+        expect(children().map((li) => li.textContent?.trim())).toEqual([
+          'Home',
+          '',
+          'Más',
+          '',
+          'Forms',
+          '',
+          'Validation',
+        ]);
+        const trigger = root.querySelector(
+          '.andes-breadcrumb-ellipsis__trigger',
+        ) as HTMLButtonElement;
+        trigger.click();
+        await update();
+
+        expect(entries().map((el) => el.textContent?.trim())).toEqual([
+          'Docs',
+          'Guides',
+        ]);
+        expect(
+          entries().map((el) => el.querySelector('a')?.getAttribute('href')),
+        ).toEqual(['/docs', '/docs/guides']);
+      });
+
+      it('reports a collapsed crumb chosen from the ellipsis as an (itemClick)', async () => {
+        const onClick = vi.fn();
+        const {
+          root,
+          host,
+          update,
+          menuItems: entries,
+        } = await render((h) => {
+          h.items.set(
+            long.map((item, i) => (i === 2 ? { ...item, onClick } : item)),
+          );
+          h.maxItems.set(2);
+        });
+        (
+          root.querySelector(
+            '.andes-breadcrumb-ellipsis__trigger',
+          ) as HTMLElement
+        ).click();
+        await update();
+
+        pressKey(entries()[1], 'Enter');
+        await update();
+
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(host.clicks).toHaveLength(1);
+        expect(host.clicks[0].item.title).toBe('Guides');
+        expect(host.clicks[0].index).toBe(2);
+      });
     });
   });
 });

@@ -11,6 +11,17 @@ export {
   AndesBreadcrumbSeparator,
 } from './lib/breadcrumb/breadcrumb';
 export type { AndesBreadcrumbEllipsisItem } from './lib/breadcrumb/breadcrumb';
+export type {
+  AndesBreadcrumbItemClickEvent,
+  AndesBreadcrumbItemRenderContext,
+  AndesBreadcrumbItemType,
+  AndesBreadcrumbMenuClickEvent,
+  AndesBreadcrumbMenuItem,
+  AndesBreadcrumbParams,
+  AndesBreadcrumbRouteItem,
+  AndesBreadcrumbSeparatorContent,
+  AndesBreadcrumbSeparatorItem,
+} from './lib/breadcrumb/breadcrumb-items';
 
 export { AndesDropdownMenu } from './lib/dropdown-menu/dropdown-menu';
 export { AndesDropdownMenuTrigger } from './lib/dropdown-menu/dropdown-menu-trigger';
