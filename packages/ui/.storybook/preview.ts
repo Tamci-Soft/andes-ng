@@ -20,6 +20,10 @@ const withTheme: Decorator = (story, context) => {
   }
   document.body.style.backgroundColor =
     theme === 'dark' ? '#0f172a' : '#ffffff';
+  // Grayscale antialiasing, as the tokens README recommends for consumer apps: macOS otherwise
+  // renders text with a heavier stroke than the typeface was drawn with.
+  document.body.style.setProperty('-webkit-font-smoothing', 'antialiased');
+  document.body.style.setProperty('-moz-osx-font-smoothing', 'grayscale');
   return story();
 };
 
