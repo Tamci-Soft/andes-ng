@@ -11,7 +11,7 @@
   background-color: var(--andes-color-secondary);
 }
 
-/* Ant Design-style shimmer: a lighter/darker band sweeping across the bar. The gradient runs
+/* Shimmer: a lighter/darker band sweeping across the bar. The gradient runs
    secondary -> secondary-hover -> secondary, so it follows the theme (darker band in light mode,
    lighter band in dark mode) without any new token. */
 .andes-skeleton-fill--active {
