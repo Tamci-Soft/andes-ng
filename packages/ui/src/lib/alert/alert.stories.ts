@@ -12,14 +12,18 @@ const meta: Meta<AndesAlert> = {
       control: 'select',
       options: [undefined, 'success', 'info', 'warning', 'danger'],
     },
+    variant: { control: 'inline-radio', options: ['tinted', 'outlined'] },
     closable: { control: 'boolean' },
     showIcon: { control: 'boolean' },
     banner: { control: 'boolean' },
+    marquee: { control: 'boolean' },
+    marqueeSpeed: { control: { type: 'number', min: 10, step: 10 } },
     role: { control: 'select', options: [undefined, 'alert', 'status'] },
     closeLabel: { control: 'text' },
   },
   args: {
     severity: 'info',
+    variant: 'tinted',
     closable: false,
     showIcon: true,
     banner: false,
@@ -29,7 +33,7 @@ const meta: Meta<AndesAlert> = {
   },
   render: (args) => ({
     props: args,
-    template: `<andes-alert [severity]="severity" [closable]="closable" [showIcon]="showIcon" [banner]="banner" [role]="role" [closeLabel]="closeLabel" (closing)="closing($event)" (afterClose)="afterClose()">
+    template: `<andes-alert [severity]="severity" [variant]="variant" [closable]="closable" [showIcon]="showIcon" [banner]="banner" [role]="role" [closeLabel]="closeLabel" (closing)="closing($event)" (afterClose)="afterClose()">
       <span slot="title">Heads up</span>
       This is an alert message with some more detail underneath the title.
     </andes-alert>`,
@@ -85,35 +89,57 @@ export const WithAction: Story = {
   }),
 };
 
+/**
+ * Every severity in both variants. `tinted` (the default) fills the card with a wash of the
+ * severity color; `outlined` keeps the neutral card and shows the severity only in the icon
+ * and border.
+ */
 export const AllVariants: Story = {
   render: () => ({
+    props: {
+      variants: ['tinted', 'outlined'],
+      items: [
+        ['success', 'Success', 'Your changes have been saved.'],
+        ['info', 'Info', 'A new version of the app is available.'],
+        ['warning', 'Warning', 'Your session will expire in 5 minutes.'],
+        ['danger', 'Danger', 'Something went wrong while saving your changes.'],
+      ],
+    },
     template: `
-      <div style="display: flex; flex-direction: column; gap: 1rem; max-width: 32rem;">
-        <andes-alert severity="success">
-          <span slot="title">Success</span>
-          Your changes have been saved.
-        </andes-alert>
-        <andes-alert severity="info">
-          <span slot="title">Info</span>
-          A new version of the app is available.
-        </andes-alert>
-        <andes-alert severity="warning">
-          <span slot="title">Warning</span>
-          Your session will expire in 5 minutes.
-        </andes-alert>
-        <andes-alert severity="danger">
-          <span slot="title">Danger</span>
-          Something went wrong while saving your changes.
-        </andes-alert>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 2rem;">
+        @for (variant of variants; track variant) {
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <strong style="font-family: var(--andes-font-family), sans-serif; font-size: 0.8125rem; color: var(--andes-color-muted-foreground);">{{ variant }}</strong>
+            @for (item of items; track item[0]) {
+              <andes-alert [severity]="item[0]" [variant]="variant" [title]="item[1]" [description]="item[2]" closable />
+            }
+          </div>
+        }
       </div>
     `,
   }),
 };
 
 /**
- * Full-width strip for the top of a page or panel. Same quiet surface as the card - it only
- * drops the radius and the side borders. An unset severity resolves to `warning` in banner
- * mode.
+ * Without a title the alert keeps its compact one-line metrics; with a title and a description
+ * the icon and title step up a size so the heading leads the message.
+ */
+export const Compact: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; max-width: 32rem;">
+        <andes-alert severity="success">Your changes have been saved.</andes-alert>
+        <andes-alert severity="info">A new version of the app is available.</andes-alert>
+        <andes-alert severity="warning" closable>Your session will expire in 5 minutes.</andes-alert>
+        <andes-alert severity="danger">Something went wrong while saving your changes.</andes-alert>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Full-width strip for the top of a page or panel: no radius, no side borders (and no borders
+ * at all when tinted). An unset severity resolves to `warning` in banner mode.
  */
 export const Banner: Story = {
   parameters: { layout: 'fullscreen' },
@@ -121,10 +147,38 @@ export const Banner: Story = {
   render: (args) => ({
     props: args,
     template: `<div style="display: flex; flex-direction: column; gap: 1.5rem;">
-      <andes-alert [banner]="banner" [severity]="severity" [closable]="closable" [showIcon]="showIcon" [closeLabel]="closeLabel" (closing)="closing($event)" (afterClose)="afterClose()">
+      <andes-alert [banner]="banner" [severity]="severity" [variant]="variant" [closable]="closable" [showIcon]="showIcon" [closeLabel]="closeLabel" (closing)="closing($event)" (afterClose)="afterClose()">
         Scheduled maintenance tonight from 22:00 to 23:00. Saving may be unavailable.
       </andes-alert>
-      <andes-alert banner severity="info" title="Read-only mode" description="You are viewing an archived project." />
+      <andes-alert banner severity="info" [variant]="variant" title="Read-only mode" description="You are viewing an archived project." />
+    </div>`,
+  }),
+};
+
+/**
+ * `marquee` scrolls the description in a loop - for a one-line notice longer than the strip it
+ * sits in. Hover (or focus inside) pauses it; `marqueeSpeed` sets the pace in px/s so short
+ * and long messages move alike. Under prefers-reduced-motion the text simply wraps.
+ */
+export const LoopBanner: Story = {
+  parameters: { layout: 'fullscreen' },
+  args: {
+    banner: true,
+    marquee: true,
+    marqueeSpeed: 60,
+    severity: undefined,
+    closable: true,
+  },
+  render: (args) => ({
+    props: args,
+    template: `<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <andes-alert [banner]="banner" [marquee]="marquee" [marqueeSpeed]="marqueeSpeed" [severity]="severity" [variant]="variant" [closable]="closable" [closeLabel]="closeLabel" (closing)="closing($event)" (afterClose)="afterClose()">
+        Scheduled maintenance tonight from 22:00 to 23:00 (UTC-5). Saving, exports and report generation will be unavailable during the window - please finish pending work before then.
+      </andes-alert>
+      <andes-alert banner marquee severity="info" [variant]="variant">
+        New: monthly reports can now be exported to PDF from the Reports page.
+        <a href="#" style="color: inherit; font-weight: 500;">See what changed</a>
+      </andes-alert>
     </div>`,
   }),
 };
