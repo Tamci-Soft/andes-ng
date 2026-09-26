@@ -22,7 +22,7 @@ export interface AndesSliderMarkContext {
 
 /**
  * Replaces the text inside every thumb's tooltip bubble. A template rather than a formatter
- * function because Ant Design's `tooltip.formatter` returns a ReactNode, i.e. rich content;
+ * function so the bubble can hold rich content (markup, icons), not only text;
  * `aria-valuetext` still comes from `valueFormatter`, since a template has no text to read.
  */
 @Directive({ selector: 'ng-template[andesSliderTooltip]' })

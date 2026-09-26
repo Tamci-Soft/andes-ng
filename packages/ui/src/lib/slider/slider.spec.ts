@@ -1120,9 +1120,9 @@ describe('AndesSlider', () => {
     });
   });
 
-  // --- Ant Design parity ----------------------------------------------------
+  // --- Extended options -----------------------------------------------------
 
-  describe('Ant Design parity', () => {
+  describe('extended options', () => {
     @Component({
       imports: [AndesSlider],
       template: `<andes-slider
@@ -1235,7 +1235,7 @@ describe('AndesSlider', () => {
 
     // marks ---------------------------------------------------------------
 
-    it('accepts Ant Design keyed marks with per-mark style and class', () => {
+    it('accepts keyed marks with per-mark style and class', () => {
       const view = mount((host) =>
         host.marks.set({
           0: '0°C',
@@ -1661,7 +1661,7 @@ describe('AndesSlider', () => {
       expect(view.values()).toEqual([10, 60, 90]);
     });
 
-    it('lets editable win over draggableTrack, as in Ant Design', () => {
+    it('lets editable win over draggableTrack', () => {
       const view = mount((host) => {
         host.range.set({ editable: true, draggableTrack: true });
         host.value.set([20, 80]);
