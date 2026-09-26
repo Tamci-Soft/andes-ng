@@ -1,5 +1,26 @@
 .andes-pagination {
-  display: block;
+  --andes-pagination-item-size: 2rem;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  color: var(--andes-color-foreground);
+}
+
+.andes-pagination--small {
+  --andes-pagination-item-size: 1.5rem;
+}
+
+.andes-pagination[data-align='center'] {
+  justify-content: center;
+}
+
+.andes-pagination[data-align='end'] {
+  justify-content: flex-end;
 }
 
 .andes-pagination__list {
@@ -11,30 +32,35 @@
   padding: 0;
 }
 
+.andes-pagination__total {
+  color: var(--andes-color-foreground);
+}
+
 .andes-pagination__ellipsis {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  height: 2rem;
+  min-width: var(--andes-pagination-item-size);
+  height: var(--andes-pagination-item-size);
   color: var(--andes-color-muted-foreground);
   user-select: none;
 }
 
-/* Native button rather than andes-button - see the comment in pagination.html
-   for why: it needs a real aria-current on the focusable element itself. */
-.andes-pagination__page {
+/* Native buttons rather than andes-button - see the comment in pagination.html for
+   why: page items need a real aria-current on the focusable element itself, and
+   prev/next/jumpers share the same box so size="small" and itemRender apply evenly. */
+.andes-pagination__item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  height: 2rem;
+  min-width: var(--andes-pagination-item-size);
+  height: var(--andes-pagination-item-size);
   padding-inline: var(--andes-space-2);
   border-radius: var(--andes-radius-md);
   border: 1px solid var(--andes-color-border);
   background-color: var(--andes-color-background);
   color: var(--andes-color-accent-foreground);
-  font-family: var(--andes-font-family), sans-serif;
+  font-family: inherit;
   font-size: 0.875rem;
   font-weight: var(--andes-font-weight-medium);
   cursor: pointer;
@@ -44,16 +70,28 @@
     border-color 0.15s ease;
 }
 
-.andes-pagination__page:hover:not(:disabled) {
+.andes-pagination--small .andes-pagination__item {
+  padding-inline: var(--andes-space-1);
+  font-size: 0.75rem;
+}
+
+/* Sized on the glyph, not the button, so custom itemRender content keeps the
+   regular item font size. */
+.andes-pagination__arrow {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.andes-pagination__item:hover:not(:disabled) {
   background-color: var(--andes-color-accent);
 }
 
-.andes-pagination__page:focus-visible {
+.andes-pagination__item:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
 }
 
-.andes-pagination__page:disabled {
+.andes-pagination__item:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -66,4 +104,102 @@
 
 .andes-pagination__page--active:hover:not(:disabled) {
   background-color: var(--andes-color-primary-hover);
+}
+
+/* Jumpers read as a plain ellipsis until hovered/focused, then reveal their arrow. */
+.andes-pagination__jumper {
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-pagination__jumper-icon {
+  display: none;
+}
+
+.andes-pagination__jumper:hover:not(:disabled) .andes-pagination__jumper-dots,
+.andes-pagination__jumper:focus-visible .andes-pagination__jumper-dots {
+  display: none;
+}
+
+.andes-pagination__jumper:hover:not(:disabled) .andes-pagination__jumper-icon,
+.andes-pagination__jumper:focus-visible .andes-pagination__jumper-icon {
+  display: inline;
+  color: var(--andes-color-primary-text);
+}
+
+.andes-pagination__simple {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  padding-inline: var(--andes-space-1);
+}
+
+.andes-pagination__slash {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-pagination__options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--andes-space-2);
+}
+
+/* Form controls don't inherit font by default, so opt in explicitly. */
+.andes-pagination__input {
+  box-sizing: border-box;
+  height: var(--andes-pagination-item-size);
+  padding-inline: var(--andes-space-2);
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.andes-pagination--small .andes-pagination__input {
+  font-size: 0.75rem;
+}
+
+.andes-pagination__input:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-pagination__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-pagination__simple-input {
+  width: 3rem;
+  text-align: center;
+}
+
+.andes-pagination__jump-input {
+  width: 3.5rem;
+  margin-inline-start: var(--andes-space-2);
+}
+
+.andes-pagination__size-changer {
+  cursor: pointer;
+}
+
+.andes-pagination__jump {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+}
+
+.andes-pagination__jump-label {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* andes-button's host has no display of its own. */
+.andes-pagination__go {
+  display: inline-flex;
 }
