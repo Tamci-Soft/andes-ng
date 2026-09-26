@@ -51,10 +51,13 @@ export const ANDES_CHECKBOX_SELECT_ALL = new InjectionToken<unknown>(
 export class AndesCheckboxGroupState {
   private readonly _value = signal<readonly string[]>([]);
   private readonly _disabled = signal(false);
+  private readonly _name = signal<string | undefined>(undefined);
   private readonly _items = signal<readonly AndesCheckboxGroupItem[]>([]);
 
   readonly value = this._value.asReadonly();
   readonly disabled = this._disabled.asReadonly();
+  /** The group's `name`, which every item without a `name` of its own submits under. */
+  readonly name = this._name.asReadonly();
 
   /**
    * Only ENABLED items count toward the aggregate, and only they are toggled by select-all.
@@ -105,6 +108,10 @@ export class AndesCheckboxGroupState {
 
   setDisabled(disabled: boolean): void {
     this._disabled.set(disabled);
+  }
+
+  setName(name: string | undefined): void {
+    this._name.set(name);
   }
 
   /** Programmatic write - from the group's `value` model or its `writeValue()`. */

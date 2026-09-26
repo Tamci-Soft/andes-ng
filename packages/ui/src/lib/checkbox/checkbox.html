@@ -4,15 +4,17 @@
   [class.andes-checkbox--disabled]="isDisabled()"
   [class.andes-checkbox--readonly]="readOnly()"
   [class.andes-checkbox--invalid]="ariaInvalid()"
+  [class.andes-checkbox--label-start]="labelPosition() === 'start'"
 >
   <span class="andes-checkbox__control">
     <input
+      #input
       type="checkbox"
       class="andes-checkbox__input"
       [checked]="checkedProp()"
       [indeterminate]="indeterminateProp()"
       [disabled]="isDisabled()"
-      [attr.name]="name()"
+      [attr.name]="effectiveName()"
       [attr.value]="value()"
       [attr.required]="required() || null"
       [attr.aria-label]="ariaLabel()"

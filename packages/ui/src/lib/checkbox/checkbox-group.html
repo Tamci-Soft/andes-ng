@@ -1,1 +1,15 @@
 <ng-content />
+@for (option of normalizedOptions(); track option.value; let index = $index) {
+<andes-checkbox
+  [value]="option.value"
+  [disabled]="option.disabled"
+  [attr.title]="option.title ?? null"
+>
+  @if (optionLabel(); as custom) {
+  <ng-container
+    [ngTemplateOutlet]="custom.template"
+    [ngTemplateOutletContext]="{ $implicit: option, index: index }"
+  />
+  } @else { {{ option.label }} }
+</andes-checkbox>
+}

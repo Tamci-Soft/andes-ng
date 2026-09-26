@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-import { AndesCheckbox } from './checkbox';
+import { AndesCheckbox, AndesCheckboxChange } from './checkbox';
 
 @Component({
   imports: [AndesCheckbox],
@@ -512,6 +512,175 @@ describe('AndesCheckbox', () => {
       await fixture.whenStable();
 
       expect(fixture.componentInstance.value).toBe(true);
+    });
+  });
+
+  describe('changed output (Ant onChange parity)', () => {
+    @Component({
+      imports: [AndesCheckbox],
+      template: `<div (change)="bubbled = bubbled + 1">
+        <andes-checkbox
+          value="terms"
+          [(checked)]="checked"
+          (changed)="events.push($event)"
+          >Accept terms</andes-checkbox
+        >
+      </div>`,
+    })
+    class ChangeHost {
+      readonly checked = signal(false);
+      readonly events: AndesCheckboxChange[] = [];
+      bubbled = 0;
+    }
+
+    function createChangeHost() {
+      const fixture = TestBed.createComponent(ChangeHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector(
+        'input',
+      ) as HTMLInputElement;
+      const checkbox = fixture.debugElement.query(
+        (el) => el.componentInstance instanceof AndesCheckbox,
+      ).componentInstance as AndesCheckbox;
+      return { fixture, input, checkbox };
+    }
+
+    it('emits checked, value, source and the native event on a user toggle', () => {
+      const { fixture, input, checkbox } = createChangeHost();
+
+      input.checked = true;
+      const native = new Event('change', { bubbles: true });
+      input.dispatchEvent(native);
+      fixture.detectChanges();
+
+      const [event] = fixture.componentInstance.events;
+      expect(fixture.componentInstance.events).toHaveLength(1);
+      expect(event.checked).toBe(true);
+      expect(event.value).toBe('terms');
+      expect(event.source).toBe(checkbox);
+      expect(event.event).toBe(native);
+    });
+
+    it('does not emit for a programmatic checked write', () => {
+      const { fixture, input } = createChangeHost();
+
+      fixture.componentInstance.checked.set(true);
+      fixture.detectChanges();
+
+      expect(input.checked).toBe(true);
+      expect(fixture.componentInstance.events).toHaveLength(0);
+    });
+
+    it('emits once per toggle and leaves the native change event bubbling', () => {
+      const { fixture, input } = createChangeHost();
+
+      input.checked = true;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.events).toHaveLength(1);
+      expect(fixture.componentInstance.events[0].checked).toBe(true);
+      // Native form-level `(change)` listeners (and AndesCheckboxSelectAll) still see it.
+      expect(fixture.componentInstance.bubbled).toBe(1);
+    });
+
+    it('resolves an indeterminate checkbox to checked on activation (Space / click)', () => {
+      @Component({
+        imports: [AndesCheckbox],
+        template: `<andes-checkbox
+          [(indeterminate)]="indeterminate"
+          [(checked)]="checked"
+          (changed)="last = $event.checked"
+          >Mixed</andes-checkbox
+        >`,
+      })
+      class MixedHost {
+        readonly indeterminate = signal(true);
+        readonly checked = signal(false);
+        last: boolean | undefined;
+      }
+
+      const fixture = TestBed.createComponent(MixedHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector(
+        'input',
+      ) as HTMLInputElement;
+      expect(input.indeterminate).toBe(true);
+
+      // `click()` runs the input's real activation behavior - the same one Space triggers.
+      input.click();
+      fixture.detectChanges();
+
+      expect(input.checked).toBe(true);
+      expect(input.indeterminate).toBe(false);
+      expect(fixture.componentInstance.checked()).toBe(true);
+      expect(fixture.componentInstance.indeterminate()).toBe(false);
+      expect(fixture.componentInstance.last).toBe(true);
+    });
+  });
+
+  describe('labelPosition', () => {
+    it('places the label after the box by default', () => {
+      const { label } = createHost();
+
+      expect(label.classList).not.toContain('andes-checkbox--label-start');
+    });
+
+    it('places the label before the box with labelPosition="start"', () => {
+      @Component({
+        imports: [AndesCheckbox],
+        template: `<andes-checkbox labelPosition="start"
+          >Label</andes-checkbox
+        >`,
+      })
+      class StartHost {}
+
+      const fixture = TestBed.createComponent(StartHost);
+      fixture.detectChanges();
+      const label = fixture.nativeElement.querySelector('label');
+
+      expect(label.classList).toContain('andes-checkbox--label-start');
+      // Source order is untouched, so the input is still the first focusable thing.
+      expect(label.firstElementChild.classList).toContain(
+        'andes-checkbox__control',
+      );
+    });
+  });
+
+  describe('focus management', () => {
+    it('focuses the native input after the first render with autoFocus', async () => {
+      @Component({
+        imports: [AndesCheckbox],
+        template: `<andes-checkbox autoFocus>Focus me</andes-checkbox>`,
+      })
+      class AutoFocusHost {}
+
+      const fixture = TestBed.createComponent(AutoFocusHost);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const input = fixture.nativeElement.querySelector('input');
+
+      expect(document.activeElement).toBe(input);
+    });
+
+    it('does not steal focus without autoFocus', async () => {
+      const { fixture, input } = createHost();
+      await fixture.whenStable();
+
+      expect(document.activeElement).not.toBe(input);
+    });
+
+    it('exposes focus() and blur() that act on the native input', () => {
+      const { fixture, input } = createHost();
+      const checkbox = fixture.debugElement.query(
+        (el) => el.componentInstance instanceof AndesCheckbox,
+      ).componentInstance as AndesCheckbox;
+
+      checkbox.focus();
+      expect(document.activeElement).toBe(input);
+
+      checkbox.blur();
+      expect(document.activeElement).not.toBe(input);
     });
   });
 });

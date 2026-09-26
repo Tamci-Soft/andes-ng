@@ -3,17 +3,25 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  contentChild,
   effect,
   forwardRef,
   inject,
   input,
   model,
+  output,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import clsx from 'clsx';
 
+import { AndesCheckbox } from './checkbox';
 import { AndesCheckboxGroupState } from './checkbox-group-state';
+import {
+  AndesCheckboxOption,
+  AndesCheckboxOptionLabel,
+} from './checkbox-option-label';
 
 export type AndesCheckboxGroupOrientation = 'vertical' | 'horizontal';
 
@@ -32,9 +40,17 @@ export type AndesCheckboxGroupOrientation = 'vertical' | 'horizontal';
  * Items are discovered through DI (see `AndesCheckboxGroupState`), not a `contentChildren()`
  * query, so they can sit at any depth inside the group - wrapped in `@for`, a `<fieldset>`, or
  * any other component - and still participate.
+ *
+ * Alternatively (or additionally), pass `options` and the group renders one checkbox per
+ * option itself - Ant Design's `Checkbox.Group options`:
+ *
+ * ```html
+ * <andes-checkbox-group [options]="['Apple', 'Banana']" [(value)]="fruits" />
+ * ```
  */
 @Component({
   selector: 'andes-checkbox-group',
+  imports: [AndesCheckbox, NgTemplateOutlet],
   templateUrl: './checkbox-group.html',
   styleUrl: './checkbox-group.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +90,35 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
 
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly orientation = input<AndesCheckboxGroupOrientation>('vertical');
+
+  /**
+   * `name` for every item's native input (an item's own `name` still wins), so a plain HTML
+   * form submission posts the selection as repeated `name=value` pairs.
+   */
+  readonly name = input<string | undefined>(undefined);
+
+  /**
+   * Checkboxes to render from data rather than projecting them. Rendered AFTER any projected
+   * content, so a projected `<andes-checkbox andesSelectAll>` naturally sits above them.
+   * Values are strings, like everywhere else in the group (see `value`).
+   */
+  readonly options = input<readonly (string | AndesCheckboxOption)[]>([]);
+
+  /**
+   * Fires with the new selection on every USER change (an item or select-all click) - Ant's
+   * `onChange(checkedValues)`. Unlike `valueChange`, never for a programmatic `[(value)]` or
+   * form write. Named `changed` rather than `change` because items' native `change` events
+   * bubble up to this host (see `AndesCheckbox.changed`).
+   */
+  readonly changed = output<readonly string[]>();
+
+  protected readonly optionLabel = contentChild(AndesCheckboxOptionLabel);
+
+  protected readonly normalizedOptions = computed(() =>
+    this.options().map((option): AndesCheckboxOption =>
+      typeof option === 'string' ? { label: option, value: option } : option,
+    ),
+  );
   readonly ariaLabel = input<string | undefined>(undefined, {
     alias: 'aria-label',
   });
@@ -103,6 +148,7 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
 
   constructor() {
     effect(() => this.state.setDisabled(this.isDisabled()));
+    effect(() => this.state.setName(this.name()));
 
     // Parent -> state. `setValue` normalizes (dedupes and reorders) the array, so writing the
     // normalized result back into the model below cannot loop: the effect re-runs once, hands
@@ -115,6 +161,7 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
       this.value.set(next);
       this.onChange(next);
       this.onTouched();
+      this.changed.emit(next);
     });
   }
 

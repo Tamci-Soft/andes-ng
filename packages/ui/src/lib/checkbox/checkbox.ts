@@ -1,14 +1,18 @@
 import {
+  afterNextRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  ElementRef,
   forwardRef,
   inject,
   input,
   model,
+  output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
@@ -16,6 +20,25 @@ import {
   ANDES_CHECKBOX_SELECT_ALL,
   AndesCheckboxGroupState,
 } from './checkbox-group-state';
+
+/** Which side of the box the projected label sits on, in the current writing direction. */
+export type AndesCheckboxLabelPosition = 'start' | 'end';
+
+/**
+ * Payload of `AndesCheckbox`'s `change` output - the Angular counterpart of Ant Design's
+ * `CheckboxChangeEvent` (`e.target.checked` + `e.nativeEvent`), flattened so the common case
+ * reads `event.checked` rather than digging through a synthetic `target`.
+ */
+export interface AndesCheckboxChange {
+  /** The new checked state. */
+  readonly checked: boolean;
+  /** The checkbox's `value`, if it has one. */
+  readonly value: string | undefined;
+  /** The checkbox that changed. */
+  readonly source: AndesCheckbox;
+  /** The native `change` event from the underlying `<input type="checkbox">`. */
+  readonly event: Event;
+}
 
 @Component({
   selector: 'andes-checkbox',
@@ -119,6 +142,35 @@ export class AndesCheckbox implements ControlValueAccessor {
     transform: booleanAttribute,
   });
 
+  /** Puts the label before (`start`) or after (`end`, the default) the box. */
+  readonly labelPosition = input<AndesCheckboxLabelPosition>('end');
+
+  /**
+   * Focuses the native input once, right after the first render - Ant's `autoFocus`. Read once
+   * on purpose (like the HTML `autofocus` attribute): toggling it later never steals focus.
+   */
+  readonly autoFocus = input(false, { transform: booleanAttribute });
+
+  /**
+   * Opts a checkbox placed inside an `AndesCheckboxGroup` out of the group: it keeps its own
+   * `checked` model, is not part of the group's `value` array or select-all aggregate, and
+   * does not inherit the group's `name`. Like a disabled `<fieldset>`, a disabled group still
+   * disables it - that mirrors Ant Design's `skipGroup`, which only skips the value wiring.
+   */
+  readonly skipGroup = input(false, { transform: booleanAttribute });
+
+  /**
+   * Fires on every USER toggle (never for programmatic `checked`/form writes), carrying the
+   * new state and the native event - Ant's `onChange`. Deliberately not named `change`: the
+   * inner input's native `change` event already bubbles to `<andes-checkbox>` (and
+   * `AndesCheckboxSelectAll` listens for it), so an output of that name would make `(change)`
+   * fire twice with two different payloads - which is also what `no-output-native` forbids.
+   */
+  readonly changed = output<AndesCheckboxChange>();
+
+  private readonly inputRef =
+    viewChild.required<ElementRef<HTMLInputElement>>('input');
+
   /**
    * `model()` intentionally has no `transform` option - unlike `input()`, a two-way binding's
    * output has to emit exactly the type its input accepts, so it can't silently coerce values
@@ -143,18 +195,34 @@ export class AndesCheckbox implements ControlValueAccessor {
     booleanAttribute(this.indeterminate()),
   );
 
-  /** `null` when this checkbox is not a group item (standalone, select-all, or no `value`). */
+  /**
+   * `null` when this checkbox is not a group item (standalone, select-all, `skipGroup`, or no
+   * `value`).
+   */
   private readonly selectedInGroup = computed<boolean | null>(() => {
-    const value = this.value();
+    const value = this.groupValue();
 
-    return this.isGroupItem() && value !== undefined
-      ? (this.group?.isSelected(value) ?? null)
-      : null;
+    return value !== undefined ? (this.group?.isSelected(value) ?? null) : null;
   });
 
-  private isGroupItem(): boolean {
-    return this.group !== null && !this.isSelectAll;
-  }
+  /**
+   * The value this checkbox contributes to its group, or `undefined` when it contributes
+   * nothing. Handed to the group as the item's `value` signal, so flipping `skipGroup` at
+   * runtime simply makes the item drop out of (or rejoin) the aggregate, without having to
+   * unregister and re-register it.
+   */
+  private readonly groupValue = computed(() =>
+    this.group !== null && !this.isSelectAll && !this.skipGroup()
+      ? this.value()
+      : undefined,
+  );
+
+  /** An item's own `name` wins; otherwise it submits under its group's `name`. */
+  protected readonly effectiveName = computed(
+    () =>
+      this.name() ??
+      (this.groupValue() !== undefined ? this.group?.name() : undefined),
+  );
 
   private readonly formDisabled = signal(false);
   protected readonly isDisabled = computed(
@@ -169,16 +237,32 @@ export class AndesCheckbox implements ControlValueAccessor {
 
   constructor() {
     const group = this.group;
-    if (group !== null && this.isGroupItem()) {
+    if (group !== null && !this.isSelectAll) {
       // Registered unconditionally (rather than only while `value` is set) so the item object
       // stays stable for this checkbox's whole lifetime - `value` and `disabled` are handed
       // over as signals, so the group re-reads them itself instead of needing a re-register.
       const unregister = group.registerItem({
-        value: this.value,
+        value: this.groupValue,
         disabled: this.isDisabled,
       });
       inject(DestroyRef).onDestroy(unregister);
     }
+
+    afterNextRender(() => {
+      if (this.autoFocus()) {
+        this.focus();
+      }
+    });
+  }
+
+  /** Moves focus to the native input - Ant's `focus()` method. */
+  focus(options?: FocusOptions): void {
+    this.inputRef().nativeElement.focus(options);
+  }
+
+  /** Removes focus from the native input - Ant's `blur()` method. */
+  blur(): void {
+    this.inputRef().nativeElement.blur();
   }
 
   protected onNativeClick(event: MouseEvent): void {
@@ -204,12 +288,18 @@ export class AndesCheckbox implements ControlValueAccessor {
     // Inside a group, the click also has to reach the group's shared selection - that is what
     // `checkedProp` renders from, so without this the DOM would snap straight back.
     const group = this.group;
-    const value = this.value();
-    if (group !== null && this.isGroupItem() && value !== undefined) {
+    const value = this.groupValue();
+    if (group !== null && value !== undefined) {
       group.toggleItem(value, nativeInput.checked);
     }
 
     this.onChange(nativeInput.checked);
+    this.changed.emit({
+      checked: nativeInput.checked,
+      value: this.value(),
+      source: this,
+      event,
+    });
   }
 
   protected onNativeBlur(): void {

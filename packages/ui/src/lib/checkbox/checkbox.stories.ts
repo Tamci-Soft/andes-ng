@@ -13,6 +13,7 @@ const meta: Meta<AndesCheckbox> = {
     indeterminate: { control: 'boolean' },
     required: { control: 'boolean' },
     readOnly: { control: 'boolean' },
+    labelPosition: { control: 'inline-radio', options: ['end', 'start'] },
     name: { control: 'text' },
     value: { control: 'text' },
   },
@@ -22,10 +23,11 @@ const meta: Meta<AndesCheckbox> = {
     indeterminate: false,
     required: false,
     readOnly: false,
+    labelPosition: 'end',
   },
   render: (args) => ({
     props: args,
-    template: `<andes-checkbox [checked]="checked" [disabled]="disabled" [indeterminate]="indeterminate" [required]="required" [readOnly]="readOnly" [name]="name" [value]="value">Accept terms and conditions</andes-checkbox>`,
+    template: `<andes-checkbox [checked]="checked" [disabled]="disabled" [indeterminate]="indeterminate" [required]="required" [readOnly]="readOnly" [labelPosition]="labelPosition" [name]="name" [value]="value">Accept terms and conditions</andes-checkbox>`,
   }),
 };
 
@@ -108,6 +110,49 @@ export const AllStates: Story = {
         <andes-checkbox readOnly [checked]="true">Read-only checked</andes-checkbox>
         <andes-checkbox aria-invalid="true">Invalid</andes-checkbox>
       </div>
+    `,
+  }),
+};
+
+export const LabelStart: Story = {
+  name: 'Label position: start',
+  args: { labelPosition: 'start', checked: true },
+};
+
+export const AutoFocus: Story = {
+  render: () => ({
+    template: `<andes-checkbox autoFocus>Focused on first render (press Space to toggle)</andes-checkbox>`,
+  }),
+};
+
+export const ChangeEvent: Story = {
+  name: 'Change event',
+  render: () => ({
+    props: { checked: false, last: 'none yet' },
+    // `(changed)` receives an `AndesCheckboxChange`: new state, value, and the native event.
+    template: `
+      <andes-checkbox
+        value="newsletter"
+        [(checked)]="checked"
+        (changed)="last = 'checked=' + $event.checked + ', value=' + $event.value + ', native=' + $event.event.type"
+      >Subscribe to newsletter</andes-checkbox>
+      <p style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-foreground); margin-top: 1rem;">
+        Last change: {{ last }}
+      </p>
+    `,
+  }),
+};
+
+export const IndeterminateToChecked: Story = {
+  name: 'Indeterminate resolves to checked',
+  render: () => ({
+    props: { checked: false, indeterminate: true },
+    // Clicking - or pressing Space on - a mixed checkbox checks it, like the native control.
+    template: `
+      <andes-checkbox [(checked)]="checked" [(indeterminate)]="indeterminate">Mixed state</andes-checkbox>
+      <p style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-foreground); margin-top: 1rem;">
+        checked={{ checked }}, indeterminate={{ indeterminate }}
+      </p>
     `,
   }),
 };
