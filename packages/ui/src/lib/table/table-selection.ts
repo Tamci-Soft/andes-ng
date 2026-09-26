@@ -16,9 +16,9 @@ import {
 import { AndesTableRow } from './table-row';
 
 /**
- * Row selection control (Ant's `rowSelection` cell): a native checkbox, or a
- * radio when the table's `selectionType` is `radio`. Place it in the row's first
- * cell; it selects the row whose `rowKey` it sits in.
+ * Row selection control: a native checkbox, or a radio when the table's
+ * `selectionType` is `radio`. Place it in the row's first cell; it selects the
+ * row whose `rowKey` it sits in.
  *
  * ```html
  * <tr andesTableRow [rowKey]="row.id">
@@ -28,7 +28,7 @@ import { AndesTableRow } from './table-row';
  *
  * State lives in `AndesTable.selectedKeys`. Shift-click extends a checkbox
  * selection over the range from the previously clicked row. A `disabled` control
- * is also skipped by "select all" (Ant's `getCheckboxProps({ disabled })`).
+ * is also skipped by "select all".
  */
 @Component({
   selector: 'andes-table-selection',
@@ -92,13 +92,13 @@ export class AndesTableSelection implements AndesTableSelectable {
 }
 
 /**
- * "Select all" control for the selection column's header (Ant's header checkbox).
+ * "Select all" control for the selection column's header.
  * Checked when every rendered, enabled row is selected; indeterminate when only
  * some are. Toggling it selects or clears exactly those rows.
  *
  * With radio selection there is nothing to select all, so it renders only its
  * `label` as visually hidden text, keeping the header cell named. Leave it out
- * entirely for Ant's `hideSelectAll`.
+ * entirely to hide the "select all" control.
  */
 @Component({
   selector: 'andes-table-select-all',

@@ -1,6 +1,6 @@
 import { InjectionToken, type Signal } from '@angular/core';
 
-/** Identifies a row for selection and expansion - Ant's `rowKey`. */
+/** Identifies a row for selection and expansion. */
 export type AndesTableRowKey = string | number;
 
 /**
@@ -36,7 +36,7 @@ export function andesCssLength(
     : value;
 }
 
-/** Edge a column is pinned to while the table scrolls horizontally (Ant's `fixed`). */
+/** Edge a column is pinned to while the table scrolls horizontally. */
 export type AndesTableFixed = 'start' | 'end';
 
 /** Classes shared by header and data cells for `fixed` and `ellipsis`. */

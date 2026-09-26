@@ -399,7 +399,7 @@ describe('andesNextSortDirection', () => {
     expect(andesNextSortDirection('asc', cycle)).toBeNull();
   });
 
-  it('never returns to unsorted when a direction is repeated (Ant’s trick)', () => {
+  it('never returns to unsorted when a direction is repeated (sticky cycle)', () => {
     const cycle = ['asc', 'desc', 'asc'] as const;
     let direction = andesNextSortDirection(null, cycle);
     const seen = [direction];

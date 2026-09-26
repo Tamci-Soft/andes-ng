@@ -10,7 +10,7 @@ const INTERACTIVE =
 /**
  * Styles a native `<tr>`, keeping its implicit `row` role.
  *
- * Give a body row a `rowKey` (Ant's `rowKey`) to make it selectable and
+ * Give a body row a `rowKey` to make it selectable and
  * expandable: the `andes-table-selection` and `andes-table-expand-toggle`
  * controls inside it read the key from here, and the row reflects the table's
  * selection/expansion state as `andes-table__row--selected` /

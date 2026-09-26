@@ -19,15 +19,15 @@ import { AndesButton } from '../button/button';
 import { AndesTable } from './table';
 import type { AndesFilterValue } from './table-data';
 
-/** One choice in a column filter menu (Ant's `filters[]` entry). */
+/** One choice in a column filter menu. */
 export interface AndesTableFilterOption {
   readonly text: string;
   readonly value: AndesFilterValue;
 }
 
 /**
- * Context handed to a custom filter panel template (Ant's `filterDropdown`
- * props). Values are a *draft* until `confirm()` writes them to the table.
+ * Context handed to a custom filter panel template. Values are a *draft* until
+ * `confirm()` writes them to the table.
  */
 export interface AndesTableFilterPanelContext {
   /** Draft selection, same as `selected`. */
@@ -49,10 +49,9 @@ const PANEL_GAP = 4;
 let nextFilterId = 0;
 
 /**
- * Column filter menu (Ant's column `filters` / `filterDropdown`). Put it inside
- * the column's `<th andesTableHead>`; it renders a filter button that opens a
- * panel of checkboxes (radios with `multiple="false"`), optionally searchable,
- * with Reset / OK actions. Or pass a `panel` template for fully custom filter UI.
+ * Column filter menu. Put it inside the column's `<th andesTableHead>`; it
+ * renders a filter button that opens a panel of checkboxes (radios with
+ * `multiple="false"`), optionally searchable, with Reset / OK actions. Or pass a `panel` template for fully custom filter UI.
  *
  * ```html
  * <th andesTableHead sortKey="status">
@@ -96,16 +95,16 @@ export class AndesTableFilter {
   /** Allow several values at once (checkboxes) or just one (radios). */
   readonly multiple = input(true, { transform: booleanAttribute });
 
-  /** Show a search box that narrows the options by text (Ant's `filterSearch`). */
+  /** Show a search box that narrows the options by text. */
   readonly searchable = input(false, { transform: booleanAttribute });
 
   /**
    * Apply the draft when the panel is dismissed without OK - Escape or a click
-   * outside (Ant's `filterOnClose`).
+   * outside.
    */
   readonly applyOnClose = input(true, { transform: booleanAttribute });
 
-  /** Custom panel content replacing the option list (Ant's `filterDropdown`). */
+  /** Custom panel content replacing the option list. */
   readonly panel = input<TemplateRef<AndesTableFilterPanelContext> | undefined>(
     undefined,
   );
@@ -291,8 +290,8 @@ export class AndesTableFilter {
     const anchor = this.trigger().nativeElement.getBoundingClientRect();
     const viewportWidth = document.documentElement.clientWidth;
     const width = panel.offsetWidth;
-    // Align the panel's end edge with the button's, as Ant's filter dropdown does,
-    // then keep it on screen.
+    // Align the panel's end edge with the button's, so it opens toward the column
+    // it filters, then keep it on screen.
     const left = Math.min(
       Math.max(VIEWPORT_MARGIN, anchor.right - width),
       Math.max(VIEWPORT_MARGIN, viewportWidth - width - VIEWPORT_MARGIN),
