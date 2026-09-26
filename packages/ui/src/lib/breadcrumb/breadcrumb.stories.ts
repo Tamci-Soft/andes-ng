@@ -248,7 +248,7 @@ export const WrappingOnNarrowContainers: Story = {
 };
 
 /**
- * `[items]` is Ant Design's data-driven API: the root renders the list, joins each `path` onto the
+ * `[items]` is the data-driven API: the root renders the list, joins each `path` onto the
  * previous ones (`/users`, `/users/42`), interpolates `:param`s from `[params]` into paths and
  * titles, and renders the last crumb as the current page (`aria-current="page"`).
  */
@@ -323,8 +323,8 @@ export const ItemWithMenu: Story = {
     moduleMetadata: { imports },
     props: {
       items: [
-        { title: 'Ant Design' },
-        { title: 'Component', href: '/components' },
+        { title: 'Home', href: '/' },
+        { title: 'Components', href: '/components' },
         {
           title: 'General',
           menu: {
