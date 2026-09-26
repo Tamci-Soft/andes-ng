@@ -60,8 +60,8 @@ a.andes-tag:focus-visible {
   filter: brightness(0.96);
 }
 
-/* Checkable tags ignore `color`/`variant` (antd's CheckableTag has no such props either) and
-   only ever show this neutral/checked pair. */
+/* Checkable tags ignore `color`/`variant` and only ever show this neutral/checked pair, so the
+   checked state always reads the same regardless of the tag's color. */
 .andes-tag--checkable {
   background-color: var(--andes-color-muted);
   border-color: var(--andes-color-border);
@@ -117,7 +117,7 @@ a.andes-tag:focus-visible {
  * Color x variant matrix.
  *
  * `variant` (outlined/filled/solid) and `color` (default/primary/secondary/success/warning/
- * danger/info) are independent axes, matching antd Tag's `variant` + `color` props - not a
+ * danger/info) are independent axes (the `variant` + `color` inputs) - not a
  * single combined enum. Each color below defines three treatments:
  *   - outlined (default): transparent background, colored border + text.
  *   - filled: a light tint of the color as background (10% mixed into the page background -

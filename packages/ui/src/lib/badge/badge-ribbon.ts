@@ -14,7 +14,7 @@ import { AndesBadgeColor, resolveBadgeColor } from './badge';
 export type AndesBadgeRibbonPlacement = 'start' | 'end';
 
 /**
- * Ant's `Badge.Ribbon`: a banner hanging off a top corner of the wrapped block (a card, an
+ * A ribbon badge: a banner hanging off a top corner of the wrapped block (a card, an
  * image), overhanging its edge with a folded-back corner. Wraps its projected content.
  */
 @Component({
@@ -27,7 +27,7 @@ export type AndesBadgeRibbonPlacement = 'start' | 'end';
 export class AndesBadgeRibbon {
   /** Ribbon content - a string or a `TemplateRef`. */
   readonly text = input<string | TemplateRef<unknown> | undefined>(undefined);
-  /** A preset name or any CSS color (auto-contrast text). Defaults to `primary`, like Ant. */
+  /** A preset name or any CSS color (auto-contrast text). Defaults to `primary`. */
   readonly color = input<AndesBadgeColor>('primary');
   readonly placement = input<AndesBadgeRibbonPlacement>('end');
 

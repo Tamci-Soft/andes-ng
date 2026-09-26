@@ -22,15 +22,15 @@ export type AndesTagPresetColor =
   | 'danger'
   | 'info';
 /**
- * A preset, or any CSS color string (`#722ed1`, `rgb(...)`, a named color, `var(--x)`) -
- * Ant Tag's custom `color`. See the custom-color block in tag.css for how its text stays
+ * A preset, or any CSS color string (`#722ed1`, `rgb(...)`, a named color, `var(--x)`).
+ * See the custom-color block in tag.css for how its text stays
  * readable in every variant.
  */
 // `string & {}` keeps the preset literals in editor autocompletion instead of collapsing the
 // whole union to plain `string`.
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type AndesTagColor = AndesTagPresetColor | (string & {});
-/** Matches Ant Tag's `variant` prop - `outlined` (border only) is the default look. */
+/** Visual treatment, independent of `color` - `outlined` (border only) is the default look. */
 export type AndesTagVariant = 'outlined' | 'filled' | 'solid';
 
 const TAG_PRESETS: readonly string[] = [
@@ -72,7 +72,7 @@ export class AndesTagCloseEvent {
 export class AndesTag {
   readonly color = input<AndesTagColor>('default');
   readonly variant = input<AndesTagVariant>('outlined');
-  /** `false` drops the border (Ant's `bordered={false}`), keeping the tag's size unchanged. */
+  /** `false` drops the border, keeping the tag's size unchanged. */
   readonly bordered = input(true, { transform: booleanAttribute });
   readonly disabled = input(false, { transform: booleanAttribute });
   /**
@@ -80,7 +80,7 @@ export class AndesTag {
    * `closed` (or opt into `hideOnClose`).
    */
   readonly closable = input(false, { transform: booleanAttribute });
-  /** Custom close-button content. Setting it implies `closable`, like Ant's `closeIcon`. */
+  /** Custom close-button content. Setting it implies `closable`. */
   readonly closeIcon = input<TemplateRef<unknown> | undefined>(undefined);
   /**
    * Uncontrolled mode: the tag hides itself after `closed` fires, unless a handler called
@@ -92,10 +92,9 @@ export class AndesTag {
   readonly href = input<string | undefined>(undefined);
   readonly target = input<string | undefined>(undefined);
   /**
-   * A checkable tag toggles its own pressed state on click (like antd's CheckableTag) and
-   * renders as a native `<button>` so Enter/Space work with no extra keyboard handling.
-   * `color`/`variant` are ignored while checkable - like antd's CheckableTag, a checkable
-   * tag only ever shows its own neutral/checked look, not an arbitrary color. Ignored
+   * A checkable tag toggles its own pressed state on click and renders as a native
+   * `<button>` so Enter/Space work with no extra keyboard handling. `color`/`variant` are
+   * ignored while checkable - a checkable tag only ever shows its own neutral/checked look, not an arbitrary color. Ignored
    * entirely when closable or `href` is set - see tag.html.
    */
   readonly checkable = input(false, { transform: booleanAttribute });

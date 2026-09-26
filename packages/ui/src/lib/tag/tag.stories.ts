@@ -206,7 +206,7 @@ export const CustomColors: Story = {
   }),
 };
 
-/** `bordered=false` (Ant's `bordered={false}`) - same box size, no visible border. */
+/** `bordered=false` - same box size, no visible border. */
 export const Borderless: Story = {
   render: () => ({
     template: `
