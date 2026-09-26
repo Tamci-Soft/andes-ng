@@ -42,7 +42,7 @@ const STATUS_PRIORITY: readonly AndesFormValidateStatus[] = [
   'success',
 ];
 
-/** Ant's default label column: 8 of 24, i.e. one third. */
+/** Default label column: 8 of 24, i.e. one third. */
 const DEFAULT_LABEL_COL = 8;
 
 /** `undefined` stays `undefined` (meaning "inherit from the form"); anything else is coerced
@@ -60,11 +60,9 @@ function toTrack(column: AndesFormColumn): string {
 }
 
 /**
- * Layout/label/error-display wrapper around a single form control - the andes-ng
- * counterpart to Ant Design's `Form.Item`, built as a thin shell around Angular's own
- * Reactive Forms (`FormGroup`/`FormControl`/`Validators`) rather than a self-contained
- * validation engine, since Angular already owns that concern (see
- * `docs/research/components/form.md` for the shadcn-vs-Ant comparison this follows).
+ * Layout/label/error-display wrapper around a single form control, built as a thin shell
+ * around Angular's own Reactive Forms (`FormGroup`/`FormControl`/`Validators`) rather than a
+ * self-contained validation engine, since Angular already owns that concern.
  *
  * Composition inside `<andes-form-field>`:
  * - `<andes-form-label>` - optional (or use the `label` input); renders a real `<label>`
@@ -126,7 +124,7 @@ export class AndesFormField implements AndesFormFieldApi {
   readonly label = input<string | undefined>(undefined);
 
   /**
-   * Manual status override (Ant's `validateStatus`). Leave unset to derive it from the control:
+   * Manual status override. Leave unset to derive it from the control:
    * nothing until the user interacts (touched/dirty) or the form is submitted, then
    * `validating` while an async validator is pending, `error` while invalid, `success` once
    * valid. `''` forces "no status". `warning` is only ever manual - Angular validators have no
@@ -136,17 +134,17 @@ export class AndesFormField implements AndesFormFieldApi {
     undefined,
   );
 
-  /** Show a status icon at the trailing edge of the control (Ant's `hasFeedback`). */
+  /** Show a status icon at the trailing edge of the control. */
   readonly hasFeedback = input(false, { transform: booleanAttribute });
 
-  /** Replaces the generated validation messages with this text (Ant's `help`); coloured by
-   *  the current status. */
+  /** Replaces the generated validation messages with this text; coloured by the current
+   *  status. */
   readonly help = input<string | undefined>(undefined);
 
-  /** Secondary text rendered below the control and any messages (Ant's `extra`). */
+  /** Secondary text rendered below the control and any messages. */
   readonly extra = input<string | undefined>(undefined);
 
-  /** Help text behind an info icon next to the label (Ant's `tooltip`). */
+  /** Help text behind an info icon next to the label. */
   readonly tooltip = input<string | undefined>(undefined);
 
   /** Accessible name of the tooltip's trigger button - override to localize. */
@@ -179,9 +177,8 @@ export class AndesFormField implements AndesFormFieldApi {
 
   /**
    * Render no chrome at all - no label, no messages, no layout - only the projected control,
-   * which still gets status/aria wiring (Ant's `noStyle`). Nested inside another field, its
-   * status and messages surface on that parent instead, which is how several controls share
-   * one label (`<andes-form-field label="Phone"><andes-form-field noStyle>...`).
+   * which still gets status/aria wiring. Nested inside another field, its status and messages
+   * surface on that parent instead, which is how several controls share one label (`<andes-form-field label="Phone"><andes-form-field noStyle>...`).
    */
   readonly noStyle = input(false, { transform: booleanAttribute });
 
@@ -350,7 +347,7 @@ export class AndesFormField implements AndesFormFieldApi {
     () => this.form?.optionalText() ?? '(optional)',
   );
 
-  /** As in Ant, the colon is a horizontal-layout device only. */
+  /** The colon is a horizontal-layout device only; stacked labels don't need a separator. */
   readonly showColon = computed(
     () =>
       this.resolvedLayout() === 'horizontal' &&

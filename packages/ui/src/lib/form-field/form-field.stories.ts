@@ -97,7 +97,7 @@ const meta: Meta<AndesFormField> = {
           '`aria-required`) is derived and applied automatically - nothing to hand-wire. That is',
           'what the stories below render.',
           '',
-          '### Ant Design `Form.Item` features',
+          '### Field features',
           '',
           '`validateStatus` (derived from the control - touched/dirty/submitted, pending,',
           'invalid - or set by hand), `hasFeedback` status icons, `help` / `extra` text,',
@@ -363,7 +363,7 @@ export const DescriptionOnly: Story = {
 /**
  * `validateStatus` set by hand, each with `hasFeedback` and a `help` line - the full status
  * vocabulary (`success`, `warning`, `error`, `validating`). Only `error` and `warning` tint a
- * plain native control; `success`/`validating` are carried by the icon alone, as in Ant.
+ * plain native control; `success`/`validating` are carried by the icon alone.
  */
 export const ValidateStatus: Story = {
   render: () => ({
@@ -561,7 +561,7 @@ export const RequiredMarkAndTooltip: Story = {
 
 /**
  * `noStyle` fields render only their control - several of them can share one labelled
- * parent field, whose status and messages aggregate theirs (Ant's compound-field pattern).
+ * parent field, whose status and messages aggregate theirs (a compound field).
  */
 export const NoStyleCompound: Story = {
   render: () => {
