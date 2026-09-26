@@ -1,12 +1,18 @@
 <div
   data-slot="alert"
-  [attr.data-severity]="severity()"
+  [attr.data-severity]="resolvedSeverity()"
   [attr.role]="resolvedRole()"
   [class]="classes()"
   [hidden]="!visible()"
 >
   @if (showIcon()) {
   <span class="andes-alert__icon" aria-hidden="true">
+    @if (icon(); as customIcon) {
+    <ng-container
+      [ngTemplateOutlet]="customIcon"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else {
     <!-- Stroked (outline) glyphs rather than solid/filled discs: at the 1rem size this layout
          calls for, a filled disc with a knocked-out mark collapses into a featureless colored
          dot, and the severity stops being readable from the glyph itself. An outline keeps the
@@ -20,7 +26,7 @@
       stroke-linecap="round"
       stroke-linejoin="round"
     >
-      @switch (severity()) { @case ('success') {
+      @switch (resolvedSeverity()) { @case ('success') {
       <circle cx="12" cy="12" r="9" />
       <path d="m8.25 12.25 2.5 2.5 5-5.5" />
       } @case ('warning') {
@@ -39,20 +45,58 @@
       <path d="M12 7.75h.01" />
       } }
     </svg>
+    }
   </span>
   }
 
-  <div class="andes-alert__title"><ng-content select="[slot=title]" /></div>
-  <div class="andes-alert__description"><ng-content /></div>
-  <div class="andes-alert__action"><ng-content select="[slot=action]" /></div>
+  <!-- Each input takes precedence over its slot; every <ng-content> still appears exactly once
+       in this template, inside the @else branch. -->
+  <div class="andes-alert__title">
+    @if (titleTemplate(); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else if (titleText(); as text) { {{ text }} } @else {
+    <ng-content select="[slot=title]" />
+    }
+  </div>
+  <div class="andes-alert__description">
+    @if (descriptionTemplate(); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else if (descriptionText(); as text) { {{ text }} } @else {
+    <ng-content />
+    }
+  </div>
+  <div class="andes-alert__action">
+    @if (action(); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else {
+    <ng-content select="[slot=action]" />
+    }
+  </div>
 
   @if (closable()) {
   <button
     type="button"
     class="andes-alert__close"
     [attr.aria-label]="closeLabel()"
-    (click)="dismiss()"
+    (click)="dismiss($event)"
   >
+    @if (closeIcon(); as customCloseIcon) {
+    <span class="andes-alert__close-icon" aria-hidden="true">
+      <ng-container
+        [ngTemplateOutlet]="customCloseIcon"
+        [ngTemplateOutletContext]="templateContext()"
+      />
+    </span>
+    } @else {
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -64,6 +108,7 @@
       <path d="m6.5 6.5 11 11" />
       <path d="m17.5 6.5-11 11" />
     </svg>
+    }
   </button>
   }
 </div>
