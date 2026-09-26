@@ -1,11 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  input,
   ViewEncapsulation,
 } from '@angular/core';
 
+let nextId = 0;
+
 /**
- * A non-interactive heading for a group of menu items.
+ * A non-interactive heading for a group of menu items. Inside an
+ * `AndesDropdownMenuGroup` it also names the group (`aria-labelledby`).
  *
  * See the class-level comment on `AndesDropdownMenuContent` for why this needs
  * `encapsulation: ViewEncapsulation.None`: its BEM class lives only in `host: {
@@ -20,6 +24,10 @@ import {
   encapsulation: ViewEncapsulation.None,
   host: {
     class: 'andes-dropdown-menu__label',
+    '[attr.id]': 'id()',
   },
 })
-export class AndesDropdownMenuLabel {}
+export class AndesDropdownMenuLabel {
+  /** The element id. Generated unless set. */
+  readonly id = input(`andes-dropdown-menu-label-${nextId++}`);
+}

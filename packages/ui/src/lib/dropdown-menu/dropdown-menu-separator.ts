@@ -1,6 +1,8 @@
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
+  input,
   ViewEncapsulation,
 } from '@angular/core';
 
@@ -22,6 +24,10 @@ import {
     role: 'separator',
     'aria-orientation': 'horizontal',
     class: 'andes-dropdown-menu__separator',
+    '[attr.data-dashed]': 'dashed() ? "" : null',
   },
 })
-export class AndesDropdownMenuSeparator {}
+export class AndesDropdownMenuSeparator {
+  /** Draw the line dashed (Ant's divider `dashed`). Default `false`. */
+  readonly dashed = input(false, { transform: booleanAttribute });
+}

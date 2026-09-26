@@ -1,15 +1,21 @@
 import { AndesOverlayTriggerPrimitive } from '@andes-ng/primitives';
-import { Directive, inject } from '@angular/core';
+import { afterNextRender, Directive, ElementRef, inject } from '@angular/core';
 
 import { AndesDropdownMenu } from './dropdown-menu';
 
+/** Matches the elements a browser will actually move focus to. */
+const FOCUSABLE_SELECTOR =
+  'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 /**
  * Marks an element as a dropdown menu's trigger. Apply it to whatever should open
- * the menu - a plain `<button>`, an `AndesButton`, an icon button - it renders
- * nothing of its own and does not care what tag it is on.
+ * the menu - a plain `<button>`, an `AndesButton`, an icon button, or (for
+ * `trigger="contextMenu"`) the region a right-click should work in. It renders nothing
+ * of its own; which interactions open the menu is the root's `trigger` input.
  *
  * `aria-haspopup`/`aria-expanded`/`aria-controls` and `data-state` come for free
- * from the composed `AndesOverlayTriggerPrimitive`.
+ * from the composed `AndesOverlayTriggerPrimitive`; `aria-disabled`/`data-disabled`
+ * reflect the root's `disabled`.
  *
  * ```html
  * <button type="button" andesDropdownMenuTrigger>Options</button>
@@ -30,29 +36,39 @@ import { AndesDropdownMenu } from './dropdown-menu';
     // which is inline-flex-shaped already, and a consumer's own `[style.display]`
     // still wins over a static host style.
     style: 'display: inline-flex',
-    '(click)': 'onClick()',
-    '(keydown)': 'onKeydown($event)',
+    '[attr.aria-disabled]': 'menu.isDisabled() || null',
+    '[attr.data-disabled]': 'menu.isDisabled() ? "" : null',
+    '(click)': 'menu.onTriggerClick()',
+    '(keydown)': 'menu.onTriggerKeydown($event)',
+    '(pointerenter)': 'menu.onTriggerPointerEnter($event)',
+    '(pointerleave)': 'menu.onTriggerPointerLeave($event)',
+    '(contextmenu)': 'menu.onTriggerContextMenu($event)',
   },
 })
 export class AndesDropdownMenuTrigger {
-  private readonly menu = inject(AndesDropdownMenu);
+  protected readonly menu = inject(AndesDropdownMenu);
 
-  protected onClick(): void {
-    this.menu.toggle();
-  }
+  constructor() {
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    this.menu.registerTrigger(host, host);
 
-  protected onKeydown(event: KeyboardEvent): void {
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        this.menu.open();
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        this.menu.openFocusingLast();
-        break;
-      default:
-        break;
-    }
+    // `AndesOverlayTriggerPrimitive` registers *this* host as both the positioning
+    // anchor and the element focus returns to on close. That is right for
+    // `<button andesDropdownMenuTrigger>`, but the directive is just as legitimately
+    // put on a wrapper component - `<andes-button andesDropdownMenuTrigger>` - whose
+    // host is a non-focusable custom element with the real `<button>` inside its
+    // template. `focus()` on such a host silently no-ops, so closing the menu would
+    // strand focus on `<body>`. Re-anchor to the inner focusable element once the
+    // wrapper has rendered. Only for custom elements: a plain `<div>` context-menu
+    // region that happens to contain a button should keep its own box.
+    afterNextRender(() => {
+      if (host.tabIndex >= 0 || !host.tagName.includes('-')) {
+        return;
+      }
+      const focusable = host.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusable) {
+        this.menu.registerTrigger(host, focusable);
+      }
+    });
   }
 }

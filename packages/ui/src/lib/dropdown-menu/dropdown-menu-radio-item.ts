@@ -11,7 +11,8 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 
-import { AndesDropdownMenu } from './dropdown-menu';
+import { AndesDropdownMenuRoot } from './dropdown-menu-root';
+import { AndesDropdownMenuLevel } from './dropdown-menu-types';
 
 /**
  * One option within a set of mutually-exclusive radio items. Items sharing the same
@@ -59,6 +60,7 @@ import { AndesDropdownMenu } from './dropdown-menu';
     '(click)': 'activate()',
     '(keydown.enter)': 'onKeydownActivate($event)',
     '(keydown.space)': 'onKeydownActivate($event)',
+    '(pointerenter)': 'onPointerEnter($event)',
   },
 })
 export class AndesDropdownMenuRadioItem implements OnInit {
@@ -76,7 +78,8 @@ export class AndesDropdownMenuRadioItem implements OnInit {
   protected readonly navItem = inject(AndesListNavigationItem);
   protected readonly isDisabled = this.navItem.disabled;
 
-  private readonly menu = inject(AndesDropdownMenu);
+  private readonly menu = inject(AndesDropdownMenuRoot);
+  private readonly level = inject(AndesDropdownMenuLevel);
 
   protected readonly checked = computed(
     () => this.menu.radioGroupValue(this.name())() === this.value(),
@@ -102,12 +105,19 @@ export class AndesDropdownMenuRadioItem implements OnInit {
     this.menu.setRadioGroupValue(this.name(), this.value());
     this.selected.emit(this.value());
     if (this.closeOnSelect()) {
-      this.menu.close('trigger');
+      this.menu.hide('item');
     }
   }
 
   protected onKeydownActivate(event: Event): void {
     event.preventDefault();
     this.activate();
+  }
+
+  /** Pointing at a sibling is the cue to close this level's open submenu. */
+  protected onPointerEnter(event: PointerEvent): void {
+    if (event.pointerType !== 'touch') {
+      this.level.openChild()?.scheduleClose();
+    }
   }
 }
