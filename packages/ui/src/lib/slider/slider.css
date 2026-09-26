@@ -234,7 +234,7 @@
    symmetrically and stays centered without a direction-sensitive transform. This is a
    minimal built-in bubble, not AndesTooltip (not merged yet): no portal, no collision
    flipping. The default placements are logical (top, or the inline end when vertical, which
-   RTL mirrors); an explicit left/right is physical, as in Ant Design. */
+   RTL mirrors); an explicit left/right is physical. */
 
 .andes-slider__tooltip {
   position: absolute;

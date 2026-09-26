@@ -39,7 +39,7 @@ export type AndesSliderValue = number | number[];
 export interface AndesSliderMark {
   readonly value: number;
   readonly label?: string;
-  /** Inline styles for this mark's label, like Ant Design's `{ style, label }` mark shape. */
+  /** Inline styles for this mark's label. */
   readonly style?: Readonly<Record<string, string | number>>;
   /** Extra class(es) for this mark's label. */
   readonly class?: string;
@@ -47,7 +47,7 @@ export interface AndesSliderMark {
 
 export type AndesSliderMarkInput = AndesSliderMark | number;
 
-/** Ant Design's object shape: `{ 0: '0°C', 100: { label: '100°C', style: { color: 'red' } } }`. */
+/** Marks keyed by value: `{ 0: '0°C', 100: { label: '100°C', style: { color: 'red' } } }`. */
 export type AndesSliderMarksRecord = Readonly<
   Record<number | string, string | Omit<AndesSliderMark, 'value'>>
 >;
@@ -55,7 +55,7 @@ export type AndesSliderMarksRecord = Readonly<
 export type AndesSliderMarks =
   readonly AndesSliderMarkInput[] | AndesSliderMarksRecord;
 
-/** Ant Design's `range` object. `range` also accepts a plain boolean. */
+/** Range-mode options. `range` also accepts a plain boolean. */
 export interface AndesSliderRangeConfig {
   /** Drag the filled segment to move every handle at once, keeping their spacing. */
   readonly draggableTrack?: boolean;
@@ -82,7 +82,7 @@ function isMarkLike(value: unknown): value is Omit<AndesSliderMark, 'value'> {
 
 /**
  * Accepts bare numbers (`[0, 50, 100]`), labelled marks (`[{ value: 0, label: 'Cold' }]`) or
- * Ant Design's keyed object, and always yields ascending `AndesSliderMark`s.
+ * a keyed object (`AndesSliderMarksRecord`), and always yields ascending `AndesSliderMark`s.
  */
 function normalizeMarks(
   raw: AndesSliderMarks | null | undefined,
@@ -122,7 +122,7 @@ function normalizeMarks(
   return marks.sort((a, b) => a.value - b.value);
 }
 
-/** `step` accepts `null` ("snap to `marks` only", Ant Design semantics), so it needs its own transform. */
+/** `step` accepts `null` ("snap to `marks` only"), so it needs its own transform. */
 function nullableNumberAttribute(value: unknown): number | null {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -131,7 +131,7 @@ function nullableNumberAttribute(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/** `range` is a boolean attribute or an Ant-style config object; `null` means single mode. */
+/** `range` is a boolean attribute or a config object; `null` means single mode. */
 function rangeAttribute(value: unknown): AndesSliderRangeConfig | null {
   if (typeof value === 'object' && value !== null) {
     return value as AndesSliderRangeConfig;
@@ -139,7 +139,7 @@ function rangeAttribute(value: unknown): AndesSliderRangeConfig | null {
   return booleanAttribute(value) ? {} : null;
 }
 
-/** `disabled` is a boolean attribute, or one flag per handle (Ant Design's `boolean[]`). */
+/** `disabled` is a boolean attribute, or one flag per handle (`boolean[]`). */
 function disabledAttribute(value: unknown): boolean | readonly boolean[] {
   return Array.isArray(value)
     ? value.map((flag) => booleanAttribute(flag))
@@ -286,15 +286,15 @@ export class AndesSlider implements ControlValueAccessor {
     readonly AndesSliderMark[],
     AndesSliderMarks | null | undefined
   >([], { transform: normalizeMarks });
-  /** `hover` (hover, focus and drag), `always` or `never` - Ant Design's `tooltip.open`. */
+  /** When the value tooltip shows: `hover` (hover, focus and drag), `always` or `never`. */
   readonly tooltip = input<AndesSliderTooltip>('hover');
   /** Side of the thumb the tooltip opens on. Defaults to `top`, or the inline end when vertical. */
   readonly tooltipPlacement = input<AndesSliderTooltipPlacement | undefined>(
     undefined,
   );
   /**
-   * Tooltip text only (Ant Design's `tooltip.formatter`). Returning `null` hides that thumb's
-   * tooltip; passing `null` hides every tooltip. Falls back to `valueFormatter`.
+   * Tooltip text only. Returning `null` hides that thumb's tooltip; passing `null` hides every
+   * tooltip. Falls back to `valueFormatter`.
    */
   readonly tooltipFormatter = input<
     ((value: number, index: number) => string | null) | null | undefined
@@ -327,7 +327,7 @@ export class AndesSlider implements ControlValueAccessor {
     ((index: number, count: number) => string) | undefined
   >(undefined);
 
-  /** Fires once when a drag, mark click or keystroke interaction ends (Ant's `onChangeComplete`). */
+  /** Fires once when a drag, mark click or keystroke interaction ends. */
   readonly valueCommit = output<AndesSliderValue>();
 
   protected readonly dragging = signal(false);
@@ -350,7 +350,7 @@ export class AndesSlider implements ControlValueAccessor {
 
   protected readonly isRange = computed(() => this.range() !== null);
   protected readonly editable = computed(() => this.range()?.editable === true);
-  /** Ant Design: `editable` cannot be combined with `draggableTrack`, so editable wins. */
+  /** `editable` cannot be combined with `draggableTrack`, so editable wins. */
   protected readonly draggableTrack = computed(
     () => this.range()?.draggableTrack === true && !this.editable(),
   );
@@ -603,12 +603,12 @@ export class AndesSlider implements ControlValueAccessor {
 
   // Public methods -----------------------------------------------------------
 
-  /** Moves focus to a handle (the first one by default), like Ant Design's `focus()`. */
+  /** Moves focus to a handle (the first one by default). */
   focus(index = 0): void {
     this.thumbRefs()[index]?.nativeElement.focus();
   }
 
-  /** Removes focus from whichever handle holds it, like Ant Design's `blur()`. */
+  /** Removes focus from whichever handle holds it. */
   blur(): void {
     const active = this.elementRef.nativeElement.ownerDocument?.activeElement;
     if (
@@ -1014,8 +1014,8 @@ export class AndesSlider implements ControlValueAccessor {
 
     let counted: number[];
     if (raw === undefined) {
-      // No value at all (unbound, or a form reset to null): two handles at `min`, like
-      // Ant Design - even when editable, within `maxCount`.
+      // No value at all (unbound, or a form reset to null): two handles at `min` - even when
+      // editable, within `maxCount`.
       counted = [this.min(), this.min()].slice(0, this.maxCount());
       while (counted.length < this.minCount()) {
         counted.push(this.min());
@@ -1054,7 +1054,7 @@ export class AndesSlider implements ControlValueAccessor {
     const step = this.step();
     if (step !== null && step > 0) {
       value = min + Math.round((value - min) / step) * step;
-      // A max that is not on the step grid stays reachable, matching both reference libraries.
+      // A max that is not on the step grid stays reachable.
       value = clamp(value, low, high);
     }
 
