@@ -10,9 +10,9 @@ import clsx from 'clsx';
 import { toCssSize } from './skeleton-utils';
 
 /**
- * A placeholder box around arbitrary projected content (an icon, a short hint) - Ant Design's
- * `Skeleton.Node`. The content is decorative like every other placeholder, so it is hidden from
- * assistive technology along with the box.
+ * A placeholder box around arbitrary projected content (an icon, a short hint). The content is
+ * decorative like every other placeholder, so it is hidden from assistive technology along with
+ * the box.
  */
 @Component({
   selector: 'andes-skeleton-node',
