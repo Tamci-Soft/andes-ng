@@ -1,0 +1,211 @@
+@if (!isHidden()) {
+<nav
+  [attr.aria-label]="ariaLabel()"
+  class="andes-pagination"
+  [class.andes-pagination--small]="isSmall()"
+  [class.andes-pagination--simple]="isSimple()"
+  [class.andes-pagination--disabled]="disabled()"
+  [attr.data-align]="align()"
+>
+  @if (showTotal(); as totalTemplate) {
+  <span class="andes-pagination__total">
+    <ng-container *ngTemplateOutlet="totalTemplate; context: totalContext()" />
+  </span>
+  }
+
+  <ul class="andes-pagination__list">
+    <li>
+      <button
+        type="button"
+        class="andes-pagination__item andes-pagination__item--prev"
+        [disabled]="disabled() || isFirstPage()"
+        [attr.aria-label]="previousLabel()"
+        [attr.title]="showTitle() ? previousLabel() : null"
+        (click)="goToPrevious()"
+      >
+        <ng-container
+          *ngTemplateOutlet="
+            itemContent;
+            context: { $implicit: clampedCurrentPage() - 1, type: 'prev' }
+          "
+        />
+      </button>
+    </li>
+
+    @if (isSimple()) {
+    <li class="andes-pagination__simple">
+      @if (simple().readOnly) {
+      <span class="andes-pagination__simple-current"
+        >{{ simpleInputValue() }}</span
+      >
+      } @else {
+      <input
+        type="text"
+        inputmode="numeric"
+        autocomplete="off"
+        class="andes-pagination__input andes-pagination__simple-input"
+        #simpleInput
+        [value]="simpleInputValue()"
+        [disabled]="disabled() || isEmpty()"
+        [attr.aria-label]="currentPageLabel()"
+        (keydown)="onSimpleKeydown($event, simpleInput)"
+        (blur)="commitSimple(simpleInput)"
+      />
+      }
+      <span class="andes-pagination__slash" aria-hidden="true">/</span>
+      <span>{{ resolvedTotalPages() }}</span>
+    </li>
+    } @else { @for (item of items(); track item) {
+    <li>
+      @if (isEllipsis(item)) { @if (showPrevNextJumpers()) {
+      <button
+        type="button"
+        class="andes-pagination__item andes-pagination__jumper"
+        [disabled]="disabled()"
+        [attr.aria-label]="jumpLabel(item)"
+        [attr.title]="showTitle() ? jumpLabel(item) : null"
+        (click)="goToPage(jumpTarget(item))"
+      >
+        <ng-container
+          *ngTemplateOutlet="
+            itemContent;
+            context: {
+              $implicit: jumpTarget(item),
+              type: item === 'start-ellipsis' ? 'jump-prev' : 'jump-next'
+            }
+          "
+        />
+      </button>
+      } @else {
+      <span class="andes-pagination__ellipsis" aria-hidden="true"
+        >&hellip;</span
+      >
+      } } @else {
+      <!--
+        Native buttons rather than andes-button: AndesButton's host deliberately nulls
+        out ad-hoc [attr.aria-*] bindings (see button.ts) so only its own dedicated
+        aria-* inputs reach the real inner <button> - it has no aria-current input, so
+        aria-current would be stuck on the non-interactive <andes-button> wrapper
+        instead of the focusable control a screen reader actually reports it from.
+      -->
+      <button
+        type="button"
+        class="andes-pagination__item andes-pagination__page"
+        [class.andes-pagination__page--active]="item === clampedCurrentPage()"
+        [disabled]="disabled()"
+        [attr.aria-current]="item === clampedCurrentPage() ? 'page' : null"
+        [attr.aria-label]="pageLabel() + ' ' + item"
+        [attr.title]="showTitle() ? item : null"
+        (click)="goToPage(item)"
+      >
+        <ng-container
+          *ngTemplateOutlet="itemContent; context: { $implicit: item, type: 'page' }"
+        />
+      </button>
+      }
+    </li>
+    } }
+
+    <li>
+      <button
+        type="button"
+        class="andes-pagination__item andes-pagination__item--next"
+        [disabled]="disabled() || isLastPage()"
+        [attr.aria-label]="nextLabel()"
+        [attr.title]="showTitle() ? nextLabel() : null"
+        (click)="goToNext()"
+      >
+        <ng-container
+          *ngTemplateOutlet="
+            itemContent;
+            context: { $implicit: clampedCurrentPage() + 1, type: 'next' }
+          "
+        />
+      </button>
+    </li>
+  </ul>
+
+  @if (isSizeChangerVisible() || isQuickJumperVisible()) {
+  <div class="andes-pagination__options">
+    @if (isSizeChangerVisible()) {
+    <!--
+      A minimal native <select> until AndesSelect lands on develop - swap it in then.
+    -->
+    <select
+      class="andes-pagination__input andes-pagination__size-changer"
+      [disabled]="disabled()"
+      [attr.aria-label]="pageSizeLabel()"
+      (change)="onSizeSelected($any($event.target).value)"
+    >
+      @for (option of sizeOptions(); track option) {
+      <option [value]="option" [selected]="option === resolvedPageSize()">
+        {{ option }} {{ itemsPerPageLabel() }}
+      </option>
+      }
+    </select>
+    } @if (isQuickJumperVisible()) {
+    <span class="andes-pagination__jump">
+      <label class="andes-pagination__jump-label">
+        {{ jumpToLabel() }}
+        <input
+          type="text"
+          inputmode="numeric"
+          autocomplete="off"
+          class="andes-pagination__input andes-pagination__jump-input"
+          #jumpInput
+          [disabled]="disabled() || isEmpty()"
+          (keydown)="onJumperKeydown($event, jumpInput)"
+          (blur)="onJumperBlur(jumpInput)"
+        />
+      </label>
+      @if (goButtonText(); as goText) {
+      <andes-button
+        class="andes-pagination__go"
+        variant="outline"
+        [size]="isSmall() ? 'xs' : 'sm'"
+        [disabled]="disabled() || isEmpty()"
+        (click)="commitJumper(jumpInput)"
+        >{{ goText }}</andes-button
+      >
+      } @else if (goButtonTemplate(); as goTemplate) {
+      <!--
+        A click on the template's own button bubbles here, so Enter/Space already work;
+        the wrapper itself is never focusable.
+      -->
+      <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+      <span class="andes-pagination__go" (click)="commitJumper(jumpInput)">
+        <ng-container *ngTemplateOutlet="goTemplate" />
+      </span>
+      }
+    </span>
+    }
+  </div>
+  }
+</nav>
+}
+
+<ng-template #itemContent let-page let-type="type">
+  @if (itemRender(); as render) {
+  <ng-container
+    *ngTemplateOutlet="render; context: itemContext(page, type, defaultItem)"
+  />
+  } @else {
+  <ng-container
+    *ngTemplateOutlet="defaultItem; context: { $implicit: page, type: type }"
+  />
+  }
+</ng-template>
+
+<ng-template #defaultItem let-page let-type="type">
+  @switch (type) { @case ('prev') {
+  <span class="andes-pagination__arrow" aria-hidden="true">&lsaquo;</span>
+  } @case ('next') {
+  <span class="andes-pagination__arrow" aria-hidden="true">&rsaquo;</span>
+  } @case ('jump-prev') {
+  <span class="andes-pagination__jumper-dots" aria-hidden="true">&hellip;</span>
+  <span class="andes-pagination__jumper-icon" aria-hidden="true">&laquo;</span>
+  } @case ('jump-next') {
+  <span class="andes-pagination__jumper-dots" aria-hidden="true">&hellip;</span>
+  <span class="andes-pagination__jumper-icon" aria-hidden="true">&raquo;</span>
+  } @default { {{ page }} } }
+</ng-template>
