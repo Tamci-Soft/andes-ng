@@ -15,16 +15,15 @@ import type {
 type AndesMessageShortcutConfig = Omit<AndesMessageConfig, 'content' | 'type'>;
 
 /**
- * Compact, single-line status messages pinned to the top-center of the screen - the Angular
- * analogue of Ant Design's `message` static API, for lightweight operation feedback
- * ("Saved", "Copied to clipboard"). Rendered by the same `AndesToastViewport` as
+ * Compact, single-line status messages pinned to the top-center of the screen, exposed as
+ * a static-style API for lightweight operation feedback ("Saved", "Copied to clipboard"). Rendered by the same `AndesToastViewport` as
  * notifications (mount it once), in its own top-center region.
  *
  * ```ts
  * const messages = inject(AndesMessageService);
  * messages.loading('Uploading...', { key: 'upload', duration: false });
  * messages.success('Uploaded.', { key: 'upload' }); // replaces the loading message
- * await messages.info('Heads up').afterClosed;       // Ant's `.then(afterClose)`
+ * await messages.info('Heads up').afterClosed;       // resolves once it closes
  * ```
  *
  * Messages have no title, actions, or close button by default (set `dismissible: true` to

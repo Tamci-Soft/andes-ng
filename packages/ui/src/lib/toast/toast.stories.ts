@@ -104,7 +104,7 @@ class ToastStoryHost {
   }
 }
 
-/** Ant's `message`: compact, single-line, top-center, typed icons, `loading` -> `success`. */
+/** Messages: compact, single-line, top-center, typed icons, `loading` -> `success`. */
 @Component({
   selector: 'andes-message-story',
   imports: [AndesToastViewport],
@@ -302,7 +302,7 @@ class NotificationStoryHost {
   }
 }
 
-/** Collapsed stack (Ant's `stack`), expanded while hovered/focused. */
+/** Collapsed stack (`stack`), expanded while hovered/focused. */
 @Component({
   selector: 'andes-stack-story',
   imports: [AndesToastViewport],
@@ -379,7 +379,7 @@ export const BottomCenter: Story = {
   args: { position: 'bottom-center' },
 };
 
-/** `AndesMessageService` - Ant Design's `message`. */
+/** `AndesMessageService` - compact single-line status messages. */
 export const Messages: Story = {
   render: () => ({
     moduleMetadata: { imports: [MessageStoryHost] },
@@ -387,7 +387,7 @@ export const Messages: Story = {
   }),
 };
 
-/** `AndesToastService` - Ant Design's `notification` feature set. */
+/** `AndesToastService` - the full notification feature set. */
 export const Notifications: Story = {
   render: () => ({
     moduleMetadata: { imports: [NotificationStoryHost] },

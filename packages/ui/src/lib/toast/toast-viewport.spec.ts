@@ -244,7 +244,7 @@ describe('AndesToastViewport', () => {
     expect(viewport.getAttribute('data-position')).toBe('top-left');
   });
 
-  describe('Ant Design parity', () => {
+  describe('extended features', () => {
     function createTemplateHost(
       providers: Parameters<
         typeof TestBed.configureTestingModule
