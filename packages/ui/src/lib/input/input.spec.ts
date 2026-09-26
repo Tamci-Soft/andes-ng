@@ -6,7 +6,14 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-import { AndesInput, AndesInputSize, AndesInputType } from './input';
+import {
+  AndesInput,
+  AndesInputCountInfo,
+  AndesInputSize,
+  AndesInputStatus,
+  AndesInputType,
+  AndesInputVariant,
+} from './input';
 
 @Component({
   imports: [AndesInput],
@@ -419,6 +426,428 @@ describe('AndesInput', () => {
       input.dispatchEvent(new Event('blur'));
 
       expect(fixture.componentInstance.control.touched).toBe(true);
+    });
+  });
+  describe('value model', () => {
+    it('supports two-way [(value)] binding without Angular Forms', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input [(value)]="text" />`,
+      })
+      class ModelHost {
+        readonly text = signal('initial');
+      }
+
+      const fixture = TestBed.createComponent(ModelHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector('input');
+
+      expect(input.value).toBe('initial');
+
+      input.value = 'typed';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.text()).toBe('typed');
+
+      fixture.componentInstance.text.set('from parent');
+      fixture.detectChanges();
+
+      expect(input.value).toBe('from parent');
+    });
+  });
+
+  describe('variant', () => {
+    it('defaults to outlined', () => {
+      const { wrapper } = createHost();
+
+      expect(wrapper.classList).toContain('andes-input-wrapper--outlined');
+    });
+
+    it.each(['filled', 'borderless', 'underlined'] as const)(
+      'supports the %s variant',
+      (variant) => {
+        @Component({
+          imports: [AndesInput],
+          template: `<andes-input [variant]="variant" />`,
+        })
+        class VariantHost {
+          variant: AndesInputVariant = variant;
+        }
+
+        const fixture = TestBed.createComponent(VariantHost);
+        fixture.detectChanges();
+        const wrapper = fixture.nativeElement.querySelector(
+          '.andes-input-wrapper',
+        );
+
+        expect(wrapper.classList).toContain(`andes-input-wrapper--${variant}`);
+        expect(wrapper.classList).not.toContain(
+          'andes-input-wrapper--outlined',
+        );
+      },
+    );
+
+    it('draws only the bottom border for underlined', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input variant="underlined" />`,
+      })
+      class UnderlinedHost {}
+
+      const fixture = TestBed.createComponent(UnderlinedHost);
+      fixture.detectChanges();
+      const wrapper = fixture.nativeElement.querySelector(
+        '.andes-input-wrapper',
+      );
+
+      expect(getComputedStyle(wrapper).borderWidth).toBe('0px 0px 1px');
+    });
+  });
+
+  describe('status', () => {
+    function createStatusHost(status: AndesInputStatus | undefined) {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input [status]="status()" />`,
+      })
+      class StatusHost {
+        readonly status = signal(status);
+      }
+
+      const fixture = TestBed.createComponent(StatusHost);
+      fixture.detectChanges();
+      return {
+        fixture,
+        input: fixture.nativeElement.querySelector('input') as HTMLInputElement,
+        wrapper: fixture.nativeElement.querySelector(
+          '.andes-input-wrapper',
+        ) as HTMLElement,
+      };
+    }
+
+    it('status="error" paints the invalid state and announces it via aria-invalid', () => {
+      const { input, wrapper } = createStatusHost('error');
+
+      expect(wrapper.classList).toContain('andes-input-wrapper--invalid');
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('status="warning" paints the warning state without marking the field invalid', () => {
+      const { input, wrapper } = createStatusHost('warning');
+
+      expect(wrapper.classList).toContain('andes-input-wrapper--warning');
+      expect(wrapper.classList).not.toContain('andes-input-wrapper--invalid');
+      expect(input.hasAttribute('aria-invalid')).toBe(false);
+    });
+
+    it('keeps the single wrapper focus ring, recolored, for status="warning"', () => {
+      const { input, wrapper } = createStatusHost('warning');
+
+      input.focus();
+
+      expect(getComputedStyle(input).outline).toBe('none');
+      expect(getComputedStyle(wrapper).outlineColor).toBe(
+        'var(--andes-color-warning)',
+      );
+    });
+  });
+
+  describe('showCount', () => {
+    it('renders the count with the maxLength and links it to the input description', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input
+          showCount
+          [maxLength]="10"
+          aria-describedby="hint"
+          [(value)]="text"
+        />`,
+      })
+      class CountHost {
+        readonly text = signal('abc');
+      }
+
+      const fixture = TestBed.createComponent(CountHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector('input');
+      const count = fixture.nativeElement.querySelector('.andes-input__count');
+
+      expect(count.textContent.trim()).toBe('3 / 10');
+      expect(input.getAttribute('maxlength')).toBe('10');
+      expect(input.getAttribute('aria-describedby')).toBe(`hint ${count.id}`);
+
+      input.value = 'abcde';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(count.textContent.trim()).toBe('5 / 10');
+    });
+
+    it('shows just the count without a maxLength, and nothing when showCount is off', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input [showCount]="show()" value="hello" />`,
+      })
+      class CountHost {
+        readonly show = signal(true);
+      }
+
+      const fixture = TestBed.createComponent(CountHost);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('.andes-input__count')
+          .textContent.trim(),
+      ).toBe('5');
+
+      fixture.componentInstance.show.set(false);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector('.andes-input__count'),
+      ).toBeFalsy();
+      expect(
+        fixture.nativeElement
+          .querySelector('input')
+          .hasAttribute('aria-describedby'),
+      ).toBe(false);
+    });
+
+    it('uses a custom countFormatter', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input
+          showCount
+          [maxLength]="20"
+          [countFormatter]="formatter"
+          value="hey"
+        />`,
+      })
+      class FormatterHost {
+        readonly formatter = ({ count, maxLength }: AndesInputCountInfo) =>
+          `${(maxLength ?? 0) - count} left`;
+      }
+
+      const fixture = TestBed.createComponent(FormatterHost);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('.andes-input__count')
+          .textContent.trim(),
+      ).toBe('17 left');
+    });
+
+    it('flags a value (set programmatically) that exceeds maxLength', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input showCount [maxLength]="3" value="toolong" />`,
+      })
+      class ExceededHost {}
+
+      const fixture = TestBed.createComponent(ExceededHost);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector('.andes-input__count').classList,
+      ).toContain('andes-input__count--exceeded');
+    });
+  });
+
+  describe('addons', () => {
+    it('renders addonBefore / addonAfter text as attached segments outside the field', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input addonBefore="https://" addonAfter=".com" />`,
+      })
+      class AddonHost {}
+
+      const fixture = TestBed.createComponent(AddonHost);
+      fixture.detectChanges();
+      const before = fixture.nativeElement.querySelector(
+        '.andes-input__addon--before',
+      );
+      const after = fixture.nativeElement.querySelector(
+        '.andes-input__addon--after',
+      );
+      const wrapper = fixture.nativeElement.querySelector(
+        '.andes-input-wrapper',
+      );
+
+      expect(before.textContent.trim()).toBe('https://');
+      expect(after.textContent.trim()).toBe('.com');
+      expect(wrapper.contains(before)).toBe(false);
+      expect(wrapper.contains(after)).toBe(false);
+      expect(before.nextElementSibling).toBe(wrapper);
+      expect(wrapper.nextElementSibling).toBe(after);
+    });
+
+    it('projects [slot=addon-before] / [slot=addon-after] content', () => {
+      @Component({
+        imports: [AndesInput],
+        template: `<andes-input
+          ><span slot="addon-before">+51</span
+          ><span slot="addon-after">kg</span></andes-input
+        >`,
+      })
+      class AddonSlotHost {}
+
+      const fixture = TestBed.createComponent(AddonSlotHost);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('.andes-input__addon--before')
+          .textContent.trim(),
+      ).toBe('+51');
+      expect(
+        fixture.nativeElement
+          .querySelector('.andes-input__addon--after')
+          .textContent.trim(),
+      ).toBe('kg');
+    });
+
+    it('leaves an unused addon :empty, so it takes no room', () => {
+      const { fixture } = createHost();
+
+      const addons = fixture.nativeElement.querySelectorAll(
+        '.andes-input__addon',
+      ) as NodeListOf<HTMLElement>;
+
+      expect(addons).toHaveLength(2);
+      addons.forEach((addon) => {
+        expect(addon.matches(':empty')).toBe(true);
+        expect(getComputedStyle(addon).display).toBe('none');
+      });
+    });
+  });
+
+  describe('clear', () => {
+    it('clears through the ControlValueAccessor and emits (cleared) and (valueChange)', () => {
+      @Component({
+        imports: [AndesInput, ReactiveFormsModule],
+        template: `<andes-input
+          clearable
+          [formControl]="control"
+          (cleared)="clearedCount = clearedCount + 1"
+          (valueChange)="lastValue = $event"
+        />`,
+      })
+      class ClearHost {
+        readonly control = new FormControl('something');
+        clearedCount = 0;
+        lastValue: string | undefined;
+      }
+
+      const fixture = TestBed.createComponent(ClearHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector('input');
+
+      (
+        fixture.nativeElement.querySelector(
+          '.andes-input__clear',
+        ) as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.control.value).toBe('');
+      expect(fixture.componentInstance.control.dirty).toBe(true);
+      expect(fixture.componentInstance.clearedCount).toBe(1);
+      expect(fixture.componentInstance.lastValue).toBe('');
+      expect(input.value).toBe('');
+      expect(document.activeElement).toBe(input);
+    });
+  });
+
+  describe('pressEnter', () => {
+    @Component({
+      imports: [AndesInput],
+      template: `<andes-input (pressEnter)="events.push($event)" />`,
+    })
+    class EnterHost {
+      readonly events: KeyboardEvent[] = [];
+    }
+
+    it('emits on Enter', () => {
+      const fixture = TestBed.createComponent(EnterHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector('input');
+
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+      expect(fixture.componentInstance.events).toHaveLength(1);
+      expect(fixture.componentInstance.events[0].key).toBe('Enter');
+    });
+
+    it('does not emit for an Enter that commits an IME composition', () => {
+      const fixture = TestBed.createComponent(EnterHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector('input');
+
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', isComposing: true }),
+      );
+
+      expect(fixture.componentInstance.events).toHaveLength(0);
+    });
+  });
+
+  describe('focus() / blur()', () => {
+    it('focuses the native input and places the caret per `cursor`', () => {
+      const fixture = TestBed.createComponent(AndesInput);
+      fixture.componentRef.setInput('value', 'hello');
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector(
+        'input',
+      ) as HTMLInputElement;
+      const component = fixture.componentInstance;
+
+      component.focus({ cursor: 'start' });
+      expect(document.activeElement).toBe(input);
+      expect([input.selectionStart, input.selectionEnd]).toEqual([0, 0]);
+
+      component.focus({ cursor: 'end' });
+      expect([input.selectionStart, input.selectionEnd]).toEqual([5, 5]);
+
+      component.focus({ cursor: 'all' });
+      expect([input.selectionStart, input.selectionEnd]).toEqual([0, 5]);
+
+      component.blur();
+      expect(document.activeElement).not.toBe(input);
+    });
+
+    it('does not throw for input types without a selection API', () => {
+      const fixture = TestBed.createComponent(AndesInput);
+      fixture.componentRef.setInput('type', 'email');
+      fixture.detectChanges();
+
+      expect(() =>
+        fixture.componentInstance.focus({ cursor: 'end' }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('font-family', () => {
+    it('sets the font stack on the group root and the wrapper, and inherits it in the control', () => {
+      const { fixture, input, wrapper } = createHost();
+      const group = fixture.nativeElement.querySelector('.andes-input-group');
+
+      expect(getComputedStyle(group).fontFamily).toBe(
+        'var(--andes-font-family), sans-serif',
+      );
+      expect(getComputedStyle(wrapper).fontFamily).toBe(
+        'var(--andes-font-family), sans-serif',
+      );
+      expect(
+        readFileSync(
+          join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
+          'utf-8',
+        ),
+      ).toMatch(/\.andes-input__control\s*{[^}]*font-family:\s*inherit;/);
+      expect(input).toBeTruthy();
     });
   });
 });

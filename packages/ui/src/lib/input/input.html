@@ -1,36 +1,137 @@
-<span [class]="wrapperClasses()">
-  <span class="andes-input__prefix">
-    <ng-content select="[slot=prefix]" />
+<span [class]="groupClasses()">
+  <span class="andes-input__addon andes-input__addon--before">
+    @if (addonBefore()) {
+    <span class="andes-input__addon-text">{{ addonBefore() }}</span>
+    }
+    <ng-content select="[slot=addon-before]" />
   </span>
-  <input
-    #nativeInput
-    data-slot="input"
-    class="andes-input__control"
-    [attr.type]="type()"
-    [attr.id]="id()"
-    [attr.name]="name()"
-    [attr.placeholder]="placeholder()"
-    [attr.autocomplete]="autocomplete()"
-    [attr.maxlength]="maxLength()"
-    [attr.aria-label]="ariaLabel()"
-    [attr.aria-labelledby]="ariaLabelledby()"
-    [attr.aria-describedby]="ariaDescribedby()"
-    [attr.aria-invalid]="ariaInvalid() || null"
+  <span [class]="wrapperClasses()">
+    <span class="andes-input__prefix">
+      <ng-content select="[slot=prefix]" />
+    </span>
+    <input
+      #nativeInput
+      data-slot="input"
+      class="andes-input__control"
+      [attr.type]="nativeType()"
+      [attr.id]="id()"
+      [attr.name]="name()"
+      [attr.placeholder]="placeholder()"
+      [attr.autocomplete]="autocomplete()"
+      [attr.maxlength]="maxLength()"
+      [attr.aria-label]="ariaLabel()"
+      [attr.aria-labelledby]="ariaLabelledby()"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-invalid]="isInvalid() || null"
+      [disabled]="isDisabled()"
+      [required]="required()"
+      [readOnly]="readOnly()"
+      [value]="value()"
+      (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
+      (blur)="onBlur()"
+    />
+    @if (showClear()) {
+    <button
+      type="button"
+      class="andes-input__clear"
+      aria-label="Clear"
+      (mousedown)="keepFocus($event)"
+      (click)="onClearClick($event)"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+    } @if (passwordToggle() !== null) {
+    <button
+      type="button"
+      class="andes-input__password-toggle"
+      aria-label="Show password"
+      [attr.aria-pressed]="passwordToggle()"
+      [disabled]="isDisabled()"
+      (mousedown)="keepFocus($event)"
+      (click)="togglePasswordVisibility()"
+    >
+      @if (passwordToggle()) {
+      <svg
+        data-icon="eye-off"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path
+          d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"
+        ></path>
+        <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path>
+        <path
+          d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"
+        ></path>
+        <path d="m2 2 20 20"></path>
+      </svg>
+      } @else {
+      <svg
+        data-icon="eye"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path
+          d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+        ></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      }
+    </button>
+    }
+    <span class="andes-input__suffix">
+      <ng-content select="[slot=suffix]" />
+    </span>
+    @if (showCount()) {
+    <span
+      class="andes-input__count"
+      [class.andes-input__count--exceeded]="countExceeded()"
+      [id]="countId"
+      >{{ countText() }}</span
+    >
+    }
+  </span>
+  <span class="andes-input__addon andes-input__addon--after">
+    @if (addonAfter()) {
+    <span class="andes-input__addon-text">{{ addonAfter() }}</span>
+    }
+    <ng-content select="[slot=addon-after]" />
+  </span>
+  @if (searchButton(); as button) {
+  <andes-button
+    class="andes-input__search-button"
+    [variant]="button.primary ? 'primary' : 'outline'"
+    [size]="searchButtonSize()"
+    [loading]="button.loading"
     [disabled]="isDisabled()"
-    [required]="required()"
-    [readOnly]="readOnly()"
-    [value]="value()"
-    (input)="onInput($event)"
-    (blur)="onBlur()"
-  />
-  @if (showClear()) {
-  <button
-    type="button"
-    class="andes-input__clear"
-    aria-label="Clear"
-    (click)="clear($event)"
+    [aria-label]="button.label ? undefined : 'Search'"
+    (click)="onSearchClick($event)"
   >
+    @if (!button.label) {
     <svg
+      slot="icon-start"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -39,12 +140,10 @@
       stroke-linejoin="round"
       aria-hidden="true"
     >
-      <line x1="18" y1="6" x2="6" y2="18"></line>
-      <line x1="6" y1="6" x2="18" y2="18"></line>
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.3-4.3"></path>
     </svg>
-  </button>
+    } {{ button.label }}
+  </andes-button>
   }
-  <span class="andes-input__suffix">
-    <ng-content select="[slot=suffix]" />
-  </span>
 </span>

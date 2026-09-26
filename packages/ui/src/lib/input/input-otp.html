@@ -1,0 +1,32 @@
+<div
+  #group
+  role="group"
+  [class]="classes()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  (focusout)="onFocusOut($event, group)"
+>
+  @for (character of cells(); track $index; let index = $index, last = $last) {
+  <input
+    #cell
+    type="text"
+    class="andes-input-otp__cell"
+    [attr.id]="index === 0 ? id() : null"
+    [attr.autocomplete]="index === 0 ? autocomplete() : 'off'"
+    [attr.inputmode]="inputMode()"
+    [attr.aria-label]="cellLabel(index)"
+    [attr.aria-invalid]="isInvalid() || null"
+    [disabled]="isDisabled()"
+    [value]="display(index)"
+    (focus)="onCellFocus($event)"
+    (input)="onCellInput(index, $event)"
+    (keydown)="onCellKeydown(index, $event)"
+    (paste)="onPaste(index, $event)"
+  />
+  @if (separator() && !last) {
+  <span class="andes-input-otp__separator" aria-hidden="true"
+    >{{ separator() }}</span
+  >
+  } }
+</div>
