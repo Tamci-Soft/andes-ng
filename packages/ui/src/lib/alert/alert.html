@@ -1,0 +1,129 @@
+<div
+  data-slot="alert"
+  [attr.data-severity]="resolvedSeverity()"
+  [attr.role]="resolvedRole()"
+  [class]="classes()"
+  [hidden]="!visible()"
+>
+  @if (showIcon()) {
+  <span class="andes-alert__icon" aria-hidden="true">
+    @if (icon(); as customIcon) {
+    <ng-container
+      [ngTemplateOutlet]="customIcon"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else {
+    <!-- Stroked (outline) glyphs rather than solid/filled discs: at the 1rem size this layout
+         calls for, a filled disc with a knocked-out mark collapses into a featureless colored
+         dot, and the severity stops being readable from the glyph itself. An outline keeps the
+         check / i / ! / x legible at 16px. All four share one 24-unit grid, one stroke width
+         and one optical size so they read as a set. -->
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      @switch (resolvedSeverity()) { @case ('success') {
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.25 12.25 2.5 2.5 5-5.5" />
+      } @case ('warning') {
+      <path
+        d="M10.3 4.6a2 2 0 0 1 3.4 0l7.3 12.6a2 2 0 0 1-1.7 3H4.7a2 2 0 0 1-1.7-3Z"
+      />
+      <path d="M12 10v3.5" />
+      <path d="M12 16.75h.01" />
+      } @case ('danger') {
+      <circle cx="12" cy="12" r="9" />
+      <path d="m14.5 9.5-5 5" />
+      <path d="m9.5 9.5 5 5" />
+      } @default {
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11.25v5" />
+      <path d="M12 7.75h.01" />
+      } }
+    </svg>
+    }
+  </span>
+  }
+
+  <!-- Each input takes precedence over its slot; every <ng-content> still appears exactly once
+       in this template, inside the @else branch. -->
+  <div class="andes-alert__title">
+    @if (titleTemplate(); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else if (titleText(); as text) { {{ text }} } @else {
+    <ng-content select="[slot=title]" />
+    }
+  </div>
+  <div class="andes-alert__description">
+    @if (marquee()) {
+    <span
+      #marqueeTrack
+      class="andes-alert__marquee"
+      [style.animation-duration]="marqueeDuration()"
+    >
+      <ng-container [ngTemplateOutlet]="descriptionContent" />
+    </span>
+    } @else {
+    <ng-container [ngTemplateOutlet]="descriptionContent" />
+    }
+  </div>
+  <!-- Rendered from one template so the description's <ng-content> is declared once, whichever
+       of the two branches above is showing it. -->
+  <ng-template #descriptionContent>
+    @if (descriptionTemplate(); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else if (descriptionText(); as text) { {{ text }} } @else {
+    <ng-content />
+    }
+  </ng-template>
+  <div class="andes-alert__action">
+    @if (action(); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else {
+    <ng-content select="[slot=action]" />
+    }
+  </div>
+
+  @if (closable()) {
+  <button
+    type="button"
+    class="andes-alert__close"
+    [attr.aria-label]="closeLabel()"
+    (click)="dismiss($event)"
+  >
+    @if (closeIcon(); as customCloseIcon) {
+    <span class="andes-alert__close-icon" aria-hidden="true">
+      <ng-container
+        [ngTemplateOutlet]="customCloseIcon"
+        [ngTemplateOutletContext]="templateContext()"
+      />
+    </span>
+    } @else {
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <path d="m6.5 6.5 11 11" />
+      <path d="m17.5 6.5-11 11" />
+    </svg>
+    }
+  </button>
+  }
+</div>
