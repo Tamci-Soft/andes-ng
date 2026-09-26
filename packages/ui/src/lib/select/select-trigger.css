@@ -194,7 +194,7 @@
   The input always sits on top of something in flow that gives the row its size: the
   value or placeholder ("ghost") while there is no search text in single mode, and a
   hidden mirror of the typed text in multiple mode, so the input is exactly as wide as
-  what has been typed and does not push itself onto a new row early, as in Ant Design.
+  what has been typed and does not push itself onto a new row early.
 */
 .andes-select__input {
   position: absolute;
@@ -352,7 +352,7 @@
 
 /*
   The clear button replaces the chevron while the pointer is over the box, or while the
-  box holds focus, as in Ant Design. Devices without hover show it all the time.
+  box holds focus. Devices without hover show it all the time.
 */
 .andes-select__clear {
   display: none;
