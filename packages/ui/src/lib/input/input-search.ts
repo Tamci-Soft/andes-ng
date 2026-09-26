@@ -14,7 +14,7 @@ import { ANDES_INPUT_HOST, AndesInputBase } from './input-base';
 
 export type AndesInputSearchSource = 'input' | 'clear';
 
-/** Payload of `(searched)` - Ant Design's `onSearch(value, event, { source })`. */
+/** Payload of `(searched)`: the value, what triggered the search, and the originating event. */
 export interface AndesInputSearchEvent {
   value: string;
   source: AndesInputSearchSource;
@@ -34,8 +34,8 @@ function enterButtonAttribute(value: boolean | string | null | undefined) {
 }
 
 /**
- * A search field with an attached search button - Ant Design's `Input.Search`. Everything
- * `andes-input` accepts (size, variant, status, addons, count, clear, forms...) applies here too.
+ * A search field with an attached search button. Everything `andes-input` accepts (size,
+ * variant, status, addons, count, clear, forms...) applies here too.
  */
 @Component({
   selector: 'andes-input-search',
@@ -65,9 +65,9 @@ export class AndesInputSearch extends AndesInputBase {
   readonly loading = input(false, { transform: booleanAttribute });
 
   /**
-   * Enter in the field, a button click, or the clear button (with `source: 'clear'`) - Ant
-   * Design's `onSearch`. Not named `search`: that is a native DOM event of `type="search"`
-   * inputs, and an output shadowing it would fire for both.
+   * Enter in the field, a button click, or the clear button (with `source: 'clear'`). Not named
+   * `search`: that is a native DOM event of `type="search"` inputs, and an output shadowing it
+   * would fire for both.
    */
   readonly searched = output<AndesInputSearchEvent>();
 

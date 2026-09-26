@@ -44,13 +44,13 @@ function splitIntoCells(value: string, length: number): string[] {
 }
 
 /**
- * A one-time-code field split into `length` single-character cells - Ant Design's `Input.OTP`.
+ * A one-time-code field split into `length` single-character cells.
  * Typing advances to the next cell, pasting (or an SMS autofill landing in one cell) spreads
  * the code across the cells, Backspace in an empty cell steps back and clears the previous one.
  *
- * Unlike Ant (whose `onChange` fires only once every cell is filled), the bound value and the
- * form control track every edit - so `required`/`minlength` validators see partial input - and
- * `(complete)` is the "all cells filled" signal.
+ * The bound value and the form control track every edit, not only a fully filled code - so
+ * `required`/`minlength` validators see partial input - and `(complete)` is the "all cells
+ * filled" signal.
  */
 @Component({
   selector: 'andes-input-otp',
