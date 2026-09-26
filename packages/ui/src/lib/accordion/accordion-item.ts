@@ -41,15 +41,15 @@ export class AndesAccordionItem {
   private readonly itemState = inject(AndesAccordionItemState);
 
   /** Unique identifier for this item within its accordion - what the root's `activeKey`
-   *  tracks open/closed state by (Ant Design's panel `key`). */
+   *  tracks open/closed state by. */
   readonly value = input.required<string>();
   readonly disabled = input(false, { transform: booleanAttribute });
   /** Overrides the root's `collapsible` for this item only. */
   readonly collapsible = input<AndesAccordionCollapsible | undefined>(
     undefined,
   );
-  /** Hides this item's expand icon. Ant Design forbids `collapsible="icon"` without an arrow;
-   *  here that combination falls back to `header` so the panel stays operable. */
+  /** Hides this item's expand icon. `collapsible="icon"` without an arrow would leave nothing
+   *  to click, so that combination falls back to `header` and the panel stays operable. */
   readonly showArrow = input(true, { transform: booleanAttribute });
   /** Renders a lazy (`ng-template[andesAccordionLazy]`) panel body up front, before the first
    *  open. Has no effect on eagerly projected content, which is always rendered. */

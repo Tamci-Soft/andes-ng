@@ -33,7 +33,7 @@
   font-size: 1.125rem;
 }
 
-/* Bordered: a tinted header band with inline padding, like Ant Design's default Collapse. */
+/* Bordered: a tinted header band with inline padding, set apart from the panel body. */
 .andes-accordion-trigger__header[data-variant='bordered'] {
   padding: var(--andes-space-3) var(--andes-space-4);
   background-color: var(--andes-color-muted);
