@@ -4,7 +4,17 @@
   align-items: center;
   gap: var(--andes-space-2);
   font-family: var(--andes-font-family), sans-serif;
+  /* Set rather than inherited so the label stays legible in the dark theme even when the page
+     itself never sets a text color (Ant does the same with `colorText`). */
+  color: var(--andes-color-foreground);
   cursor: pointer;
+}
+
+/* `row-reverse` rather than reordering the DOM: the input stays first in source order (so the
+   label's implicit association and tab order are unchanged), and flex direction already
+   follows the writing direction, so `start` lands on the right in RTL for free. */
+.andes-checkbox--label-start {
+  flex-direction: row-reverse;
 }
 
 .andes-checkbox--disabled {
