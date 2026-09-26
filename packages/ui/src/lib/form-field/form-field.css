@@ -1,0 +1,365 @@
+/* Shared by every Form Field part. Only `.andes-form-field` below lives in `AndesFormField`'s
+   OWN template (form-field.html); `.andes-form-label`/`.andes-form-description`/
+   `.andes-form-error` are rendered by three separate sibling `@Component`s, and the
+   `:where(input, select, textarea)` rules at the bottom target the control the CONSUMER
+   authored and Angular projects in through `<ng-content>`. Under Angular's default emulated
+   view encapsulation a stylesheet's selectors are rewritten to only match elements carrying
+   its own component's `_ngcontent-*` attribute, so none of those four groups of elements were
+   ever reachable from here - 5 of the 6 rules in this file were dead (measured: error text
+   computed to the initial `rgb(0, 0, 0)` rather than `--andes-color-danger`, and the label's
+   font-size/font-weight resolved to empty strings).
+
+   `:host`/`:host-context` can't fix it either: `:host` only ever matches the component that
+   owns the stylesheet, and the projected native control is not a descendant of that component
+   in the *style-scoping* sense. So every `@Component` that includes this file opts out of
+   scoping with `encapsulation: ViewEncapsulation.None` (see form-field.ts, form-label.ts,
+   form-description.ts, form-error.ts) and these plain class selectors match by class name
+   globally, exactly as a hand-authored global stylesheet would. Each part includes the
+   stylesheet itself rather than relying on `AndesFormField` having been rendered first, so a
+   standalone `<andes-form-label>` (documented as valid usage outside a field) is styled too;
+   Angular's shared styles host de-duplicates the identical stylesheet, so it is only ever
+   injected into the document once. This is the same fix applied to Breadcrumb, Dropdown Menu
+   and Avatar in this same wave. */
+
+.andes-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-form-label {
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-foreground);
+}
+
+.andes-form-description {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-form-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--andes-color-danger);
+}
+
+/* Andes-ng's own controls (AndesInput, AndesCheckbox, ...) already draw their own
+   invalid-state border/ring off their `aria-invalid` input - this only adds a matching
+   tint for plain native controls placed directly inside the field, which have no such
+   styling of their own. */
+.andes-form-field--invalid :where(input, select, textarea) {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-form-field--invalid :where(input, select, textarea):focus-visible {
+  outline-color: var(--andes-color-danger);
+}
+
+/* ---------------------------------------------------------------------------------------
+   Layout, status and feedback presentation. Everything below is keyed off classes/attributes that
+   AndesFormField puts on its own `.andes-form-field` root (layout, status, feedback), so a
+   field's look never depends on anything outside it except the optional `[andesForm]` host.
+   Compound selectors that contain a combinator are kept on ONE line: Angular's style shim
+   mis-scopes a selector split across lines (see the repo's known-pitfalls notes).
+   --------------------------------------------------------------------------------------- */
+
+andes-form-label {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.andes-form-field__label {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.andes-form-field__control {
+  position: relative;
+  min-width: 0;
+}
+
+.andes-form-field__messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+  min-width: 0;
+}
+
+.andes-form-field__messages--empty {
+  display: none;
+}
+
+/* prettier-ignore */
+.andes-form-field--no-label:not(.andes-form-field--horizontal) > .andes-form-field__label {
+  display: none;
+}
+
+/* Horizontal and inline: label in column 1, control in column 2 of the same row (so they
+   centre on each other whatever the control's height), messages under the control. The
+   horizontal column widths come from AndesFormField's inline `grid-template-columns`
+   (labelCol/wrapperCol); a label-less horizontal field keeps the empty label column, which
+   is what lines a submit row up under the controls. */
+.andes-form-field--horizontal,
+.andes-form-field--inline {
+  display: grid;
+  column-gap: 0;
+  row-gap: var(--andes-space-1);
+  align-items: center;
+}
+
+.andes-form-field--inline {
+  grid-template-columns: auto auto;
+}
+
+.andes-form-field--horizontal > .andes-form-field__label,
+.andes-form-field--inline > .andes-form-field__label {
+  grid-column: 1;
+  grid-row: 1;
+  padding-inline-end: var(--andes-space-2);
+}
+
+.andes-form-field--horizontal > .andes-form-field__label {
+  justify-content: flex-end;
+}
+
+/* prettier-ignore */
+.andes-form-field--horizontal.andes-form-field--label-left > .andes-form-field__label {
+  justify-content: flex-start;
+}
+
+.andes-form-field--horizontal > .andes-form-field__control,
+.andes-form-field--inline > .andes-form-field__control {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.andes-form-field--horizontal > .andes-form-field__messages,
+.andes-form-field--inline > .andes-form-field__messages {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* Long horizontal labels are truncated unless `labelWrap` is set. */
+/* prettier-ignore */
+.andes-form-field--horizontal:not(.andes-form-field--label-wrap) .andes-form-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A wrapping label flows as plain inline text, so the tooltip and colon follow its last word
+   instead of floating at the far edge of the label column. */
+/* prettier-ignore */
+.andes-form-field--horizontal.andes-form-field--label-wrap andes-form-label {
+  display: block;
+  text-align: end;
+}
+
+/* prettier-ignore */
+.andes-form-field--horizontal.andes-form-field--label-wrap.andes-form-field--label-left andes-form-label {
+  text-align: start;
+}
+
+/* Label decorations */
+.andes-form-label__required {
+  margin-inline-end: var(--andes-space-1);
+  color: var(--andes-color-danger);
+}
+
+.andes-form-label__optional {
+  margin-inline-start: var(--andes-space-1);
+  font-weight: normal;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-form-label__colon {
+  margin-inline-start: 0.125rem;
+  color: var(--andes-color-foreground);
+}
+
+.andes-form-label__tooltip {
+  position: relative;
+  display: inline-flex;
+  margin-inline-start: var(--andes-space-1);
+  vertical-align: middle;
+}
+
+.andes-form-label__tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-full);
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  cursor: help;
+}
+
+.andes-form-label__tooltip-trigger:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-form-label__tooltip-trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-form-label__tooltip-trigger svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.andes-form-label__tooltip-content {
+  position: absolute;
+  bottom: calc(100% + var(--andes-space-2));
+  left: 50%;
+  z-index: var(--andes-z-index-tooltip);
+  width: max-content;
+  max-width: 16rem;
+  padding: var(--andes-space-1) var(--andes-space-2);
+  border-radius: var(--andes-radius-md);
+  transform: translateX(-50%);
+  background: var(--andes-color-foreground);
+  color: var(--andes-color-background);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  font-weight: normal;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: start;
+}
+
+.andes-form-label__tooltip-content[hidden] {
+  display: none;
+}
+
+/* help / generated messages / extra */
+.andes-form-field__help,
+.andes-form-field__extra {
+  font-size: 0.8125rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+/* prettier-ignore */
+.andes-form-field[data-status='error'] > .andes-form-field__messages > .andes-form-field__help {
+  color: var(--andes-color-danger);
+}
+
+/* prettier-ignore */
+.andes-form-field[data-status='warning'] > .andes-form-field__messages > .andes-form-field__help {
+  color: var(--andes-color-warning);
+}
+
+/* `warning` tints plain native controls the same way `--invalid` does above. */
+.andes-form-field[data-status='warning'] :where(input, select, textarea) {
+  border-color: var(--andes-color-warning);
+}
+
+/* prettier-ignore */
+.andes-form-field[data-status='warning'] :where(input, select, textarea):focus-visible {
+  outline-color: var(--andes-color-warning);
+}
+
+/* hasFeedback status icon, drawn over the trailing edge of the control. */
+.andes-form-field__feedback {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: var(--andes-space-3);
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Clear a native <select>'s own dropdown arrow. */
+.andes-form-field__control:has(> select) > .andes-form-field__feedback {
+  inset-inline-end: calc(var(--andes-space-5) + var(--andes-space-3));
+}
+
+.andes-form-field__feedback svg {
+  width: 100%;
+  height: 100%;
+}
+
+.andes-form-field__feedback[data-status='success'] {
+  color: var(--andes-color-success);
+}
+
+.andes-form-field__feedback[data-status='warning'] {
+  color: var(--andes-color-warning);
+}
+
+.andes-form-field__feedback[data-status='error'] {
+  color: var(--andes-color-danger);
+}
+
+.andes-form-field__feedback[data-status='validating'] {
+  color: var(--andes-color-primary);
+}
+
+.andes-form-field__feedback[data-status='validating'] svg {
+  animation: andes-form-field-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-form-field__feedback[data-status='validating'] svg {
+    animation-duration: 2.4s;
+  }
+}
+
+@keyframes andes-form-field-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Keep typed text clear of the icon. Zero-specificity `:where()` on the control itself so
+   any padding the consumer sets with a class of their own still wins. */
+/* prettier-ignore */
+.andes-form-field--has-feedback > .andes-form-field__control > :where(input, textarea) {
+  padding-inline-end: calc(var(--andes-space-3) + 1rem + var(--andes-space-2));
+}
+
+/* prettier-ignore */
+.andes-form-field--has-feedback > .andes-form-field__control > :where(select) {
+  padding-inline-end: calc(
+    var(--andes-space-5) + var(--andes-space-3) + 1rem + var(--andes-space-2)
+  );
+}
+
+/* noStyle: only the projected control is laid out, as if the field weren't there. Last in
+   the file so it beats the layout rules above at equal specificity. */
+.andes-form-field--no-style,
+.andes-form-field--no-style > .andes-form-field__control {
+  display: contents;
+}
+
+.andes-form-field--no-style > .andes-form-field__label,
+.andes-form-field--no-style > .andes-form-field__messages {
+  display: none;
+}
+
+/* AndesForm host. Its stylesheet is this one: every field part injects it, and a form
+   without any field needs no styling. */
+.andes-form--vertical,
+.andes-form--horizontal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-4);
+}
+
+.andes-form--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--andes-space-4);
+}
