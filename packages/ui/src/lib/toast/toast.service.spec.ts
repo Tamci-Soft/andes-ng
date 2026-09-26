@@ -246,7 +246,7 @@ describe('AndesToastService', () => {
     expect(announceSpy).toHaveBeenCalledWith('Could not save.', 'assertive');
   });
 
-  describe('Ant Design parity', () => {
+  describe('extended features', () => {
     it('show() returns a ref whose id identifies the toast', () => {
       const service = createService();
 

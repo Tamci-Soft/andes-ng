@@ -9,8 +9,8 @@ export type AndesToastSeverity =
   'neutral' | 'success' | 'error' | 'warning' | 'info' | 'loading';
 
 /**
- * Corner or edge of the viewport a toast is anchored to. Ant Design's `top`/`bottom`
- * placements are `top-center`/`bottom-center` here; its corner names map 1:1 in kebab-case.
+ * Corner or edge of the viewport a toast is anchored to. Edge-centered placements are
+ * spelled `top-center`/`bottom-center`, corners in kebab-case.
  */
 export type AndesToastPosition =
   | 'top-left'
@@ -20,12 +20,11 @@ export type AndesToastPosition =
   | 'bottom-center'
   | 'bottom-right';
 
-/** Which of the two toast flavors a toast belongs to - Ant's `notification` vs `message`. */
+/** Which of the two toast flavors a toast belongs to - full `notification` vs compact `message`. */
 export type AndesToastFlavor = 'notification' | 'message';
 
 /**
- * Screen-reader urgency for a toast's announcement, mirroring Ant Notification's `role`
- * prop: `'alert'` is announced assertively (interrupting), `'status'` politely.
+ * Screen-reader urgency for a toast's announcement: `'alert'` is announced assertively (interrupting), `'status'` politely.
  */
 export type AndesToastRole = 'alert' | 'status';
 
@@ -56,7 +55,7 @@ export interface AndesToastTemplateContext {
 export interface AndesToastConfig {
   /** Optional heading, shown above `message` in a stronger weight. */
   readonly title?: string;
-  /** The toast's body text (Ant Notification's `description`). The only required field. */
+  /** The toast's body text. The only required field. */
   readonly message: string;
   /** Status styling, default icon, and (unless `role` is set) ARIA urgency. Default `'neutral'`. */
   readonly severity?: AndesToastSeverity;
@@ -76,9 +75,9 @@ export interface AndesToastConfig {
   readonly placement?: AndesToastPosition;
   /** A single compact action, rendered inline as a text link. Clicking it closes the toast. */
   readonly action?: AndesToastAction;
-  /** An action button group (Ant's `actions`, formerly `btn`), rendered under the message. */
+  /** An action button group, rendered under the message. */
   readonly actions?: readonly AndesToastAction[];
-  /** Whether a close button is rendered (Ant's `closable`). Default `true`. */
+  /** Whether a close button is rendered. Default `true`. */
   readonly dismissible?: boolean;
   /**
    * Custom leading icon. `undefined` uses the severity's built-in icon; `null` hides the
@@ -95,15 +94,15 @@ export interface AndesToastConfig {
   readonly role?: AndesToastRole;
   /** Extra CSS class(es) for the toast's root element. */
   readonly className?: string;
-  /** Called when the toast body is clicked (not its buttons). Pointer-only, like Ant's. */
+  /** Called when the toast body is clicked (not its buttons). Pointer-only. */
   readonly onClick?: (ref: AndesToastRef<AndesToastConfig>) => void;
   /** Called once when the toast closes, for any reason. Not called on a key-based update. */
   readonly onClose?: (reason: AndesToastCloseReason) => void;
 }
 
-/** Options accepted by `AndesMessageService.open()` - Ant's `message` API, Angular-style. */
+/** Options accepted by `AndesMessageService.open()` and its convenience methods. */
 export interface AndesMessageConfig {
-  /** The message text (Ant's `content`). */
+  /** The message text. */
   readonly content: string;
   /** Status styling and icon. Default `'info'`. */
   readonly type?: Exclude<AndesToastSeverity, 'neutral'>;
@@ -154,8 +153,8 @@ export interface AndesToast {
 }
 
 /**
- * Handle returned by every `show()`/`open()`-style call - the Angular analogue of the
- * thenable/close-function Ant's static methods return. Deliberately not itself a thenable
+ * Handle returned by every `show()`/`open()`-style call: a close function plus a
+ * completion promise in one object. Deliberately not itself a thenable
  * (an `async` function returning it would otherwise silently wait for the toast to close);
  * await `afterClosed` instead.
  */
@@ -170,7 +169,7 @@ export interface AndesToastRef<TConfig = AndesToastConfig> {
   update(patch: Partial<TConfig>): void;
 }
 
-/** Whether/when to collapse a region's toasts into a stacked deck (Ant's `stack`). */
+/** Whether/when to collapse a region's toasts into a stacked deck. */
 export type AndesToastStackConfig = boolean | { readonly threshold: number };
 
 /** What happens when more than `maxCount` toasts are open at once. */
@@ -186,7 +185,7 @@ export interface AndesToastGlobalConfig {
   readonly maxCount: number;
   /**
    * `'queue'` (default) holds overflow back until a slot frees up; `'dismiss-oldest'`
-   * closes the oldest open toast instead, like Ant's `maxCount`.
+   * closes the oldest open toast instead, so the newest is always shown.
    */
   readonly overflow: AndesToastOverflow;
   readonly pauseOnHover: boolean;
@@ -207,8 +206,8 @@ export const ANDES_TOAST_DEFAULT_DURATION = 5000;
 /** Default number of toasts `AndesToastViewport` shows at once before queuing the rest. */
 export const ANDES_TOAST_DEFAULT_MAX_VISIBLE = 5;
 
-/** Default auto-dismiss delay for `AndesMessageService`, matching Ant Message's 3s. */
+/** Default auto-dismiss delay for `AndesMessageService`: shorter than notifications, as messages are brief. */
 export const ANDES_MESSAGE_DEFAULT_DURATION = 3000;
 
-/** Collapse threshold used when `stack` is `true`, matching Ant Notification. */
+/** Collapse threshold used when `stack` is `true`. */
 export const ANDES_TOAST_DEFAULT_STACK_THRESHOLD = 3;

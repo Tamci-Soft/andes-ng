@@ -62,13 +62,13 @@ function durationToMs(duration: number | false): number {
 /**
  * Shared queue engine behind `AndesToastService` (notifications) and `AndesMessageService`
  * (messages) - one instance per flavor, so each keeps its own `maxCount`, defaults and
- * stack, just like Ant's separate `notification`/`message` managers.
+ * stack.
  *
  * State lives in a single signal holding every toast, oldest first. The viewport renders
  * only the first `maxCount` of them - with `overflow: 'queue'` (the default) the rest wait
  * in a FIFO queue and are promoted (and get a *fresh* auto-dismiss timer, not one already
  * ticking down since they were created) as visible slots free up; with
- * `overflow: 'dismiss-oldest'` the oldest open toast is closed instead, like Ant's `maxCount`.
+ * `overflow: 'dismiss-oldest'` the oldest open toast is closed instead.
  *
  * Auto-dismiss timers are plain `setTimeout`s tracked in a private `Map`, not signals -
  * a running `setTimeout` handle isn't meaningful state to expose or diff, and keeping it out
@@ -118,7 +118,7 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
   protected abstract toToastConfig(config: TConfig): AndesToastConfig;
 
   /**
-   * Updates the global defaults at runtime (Ant's `notification.config()`/`message.config()`).
+   * Updates the global defaults at runtime.
    * Only affects toasts shown afterwards, except `maxCount`/`overflow`/`stack`/offsets, which
    * apply immediately.
    */
@@ -162,7 +162,7 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
     }
   }
 
-  /** Ant's `destroy(key?)`: closes the matching toast, or every toast when called without one. */
+  /** Closes the matching toast (by id, key or ref), or every toast when called without one. */
   destroy(idOrKey?: string | AndesToastRef<unknown>): void {
     if (idOrKey === undefined) {
       this.dismissAll();

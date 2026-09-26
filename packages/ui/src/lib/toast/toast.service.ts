@@ -10,10 +10,10 @@ import type { AndesToastConfig, AndesToastRef } from './toast.types';
 type AndesToastShortcutConfig = Omit<AndesToastConfig, 'message' | 'severity'>;
 
 /**
- * Imperative notification queue - the Angular analogue of Ant Design's `notification`
- * static API (title + message, corner placements, actions, progress bar). Injectable
- * anywhere (`providedIn: 'root'`) to show toasts; `AndesToastViewport` renders them. For
- * Ant's compact single-line `message` flavor, use `AndesMessageService`.
+ * Imperative notification queue with a static-style API (title + message, corner
+ * placements, actions, progress bar). Injectable anywhere (`providedIn: 'root'`) to show
+ * toasts; `AndesToastViewport` renders them. For the compact single-line `message` flavor,
+ * use `AndesMessageService`.
  *
  * Every show-style call returns an `AndesToastRef` (id, `close()`, `update()`,
  * `afterClosed` promise). Pass a `key` to update an open toast in place instead of stacking
@@ -43,7 +43,7 @@ export class AndesToastService extends AndesToastQueue<AndesToastConfig> {
     return this.enqueue(config);
   }
 
-  /** Ant's `notification.open()` - an alias of `show()`. */
+  /** An alias of `show()`, for callers that prefer `open()` naming. */
   open(config: AndesToastConfig): AndesToastRef {
     return this.enqueue(config);
   }

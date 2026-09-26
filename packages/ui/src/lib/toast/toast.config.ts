@@ -36,15 +36,15 @@ export const ANDES_MESSAGE_BUILTIN_DEFAULTS: AndesToastGlobalConfig = {
 };
 
 /**
- * App-wide defaults for `AndesToastService` (notifications) - the Angular analogue of Ant's
- * `notification.config()`/ConfigProvider. Prefer `provideAndesToastConfig()` over
+ * App-wide defaults for `AndesToastService` (notifications), set once at bootstrap and
+ * adjustable later with `config()`. Prefer `provideAndesToastConfig()` over
  * providing this directly; the service still reads it when it's absent.
  */
 export const ANDES_TOAST_CONFIG = new InjectionToken<
   Partial<AndesToastGlobalConfig>
 >('ANDES_TOAST_CONFIG');
 
-/** App-wide defaults for `AndesMessageService` - Ant's `message.config()`. */
+/** App-wide defaults for `AndesMessageService`, also adjustable with its `config()`. */
 export const ANDES_MESSAGE_CONFIG = new InjectionToken<
   Partial<Omit<AndesToastGlobalConfig, 'placement'>>
 >('ANDES_MESSAGE_CONFIG');
