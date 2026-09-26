@@ -1,10 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { Component, signal } from '@angular/core';
+import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { AndesBadge, AndesBadgeSize, AndesBadgeVariant } from './badge';
+import {
+  AndesBadge,
+  AndesBadgeColor,
+  AndesBadgeSize,
+  AndesBadgeStatus,
+  AndesBadgeVariant,
+} from './badge';
 
 @Component({
   imports: [AndesBadge],
@@ -19,6 +25,10 @@ import { AndesBadge, AndesBadgeSize, AndesBadgeVariant } from './badge';
     [offset]="offset()"
     [title]="title()"
     [standalone]="standalone()"
+    [color]="color()"
+    [status]="status()"
+    [text]="text()"
+    [overflowCount]="overflowCount()"
     ><span class="anchor">Bell</span
     ><span slot="label">Active</span></andes-badge
   >`,
@@ -34,6 +44,10 @@ class HostComponent {
   readonly offset = signal<[number, number] | undefined>(undefined);
   readonly title = signal<string | undefined>(undefined);
   readonly standalone = signal(false);
+  readonly color = signal<AndesBadgeColor | undefined>(undefined);
+  readonly status = signal<AndesBadgeStatus | undefined>(undefined);
+  readonly text = signal<string | undefined>(undefined);
+  readonly overflowCount = signal<number | undefined>(undefined);
 }
 
 describe('AndesBadge', () => {
@@ -230,6 +244,246 @@ describe('AndesBadge', () => {
     expect(
       fixture.nativeElement.querySelector('.andes-badge').getAttribute('title'),
     ).toBe('3 unread messages');
+  });
+});
+
+describe('AndesBadge status / text (Ant status indicator)', () => {
+  function create(apply: (host: HostComponent) => void) {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it.each([
+    ['success', 'andes-badge--success'],
+    ['processing', 'andes-badge--info'],
+    ['default', 'andes-badge--default'],
+    ['error', 'andes-badge--danger'],
+    ['warning', 'andes-badge--warning'],
+  ] as const)(
+    'status=%s renders a standalone dot with the %s color',
+    (status, colorClass) => {
+      const fixture = create((host) => host.status.set(status));
+      const badge = fixture.nativeElement.querySelector('.andes-badge');
+
+      expect(
+        fixture.nativeElement.querySelector('.andes-badge-wrapper--standalone'),
+      ).toBeTruthy();
+      expect(badge.classList).toContain('andes-badge--dot');
+      expect(badge.classList).toContain(colorClass);
+      // The wrapped content is not rendered in status mode - it is an inline indicator.
+      expect(fixture.nativeElement.querySelector('.anchor')).toBeFalsy();
+    },
+  );
+
+  it('pulses only for status=processing', () => {
+    const processing = create((host) => host.status.set('processing'));
+    const success = create((host) => host.status.set('success'));
+
+    expect(
+      processing.nativeElement.querySelector('.andes-badge__ping'),
+    ).toBeTruthy();
+    expect(
+      success.nativeElement.querySelector('.andes-badge__ping'),
+    ).toBeFalsy();
+  });
+
+  it('ignores count in status mode - a dot, never a number', () => {
+    const fixture = create((host) => {
+      host.status.set('success');
+      host.count.set(5);
+    });
+    const badge = fixture.nativeElement.querySelector('.andes-badge');
+
+    expect(badge.textContent.trim()).toBe('');
+    expect(badge.classList).not.toContain('andes-badge--single-char');
+  });
+
+  it('renders a string text label beside the dot, before any projected slot=label', () => {
+    const fixture = create((host) => {
+      host.status.set('success');
+      host.text.set('Online');
+    });
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge__text').textContent,
+    ).toBe('Online');
+    expect(fixture.nativeElement.textContent.replace(/\s+/g, '')).toBe(
+      'OnlineActive',
+    );
+  });
+
+  it('renders a TemplateRef text', () => {
+    @Component({
+      imports: [AndesBadge],
+      template: `<ng-template #label><em>Busy</em></ng-template>
+        <andes-badge status="warning" [text]="label" />`,
+    })
+    class TemplateTextHost {}
+
+    const fixture = TestBed.createComponent(TemplateTextHost);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge__text em').textContent,
+    ).toBe('Busy');
+  });
+
+  it('does not render text outside standalone/status mode', () => {
+    const fixture = create((host) => {
+      host.count.set(3);
+      host.text.set('Ignored');
+    });
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge__text'),
+    ).toBeFalsy();
+  });
+});
+
+describe('AndesBadge color', () => {
+  function create(apply: (host: HostComponent) => void) {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+    return fixture.nativeElement.querySelector('.andes-badge') as HTMLElement;
+  }
+
+  it('a preset color name overrides variant', () => {
+    const badge = create((host) => {
+      host.count.set(1);
+      host.variant.set('danger');
+      host.color.set('success');
+    });
+
+    expect(badge.classList).toContain('andes-badge--success');
+    expect(badge.classList).not.toContain('andes-badge--danger');
+    expect(badge.style.getPropertyValue('--andes-badge-color')).toBe('');
+  });
+
+  it('a preset color overrides a status color', () => {
+    const badge = create((host) => {
+      host.status.set('error');
+      host.color.set('info');
+    });
+
+    expect(badge.classList).toContain('andes-badge--info');
+    expect(badge.classList).not.toContain('andes-badge--danger');
+  });
+
+  it('an arbitrary CSS color is applied through --andes-badge-color with the custom class', () => {
+    const badge = create((host) => {
+      host.count.set(1);
+      host.color.set('#722ed1');
+    });
+
+    expect(badge.classList).toContain('andes-badge--custom');
+    expect(badge.classList).not.toContain('andes-badge--danger');
+    expect(badge.style.getPropertyValue('--andes-badge-color')).toBe('#722ed1');
+  });
+
+  it('keeps the single-char circle with a custom color', () => {
+    const badge = create((host) => {
+      host.count.set(4);
+      host.color.set('rebeccapurple');
+    });
+
+    expect(badge.classList).toContain('andes-badge--single-char');
+  });
+
+  it('derives the custom-color text from the background luminance (CIE L* 49.44 = WCAG Y 0.179)', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/badge/badge.css'),
+      'utf8',
+    )
+      .replace(/\s+/g, ' ')
+      .replace(/\( /g, '(')
+      .replace(/ \)/g, ')');
+
+    expect(css).toMatch(
+      /@supports \(color: lch\(from red l c h\)\)\s*{\s*\.andes-badge--custom\s*{\s*color: lch\(from var\(--andes-badge-color\) clamp\(0, \(49\.44 - l\) \* 1000, 100\) 0 0\);/,
+    );
+  });
+});
+
+describe('AndesBadge count as a TemplateRef', () => {
+  @Component({
+    imports: [AndesBadge],
+    template: `<ng-template #clock><svg class="clock"></svg></ng-template>
+      <andes-badge [count]="clock" title="Pending" [offset]="[2, 3]"
+        ><span class="anchor">Avatar</span></andes-badge
+      >`,
+  })
+  class TemplateCountHost {
+    readonly clock = viewChild.required<TemplateRef<unknown>>('clock');
+  }
+
+  it('renders the template in a corner-pinned custom slot instead of the count bubble', () => {
+    const fixture = TestBed.createComponent(TemplateCountHost);
+    fixture.detectChanges();
+    const custom = fixture.nativeElement.querySelector(
+      '.andes-badge-custom',
+    ) as HTMLElement;
+
+    expect(custom.querySelector('svg.clock')).toBeTruthy();
+    expect(custom.getAttribute('title')).toBe('Pending');
+    expect(custom.style.getPropertyValue('--andes-badge-offset-x')).toBe('2px');
+    expect(fixture.nativeElement.querySelector('.andes-badge')).toBeFalsy();
+    expect(fixture.nativeElement.querySelector('.anchor')).toBeTruthy();
+  });
+});
+
+describe('AndesBadge overflowCount', () => {
+  it('is an alias for max that wins when both are set', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.count.set(15);
+    fixture.componentInstance.max.set(99);
+    fixture.componentInstance.overflowCount.set(9);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge').textContent.trim(),
+    ).toBe('9+');
+  });
+
+  it('falls back to max when unset', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.count.set(15);
+    fixture.componentInstance.max.set(10);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge').textContent.trim(),
+    ).toBe('10+');
+  });
+});
+
+describe('AndesBadge host aria-label', () => {
+  it('forwards aria-label to the indicator and strips it from the host', () => {
+    @Component({
+      imports: [AndesBadge],
+      template: `<andes-badge [count]="3" aria-label="3 unread"
+        ><span>Bell</span></andes-badge
+      >`,
+    })
+    class AriaHost {}
+
+    const fixture = TestBed.createComponent(AriaHost);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement
+        .querySelector('andes-badge')
+        .hasAttribute('aria-label'),
+    ).toBe(false);
+    expect(
+      fixture.nativeElement
+        .querySelector('.andes-badge')
+        .getAttribute('aria-label'),
+    ).toBe('3 unread');
   });
 });
 

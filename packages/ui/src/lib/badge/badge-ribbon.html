@@ -1,0 +1,15 @@
+<div class="andes-ribbon-wrapper">
+  <ng-content />
+  <div
+    data-slot="ribbon"
+    [class]="classes()"
+    [style.--andes-ribbon-color]="customColor() ?? null"
+  >
+    <span class="andes-ribbon__text">
+      @if (textTemplate(); as textTpl) {
+      <ng-container [ngTemplateOutlet]="textTpl" />
+      } @else { {{ textString() }} }
+    </span>
+    <span class="andes-ribbon__corner" aria-hidden="true"></span>
+  </div>
+</div>

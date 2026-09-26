@@ -1,6 +1,8 @@
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideCircleX, lucideTag } from '@ng-icons/lucide';
 import type { Meta, StoryObj } from '@storybook/angular';
 
-import { AndesTag } from './tag';
+import { AndesTag, AndesTagCloseEvent } from './tag';
 
 const meta: Meta<AndesTag> = {
   title: 'Tag',
@@ -23,8 +25,10 @@ const meta: Meta<AndesTag> = {
       control: 'select',
       options: ['outlined', 'filled', 'solid'],
     },
+    bordered: { control: 'boolean' },
     disabled: { control: 'boolean' },
     closable: { control: 'boolean' },
+    hideOnClose: { control: 'boolean' },
     href: { control: 'text' },
     target: { control: 'text' },
     checkable: { control: 'boolean' },
@@ -34,15 +38,17 @@ const meta: Meta<AndesTag> = {
   args: {
     color: 'default',
     variant: 'outlined',
+    bordered: true,
     disabled: false,
     closable: false,
+    hideOnClose: false,
     checkable: false,
     checked: false,
     clickable: false,
   },
   render: (args) => ({
     props: args,
-    template: `<andes-tag [color]="color" [variant]="variant" [disabled]="disabled" [closable]="closable" [href]="href" [target]="target" [checkable]="checkable" [checked]="checked" [clickable]="clickable">Tag</andes-tag>`,
+    template: `<andes-tag [color]="color" [variant]="variant" [bordered]="bordered" [disabled]="disabled" [closable]="closable" [hideOnClose]="hideOnClose" [href]="href" [target]="target" [checkable]="checkable" [checked]="checked" [clickable]="clickable">Tag</andes-tag>`,
   }),
 };
 
@@ -172,6 +178,104 @@ export const WithIcon: Story = {
         <span slot="icon">⭐</span>
         Starred
       </andes-tag>
+    `,
+  }),
+};
+
+/**
+ * Any CSS color works as `color`. Solid picks black or white text by the background's
+ * luminance; outlined/filled keep the hue but clamp its lightness so the text stays readable
+ * in both themes.
+ */
+export const CustomColors: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        @for (variant of ['outlined', 'filled', 'solid']; track variant) {
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <andes-tag color="#f50" [variant]="variant">#f50</andes-tag>
+            <andes-tag color="#2db7f5" [variant]="variant">#2db7f5</andes-tag>
+            <andes-tag color="#87d068" [variant]="variant">#87d068</andes-tag>
+            <andes-tag color="#108ee9" [variant]="variant">#108ee9</andes-tag>
+            <andes-tag color="#fadb14" [variant]="variant">#fadb14</andes-tag>
+            <andes-tag color="rebeccapurple" [variant]="variant">rebeccapurple</andes-tag>
+          </div>
+        }
+      </div>
+    `,
+  }),
+};
+
+/** `bordered=false` (Ant's `bordered={false}`) - same box size, no visible border. */
+export const Borderless: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <andes-tag [bordered]="false">Default</andes-tag>
+          <andes-tag [bordered]="false" color="primary" variant="filled">Primary</andes-tag>
+          <andes-tag [bordered]="false" color="success" variant="filled">Success</andes-tag>
+          <andes-tag [bordered]="false" color="danger" variant="filled">Danger</andes-tag>
+          <andes-tag [bordered]="false" color="#722ed1" variant="filled">#722ed1</andes-tag>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <andes-tag color="primary" variant="filled">Bordered</andes-tag>
+          <andes-tag [bordered]="false" color="primary" variant="filled" closable>Borderless closable</andes-tag>
+        </div>
+      </div>
+    `,
+  }),
+};
+
+/** `closeIcon` - a custom close-button template; setting it implies `closable`. */
+export const CustomCloseIcon: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [NgIcon],
+      providers: [provideIcons({ lucideCircleX })],
+    },
+    template: `
+      <ng-template #closeIcon><ng-icon name="lucideCircleX" /></ng-template>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <andes-tag color="primary" [closeIcon]="closeIcon">Custom icon</andes-tag>
+        <andes-tag color="danger" variant="filled" [closeIcon]="closeIcon" closeAriaLabel="Delete filter">Filter</andes-tag>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `hideOnClose` - uncontrolled mode: the tag hides itself after `closed`, unless the handler
+ * calls `event.preventDefault()`. The second tag vetoes every close.
+ */
+export const HideOnClosePreventable: Story = {
+  render: () => ({
+    props: {
+      veto: (event: AndesTagCloseEvent) => event.preventDefault(),
+    },
+    template: `
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <andes-tag color="primary" closable hideOnClose>Closes itself</andes-tag>
+        <andes-tag color="warning" closable hideOnClose (closed)="veto($event)">Vetoed - stays</andes-tag>
+      </div>
+    `,
+  }),
+};
+
+/** The `slot=icon` leading icon in every rendering form (span, closable, link, checkable). */
+export const IconInEveryForm: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [NgIcon],
+      providers: [provideIcons({ lucideTag })],
+    },
+    template: `
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <andes-tag color="primary"><ng-icon slot="icon" name="lucideTag" />Static</andes-tag>
+        <andes-tag color="success" closable><ng-icon slot="icon" name="lucideTag" />Closable</andes-tag>
+        <andes-tag color="info" href="https://andes-ng.dev"><ng-icon slot="icon" name="lucideTag" />Link</andes-tag>
+        <andes-tag checkable [checked]="true"><ng-icon slot="icon" name="lucideTag" />Checkable</andes-tag>
+      </div>
     `,
   }),
 };
