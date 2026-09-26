@@ -285,3 +285,71 @@ a.andes-tag:focus-visible {
   border-color: var(--andes-color-info-active);
   color: var(--andes-color-background);
 }
+
+/*
+ * Arbitrary CSS `color` (the raw value lands in --andes-tag-color via an inline style).
+ *
+ * An arbitrary color can't be pre-verified against the page the way the presets above were,
+ * so each variant derives its text color from it instead of using it raw:
+ *   - solid: black or white text, whichever contrasts more with the background - relative
+ *     color syntax reads the background's CIE L*, a pure function of WCAG relative luminance,
+ *     and L* 49.44 is exactly the luminance (0.179) at which black and white tie.
+ *   - outlined/filled: the color itself as text, but with its L* clamped to at most 40 in the
+ *     light theme (>= 6.5:1 on white) and at least 65 in the dark one (>= 6.7:1 on the dark
+ *     page background) - hue and chroma are kept, so a yellow tag still reads as yellow.
+ * Browsers without relative color syntax keep the plain fallbacks declared first. The derived
+ * colors sit behind @supports instead of as a second declaration because a var()-containing
+ * value is only validated at computed-value time - an unsupporting browser would otherwise
+ * drop to `unset`, not back to the fallback.
+ */
+
+.andes-tag--color-custom {
+  color: var(--andes-color-foreground);
+}
+
+.andes-tag--color-custom.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-tag-color);
+}
+
+.andes-tag--color-custom.andes-tag--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-tag-color) 12%,
+    var(--andes-color-background)
+  );
+}
+
+.andes-tag--color-custom.andes-tag--solid {
+  background-color: var(--andes-tag-color);
+  border-color: var(--andes-tag-color);
+  color: #fff;
+}
+
+/* Selectors kept short enough to stay on one line - a compound selector split across lines
+   at a combinator is mis-scoped by Angular's emulated-encapsulation shim. The outlined/filled
+   rules target their own class (.andes-tag--custom-tinted, never set on solid) so the shimmed
+   dark-theme rule - which gains extra attribute specificity from :host-context - can't
+   override solid's black/white text. */
+@supports (color: lch(from red l c h)) {
+  .andes-tag--custom-tinted {
+    color: lch(from var(--andes-tag-color) min(l, 40) c h);
+  }
+
+  :host-context([data-andes-theme='dark']) .andes-tag--custom-tinted {
+    color: lch(from var(--andes-tag-color) max(l, 65) c h);
+  }
+
+  .andes-tag--color-custom.andes-tag--solid {
+    color: lch(
+      from var(--andes-tag-color) clamp(0, (49.44 - l) * 1000, 100) 0 0
+    );
+  }
+}
+
+/* bordered=false - keeps the 1px border box (so a borderless tag lines up with bordered ones)
+   but paints it transparent. Same specificity as the color x variant rules above and last in
+   the file, so it wins over every one of them. */
+.andes-tag.andes-tag--borderless {
+  border-color: transparent;
+}

@@ -4,7 +4,12 @@ import { join } from 'node:path';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { AndesTag, AndesTagColor, AndesTagVariant } from './tag';
+import {
+  AndesTag,
+  AndesTagCloseEvent,
+  AndesTagColor,
+  AndesTagVariant,
+} from './tag';
 
 @Component({
   imports: [AndesTag],
@@ -343,6 +348,309 @@ describe('AndesTag', () => {
 
     expect(closeButton).toBeTruthy();
     expect(closeButton.disabled).toBe(true);
+  });
+});
+
+describe('AndesTag custom color', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<andes-tag [color]="color()" [variant]="variant()"
+      >Custom</andes-tag
+    >`,
+  })
+  class ColorHost {
+    readonly color = signal<AndesTagColor>('#722ed1');
+    readonly variant = signal<AndesTagVariant>('outlined');
+  }
+
+  it.each(['outlined', 'filled', 'solid'] as const)(
+    'applies an arbitrary CSS color via --andes-tag-color in the %s variant',
+    (variant) => {
+      const fixture = TestBed.createComponent(ColorHost);
+      fixture.componentInstance.variant.set(variant);
+      fixture.detectChanges();
+      const tag = fixture.nativeElement.querySelector(
+        '[data-slot="tag"]',
+      ) as HTMLElement;
+
+      expect(tag.classList).toContain('andes-tag--color-custom');
+      expect(tag.classList).toContain(`andes-tag--${variant}`);
+      expect(tag.style.getPropertyValue('--andes-tag-color')).toBe('#722ed1');
+      expect(tag.textContent?.trim()).toBe('Custom');
+      // Solid gets black/white text; only outlined/filled derive text from the hue.
+      expect(tag.classList.contains('andes-tag--custom-tinted')).toBe(
+        variant !== 'solid',
+      );
+    },
+  );
+
+  it('switching back to a preset drops the inline custom color', () => {
+    const fixture = TestBed.createComponent(ColorHost);
+    fixture.detectChanges();
+    fixture.componentInstance.color.set('success');
+    fixture.detectChanges();
+    const tag = fixture.nativeElement.querySelector(
+      '[data-slot="tag"]',
+    ) as HTMLElement;
+
+    expect(tag.classList).toContain('andes-tag--color-success');
+    expect(tag.classList).not.toContain('andes-tag--color-custom');
+    expect(tag.style.getPropertyValue('--andes-tag-color')).toBe('');
+  });
+
+  /** tag.css with whitespace collapsed, so Prettier's line wrapping doesn't matter. */
+  function normalizedCss(): string {
+    return readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/tag/tag.css'),
+      'utf8',
+    )
+      .replace(/\s+/g, ' ')
+      .replace(/\( /g, '(')
+      .replace(/ \)/g, ')');
+  }
+
+  it('derives readable text from the custom color in every variant (tag.css)', () => {
+    const supports =
+      normalizedCss().match(
+        /@supports \(color: lch\(from red l c h\)\) {(.*?) } }/,
+      )?.[1] ?? '';
+
+    // Outlined/filled (the base rule): hue kept, lightness clamped per theme.
+    expect(supports).toContain(
+      '.andes-tag--custom-tinted { color: lch(from var(--andes-tag-color) min(l, 40) c h); }',
+    );
+    expect(supports).toContain(
+      ":host-context([data-andes-theme='dark']) .andes-tag--custom-tinted { color: lch(from var(--andes-tag-color) max(l, 65) c h); }",
+    );
+    // Solid: black/white at the WCAG luminance tie point (CIE L* 49.44 = Y 0.179).
+    expect(supports).toContain(
+      '.andes-tag--color-custom.andes-tag--solid { color: lch(from var(--andes-tag-color) clamp(0, (49.44 - l) * 1000, 100) 0 0)',
+    );
+  });
+
+  it('never splits a :host-context compound selector across lines (Angular shim mis-scopes it)', () => {
+    const lines = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/tag/tag.css'),
+      'utf8',
+    ).split('\n');
+
+    for (const line of lines.filter((l) => l.includes(':host-context('))) {
+      expect(line.trimEnd()).toMatch(/[{,]$/);
+    }
+  });
+});
+
+describe('AndesTag bordered', () => {
+  it('bordered=false adds the borderless class; bordered is the default', () => {
+    @Component({
+      imports: [AndesTag],
+      template: `<andes-tag [bordered]="bordered()" color="primary"
+        >Tag</andes-tag
+      >`,
+    })
+    class BorderHost {
+      readonly bordered = signal(true);
+    }
+
+    const fixture = TestBed.createComponent(BorderHost);
+    fixture.detectChanges();
+    const query = () =>
+      fixture.nativeElement.querySelector('[data-slot="tag"]') as HTMLElement;
+
+    expect(query().classList).not.toContain('andes-tag--borderless');
+
+    fixture.componentInstance.bordered.set(false);
+    fixture.detectChanges();
+
+    expect(query().classList).toContain('andes-tag--borderless');
+  });
+
+  it('the borderless rule comes after every color x variant rule, so it wins the tie', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/tag/tag.css'),
+      'utf8',
+    );
+    const borderless = css.indexOf('.andes-tag.andes-tag--borderless {');
+    const lastVariantRule = css.lastIndexOf('.andes-tag--color-');
+
+    expect(borderless).toBeGreaterThan(lastVariantRule);
+  });
+});
+
+describe('AndesTag closeIcon', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<ng-template #icon><span class="custom-x">x</span></ng-template>
+      <andes-tag [closeIcon]="icon" (closed)="closedCount = closedCount + 1"
+        ><span slot="icon">*</span>Beta</andes-tag
+      >`,
+  })
+  class CloseIconHost {
+    closedCount = 0;
+  }
+
+  it('implies closable, renders the template in the close button and keeps the label', () => {
+    const fixture = TestBed.createComponent(CloseIconHost);
+    fixture.detectChanges();
+    const tag = fixture.nativeElement.querySelector(
+      '[data-slot="tag"]',
+    ) as HTMLElement;
+    const closeButton = tag.querySelector(
+      '.andes-tag__close',
+    ) as HTMLButtonElement;
+
+    expect(tag.classList).toContain('andes-tag--closable');
+    expect(closeButton.querySelector('.custom-x')).toBeTruthy();
+    expect(closeButton.querySelector('svg')).toBeFalsy();
+    expect(closeButton.getAttribute('aria-label')).toBe('Remove');
+    expect(tag.querySelector('[slot=icon]')?.textContent).toBe('*');
+    expect(tag.textContent).toContain('Beta');
+
+    closeButton.click();
+
+    expect(fixture.componentInstance.closedCount).toBe(1);
+  });
+});
+
+describe('AndesTag close event / hideOnClose', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<andes-tag
+      closable
+      [hideOnClose]="hideOnClose()"
+      (closed)="onClosed($event)"
+      >Beta</andes-tag
+    >`,
+  })
+  class CloseHost {
+    readonly hideOnClose = signal(false);
+    veto = false;
+    lastEvent: AndesTagCloseEvent | undefined;
+
+    onClosed(event: AndesTagCloseEvent): void {
+      this.lastEvent = event;
+      if (this.veto) {
+        event.preventDefault();
+      }
+    }
+  }
+
+  function setup(apply: (host: CloseHost) => void = () => undefined) {
+    const fixture = TestBed.createComponent(CloseHost);
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+    const clickClose = () => {
+      (
+        fixture.nativeElement.querySelector(
+          '.andes-tag__close',
+        ) as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+    };
+    const tag = () => fixture.nativeElement.querySelector('[data-slot="tag"]');
+    return { fixture, clickClose, tag };
+  }
+
+  it('emits an AndesTagCloseEvent carrying the original click', () => {
+    const { fixture, clickClose } = setup();
+    clickClose();
+    const event = fixture.componentInstance.lastEvent;
+
+    expect(event).toBeInstanceOf(AndesTagCloseEvent);
+    expect(event?.originalEvent).toBeInstanceOf(MouseEvent);
+    expect(event?.defaultPrevented).toBe(false);
+  });
+
+  it('never removes itself by default (controlled mode)', () => {
+    const { clickClose, tag } = setup();
+    clickClose();
+
+    expect(tag()).toBeTruthy();
+    expect(tag().textContent).toContain('Beta');
+  });
+
+  it('hides itself after closing with hideOnClose', () => {
+    const { clickClose, tag } = setup((host) => host.hideOnClose.set(true));
+    clickClose();
+
+    expect(tag()).toBeFalsy();
+  });
+
+  it('stays visible when a handler vetoes the close with preventDefault()', () => {
+    const { fixture, clickClose, tag } = setup((host) => {
+      host.hideOnClose.set(true);
+      host.veto = true;
+    });
+    clickClose();
+
+    expect(fixture.componentInstance.lastEvent?.defaultPrevented).toBe(true);
+    expect(tag()).toBeTruthy();
+    expect(tag().textContent).toContain('Beta');
+  });
+});
+
+describe('AndesTag checked two-way binding', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<andes-tag checkable [(checked)]="on">Beta</andes-tag>`,
+  })
+  class TwoWayHost {
+    readonly on = signal(false);
+  }
+
+  it('writes toggles back to the bound signal and reflects external writes', () => {
+    const fixture = TestBed.createComponent(TwoWayHost);
+    fixture.detectChanges();
+    const tag = () =>
+      fixture.nativeElement.querySelector(
+        '[data-slot="tag"]',
+      ) as HTMLButtonElement;
+
+    tag().click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.on()).toBe(true);
+    expect(tag().getAttribute('aria-pressed')).toBe('true');
+
+    fixture.componentInstance.on.set(false);
+    fixture.detectChanges();
+
+    expect(tag().getAttribute('aria-pressed')).toBe('false');
+    expect(tag().classList).not.toContain('andes-tag--checked');
+  });
+});
+
+describe('AndesTag icon slot in every rendering branch', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<andes-tag
+      [href]="href()"
+      [checkable]="checkable()"
+      [clickable]="clickable()"
+      ><span slot="icon" class="ic">*</span>Label</andes-tag
+    >`,
+  })
+  class IconHost {
+    readonly href = signal<string | undefined>(undefined);
+    readonly checkable = signal(false);
+    readonly clickable = signal(false);
+  }
+
+  it.each([
+    ['span', () => undefined],
+    ['link', (h: IconHost) => h.href.set('https://andes-ng.dev')],
+    ['checkable', (h: IconHost) => h.checkable.set(true)],
+    ['clickable', (h: IconHost) => h.clickable.set(true)],
+  ] as const)('projects icon + label in the %s form', (_name, apply) => {
+    const fixture = TestBed.createComponent(IconHost);
+    fixture.detectChanges();
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+    // Re-query: the @if swap replaced the root element.
+    const tag = fixture.nativeElement.querySelector('[data-slot="tag"]');
+
+    expect(tag.querySelector('.ic')?.textContent).toBe('*');
+    expect(tag.textContent?.trim()).toBe('*Label');
   });
 });
 

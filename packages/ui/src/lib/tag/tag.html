@@ -1,4 +1,3 @@
-
 <!--
   The icon/label projection markers live here ONCE, not once per branch below: Angular
   resolves an `<ng-content>` selector to a single content bucket per component template,
@@ -15,8 +14,14 @@
   <ng-content />
 </ng-template>
 
-@if (closable()) {
-<span data-slot="tag" [class]="classes()">
+@if (dismissed()) {
+<!-- hideOnClose: closed and not vetoed - render nothing. -->
+} @else if (isClosable()) {
+<span
+  data-slot="tag"
+  [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
+>
   <ng-container [ngTemplateOutlet]="content" />
   <button
     type="button"
@@ -25,6 +30,9 @@
     [attr.aria-label]="closeAriaLabel()"
     (click)="onClose($event)"
   >
+    @if (closeIcon(); as icon) {
+    <ng-container [ngTemplateOutlet]="icon" />
+    } @else {
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -36,12 +44,14 @@
       <line x1="5" y1="5" x2="19" y2="19" />
       <line x1="19" y1="5" x2="5" y2="19" />
     </svg>
+    }
   </button>
 </span>
 } @else if (isLink()) {
 <a
   data-slot="tag"
   [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
   [attr.href]="disabled() ? null : href()"
   [attr.target]="target()"
   [attr.aria-disabled]="disabled() ? 'true' : null"
@@ -54,14 +64,19 @@
   type="button"
   data-slot="tag"
   [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
   [disabled]="disabled()"
-  [attr.aria-pressed]="checkable() ? checkedState() : null"
+  [attr.aria-pressed]="checkable() ? isChecked() : null"
   (click)="onTagClick($event)"
 >
   <ng-container [ngTemplateOutlet]="content" />
 </button>
 } @else {
-<span data-slot="tag" [class]="classes()">
+<span
+  data-slot="tag"
+  [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
+>
   <ng-container [ngTemplateOutlet]="content" />
 </span>
 }

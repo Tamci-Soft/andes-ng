@@ -1,0 +1,9 @@
+@for (option of normalizedOptions(); track option.value) {
+<andes-tag
+  checkable
+  [checked]="isSelected(option.value)"
+  [disabled]="disabled() || !!option.disabled"
+  (checkedChange)="toggle(option.value, $event)"
+  >{{ option.label }}</andes-tag
+>
+}
