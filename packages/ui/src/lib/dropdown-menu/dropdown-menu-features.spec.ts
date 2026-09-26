@@ -193,7 +193,7 @@ class MenuHost {
   readonly clicks: AndesDropdownMenuClickEvent[] = [];
 }
 
-describe('AndesDropdownMenu - Ant Design parity', () => {
+describe('AndesDropdownMenu - extended features', () => {
   withElementGeometry();
 
   let fixture: ComponentFixture<MenuHost>;

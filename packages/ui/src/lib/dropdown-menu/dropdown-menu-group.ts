@@ -9,10 +9,11 @@ import {
 import { AndesDropdownMenuLabel } from './dropdown-menu-label';
 
 /**
- * Groups related items under an optional `AndesDropdownMenuLabel` (Ant's
- * `type: 'group'`). `role="group"`, named by its label, so assistive tech announces
- * the group name when focus enters it. Purely structural: the items inside still take
- * part in the enclosing panel's arrow-key navigation.
+ * Groups related items under an optional `AndesDropdownMenuLabel` (the projected
+ * counterpart of an `items` entry with `type: 'group'`). `role="group"`, named by its
+ * label, so assistive tech announces the group name when focus enters it. Purely
+ * structural: the items inside still take part in the enclosing panel's arrow-key
+ * navigation.
  *
  * ```html
  * <andes-dropdown-menu-group>
