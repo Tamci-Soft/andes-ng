@@ -112,8 +112,8 @@ export const AllVariants: Story = {
 
 /**
  * Full-width strip for the top of a page or panel. Same quiet surface as the card - it only
- * drops the radius and the side borders. Like Ant Design, an unset severity resolves to
- * `warning` in banner mode.
+ * drops the radius and the side borders. An unset severity resolves to `warning` in banner
+ * mode.
  */
 export const Banner: Story = {
   parameters: { layout: 'fullscreen' },

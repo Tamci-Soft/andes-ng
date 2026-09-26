@@ -30,10 +30,9 @@ export type AndesAlertContent =
   string | TemplateRef<AndesAlertTemplateContext> | null | undefined;
 
 /**
- * Emitted by `closing` before the alert starts hiding. Ant Design's `onClose` can only observe
- * the dismissal; exposing `preventDefault()` here also lets a consumer veto it (e.g. to confirm
- * first, or to keep the alert until a request settles) without having to own the visibility
- * state themselves.
+ * Emitted by `closing` before the alert starts hiding. Beyond observing the dismissal,
+ * `preventDefault()` lets a consumer veto it (e.g. to confirm first, or to keep the alert until
+ * a request settles) without having to own the visibility state themselves.
  */
 export class AndesAlertCloseEvent {
   private prevented = false;
@@ -86,7 +85,7 @@ export class AndesAlert {
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);
 
-  /** Left unset, resolves to `info` - or to `warning` in `banner` mode, matching Ant Design. */
+  /** Left unset, resolves to `info` - or to `warning` in `banner` mode. */
   readonly severity = input<AndesAlertSeverity | undefined>(undefined);
   readonly closable = input(false, { transform: booleanAttribute });
   readonly showIcon = input(true, { transform: booleanAttribute });
@@ -149,8 +148,8 @@ export class AndesAlert {
   );
 
   /**
-   * Neither shadcn/ui nor Ant Design's own docs confirm a default ARIA role for their base
-   * Alert (see docs/research/components/alert.md, section 4). The generally-accepted rule is:
+   * shadcn/ui's docs don't confirm a default ARIA role for its base Alert (see
+   * docs/research/components/alert.md, section 4). The generally-accepted rule is:
    * `role="status"` (polite) for a non-urgent alert that is part of the page's static/initial
    * content, and `role="alert"` (assertive) for one that appears dynamically and needs
    * immediate announcement. This component can't know at render time whether a consumer is

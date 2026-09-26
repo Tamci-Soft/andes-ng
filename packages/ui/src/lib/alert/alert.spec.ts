@@ -555,7 +555,7 @@ describe('AndesAlert', () => {
       expect(alert.classList).toContain('andes-alert--banner');
     });
 
-    it('defaults to the warning severity (Ant Design parity) and shows its icon', () => {
+    it('defaults to the warning severity and shows its icon', () => {
       const { alert } = createBanner();
 
       expect(alert.getAttribute('data-severity')).toBe('warning');
