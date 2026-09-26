@@ -221,7 +221,7 @@ const log = (label: string) => (value: unknown) =>
   console.log(label, JSON.stringify(value));
 
 export const MarksObject: Story = {
-  name: 'Marks (Ant Design keyed object, styled)',
+  name: 'Marks (keyed object, styled)',
   args: {
     value: 37,
     marks: {
