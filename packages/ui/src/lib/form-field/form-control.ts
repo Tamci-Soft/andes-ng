@@ -9,9 +9,20 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, NgControl, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormGroupDirective,
+  NgControl,
+  NgForm,
+  type ValidationErrors,
+  Validators,
+} from '@angular/forms';
 
-import { ANDES_FORM_CONTROL, ANDES_FORM_FIELD } from './form-field-tokens';
+import {
+  ANDES_FORM_CONTROL,
+  ANDES_FORM_FIELD,
+  type AndesFormControlApi,
+} from './form-field-tokens';
 
 /**
  * The HTML elements that are both *labelable* (a `<label for>` can point at them) and able to
@@ -152,14 +163,21 @@ const LABELABLE_NATIVE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
     '[attr.aria-describedby]': 'hostDescribedBy()',
     '[attr.aria-invalid]': 'hostAriaInvalid()',
     '[attr.aria-required]': 'hostAriaRequired()',
+    '[attr.aria-busy]': 'hostAriaBusy()',
   },
 })
-export class AndesFormControl implements OnInit {
+export class AndesFormControl implements OnInit, AndesFormControlApi {
   private readonly ngControl = inject(NgControl, {
     optional: true,
     self: true,
   });
   private readonly field = inject(ANDES_FORM_FIELD, { optional: true });
+  /** The enclosing reactive (`[formGroup]`) or template-driven (`<form>`/`ngForm`) form, if
+   *  any - only read for its `submitted` flag, so errors surface after a submit attempt even
+   *  on fields the user never reached (Ant shows every error on a failed submit, too). */
+  private readonly formDirective =
+    inject(FormGroupDirective, { optional: true }) ??
+    inject(NgForm, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
   private readonly element =
     inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
@@ -167,7 +185,11 @@ export class AndesFormControl implements OnInit {
   protected readonly invalid = signal(false);
   protected readonly touched = signal(false);
   protected readonly dirty = signal(false);
+  private readonly submitted = signal(false);
+  private readonly pendingState = signal(false);
+  private readonly errorsState = signal<ValidationErrors | null>(null);
   private readonly requiredState = signal(false);
+  private readonly requiredAttribute = signal(false);
 
   /**
    * Whether this directive sits directly on a native, labelable form element rather than on a
@@ -179,11 +201,36 @@ export class AndesFormControl implements OnInit {
     this.element.tagName,
   );
 
+  /** `touched || dirty`, or the enclosing `<form>` has been submitted - the point from which
+   *  a status (error, success, validating) is worth showing at all. */
+  readonly interacted = computed(
+    () => this.touched() || this.dirty() || this.submitted(),
+  );
+
   /** `control.invalid && (control.touched || control.dirty)` - Angular's idiomatic
-   *  "don't yell at the user before they've interacted with the field" rule. Drives both
-   *  this control's own `aria-invalid` and the enclosing field's error visibility. */
-  readonly showError = computed(
-    () => this.invalid() && (this.touched() || this.dirty()),
+   *  "don't yell at the user before they've interacted with the field" rule - widened to also
+   *  fire once the enclosing form has been submitted, so a failed submit reveals every error
+   *  even without `markAllAsTouched()`. Drives both this control's own `aria-invalid` and the
+   *  enclosing field's error visibility. */
+  readonly showError = computed(() => this.invalid() && this.interacted());
+
+  /** An async validator is still running (`control.pending`). */
+  readonly pending = this.pendingState.asReadonly();
+
+  readonly valid = computed(
+    () => !this.invalid() && !this.pending() && !!this.ngControl?.control,
+  );
+
+  /** The bound control's current `ValidationErrors`, as a signal. */
+  readonly errors = this.errorsState.asReadonly();
+
+  /**
+   * Whether the label should carry a required mark: {@link isRequired}, or - for the
+   * template-driven case `isRequired` deliberately ignores - a native `required` attribute on
+   * the element. (`[required]="false"` removes that attribute, so it tracks the binding.)
+   */
+  readonly markedRequired = computed(
+    () => this.isRequired() || this.requiredAttribute(),
   );
 
   readonly resolvedId = computed(() => this.field?.controlId() ?? null);
@@ -233,12 +280,27 @@ export class AndesFormControl implements OnInit {
   );
 
   protected readonly hostAriaInvalid = computed(() =>
-    this.isNativeFormElement && this.showError() ? 'true' : null,
+    this.isNativeFormElement && (this.field?.showError() ?? this.showError())
+      ? 'true'
+      : null,
+  );
+
+  protected readonly hostAriaBusy = computed(() =>
+    this.isNativeFormElement && this.pending() ? 'true' : null,
   );
 
   protected readonly hostAriaRequired = computed(() =>
     this.isNativeFormElement ? this.ariaRequired() : null,
   );
+
+  constructor() {
+    // Registered from the constructor, before the field's own view is first checked, so the
+    // field never renders a frame without knowing its control.
+    const unregister = this.field?.registerControl(this);
+    if (unregister) {
+      this.destroyRef.onDestroy(unregister);
+    }
+  }
 
   ngOnInit(): void {
     // NgControl.control is only populated once the host directive (FormControlName/
@@ -257,12 +319,23 @@ export class AndesFormControl implements OnInit {
     control.events
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.syncFromControl(control));
+    // `ngSubmit` fires after the directive has already flipped `submitted` to true. A later
+    // `resetForm()` flips it back and resets the control, whose events re-sync it below.
+    this.formDirective?.ngSubmit
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.submitted.set(true));
   }
 
   private syncFromControl(control: AbstractControl): void {
     this.invalid.set(control.invalid);
     this.touched.set(control.touched);
     this.dirty.set(control.dirty);
+    this.pendingState.set(control.pending);
+    this.errorsState.set(control.errors);
+    this.submitted.set(this.formDirective?.submitted ?? false);
+    this.requiredAttribute.set(
+      this.isNativeFormElement && this.element.hasAttribute('required'),
+    );
     // Re-read on every control event rather than once in ngOnInit: validators can be swapped at
     // runtime (`addValidators`/`setValidators` + `updateValueAndValidity()`), and that call is
     // itself what emits the status-change event this subscription is already listening to.
