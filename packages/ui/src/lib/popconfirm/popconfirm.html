@@ -1,0 +1,74 @@
+<ng-content select="[andesPopconfirmTrigger], [andesPopoverTrigger]" />
+<ng-template #panel>
+  <andes-popover-content>
+    <div class="andes-popconfirm">
+      <div class="andes-popconfirm-message">
+        @if (icon() !== null) {
+        <span class="andes-popconfirm-icon" aria-hidden="true">
+          @if (icon(); as customIcon) {
+          <ng-container *ngTemplateOutlet="customIcon" />
+          } @else {
+          <svg
+            class="andes-popconfirm-icon-default"
+            viewBox="0 0 16 16"
+            width="1em"
+            height="1em"
+            fill="currentColor"
+            fill-rule="evenodd"
+            focusable="false"
+          >
+            <path
+              d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm-.75 3.25h1.5v5h-1.5v-5ZM8 12.25a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75Z"
+            />
+          </svg>
+          }
+        </span>
+        }
+        <div class="andes-popconfirm-text">
+          @if (title(); as titleValue) {
+          <div class="andes-popconfirm-title" [id]="titleId">
+            @if (isTemplate(titleValue)) {
+            <div
+              class="andes-popconfirm-slot"
+              [andesPopoverOutlet]="titleValue"
+              andesPopoverOutletKey="title"
+            ></div>
+            } @else { {{ titleValue }} }
+          </div>
+          } @if (description(); as descriptionValue) {
+          <div class="andes-popconfirm-description" [id]="bodyId">
+            @if (isTemplate(descriptionValue)) {
+            <div
+              class="andes-popconfirm-slot"
+              [andesPopoverOutlet]="descriptionValue"
+              andesPopoverOutletKey="description"
+            ></div>
+            } @else { {{ descriptionValue }} }
+          </div>
+          }
+        </div>
+      </div>
+      <div class="andes-popconfirm-buttons">
+        @if (showCancel()) {
+        <andes-button
+          class="andes-popconfirm-cancel"
+          size="sm"
+          variant="outline"
+          cdkFocusInitial
+          (click)="handleCancel()"
+          >{{ cancelText() }}</andes-button
+        >
+        }
+        <andes-button
+          class="andes-popconfirm-ok"
+          size="sm"
+          [variant]="okType()"
+          [disabled]="okDisabled()"
+          [loading]="okBusy()"
+          (click)="handleOk()"
+          >{{ okText() }}</andes-button
+        >
+      </div>
+    </div>
+  </andes-popover-content>
+</ng-template>

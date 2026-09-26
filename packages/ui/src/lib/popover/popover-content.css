@@ -1,17 +1,22 @@
+/* Every visual property reads an `--andes-popover-*` custom property first and
+   falls back to the theme tokens - the CSS equivalent of Ant's
+   `overlayInnerStyle`/`styles.container`, without an inline-style input. */
 .andes-popover-content {
   position: relative;
   display: block;
   box-sizing: border-box;
-  min-width: 8rem;
-  max-width: min(24rem, calc(100vw - 1rem));
-  padding: var(--andes-space-4);
-  border-radius: var(--andes-radius-lg);
-  border: 1px solid var(--andes-color-border);
-  background-color: var(--andes-color-popover);
-  color: var(--andes-color-popover-foreground);
-  box-shadow:
+  min-width: var(--andes-popover-min-width, 8rem);
+  max-width: var(--andes-popover-max-width, min(24rem, calc(100vw - 1rem)));
+  padding: var(--andes-popover-padding, var(--andes-space-4));
+  border-radius: var(--andes-popover-radius, var(--andes-radius-lg));
+  border: 1px solid var(--andes-popover-border-color, var(--andes-color-border));
+  background-color: var(--andes-popover-background, var(--andes-color-popover));
+  color: var(--andes-popover-foreground, var(--andes-color-popover-foreground));
+  box-shadow: var(
+    --andes-popover-shadow,
     0 10px 15px -3px rgb(0 0 0 / 10%),
-    0 4px 6px -4px rgb(0 0 0 / 10%);
+    0 4px 6px -4px rgb(0 0 0 / 10%)
+  );
   font-family: var(--andes-font-family), sans-serif;
   outline: none;
   animation: andes-popover-in 0.15s ease-out;
@@ -28,16 +33,42 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .andes-popover-content {
+    animation: none;
+  }
+}
+
+/* Structured parts rendered from the `title` / `content` inputs. */
+.andes-popover-title {
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-popover-title:not(:last-child) {
+  margin-bottom: var(--andes-space-2);
+}
+
+.andes-popover-body:not(:last-child) {
+  margin-bottom: var(--andes-space-2);
+}
+
+/* Host for template content moved in by `AndesPopoverOutlet`. */
+.andes-popover-slot {
+  display: contents;
+}
+
 /* Arrow: a rotated square clipped to its leading corner, colored and bordered
    to match the panel so it reads as a continuation of the surface rather than a
-   separate shape. Centered along the side's cross axis - `align: start`/`end`
-   do not shift it, since exact anchor-relative centering needs the resolved
-   connection pair the overlay primitive does not yet expose (see popover.ts). */
+   separate shape. Centered along the cross axis by default; once the panel is
+   laid out, `AndesPopoverBase` measures the trigger and sets an inline
+   `left`/`top` so it keeps pointing at the trigger after a flip or shift, and
+   sits near the aligned edge for `start`/`end` alignment. The negative margin
+   centers the square on that coordinate. */
 .andes-popover-arrow {
   position: absolute;
   width: 0.625rem;
   height: 0.625rem;
-  background-color: var(--andes-color-popover);
+  background-color: var(--andes-popover-background, var(--andes-color-popover));
   transform: rotate(45deg);
 }
 
@@ -45,30 +76,38 @@
   top: -0.3125rem;
   left: 50%;
   margin-left: -0.3125rem;
-  border-top: 1px solid var(--andes-color-border);
-  border-left: 1px solid var(--andes-color-border);
+  border-top: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
+  border-left: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
 }
 
 .andes-popover-arrow[data-side='top'] {
   bottom: -0.3125rem;
   left: 50%;
   margin-left: -0.3125rem;
-  border-bottom: 1px solid var(--andes-color-border);
-  border-right: 1px solid var(--andes-color-border);
+  border-bottom: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
+  border-right: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
 }
 
 .andes-popover-arrow[data-side='right'] {
   left: -0.3125rem;
   top: 50%;
   margin-top: -0.3125rem;
-  border-bottom: 1px solid var(--andes-color-border);
-  border-left: 1px solid var(--andes-color-border);
+  border-bottom: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
+  border-left: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
 }
 
 .andes-popover-arrow[data-side='left'] {
   right: -0.3125rem;
   top: 50%;
   margin-top: -0.3125rem;
-  border-top: 1px solid var(--andes-color-border);
-  border-right: 1px solid var(--andes-color-border);
+  border-top: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
+  border-right: 1px solid
+    var(--andes-popover-border-color, var(--andes-color-border));
 }

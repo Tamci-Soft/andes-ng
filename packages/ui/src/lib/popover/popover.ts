@@ -1,108 +1,76 @@
+import { provideAndesOverlay } from '@andes-ng/primitives';
 import {
-  andesOverlayPreset,
-  AndesOverlayPrimitive,
-  provideAndesOverlay,
-  type AndesOverlayAlign,
-  type AndesOverlaySide,
-} from '@andes-ng/primitives';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
-  effect,
-  inject,
+  computed,
+  contentChild,
   input,
-  model,
   TemplateRef,
   viewChild,
 } from '@angular/core';
 
+import { AndesPopoverBase } from './popover-base';
+import { AndesPopoverContent } from './popover-content';
+import type { AndesPopoverRenderable } from './popover-types';
+
 /**
- * Non-modal floating panel anchored to a trigger element.
+ * Non-modal floating panel anchored to a trigger element (Ant's `Popover`).
  *
  * `AndesPopover` owns the shared `AndesOverlayPrimitive` instance (portal, anchored
  * positioning, escape/outside-click dismissal, focus-in-without-trapping) and
- * exposes it to its two content-projected parts:
+ * exposes it to its content-projected parts:
  *
  * - `[andesPopoverTrigger]` — put on whatever element should open it.
- * - `<andes-popover-content>` — wraps the panel body.
+ * - `<andes-popover-content>` — wraps a free-form panel body. Optional: with only
+ *   the `title`/`content` inputs, a panel is rendered for you.
  *
  * ```html
- * <andes-popover side="right" align="start">
+ * <andes-popover placement="rightTop" title="Details" [content]="body" trigger="hover">
  *   <button andes-button andesPopoverTrigger>Open</button>
- *   <andes-popover-content>Panel body</andes-popover-content>
  * </andes-popover>
+ * <ng-template #body>Rich <strong>content</strong></ng-template>
  * ```
  *
  * `open` is a `model()`, so it works both uncontrolled (default `false`, driven by
- * the trigger) and controlled (`[(open)]="visible"` from a parent).
+ * the trigger) and controlled (`[(open)]="visible"` from a parent); `(openChange)`
+ * reports every change the popover makes itself.
+ *
+ * Focus: click/context-menu/programmatic opens move focus to the first tabbable
+ * element in the panel (not trapped) and return it to the trigger on close;
+ * hover/focus opens leave focus where it is.
  */
 @Component({
   selector: 'andes-popover',
-  providers: [provideAndesOverlay()],
+  imports: [AndesPopoverContent],
+  providers: [
+    provideAndesOverlay(),
+    { provide: AndesPopoverBase, useExisting: AndesPopover },
+  ],
   templateUrl: './popover.html',
   styleUrl: './popover.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    // `title` is also a global HTML attribute: left on the host, a static
+    // `title="..."` would show the browser's native tooltip over the trigger.
+    '[attr.title]': 'null',
+  },
 })
-export class AndesPopover {
-  private readonly overlay = inject(AndesOverlayPrimitive);
+export class AndesPopover extends AndesPopoverBase {
+  /** Panel header - text or a template. Labels the dialog (`aria-labelledby`). */
+  readonly title = input<AndesPopoverRenderable | null | undefined>(undefined);
+  /** Panel body - text or a template. Rendered below the title. */
+  readonly content = input<AndesPopoverRenderable | null | undefined>(
+    undefined,
+  );
 
-  private readonly contentTemplate = viewChild<TemplateRef<unknown>>('content');
+  protected readonly panelTemplate = viewChild<TemplateRef<unknown>>('panel');
 
-  /** Side of the trigger the panel prefers to render on. Default `'bottom'`. */
-  readonly side = input<AndesOverlaySide>('bottom');
-  /** Alignment along that side. Default `'center'`. */
-  readonly align = input<AndesOverlayAlign>('center');
-  /** Gap in px between the trigger and the panel. Default `8`. */
-  readonly sideOffset = input(8);
-  /** Extra px offset along the alignment axis. Default `0`. */
-  readonly alignOffset = input(0);
-  /** Renders a small pointer element on the panel, on the anchored side. Default `false`. */
-  readonly showArrow = input(false, { transform: booleanAttribute });
+  /** Whether the consumer projected its own `<andes-popover-content>`. */
+  protected readonly projectedContent = contentChild(AndesPopoverContent);
 
-  /** Open state. Two-way bindable for controlled usage; uncontrolled otherwise. */
-  readonly open = model(false);
-
-  constructor() {
-    effect(() => {
-      this.overlay.configure({
-        ...andesOverlayPreset('popover'),
-        positioning: {
-          kind: 'anchored',
-          side: this.side(),
-          align: this.align(),
-          sideOffset: this.sideOffset(),
-          alignOffset: this.alignOffset(),
-        },
-      });
-    });
-
-    effect(() => {
-      const isOpen = this.open();
-      const template = this.contentTemplate();
-      if (!template) {
-        return;
-      }
-      if (isOpen) {
-        this.overlay.open(template);
-      } else {
-        this.overlay.close();
-      }
-    });
-
-    // The overlay can close itself (Escape, outside click, its own close
-    // affordance) without the model ever being told - keep it in sync so a
-    // controlled consumer's `visible` signal doesn't lie.
-    this.overlay.closed.pipe(takeUntilDestroyed()).subscribe(() => {
-      if (this.open()) {
-        this.open.set(false);
-      }
-    });
-  }
-
-  /** Opens if closed, closes if open. Called by `AndesPopoverTrigger`. */
-  toggle(): void {
-    this.open.update((value) => !value);
-  }
+  override readonly panelTitle = computed(() => this.title());
+  override readonly panelBody = computed(() => this.content());
+  override readonly panelLabelledBy = computed(() =>
+    this.title() ? this.titleId : null,
+  );
 }

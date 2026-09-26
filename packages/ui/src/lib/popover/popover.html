@@ -1,4 +1,7 @@
-<ng-content select="[andesPopoverTrigger]" />
-<ng-template #content>
+<ng-content select="[andesPopoverTrigger], [andesPopconfirmTrigger]" />
+<ng-template #panel>
   <ng-content select="andes-popover-content" />
+  @if (!projectedContent()) {
+  <andes-popover-content />
+  }
 </ng-template>
