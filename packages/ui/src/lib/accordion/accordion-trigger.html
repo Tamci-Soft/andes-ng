@@ -1,0 +1,110 @@
+<!-- Each projection slot appears exactly once: the label is rendered through `#label` wherever
+     the current mode needs it, rather than duplicating `<ng-content />` across branches. -->
+<ng-template #label><ng-content /></ng-template>
+
+<ng-template #icon>
+  @if (expandIcon(); as template) {
+  <span
+    class="andes-accordion-trigger__icon-slot"
+    aria-hidden="true"
+    [attr.data-state]="dataState()"
+  >
+    <ng-container
+      [ngTemplateOutlet]="template"
+      [ngTemplateOutletContext]="iconContext()"
+    />
+  </span>
+  } @else {
+  <svg
+    class="andes-accordion-trigger__icon"
+    [attr.data-state]="dataState()"
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+  }
+</ng-template>
+
+<!-- collapsible="icon": only the icon is a button; it takes its accessible name from the
+     header text via aria-labelledby. -->
+<ng-template #iconButton>
+  <button
+    type="button"
+    class="andes-accordion-trigger__icon-button"
+    [id]="triggerId"
+    [attr.aria-expanded]="isOpen()"
+    [attr.aria-controls]="contentId"
+    [attr.aria-labelledby]="labelId"
+    (click)="onClick()"
+  >
+    <ng-container [ngTemplateOutlet]="icon" />
+  </button>
+</ng-template>
+
+<div
+  class="andes-accordion-trigger__header"
+  [attr.data-size]="size()"
+  [attr.data-variant]="variant()"
+  [attr.data-collapsible]="mode()"
+  [attr.data-icon-position]="iconPosition()"
+>
+  <h3 class="andes-accordion-trigger__heading">
+    @if (mode() === 'icon') { @if (showArrow() && iconPosition() === 'start') {
+    <ng-container [ngTemplateOutlet]="iconButton" />
+    }
+    <span class="andes-accordion-trigger__text" [id]="labelId">
+      <ng-container [ngTemplateOutlet]="label" />
+    </span>
+    @if (showArrow() && iconPosition() === 'end') {
+    <ng-container [ngTemplateOutlet]="iconButton" />
+    } } @else {
+    <button
+      type="button"
+      class="andes-accordion-trigger__button"
+      [id]="triggerId"
+      [attr.data-collapsible]="mode()"
+      [attr.data-variant]="variant()"
+      [attr.aria-expanded]="isOpen()"
+      [attr.aria-controls]="contentId"
+      [disabled]="isDisabled()"
+      (click)="onClick()"
+    >
+      @if (showArrow() && iconPosition() === 'start') {
+      <ng-container [ngTemplateOutlet]="icon" />
+      }
+      <span class="andes-accordion-trigger__text">
+        <ng-container [ngTemplateOutlet]="label" />
+      </span>
+      @if (showArrow() && iconPosition() === 'end' && mode() !== 'header') {
+      <ng-container [ngTemplateOutlet]="icon" />
+      }
+    </button>
+    <!-- collapsible="header" with the icon at the end: the text button shrinks to its content,
+           so the icon sits outside it. It stays a pointer shortcut (clicking the
+           arrow still toggles in header mode) but is hidden from AT and the tab order - the text
+           button right before it is the one accessible control. -->
+    @if (showArrow() && iconPosition() === 'end' && mode() === 'header') {
+    <span
+      class="andes-accordion-trigger__icon-toggle"
+      aria-hidden="true"
+      (click)="onClick()"
+    >
+      <ng-container [ngTemplateOutlet]="icon" />
+    </span>
+    } }
+  </h3>
+  <!-- Outside the heading (so it doesn't become part of the heading's name) and outside the
+       button (so interactive extras are valid markup and never toggle the panel). -->
+  <span class="andes-accordion-trigger__extra">
+    <ng-content select="[andesAccordionExtra]" />
+    @if (extra(); as extra) { @if (isTemplate(extra)) {
+    <ng-container [ngTemplateOutlet]="extra" />
+    } @else { {{ extra }} } }
+  </span>
+</div>

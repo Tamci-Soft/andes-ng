@@ -1,0 +1,62 @@
+/* CSS-only expand/collapse: animating a `grid-template-rows` fraction from `0fr` to `1fr` lets
+   the panel transition to its real, dynamic content height without ever measuring it in JS (the
+   classic "animate to height: auto" problem). This is a lighter-weight approach than a full
+   starting/ending-style animation-phase state machine (what Base UI itself builds internally,
+   via `data-starting-style`/`data-ending-style` and `--accordion-panel-height`) - sufficient
+   here since andes-ng has no shared motion-phase primitive yet; a reusable state machine for
+   this class of problem (relevant to more than just Accordion) is flagged as future work,
+   matching the research notes for this component. */
+:host {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+:host([data-state='open']) {
+  grid-template-rows: 1fr;
+}
+
+/* The grid item that actually collapses. It must stay a *pure* clipping box with no padding or
+   border of its own: `overflow: hidden` clips to the PADDING box, not the content box, so any
+   padding here survives the collapse as a band of still-painted content. With
+   `padding-bottom: var(--andes-space-4)` on this element a closed panel kept a 16px-tall padding
+   box and the first 16px of the projected text was painted inside it - the panel read as
+   "collapsed" to `data-state`/`inert` while the user could plainly still read a line of it. */
+.andes-accordion-content__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* The panel's breathing room lives one level in, on a plain (non-grid-item, non-clipping) box.
+   When open it contributes its padding to the `1fr` track exactly as before; when closed the
+   clipping box above collapses to a true 0px and takes this element's padding with it. */
+.andes-accordion-content__body {
+  padding-bottom: var(--andes-space-4);
+  color: var(--andes-color-foreground);
+}
+
+.andes-accordion-content__body[data-size='sm'] {
+  padding-bottom: var(--andes-space-2);
+  font-size: 0.875rem;
+}
+
+.andes-accordion-content__body[data-size='lg'] {
+  padding-bottom: var(--andes-space-5);
+  font-size: 1.125rem;
+}
+
+/* Bordered: a separate content band under the tinted header. The divider is a border on this
+   (non-clipping) box too, so a closed panel clips it away along with everything else. */
+.andes-accordion-content__body[data-variant='bordered'] {
+  padding: var(--andes-space-4);
+  border-top: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-background);
+}
+
+.andes-accordion-content__body[data-variant='bordered'][data-size='sm'] {
+  padding: var(--andes-space-3);
+}
+
+.andes-accordion-content__body[data-variant='bordered'][data-size='lg'] {
+  padding: var(--andes-space-5);
+}

@@ -1,0 +1,24 @@
+@for (item of items(); track item.key) {
+<andes-accordion-item
+  [value]="item.key"
+  [disabled]="item.disabled ?? false"
+  [collapsible]="item.collapsible"
+  [showArrow]="item.showArrow ?? true"
+  [forceRender]="item.forceRender ?? false"
+>
+  <andes-accordion-trigger [extra]="item.extra">
+    @if (isTemplate(item.label)) {
+    <ng-container [ngTemplateOutlet]="item.label" />
+    } @else { {{ item.label }} }
+  </andes-accordion-trigger>
+  <andes-accordion-content>
+    <!-- Lazy: rendered on first open, not up front (see AndesAccordionContent). -->
+    <ng-template andesAccordionLazy>
+      @if (isTemplate(item.content)) {
+      <ng-container [ngTemplateOutlet]="item.content" />
+      } @else { {{ item.content }} }
+    </ng-template>
+  </andes-accordion-content>
+</andes-accordion-item>
+}
+<ng-content />

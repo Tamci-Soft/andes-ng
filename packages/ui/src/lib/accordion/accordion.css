@@ -1,0 +1,13 @@
+:host {
+  display: block;
+  font-family: var(--andes-font-family), sans-serif;
+  color: var(--andes-color-foreground);
+}
+
+/* Bordered: one rounded, outlined block around all panels. `overflow: hidden`
+   clips the tinted header bands to the rounded corners. */
+:host([data-variant='bordered']) {
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  overflow: hidden;
+}
