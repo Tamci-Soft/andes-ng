@@ -118,8 +118,8 @@ export class AndesBreadcrumbLink {}
 /**
  * A non-interactive `<span>` representing the current/last crumb. Carries `role="link"`,
  * `aria-disabled="true"` and `aria-current="page"` so it visually matches the rest of the trail
- * while assistive tech still gets an explicit "this is where you are" signal - the accessibility
- * pitfall the research guide flags Ant Design's own docs for not documenting.
+ * while assistive tech still gets an explicit "this is where you are" signal - an accessibility
+ * detail that is easy to miss.
  */
 @Directive({
   selector: 'span[andesBreadcrumbPage]',
@@ -520,14 +520,14 @@ function optionalNumberAttribute(value: unknown): number | undefined {
 
 /**
  * Root of a breadcrumb trail. Renders a `<nav>` landmark, defaulting `aria-label` to
- * `"breadcrumb"` per the ARIA Authoring Practices convention shadcn/ui and Ant Design both
- * follow; override it for localization (e.g. `aria-label="Ruta de navegación"`).
+ * `"breadcrumb"` per the ARIA Authoring Practices convention shadcn/ui also
+ * follows; override it for localization (e.g. `aria-label="Ruta de navegación"`).
  *
  * Two ways to fill it:
  *
  * - **Projected parts** - author the `<ol andesBreadcrumbList>` yourself (full control, e.g.
  *   `routerLink` on each `<a andesBreadcrumbLink>`).
- * - **`[items]`** - Ant Design's data-driven API: pass an array of crumbs (`title`, `href`/`path`,
+ * - **`[items]`** - data-driven API: pass an array of crumbs (`title`, `href`/`path`,
  *   `menu`, `onClick`, `className`) and separator entries, and the root renders the list, marks
  *   the last crumb as the current page, and collapses long trails into an ellipsis dropdown when
  *   `maxItems` is set. Projected content is ignored while `items` is set.
@@ -680,7 +680,7 @@ export class AndesBreadcrumb implements AndesBreadcrumbContext {
   readonly ariaLabel = input('breadcrumb', { alias: 'aria-label' });
 
   /**
-   * Data-driven crumbs (Ant Design's `items`). While set, the root renders the list itself and
+   * Data-driven crumbs. While set, the root renders the list itself and
    * ignores projected content; leave it unset to author the parts by hand.
    */
   readonly items = input<readonly AndesBreadcrumbItemType[] | undefined>(
@@ -700,8 +700,8 @@ export class AndesBreadcrumb implements AndesBreadcrumbContext {
   );
 
   /**
-   * Renders each `[items]` crumb's content instead of the default link/page (Ant Design's
-   * `itemRender`) - typically to use `routerLink`. Receives `AndesBreadcrumbItemRenderContext`.
+   * Renders each `[items]` crumb's content instead of the default link/page - typically
+   * to use `routerLink`. Receives `AndesBreadcrumbItemRenderContext`.
    * The template owns the whole crumb, so it also decides how the `last` one looks (use
    * `andesBreadcrumbPage` for `aria-current`) and handles its own clicks.
    */
