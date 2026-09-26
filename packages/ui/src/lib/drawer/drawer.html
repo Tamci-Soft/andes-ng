@@ -4,15 +4,23 @@
   <div
     andesOverlayContent
     class="andes-drawer__panel"
+    [class]="panelClass()"
+    [attr.data-pushed]="pushed() ? '' : null"
+    [style.--andes-drawer-size]="panelSize()"
+    [style.--andes-drawer-push-distance]="pushDistance()"
     [attr.aria-labelledby]="ariaLabelledBy()"
     [attr.aria-describedby]="ariaDescribedBy()"
   >
+    @if (closable()) {
     <button
       type="button"
-      andesOverlayClose
       class="andes-drawer__close"
-      aria-label="Close"
+      [attr.aria-label]="closeLabel()"
+      (click)="requestClose('close-button')"
     >
+      @if (closeIcon(); as icon) {
+      <ng-container [ngTemplateOutlet]="icon" />
+      } @else {
       <svg
         viewBox="0 0 24 24"
         width="16"
@@ -27,8 +35,30 @@
           stroke-linecap="round"
         />
       </svg>
+      }
     </button>
+    }
 
-    <ng-content />
+    <ng-content select="andes-drawer-header" />
+
+    <div
+      class="andes-drawer__body"
+      [attr.aria-busy]="loading() ? 'true' : null"
+    >
+      @if (loading()) {
+      <div class="andes-drawer__skeleton" aria-hidden="true">
+        <span class="andes-drawer__skeleton-line"></span>
+        <span class="andes-drawer__skeleton-line"></span>
+        <span class="andes-drawer__skeleton-line"></span>
+        <span class="andes-drawer__skeleton-line"></span>
+      </div>
+      }
+      <div [hidden]="loading()">
+        <ng-content />
+        <div andesEdgePanelLazyOutlet class="andes-drawer__lazy"></div>
+      </div>
+    </div>
+
+    <ng-content select="andes-drawer-footer" />
   </div>
 </ng-template>

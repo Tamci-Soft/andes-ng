@@ -10,26 +10,60 @@ import { AndesDrawer } from './drawer';
 let nextId = 0;
 
 /**
- * Layout wrapper for a drawer's title + description. Purely presentational -
- * place it as the first child inside `<andes-drawer>`'s projected content.
+ * Layout wrapper for a drawer's title + description, pinned above the scrolling
+ * body. Place it directly inside `<andes-drawer>`.
+ *
+ * An element marked `andesDrawerExtra` is laid out at the header's trailing end,
+ * opposite the title - Ant Design's `extra` slot for header actions:
+ *
+ * ```html
+ * <andes-drawer-header>
+ *   <andes-drawer-title>Edit profile</andes-drawer-title>
+ *   <andes-button andesDrawerExtra size="sm">Help</andes-button>
+ * </andes-drawer-header>
+ * ```
  */
 @Component({
   selector: 'andes-drawer-header',
-  template: '<ng-content />',
+  template: `
+    <div class="andes-drawer-header__text"><ng-content /></div>
+    <ng-content select="[andesDrawerExtra]" />
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.andes-drawer-header--closable]': 'drawer.closable()',
+  },
   styles: `
     :host {
       display: flex;
+      flex-shrink: 0;
+      align-items: flex-start;
+      gap: var(--andes-space-3);
+      padding: var(--andes-drawer-padding, var(--andes-space-4))
+        var(--andes-drawer-padding, var(--andes-space-4)) 0;
+    }
+
+    :host(.andes-drawer-header--closable) {
+      padding-inline: calc(
+        var(--andes-space-3) + 1.75rem + var(--andes-space-2)
+      );
+    }
+
+    .andes-drawer-header__text {
+      display: flex;
+      flex: 1 1 auto;
       flex-direction: column;
       gap: var(--andes-space-1);
-      padding: var(--andes-space-4) var(--andes-space-4) 0;
+      min-width: 0;
       text-align: center;
     }
   `,
 })
-export class AndesDrawerHeader {}
+export class AndesDrawerHeader {
+  protected readonly drawer = inject(AndesDrawer);
+}
 
-/** Layout wrapper for a drawer's footer actions. Pinned to the panel's bottom. */
+/** Layout wrapper for a drawer's footer actions, pinned below the scrolling body. */
 @Component({
   selector: 'andes-drawer-footer',
   template: '<ng-content />',
@@ -39,8 +73,9 @@ export class AndesDrawerHeader {}
       display: flex;
       flex-direction: column;
       gap: var(--andes-space-2);
-      padding: 0 var(--andes-space-4) var(--andes-space-4);
-      margin-top: auto;
+      flex-shrink: 0;
+      padding: 0 var(--andes-drawer-padding, var(--andes-space-4))
+        var(--andes-drawer-padding, var(--andes-space-4));
     }
   `,
 })

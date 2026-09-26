@@ -10,25 +10,59 @@ import { AndesSheet } from './sheet';
 let nextId = 0;
 
 /**
- * Layout wrapper for a sheet's title + description. Purely presentational - place
- * it as the first child inside `<andes-sheet>`'s projected content.
+ * Layout wrapper for a sheet's title + description, pinned above the scrolling
+ * body. Place it directly inside `<andes-sheet>`.
+ *
+ * An element marked `andesSheetExtra` is laid out at the header's trailing end,
+ * opposite the title - Ant Design's `extra` slot for header actions:
+ *
+ * ```html
+ * <andes-sheet-header>
+ *   <andes-sheet-title>Edit profile</andes-sheet-title>
+ *   <andes-button andesSheetExtra size="sm">Help</andes-button>
+ * </andes-sheet-header>
+ * ```
  */
 @Component({
   selector: 'andes-sheet-header',
-  template: '<ng-content />',
+  template: `
+    <div class="andes-sheet-header__text"><ng-content /></div>
+    <ng-content select="[andesSheetExtra]" />
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.andes-sheet-header--closable]': 'sheet.closable()',
+  },
   styles: `
     :host {
       display: flex;
+      flex-shrink: 0;
+      align-items: flex-start;
+      gap: var(--andes-space-3);
+      padding: var(--andes-sheet-padding, var(--andes-space-4))
+        var(--andes-sheet-padding, var(--andes-space-4)) 0;
+    }
+
+    :host(.andes-sheet-header--closable) {
+      padding-inline-end: calc(
+        var(--andes-space-3) + 1.75rem + var(--andes-space-2)
+      );
+    }
+
+    .andes-sheet-header__text {
+      display: flex;
+      flex: 1 1 auto;
       flex-direction: column;
       gap: var(--andes-space-1);
-      padding: var(--andes-space-4) var(--andes-space-4) 0;
+      min-width: 0;
     }
   `,
 })
-export class AndesSheetHeader {}
+export class AndesSheetHeader {
+  protected readonly sheet = inject(AndesSheet);
+}
 
-/** Layout wrapper for a sheet's footer actions. Pinned to the panel's bottom. */
+/** Layout wrapper for a sheet's footer actions, pinned below the scrolling body. */
 @Component({
   selector: 'andes-sheet-footer',
   template: '<ng-content />',
@@ -39,8 +73,9 @@ export class AndesSheetHeader {}
       flex-direction: row;
       justify-content: flex-end;
       gap: var(--andes-space-2);
-      padding: 0 var(--andes-space-4) var(--andes-space-4);
-      margin-top: auto;
+      flex-shrink: 0;
+      padding: 0 var(--andes-sheet-padding, var(--andes-space-4))
+        var(--andes-sheet-padding, var(--andes-space-4));
     }
   `,
 })

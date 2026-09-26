@@ -1,43 +1,43 @@
 import {
-  AndesOverlayClosePrimitive,
   AndesOverlayContentPrimitive,
-  AndesOverlayPrimitive,
-  andesOverlayPreset,
   provideAndesOverlay,
   type AndesOverlayEdge,
 } from '@andes-ng/primitives';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+
 import {
-  booleanAttribute,
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  model,
-  signal,
-  TemplateRef,
-  viewChild,
-} from '@angular/core';
+  ANDES_EDGE_PANEL,
+  AndesEdgePanel,
+  AndesEdgePanelLazyOutlet,
+  type AndesEdgePanelLength,
+} from './edge-panel';
 
 /** Which screen edge the sheet slides in from. */
 export type AndesSheetSide = AndesOverlayEdge;
 
 /**
- * A side panel that complements the main content of the screen - shadcn's `Sheet`.
+ * A side panel that complements the main content of the screen - shadcn's
+ * `Sheet`, Ant Design's `Drawer` (`side` is Ant's `placement`).
  *
  * Built on the same `@andes-ng/primitives` overlay primitive as Dialog, configured
  * with the `drawer` preset (modal semantics: focus trap, scroll lock, backdrop) and
- * `positioning: { kind: 'edge' }` for the slide-in placement. Only the edge and the
- * panel's own sizing differ from a centered Dialog.
+ * `positioning: { kind: 'edge' }` for the slide-in placement.
+ *
+ * The header and footer parts are laid out around a scrolling body, so they stay
+ * put while long content scrolls. Body content is either projected directly
+ * (always rendered, owned by your view) or put in an
+ * `<ng-template andesSheetContent>` to render it lazily on first open - see
+ * `destroyOnHidden`.
  *
  * ```html
- * <andes-sheet #sheet side="right">
+ * <andes-sheet side="right" size="large">
  *   <button andesSheetTrigger>Open</button>
  *
  *   <andes-sheet-header>
- *     <h2 andesSheetTitle>Edit profile</h2>
- *     <p andesSheetDescription>Make changes to your profile here.</p>
+ *     <andes-sheet-title>Edit profile</andes-sheet-title>
+ *     <andes-sheet-description>Make changes to your profile here.</andes-sheet-description>
+ *     <button andesSheetExtra>Help</button>
  *   </andes-sheet-header>
  *
  *   <p>Body content…</p>
@@ -47,106 +47,43 @@ export type AndesSheetSide = AndesOverlayEdge;
  *   </andes-sheet-footer>
  * </andes-sheet>
  * ```
+ *
+ * Styling hooks, settable on the panel via `panelClass` or globally:
+ * `--andes-sheet-size` (width for left/right, height for top/bottom; default
+ * 378px), `--andes-sheet-padding` (header/body/footer padding) and
+ * `--andes-sheet-push-distance`.
  */
 @Component({
   selector: 'andes-sheet',
-  imports: [AndesOverlayContentPrimitive, AndesOverlayClosePrimitive],
-  providers: [provideAndesOverlay()],
+  imports: [
+    AndesOverlayContentPrimitive,
+    NgTemplateOutlet,
+    AndesEdgePanelLazyOutlet,
+  ],
+  providers: [
+    provideAndesOverlay(),
+    { provide: ANDES_EDGE_PANEL, useExisting: AndesSheet },
+  ],
   templateUrl: './sheet.html',
   styleUrl: './sheet.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AndesSheet {
-  /** Injected so `AndesSheetTrigger`/parts can reach the shared overlay instance. */
-  protected readonly overlay = inject(AndesOverlayPrimitive);
-
-  private readonly panel = viewChild.required<TemplateRef<unknown>>('panel');
-
-  /** Which viewport edge the panel slides in from. Default `'right'`. */
+export class AndesSheet extends AndesEdgePanel {
+  /** Which viewport edge the panel slides in from, Ant's `placement`. Default `'right'`. */
   readonly side = input<AndesSheetSide>('right');
-  /** Escape closes the sheet. Default `true`. */
-  readonly closeOnEscape = input(true, { transform: booleanAttribute });
-  /** A click outside the panel (or on its backdrop) closes the sheet. Default `true`. */
-  readonly closeOnOutsideClick = input(true, { transform: booleanAttribute });
 
   /**
-   * Controls visibility. Two-way bindable: `[(open)]="isOpen"`, matching Base UI
-   * Dialog's `open`/`onOpenChange`. Leave unbound for uncontrolled use via the
-   * trigger, `open()`/`close()`/`toggle()`.
+   * Explicit width (number = px, or a CSS length). Wins over `size` when the
+   * panel slides horizontally (left/right); ignored for top/bottom.
    */
-  readonly isOpen = model(false, { alias: 'open' });
+  readonly width = input<AndesEdgePanelLength | null>(null);
 
-  private readonly _titleId = signal<string | null>(null);
-  private readonly _descriptionId = signal<string | null>(null);
-
-  protected readonly ariaLabelledBy = computed(
-    () => this._titleId() ?? undefined,
-  );
-  protected readonly ariaDescribedBy = computed(
-    () => this._descriptionId() ?? undefined,
-  );
-
-  /** Guards against re-entrant writes while syncing `isOpen` from the overlay. */
-  private isSyncingFromOverlay = false;
-
-  constructor() {
-    this.overlay.configure(andesOverlayPreset('drawer'));
-
-    effect(() => {
-      this.overlay.configure({
-        positioning: { kind: 'edge', edge: this.side() },
-        closeOnEscape: this.closeOnEscape(),
-        closeOnOutsideClick: this.closeOnOutsideClick(),
-      });
-    });
-
-    effect(() => {
-      const shouldBeOpen = this.isOpen();
-      if (this.isSyncingFromOverlay) {
-        return;
-      }
-      if (shouldBeOpen) {
-        this.overlay.open(this.panel());
-      } else {
-        this.overlay.close('imperative');
-      }
-    });
-
-    // The overlay can close itself (Escape, outside click, the close button, or
-    // being torn down) without anyone touching `isOpen` - keep the model in sync
-    // either way so a `[(open)]` consumer never sees a stale `true`.
-    this.overlay.closed.subscribe(() => {
-      if (!this.isOpen()) {
-        return;
-      }
-      this.isSyncingFromOverlay = true;
-      this.isOpen.set(false);
-      this.isSyncingFromOverlay = false;
-    });
+  protected panelEdge(): AndesOverlayEdge {
+    return this.side();
   }
 
-  /** Opens the sheet. A no-op if already open. */
-  open(): void {
-    this.isOpen.set(true);
-  }
-
-  /** Closes the sheet. A no-op if already closed. */
-  close(): void {
-    this.isOpen.set(false);
-  }
-
-  /** Opens the sheet if closed, closes it if open. */
-  toggle(): void {
-    this.isOpen.update((value) => !value);
-  }
-
-  /** Registers the id of the projected `andesSheetTitle`, for `aria-labelledby`. */
-  registerTitleId(id: string | null): void {
-    this._titleId.set(id);
-  }
-
-  /** Registers the id of the projected `andesSheetDescription`, for `aria-describedby`. */
-  registerDescriptionId(id: string | null): void {
-    this._descriptionId.set(id);
+  protected explicitSize(): AndesEdgePanelLength | null {
+    const side = this.side();
+    return side === 'left' || side === 'right' ? this.width() : this.height();
   }
 }

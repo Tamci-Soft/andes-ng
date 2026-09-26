@@ -3,6 +3,8 @@ import { TestBed } from '@angular/core/testing';
 
 import { AndesDrawer } from './drawer';
 import { AndesDrawerClose } from './drawer-close';
+import { AndesDrawerContent } from './drawer-content';
+import type { AndesEdgePanelSize } from '../sheet/edge-panel';
 import {
   AndesDrawerDescription,
   AndesDrawerFooter,
@@ -428,5 +430,181 @@ describe('AndesDrawer', () => {
         document.documentElement.classList.contains('cdk-global-scrollblock'),
       ).toBe(false);
     });
+  });
+});
+
+@Component({
+  imports: [
+    AndesDrawer,
+    AndesDrawerTrigger,
+    AndesDrawerHeader,
+    AndesDrawerTitle,
+    AndesDrawerFooter,
+    AndesDrawerClose,
+    AndesDrawerContent,
+  ],
+  template: `
+    <andes-drawer
+      [(open)]="open"
+      [size]="size()"
+      [height]="height()"
+      [closable]="closable()"
+      [loading]="loading()"
+      [push]="push()"
+      [destroyOnHidden]="destroyOnHidden()"
+      (afterOpenChange)="afterOpenChange.push($event)"
+    >
+      <button type="button" andesDrawerTrigger id="trigger">Open</button>
+
+      <andes-drawer-header>
+        <andes-drawer-title>Move goal</andes-drawer-title>
+        <button type="button" andesDrawerExtra id="extra">Help</button>
+      </andes-drawer-header>
+
+      <ng-template andesDrawerContent>
+        <input id="lazy-input" />
+        <andes-drawer [(open)]="childOpen">
+          <p id="child-body">Nested</p>
+        </andes-drawer>
+      </ng-template>
+
+      <andes-drawer-footer>
+        <button type="button" andesDrawerClose id="cancel">Cancel</button>
+      </andes-drawer-footer>
+    </andes-drawer>
+  `,
+})
+class DrawerFeatureHostComponent {
+  readonly open = signal(false);
+  readonly childOpen = signal(false);
+  readonly size = signal<AndesEdgePanelSize>('default');
+  readonly height = signal<number | string | null>(null);
+  readonly closable = signal(true);
+  readonly loading = signal(false);
+  readonly push = signal<boolean | number | string>(false);
+  readonly destroyOnHidden = signal(false);
+  readonly afterOpenChange: boolean[] = [];
+}
+
+describe('AndesDrawer (Ant Design Drawer parity)', () => {
+  withElementGeometry();
+  withScrollableDocument();
+
+  function setup() {
+    const fixture = TestBed.createComponent(DrawerFeatureHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance;
+    const openDrawer = () => {
+      host.open.set(true);
+      fixture.detectChanges();
+    };
+    const panels = () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>('.andes-drawer__panel'),
+      );
+    return { fixture, host, openDrawer, panel: () => panels()[0], panels };
+  }
+
+  it('maps size and height onto --andes-drawer-size, height winning', () => {
+    const { fixture, host, openDrawer, panel } = setup();
+    openDrawer();
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('');
+
+    host.size.set('large');
+    fixture.detectChanges();
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('736px');
+
+    host.height.set(320);
+    fixture.detectChanges();
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('320px');
+  });
+
+  it('hides the built-in close button when closable is false', () => {
+    const { fixture, host, openDrawer } = setup();
+    host.closable.set(false);
+    fixture.detectChanges();
+    openDrawer();
+
+    expect(document.querySelector('.andes-drawer__close')).toBeNull();
+    expect(
+      document
+        .querySelector('andes-drawer-header')
+        ?.classList.contains('andes-drawer-header--closable'),
+    ).toBe(false);
+  });
+
+  it('projects andesDrawerExtra at the trailing end of the header', () => {
+    const { openDrawer } = setup();
+    openDrawer();
+
+    expect(
+      document.querySelector('andes-drawer-header')?.lastElementChild?.id,
+    ).toBe('extra');
+  });
+
+  it('shows a skeleton while loading', () => {
+    const { fixture, host, openDrawer } = setup();
+    host.loading.set(true);
+    fixture.detectChanges();
+    openDrawer();
+
+    const body = document.querySelector('.andes-drawer__body');
+    expect(body?.getAttribute('aria-busy')).toBe('true');
+    expect(body?.querySelector('.andes-drawer__skeleton')).toBeTruthy();
+  });
+
+  it('renders lazy content on open and keeps it alive unless destroyOnHidden', () => {
+    const { fixture, host, openDrawer } = setup();
+    expect(document.querySelector('#lazy-input')).toBeNull();
+
+    openDrawer();
+    const input = document.querySelector('#lazy-input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    input.value = 'kept';
+
+    host.open.set(false);
+    fixture.detectChanges();
+    openDrawer();
+    expect(
+      (document.querySelector('#lazy-input') as HTMLInputElement).value,
+    ).toBe('kept');
+
+    host.destroyOnHidden.set(true);
+    host.open.set(false);
+    fixture.detectChanges();
+    openDrawer();
+    expect(
+      (document.querySelector('#lazy-input') as HTMLInputElement).value,
+    ).toBe('');
+  });
+
+  it('emits afterOpenChange after opening and closing', () => {
+    const { fixture, host, openDrawer } = setup();
+    openDrawer();
+    document.querySelector<HTMLButtonElement>('#cancel')?.click();
+    fixture.detectChanges();
+
+    expect(host.afterOpenChange).toEqual([true, false]);
+    expect(host.open()).toBe(false);
+  });
+
+  it('pushes the parent drawer up while a nested one is open, when opted in', () => {
+    const { fixture, host, openDrawer, panels } = setup();
+    host.push.set(true);
+    openDrawer();
+
+    host.childOpen.set(true);
+    fixture.detectChanges();
+
+    expect(panels()).toHaveLength(2);
+    expect(panels()[0].hasAttribute('data-pushed')).toBe(true);
+    expect(
+      panels()[0].style.getPropertyValue('--andes-drawer-push-distance'),
+    ).toBe('180px');
+
+    host.childOpen.set(false);
+    fixture.detectChanges();
+
+    expect(panels()[0].hasAttribute('data-pushed')).toBe(false);
   });
 });

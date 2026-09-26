@@ -1,10 +1,19 @@
+/* Public styling hooks (set them on the panel via `panelClass`, or globally):
+   --andes-drawer-size          panel height; 378px
+   --andes-drawer-padding       header/body/footer padding; --andes-space-4
+   --andes-drawer-push-distance how far a `push` drawer moves for a nested one */
+
+/* The size is capped with viewport units, not `100%`: the CDK pane around the
+   panel is sized by its content along the slide axis, so a percentage there
+   resolves against the content and silently shrinks the panel to fit it. */
+
 .andes-drawer__panel {
   position: relative;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   width: 100%;
-  height: min(100%, 24rem);
+  height: min(100dvh, var(--andes-drawer-size, 378px));
   border-top: 1px solid var(--andes-color-border);
   border-top-left-radius: var(--andes-radius-xl);
   border-top-right-radius: var(--andes-radius-xl);
@@ -13,8 +22,21 @@
   font-family: var(--andes-font-family), sans-serif;
   box-shadow: 0 -10px 40px rgb(0 0 0 / 20%);
   outline: none;
-  overflow-y: auto;
+  overflow: hidden;
+  transition: transform 0.3s ease;
   animation: andes-drawer-slide-in 0.25s ease-out;
+}
+
+/* Slide-out. `data-closing` is set by AndesDrawer right before it removes the
+   overlay, which waits for this animation to end. */
+.andes-drawer__panel[data-closing] {
+  animation: andes-drawer-slide-out 0.2s ease-in forwards;
+}
+
+/* `push`: a nested drawer/sheet is open, so this one moves up to show the
+   stacking. */
+.andes-drawer__panel[data-pushed] {
+  transform: translateY(calc(-1 * var(--andes-drawer-push-distance, 180px)));
 }
 
 /* Header/footer/title/description are their own small components (see
@@ -22,10 +44,45 @@
    them, since projected content carries the *consumer's* emulated-encapsulation
    attribute, not AndesDrawer's. */
 
+.andes-drawer__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--andes-drawer-padding, var(--andes-space-4));
+  overflow-y: auto;
+}
+
+.andes-drawer__lazy {
+  display: contents;
+}
+
+.andes-drawer__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-3);
+}
+
+.andes-drawer__skeleton-line {
+  display: block;
+  height: 0.875rem;
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-secondary);
+  animation: andes-drawer-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.andes-drawer__skeleton-line:first-child {
+  width: 40%;
+  height: 1.25rem;
+}
+
+.andes-drawer__skeleton-line:last-child {
+  width: 60%;
+}
+
 .andes-drawer__close {
   position: absolute;
   top: var(--andes-space-3);
   right: var(--andes-space-3);
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -49,11 +106,35 @@
   outline-offset: 2px;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .andes-drawer__panel,
+  .andes-drawer__panel[data-closing] {
+    animation: none;
+    transition: none;
+  }
+
+  .andes-drawer__skeleton-line {
+    animation: none;
+  }
+}
+
 @keyframes andes-drawer-slide-in {
   from {
     transform: translateY(100%);
   }
   to {
     transform: translateY(0);
+  }
+}
+
+@keyframes andes-drawer-slide-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes andes-drawer-skeleton-pulse {
+  50% {
+    opacity: 0.5;
   }
 }
