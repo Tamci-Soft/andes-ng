@@ -1,4 +1,4 @@
-import { Component, signal, viewChild } from '@angular/core';
+import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   FormControl,
@@ -7,8 +7,19 @@ import {
   Validators,
 } from '@angular/forms';
 
-import { toDateKey } from '../calendar/date-utils';
-import { AndesDatePicker, type AndesDatePickerValue } from './date-picker';
+import type { AndesCalendarCellContext } from '../calendar/calendar';
+import { toDateKey, type AndesPickerType } from '../calendar/date-utils';
+import type { AndesDateFormat } from '../calendar/date-format';
+import {
+  AndesDatePicker,
+  type AndesDatePickerPlacement,
+  type AndesDatePickerPreset,
+  type AndesDatePickerSize,
+  type AndesDatePickerStatus,
+  type AndesDatePickerValue,
+  type AndesDatePickerVariant,
+  type AndesTimeOptions,
+} from './date-picker';
 
 function d(year: number, month1: number, day: number): Date {
   return new Date(year, month1 - 1, day);
@@ -133,6 +144,85 @@ class NgModelHost {
   readonly defaultMonth = d(2024, 2, 1);
 }
 
+/** Host for the Ant-parity inputs; every one is a signal a test can flip. */
+@Component({
+  imports: [AndesDatePicker, ReactiveFormsModule],
+  template: `
+    <button type="button" id="outside">Outside</button>
+    <ng-template #cell let-cell="cell"
+      ><i class="custom-cell">{{ cell.text }}</i></ng-template
+    >
+    <ng-template #prefix><span class="custom-prefix">Due</span></ng-template>
+    <ng-template #footer><span class="custom-footer">Footer</span></ng-template>
+    <andes-date-picker
+      [formControl]="control"
+      [mode]="mode()"
+      [picker]="pickerType()"
+      locale="en-US"
+      [weekStartsOn]="weekStartsOn()"
+      [defaultMonth]="defaultMonth()"
+      [min]="min()"
+      [max]="max()"
+      [format]="format()"
+      [placeholder]="placeholder()"
+      [allowClear]="allowClear()"
+      [size]="size()"
+      [status]="status()"
+      [variant]="variant()"
+      [placement]="placement()"
+      [showTime]="showTime()"
+      [needConfirm]="needConfirm()"
+      [showNow]="showNow()"
+      [presets]="presets()"
+      [numberOfMonths]="numberOfMonths()"
+      [inputReadOnly]="inputReadOnly()"
+      [cellTemplate]="useTemplates() ? cellTemplate() : null"
+      [prefix]="useTemplates() ? prefixTemplate() : null"
+      [extraFooter]="useTemplates() ? footerTemplate() : null"
+      [(open)]="open"
+      (valueChange)="values.push($event)"
+      (clear)="clears = clears + 1"
+      (ok)="oks = oks + 1"
+      (calendarChange)="calendarChanges.push($event)"
+    />
+  `,
+})
+class FeatureHost {
+  readonly picker = viewChild.required(AndesDatePicker);
+  readonly cellTemplate =
+    viewChild.required<TemplateRef<AndesCalendarCellContext>>('cell');
+  readonly prefixTemplate = viewChild.required<TemplateRef<unknown>>('prefix');
+  readonly footerTemplate = viewChild.required<TemplateRef<unknown>>('footer');
+  readonly control = new FormControl<AndesDatePickerValue>(null);
+  readonly mode = signal<'single' | 'range'>('single');
+  readonly pickerType = signal<AndesPickerType>('date');
+  readonly weekStartsOn = signal<0 | 1>(0);
+  readonly defaultMonth = signal<Date | null>(d(2024, 2, 1));
+  readonly min = signal<Date | null>(null);
+  readonly max = signal<Date | null>(null);
+  readonly format = signal<AndesDateFormat | null>(null);
+  readonly placeholder = signal<string | readonly [string, string] | undefined>(
+    undefined,
+  );
+  readonly allowClear = signal(true);
+  readonly size = signal<AndesDatePickerSize>('md');
+  readonly status = signal<AndesDatePickerStatus | null>(null);
+  readonly variant = signal<AndesDatePickerVariant>('outlined');
+  readonly placement = signal<AndesDatePickerPlacement>('bottomLeft');
+  readonly showTime = signal<AndesTimeOptions | boolean | null>(null);
+  readonly needConfirm = signal<boolean | undefined>(undefined);
+  readonly showNow = signal(false);
+  readonly presets = signal<readonly AndesDatePickerPreset[]>([]);
+  readonly numberOfMonths = signal<number | undefined>(undefined);
+  readonly inputReadOnly = signal(false);
+  readonly useTemplates = signal(false);
+  readonly open = signal(false);
+  readonly values: AndesDatePickerValue[] = [];
+  readonly calendarChanges: (readonly [Date | null, Date | null])[] = [];
+  clears = 0;
+  oks = 0;
+}
+
 describe('AndesDatePicker', () => {
   withElementGeometry();
 
@@ -140,22 +230,37 @@ describe('AndesDatePicker', () => {
   function harness<T>(fixture: ReturnType<typeof TestBed.createComponent<T>>) {
     const root = fixture.nativeElement as HTMLElement;
 
+    /** The (first) combobox input: the element that holds focus and ARIA state. */
     const trigger = () =>
-      root.querySelector<HTMLButtonElement>(
-        '[data-slot="date-picker-trigger"]',
-      ) as HTMLButtonElement;
+      root.querySelector<HTMLInputElement>(
+        '[data-slot^="date-picker-input"]',
+      ) as HTMLInputElement;
+    const inputs = () =>
+      Array.from(
+        root.querySelectorAll<HTMLInputElement>(
+          '[data-slot^="date-picker-input"]',
+        ),
+      );
     const panel = () =>
       document.querySelector<HTMLElement>('[data-slot="date-picker-panel"]');
-    /** The trigger's displayed text: the formatted value, or the placeholder. */
-    const triggerText = () =>
-      trigger()
-        .querySelector('.andes-date-picker__value')
-        ?.textContent?.trim() ?? '';
+    /**
+     * What the field shows: the input value(s) — a range joined with an en dash —
+     * or, when empty, the placeholder.
+     */
+    const triggerText = () => {
+      const values = inputs()
+        .map((input) => input.value)
+        .filter(Boolean);
+      return values.length
+        ? values.join(' – ')
+        : (inputs()[0]?.placeholder ?? '');
+    };
 
     return {
       fixture,
       root,
       trigger,
+      inputs,
       triggerText,
       panel,
       openPanel: () => {
@@ -218,18 +323,15 @@ describe('AndesDatePicker', () => {
   }
 
   describe('trigger', () => {
-    it('renders a button showing the placeholder while nothing is selected', () => {
+    it('renders a combobox input showing the placeholder while nothing is selected', () => {
       const { trigger, triggerText } = createPlain();
 
-      // A button, not a text input: this version cannot parse typed dates, so a
-      // focusable text field would promise an affordance that does nothing.
-      expect(trigger().tagName).toBe('BUTTON');
-      expect(trigger().getAttribute('type')).toBe('button');
-      expect(trigger().getAttribute('role')).toBeNull();
+      // The APG date-picker combobox: a text input that owns a dialog popup.
+      expect(trigger().tagName).toBe('INPUT');
+      expect(trigger().getAttribute('type')).toBe('text');
+      expect(trigger().getAttribute('role')).toBe('combobox');
+      expect(trigger().value).toBe('');
       expect(triggerText()).toBe('Select a date');
-      expect(
-        trigger().querySelector('.andes-date-picker__value--placeholder'),
-      ).toBeTruthy();
     });
 
     it('advertises the popup through ARIA and tracks the open state', () => {
@@ -255,14 +357,27 @@ describe('AndesDatePicker', () => {
   });
 
   describe('panel open and close', () => {
-    it('opens on trigger click and closes on a second click', () => {
+    it('opens on click and stays open on a second click, as a text field should', () => {
       const { trigger, panel, fixture } = createPlain();
 
       trigger().click();
       fixture.detectChanges();
       expect(panel()).toBeTruthy();
 
+      // A second click positions the caret; it must not throw the panel away.
       trigger().click();
+      fixture.detectChanges();
+      expect(panel()).toBeTruthy();
+    });
+
+    it('toggles through the public API', () => {
+      const { host, panel, fixture } = createPlain();
+
+      host.picker().toggle();
+      fixture.detectChanges();
+      expect(panel()).toBeTruthy();
+
+      host.picker().toggle();
       fixture.detectChanges();
       expect(panel()).toBeFalsy();
     });
@@ -297,10 +412,11 @@ describe('AndesDatePicker', () => {
       expect(panel()).toBeFalsy();
     });
 
-    it('opens with ArrowDown, Enter and Space from the trigger', () => {
+    it('opens with ArrowDown and Enter from the input', () => {
       const { trigger, panel, fixture, pressEscape } = createPlain();
 
-      for (const key of ['ArrowDown', 'Enter', ' ']) {
+      // Space is text in an editable input, so it is deliberately not a key here.
+      for (const key of ['ArrowDown', 'Enter']) {
         trigger().dispatchEvent(
           new KeyboardEvent('keydown', { key, bubbles: true }),
         );
@@ -571,14 +687,14 @@ describe('AndesDatePicker', () => {
       const { fixture, control, trigger, triggerText } = createReactive();
       control.setValue(d(2024, 2, 15));
       fixture.detectChanges();
+      expect(trigger().value).toBe('Feb 15, 2024');
+      fixture.detectChanges();
 
       control.reset();
       fixture.detectChanges();
 
       expect(triggerText()).toBe('Select a date');
-      expect(
-        trigger().querySelector('.andes-date-picker__value--placeholder'),
-      ).toBeTruthy();
+      expect(trigger().value).toBe('');
     });
 
     it('keeps a required range control invalid until the range completes', () => {
@@ -719,6 +835,588 @@ describe('AndesDatePicker', () => {
       );
       expect(headers).toHaveLength(7);
       expect(headers[0].getAttribute('aria-label')).toBe('Sunday');
+    });
+  });
+
+  describe('Ant parity features', () => {
+    function createFeature(
+      setup: (host: FeatureHost) => void = () => undefined,
+    ) {
+      const fixture = TestBed.createComponent(FeatureHost);
+      setup(fixture.componentInstance);
+      fixture.detectChanges();
+      const view = harness(fixture);
+      const field = () =>
+        view.root.querySelector<HTMLElement>(
+          '[data-slot="date-picker-trigger"]',
+        ) as HTMLElement;
+      return {
+        ...view,
+        host: fixture.componentInstance,
+        field,
+        typeInto: (input: HTMLInputElement, text: string) => {
+          input.value = text;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          fixture.detectChanges();
+        },
+        keydown: (element: HTMLElement, key: string) => {
+          element.dispatchEvent(
+            new KeyboardEvent('keydown', { key, bubbles: true }),
+          );
+          fixture.detectChanges();
+        },
+        blurTo: (element: HTMLElement | null) => {
+          field().dispatchEvent(
+            new FocusEvent('focusout', {
+              bubbles: true,
+              relatedTarget: element,
+            }),
+          );
+          fixture.detectChanges();
+        },
+        pressIn: (selector: string) => {
+          const element = document.querySelector<HTMLElement>(selector);
+          if (!element) {
+            throw new Error(`Nothing matches ${selector}`);
+          }
+          element.dispatchEvent(
+            new MouseEvent('mousedown', { bubbles: true, button: 0 }),
+          );
+          fixture.detectChanges();
+        },
+        clickIn: (selector: string) => {
+          const element = document.querySelector<HTMLElement>(selector);
+          if (!element) {
+            throw new Error(`Nothing matches ${selector}`);
+          }
+          element.click();
+          fixture.detectChanges();
+        },
+      };
+    }
+
+    describe('typed input', () => {
+      it('previews a parsed date in the calendar and commits it on Enter', () => {
+        const view = createFeature();
+        view.openPanel();
+
+        view.typeInto(view.trigger(), 'Mar 5, 2024');
+
+        // The calendar follows the text before anything is committed.
+        expect(view.caption()?.textContent?.trim()).toBe('March 2024');
+        expect(view.day(d(2024, 3, 5)).getAttribute('aria-selected')).toBe(
+          'true',
+        );
+        expect(view.host.control.value).toBeNull();
+
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-03-05');
+        expect(view.panel()).toBeFalsy();
+        expect(view.trigger().value).toBe('Mar 5, 2024');
+      });
+
+      it('always accepts ISO dates, whatever the display format', () => {
+        const view = createFeature();
+
+        view.typeInto(view.trigger(), '2024-03-05');
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-03-05');
+        expect(view.trigger().value).toBe('Mar 5, 2024');
+      });
+
+      it('discards unparseable text and restores the value', () => {
+        const view = createFeature();
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+
+        view.typeInto(view.trigger(), 'next tuesday');
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-02-15');
+        expect(view.trigger().value).toBe('Feb 15, 2024');
+      });
+
+      it('rejects a typed date outside min/max', () => {
+        const view = createFeature((host) => host.max.set(d(2024, 2, 20)));
+
+        view.typeInto(view.trigger(), '2024-02-25');
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(view.host.control.value).toBeNull();
+        expect(view.trigger().value).toBe('');
+      });
+
+      it('commits valid text when focus leaves the picker', () => {
+        const view = createFeature();
+        view.openPanel();
+
+        view.typeInto(view.trigger(), '2024-03-05');
+        view.blurTo(view.root.querySelector<HTMLElement>('#outside'));
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-03-05');
+        expect(view.panel()).toBeFalsy();
+        expect(view.host.control.touched).toBe(true);
+      });
+
+      it('ignores focus moving between the field and its panel', () => {
+        const view = createFeature();
+        view.openPanel();
+
+        view.blurTo(view.day(d(2024, 2, 10)));
+
+        expect(view.panel()).toBeTruthy();
+      });
+
+      it('clears the value when the text is emptied', () => {
+        const view = createFeature();
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+
+        view.typeInto(view.trigger(), '');
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(view.host.control.value).toBeNull();
+      });
+
+      it('uses a token format for display and parsing, trying every pattern', () => {
+        const view = createFeature((host) =>
+          host.format.set(['DD/MM/YYYY', 'DD.MM.YY']),
+        );
+        view.host.control.setValue(d(2024, 2, 5));
+        view.fixture.detectChanges();
+        expect(view.trigger().value).toBe('05/02/2024');
+
+        view.typeInto(view.trigger(), '07.03.24');
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-03-07');
+        expect(view.trigger().value).toBe('07/03/2024');
+      });
+
+      it('formats with a function format and falls back to ISO for typing', () => {
+        const view = createFeature((host) =>
+          host.format.set((date: Date) => `Day ${date.getDate()}`),
+        );
+        view.host.control.setValue(d(2024, 2, 5));
+        view.fixture.detectChanges();
+        expect(view.trigger().value).toBe('Day 5');
+
+        view.typeInto(view.trigger(), '2024-02-09');
+        view.keydown(view.trigger(), 'Enter');
+        expect(view.trigger().value).toBe('Day 9');
+      });
+
+      it('discards typed text, and its calendar preview, on Escape', () => {
+        const view = createFeature();
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+
+        view.typeInto(view.trigger(), '2024-03-01');
+        expect(view.panel()).toBeTruthy();
+        view.pressEscape();
+
+        expect(view.trigger().value).toBe('Feb 15, 2024');
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-02-15');
+        view.openPanel();
+        expect(view.caption()?.textContent?.trim()).toBe('February 2024');
+      });
+    });
+
+    describe('keyboard', () => {
+      it('moves focus into the grid with ArrowDown', () => {
+        const view = createFeature();
+
+        view.keydown(view.trigger(), 'ArrowDown');
+
+        expect(view.panel()).toBeTruthy();
+        expect(document.activeElement?.getAttribute('role')).toBe('gridcell');
+      });
+
+      it('opens and focuses the input on a press on the field chrome', () => {
+        const view = createFeature();
+
+        view.pressIn('.andes-date-picker__icon');
+
+        expect(view.panel()).toBeTruthy();
+        expect(document.activeElement).toBe(view.trigger());
+      });
+
+      it('keeps focus in the input on a pointer open', () => {
+        const view = createFeature();
+        view.trigger().focus();
+
+        view.openPanel();
+
+        expect(document.activeElement).toBe(view.trigger());
+      });
+
+      it('opens on Space only when the input is read-only', () => {
+        const view = createFeature();
+        view.keydown(view.trigger(), ' ');
+        expect(view.panel()).toBeFalsy();
+
+        view.host.inputReadOnly.set(true);
+        view.fixture.detectChanges();
+        expect(view.trigger().readOnly).toBe(true);
+        view.keydown(view.trigger(), ' ');
+        expect(view.panel()).toBeTruthy();
+      });
+    });
+
+    describe('allowClear', () => {
+      it('shows a clear button only while there is a value', () => {
+        const view = createFeature();
+        const clearButton = () =>
+          view.root.querySelector<HTMLButtonElement>(
+            '[data-slot="date-picker-clear"]',
+          );
+        expect(clearButton()).toBeNull();
+
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+
+        expect(clearButton()?.getAttribute('aria-label')).toBe('Clear');
+        expect(clearButton()?.tabIndex).toBe(-1);
+      });
+
+      it('clears the value, emits clear and does not open the panel', () => {
+        const view = createFeature();
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+
+        view.clickIn('[data-slot="date-picker-clear"]');
+
+        expect(view.host.control.value).toBeNull();
+        expect(view.host.clears).toBe(1);
+        expect(view.trigger().value).toBe('');
+        expect(view.panel()).toBeFalsy();
+      });
+
+      it('can be turned off', () => {
+        const view = createFeature((host) => host.allowClear.set(false));
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+
+        expect(
+          view.root.querySelector('[data-slot="date-picker-clear"]'),
+        ).toBeNull();
+      });
+    });
+
+    describe('appearance', () => {
+      it('reflects size, variant and status on the field and host', () => {
+        const view = createFeature((host) => {
+          host.size.set('lg');
+          host.variant.set('filled');
+          host.status.set('warning');
+        });
+
+        expect(view.field().classList).toContain(
+          'andes-date-picker__field--lg',
+        );
+        expect(view.field().classList).toContain(
+          'andes-date-picker__field--filled',
+        );
+        expect(view.field().classList).toContain(
+          'andes-date-picker__field--warning',
+        );
+        const hostElement = view.root.querySelector('andes-date-picker');
+        expect(hostElement?.getAttribute('data-size')).toBe('lg');
+        expect(hostElement?.getAttribute('data-status')).toBe('warning');
+        // Only `error` is an invalid state.
+        expect(view.trigger().getAttribute('aria-invalid')).toBeNull();
+
+        view.host.status.set('error');
+        view.fixture.detectChanges();
+        expect(view.trigger().getAttribute('aria-invalid')).toBe('true');
+      });
+
+      it('maps placement onto the overlay positioning', () => {
+        const view = createFeature((host) => host.placement.set('topRight'));
+
+        expect(view.host.picker().overlay.config().positioning).toMatchObject({
+          kind: 'anchored',
+          side: 'top',
+          align: 'end',
+        });
+      });
+
+      it('renders prefix and extra footer templates', () => {
+        const view = createFeature((host) => {
+          host.useTemplates.set(true);
+        });
+
+        expect(view.root.querySelector('.custom-prefix')).toBeTruthy();
+        view.openPanel();
+        expect(view.panel()?.querySelector('.custom-footer')).toBeTruthy();
+        expect(view.panel()?.querySelector('.custom-cell')).toBeTruthy();
+      });
+    });
+
+    describe('open', () => {
+      it('opens and closes from the bound open state', () => {
+        const view = createFeature();
+
+        view.host.open.set(true);
+        view.fixture.detectChanges();
+        expect(view.panel()).toBeTruthy();
+
+        view.host.open.set(false);
+        view.fixture.detectChanges();
+        expect(view.panel()).toBeFalsy();
+      });
+
+      it('writes its own opens and closes back through [(open)]', () => {
+        const view = createFeature();
+
+        view.openPanel();
+        expect(view.host.open()).toBe(true);
+
+        view.pressEscape();
+        expect(view.host.open()).toBe(false);
+      });
+    });
+
+    describe('range', () => {
+      function createRange(
+        setup: (host: FeatureHost) => void = () => undefined,
+      ) {
+        return createFeature((host) => {
+          host.mode.set('range');
+          setup(host);
+        });
+      }
+
+      it('renders two labelled inputs in a group', () => {
+        const view = createRange((host) =>
+          host.placeholder.set(['From', 'To']),
+        );
+
+        expect(view.field().getAttribute('role')).toBe('group');
+        const [start, end] = view.inputs();
+        expect(start.getAttribute('aria-label')).toBe('Start date');
+        expect(end.getAttribute('aria-label')).toBe('End date');
+        expect(start.placeholder).toBe('From');
+        expect(end.placeholder).toBe('To');
+      });
+
+      it('shows two months by default, or numberOfMonths when set', () => {
+        const view = createRange();
+        view.openPanel();
+        expect(view.panel()?.querySelectorAll('[role="grid"]')).toHaveLength(2);
+        view.pressEscape();
+
+        view.host.numberOfMonths.set(1);
+        view.fixture.detectChanges();
+        view.openPanel();
+        expect(view.panel()?.querySelectorAll('[role="grid"]')).toHaveLength(1);
+      });
+
+      it('emits calendarChange for each boundary', () => {
+        const view = createRange();
+        view.openPanel();
+
+        view.clickDay(d(2024, 2, 10));
+        view.clickDay(d(2024, 2, 20));
+
+        expect(
+          view.host.calendarChanges.map(([start, end]) => [
+            start && toDateKey(start),
+            end && toDateKey(end),
+          ]),
+        ).toEqual([
+          ['2024-02-10', null],
+          ['2024-02-10', '2024-02-20'],
+        ]);
+      });
+
+      it('accepts typed boundaries, moving from start to end on Enter', () => {
+        const view = createRange();
+        const [start, end] = view.inputs();
+
+        view.typeInto(start, '2024-02-10');
+        view.keydown(start, 'Enter');
+        expect(document.activeElement).toBe(end);
+
+        view.typeInto(end, '2024-02-12');
+        view.keydown(end, 'Enter');
+
+        const value = view.host.control.value as readonly [Date, Date];
+        expect(value.map(toDateKey)).toEqual(['2024-02-10', '2024-02-12']);
+      });
+
+      it('commits a preset range at once', () => {
+        const view = createRange((host) =>
+          host.presets.set([
+            {
+              label: 'First week',
+              value: () => [d(2024, 2, 1), d(2024, 2, 7)],
+            },
+          ]),
+        );
+        view.openPanel();
+
+        view.clickIn('.andes-date-picker__preset');
+
+        const value = view.host.control.value as readonly [Date, Date];
+        expect(value.map(toDateKey)).toEqual(['2024-02-01', '2024-02-07']);
+        expect(view.panel()).toBeFalsy();
+      });
+    });
+
+    describe('showTime and needConfirm', () => {
+      it('adds hour and minute listboxes and requires OK by default', () => {
+        const view = createFeature((host) => host.showTime.set(true));
+        view.openPanel();
+
+        const columns = view.panel()?.querySelectorAll('[role="listbox"]');
+        expect(
+          Array.from(columns ?? []).map((c) => c.getAttribute('aria-label')),
+        ).toEqual(['Hours', 'Minutes']);
+
+        view.clickDay(d(2024, 2, 15));
+        // Pending: nothing committed, panel still open.
+        expect(view.host.control.value).toBeNull();
+        expect(view.panel()).toBeTruthy();
+
+        view.pressIn('[data-unit="hours"] [id$="-hours-14"]');
+        view.pressIn('[data-unit="minutes"] [id$="-minutes-30"]');
+        view.clickIn('[data-slot="date-picker-ok"] button');
+
+        const value = view.host.control.value as Date;
+        expect(toDateKey(value)).toBe('2024-02-15');
+        expect([value.getHours(), value.getMinutes()]).toEqual([14, 30]);
+        expect(view.host.oks).toBe(1);
+        expect(view.panel()).toBeFalsy();
+        expect(view.trigger().value).toBe('Feb 15, 2024, 2:30 PM');
+      });
+
+      it('discards pending picks when the panel closes without OK', () => {
+        const view = createFeature((host) => host.showTime.set(true));
+        view.host.control.setValue(new Date(2024, 1, 15, 9, 0));
+        view.fixture.detectChanges();
+        view.openPanel();
+
+        view.clickDay(d(2024, 2, 20));
+        expect(view.trigger().value).toBe('Feb 20, 2024, 9:00 AM');
+        view.pressEscape();
+
+        expect(view.trigger().value).toBe('Feb 15, 2024, 9:00 AM');
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-02-15');
+      });
+
+      it('changes the time from the keyboard, selection following focus', () => {
+        const view = createFeature((host) => {
+          host.showTime.set({ minuteStep: 15 });
+          host.needConfirm.set(false);
+        });
+        view.host.control.setValue(new Date(2024, 1, 15, 9, 0));
+        view.fixture.detectChanges();
+        view.openPanel();
+
+        const minutes = view
+          .panel()
+          ?.querySelector<HTMLElement>('[data-unit="minutes"]') as HTMLElement;
+        expect(minutes.querySelectorAll('[role="option"]')).toHaveLength(4);
+        view.keydown(minutes, 'ArrowDown');
+        view.keydown(minutes, 'ArrowDown');
+
+        // needConfirm off: the time commits as it changes.
+        expect((view.host.control.value as Date).getMinutes()).toBe(30);
+        expect(minutes.getAttribute('aria-activedescendant')).toMatch(
+          /-minutes-30$/,
+        );
+      });
+
+      it('commits at once and stays open with needConfirm off', () => {
+        const view = createFeature((host) => {
+          host.showTime.set(true);
+          host.needConfirm.set(false);
+        });
+        view.openPanel();
+
+        view.clickDay(d(2024, 2, 15));
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-02-15');
+        expect(view.panel()).toBeTruthy();
+      });
+
+      it('makes a plain date picker wait for OK with needConfirm', () => {
+        const view = createFeature((host) => host.needConfirm.set(true));
+        view.openPanel();
+
+        view.clickDay(d(2024, 2, 15));
+        expect(view.host.control.value).toBeNull();
+
+        view.keydown(view.trigger(), 'Enter');
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-02-15');
+      });
+    });
+
+    describe('showNow', () => {
+      it('commits today and closes', () => {
+        const view = createFeature((host) => host.showNow.set(true));
+        view.openPanel();
+
+        const now = view
+          .panel()
+          ?.querySelector<HTMLButtonElement>('[data-slot="date-picker-now"]');
+        expect(now?.textContent?.trim()).toBe('Today');
+        now?.click();
+        view.fixture.detectChanges();
+
+        expect(toDateKey(view.host.control.value as Date)).toBe(
+          toDateKey(new Date()),
+        );
+        expect(view.panel()).toBeFalsy();
+      });
+    });
+
+    describe('picker', () => {
+      it('selects and displays months', () => {
+        const view = createFeature((host) => host.pickerType.set('month'));
+        view.openPanel();
+
+        view.clickIn('[data-date="2024-06-01"]');
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-06-01');
+        expect(view.trigger().value).toBe('Jun 2024');
+        expect(view.trigger().placeholder).toBe('Select a month');
+      });
+
+      it('parses a typed month', () => {
+        const view = createFeature((host) => host.pickerType.set('month'));
+
+        view.typeInto(view.trigger(), 'Sep 2025');
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(toDateKey(view.host.control.value as Date)).toBe('2025-09-01');
+      });
+
+      it('displays and parses weeks as week-year and week number', () => {
+        const view = createFeature((host) => {
+          host.pickerType.set('week');
+          host.weekStartsOn.set(1);
+        });
+        view.host.control.setValue(d(2024, 2, 14));
+        view.fixture.detectChanges();
+        expect(view.trigger().value).toBe('2024-W07');
+
+        view.typeInto(view.trigger(), '2025-W01');
+        view.keydown(view.trigger(), 'Enter');
+        expect(toDateKey(view.host.control.value as Date)).toBe('2024-12-30');
+      });
+
+      it('displays quarters', () => {
+        const view = createFeature((host) => host.pickerType.set('quarter'));
+        view.openPanel();
+
+        view.clickIn('[data-date="2024-10-01"]');
+
+        expect(view.trigger().value).toBe('2024-Q4');
+      });
     });
   });
 });

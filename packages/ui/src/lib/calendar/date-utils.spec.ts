@@ -6,7 +6,16 @@ import {
   clampDate,
   clampWeekday,
   coerceDate,
+  coerceDateTime,
   compareDays,
+  comparePeriods,
+  endOfPeriod,
+  isSamePeriod,
+  startOfDecade,
+  startOfPeriod,
+  startOfWeekNumber,
+  weekOfYear,
+  withTime,
   daysInMonth,
   endOfMonth,
   formatMonthCaption,
@@ -498,6 +507,95 @@ describe('date-utils', () => {
         isInsideRange(d(2024, 2, 15), { start: d(2024, 2, 10), end: null }),
       ).toBe(false);
       expect(isInsideRange(d(2024, 2, 15), null)).toBe(false);
+    });
+  });
+
+  describe('periods', () => {
+    it('finds the start of each period', () => {
+      const date = d(2024, 5, 15); // Wednesday
+      expect(toDateKey(startOfPeriod(date, 'date'))).toBe('2024-05-15');
+      expect(toDateKey(startOfPeriod(date, 'week', 0))).toBe('2024-05-12');
+      expect(toDateKey(startOfPeriod(date, 'week', 1))).toBe('2024-05-13');
+      expect(toDateKey(startOfPeriod(date, 'month'))).toBe('2024-05-01');
+      expect(toDateKey(startOfPeriod(date, 'quarter'))).toBe('2024-04-01');
+      expect(toDateKey(startOfPeriod(date, 'year'))).toBe('2024-01-01');
+    });
+
+    it('finds the last day of each period', () => {
+      const date = d(2024, 2, 10);
+      expect(toDateKey(endOfPeriod(date, 'week', 1))).toBe('2024-02-11');
+      expect(toDateKey(endOfPeriod(date, 'month'))).toBe('2024-02-29');
+      expect(toDateKey(endOfPeriod(date, 'quarter'))).toBe('2024-03-31');
+      expect(toDateKey(endOfPeriod(date, 'year'))).toBe('2024-12-31');
+    });
+
+    it('compares at the period granularity', () => {
+      expect(isSamePeriod(d(2024, 1, 3), d(2024, 3, 31), 'quarter')).toBe(true);
+      expect(isSamePeriod(d(2024, 3, 31), d(2024, 4, 1), 'quarter')).toBe(
+        false,
+      );
+      expect(
+        comparePeriods(d(2024, 1, 31), d(2024, 2, 1), 'month'),
+      ).toBeLessThan(0);
+      expect(isSamePeriod(null, d(2024, 1, 1), 'year')).toBe(false);
+    });
+
+    it('finds the decade, including for years ending in 0', () => {
+      expect(startOfDecade(d(2024, 6, 1)).getFullYear()).toBe(2020);
+      expect(startOfDecade(d(2030, 1, 1)).getFullYear()).toBe(2030);
+    });
+  });
+
+  describe('week numbers', () => {
+    it('follows ISO 8601 for Monday-first weeks', () => {
+      expect(weekOfYear(d(2024, 1, 1), 1)).toEqual({ year: 2024, week: 1 });
+      expect(weekOfYear(d(2021, 1, 3), 1)).toEqual({ year: 2020, week: 53 });
+      expect(weekOfYear(d(2024, 12, 30), 1)).toEqual({ year: 2025, week: 1 });
+      expect(weekOfYear(d(2026, 12, 31), 1)).toEqual({ year: 2026, week: 53 });
+    });
+
+    it('follows the week-containing-January-1st rule for Sunday-first weeks', () => {
+      expect(weekOfYear(d(2024, 1, 1), 0)).toEqual({ year: 2024, week: 1 });
+      // Sunday Dec 31, 2023 shares a week with Jan 1, 2024.
+      expect(weekOfYear(d(2023, 12, 31), 0)).toEqual({ year: 2024, week: 1 });
+      expect(weekOfYear(d(2024, 2, 12), 0)).toEqual({ year: 2024, week: 7 });
+    });
+
+    it('inverts weekOfYear', () => {
+      for (const weekStartsOn of [0, 1] as const) {
+        for (const date of [d(2024, 1, 1), d(2024, 7, 17), d(2024, 12, 30)]) {
+          const { year, week } = weekOfYear(date, weekStartsOn);
+          const start = startOfWeekNumber(year, week, weekStartsOn);
+          expect(compareDays(start, date)).toBeLessThanOrEqual(0);
+          // `compareDays` is a millisecond difference between midnights.
+          expect(compareDays(date, start)).toBeLessThan(7 * 86_400_000);
+        }
+      }
+    });
+  });
+
+  describe('time of day', () => {
+    it('keeps the time when coercing a date-time', () => {
+      expect(coerceDateTime(new Date(2024, 1, 5, 9, 30))?.getMinutes()).toBe(
+        30,
+      );
+      expect(coerceDateTime('2024-02-05T09:30')?.getHours()).toBe(9);
+      expect(coerceDateTime('2024-02-05 09:30')?.getHours()).toBe(9);
+      // A date-only string is still a local midnight, not UTC.
+      const dateOnly = coerceDateTime('2024-03-01');
+      expect(dateOnly && toDateKey(dateOnly)).toBe('2024-03-01');
+      expect(coerceDateTime('nonsense')).toBeNull();
+    });
+
+    it('sets a time on a day', () => {
+      const date = withTime(d(2024, 2, 5), {
+        hours: 23,
+        minutes: 5,
+        seconds: 1,
+      });
+      expect(toDateKey(date)).toBe('2024-02-05');
+      expect(date.getHours()).toBe(23);
+      expect(date.getSeconds()).toBe(1);
     });
   });
 });
