@@ -2,14 +2,19 @@
   display: block;
 }
 
+/*
+  The trigger box. `--_select-status-border` is a private hook set by the status rules
+  below, so each variant decides *where* the status colour goes (all four sides, or only
+  the bottom border for `underlined`) without every status/variant pair needing a rule.
+*/
 .andes-select__trigger {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
-  justify-content: space-between;
   gap: var(--andes-space-2);
   box-sizing: border-box;
-  border: 1px solid var(--andes-color-input);
+  border: 1px solid var(--_select-status-border, var(--andes-color-input));
   border-radius: var(--andes-radius-md);
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
@@ -21,62 +26,318 @@
     background-color 0.15s ease;
 }
 
-.andes-select__trigger:hover:not(:disabled) {
-  border-color: var(--andes-color-border);
+.andes-select__trigger:hover:not([data-disabled]) {
+  border-color: var(--_select-status-border, var(--andes-color-border));
   background-color: var(--andes-color-accent);
 }
 
-.andes-select__trigger:focus-visible {
+/* prettier-ignore */
+.andes-select__trigger:has(.andes-select__combobox:focus-visible) {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
 }
 
 .andes-select__trigger[data-state='open'] {
-  border-color: var(--andes-color-primary);
+  border-color: var(--_select-status-border, var(--andes-color-primary));
 }
 
 .andes-select__trigger[data-placeholder] {
   color: var(--andes-color-muted-foreground);
 }
 
-.andes-select__trigger:disabled {
+/*
+  On the tinted backgrounds (hover, the filled variant) plain muted-foreground drops just
+  under 4.5:1, so the placeholder is nudged a fifth of the way towards the foreground.
+*/
+.andes-select__trigger[data-placeholder]:hover:not([data-disabled]),
+.andes-select__trigger[data-placeholder][data-variant='filled'] {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 80%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-select__trigger[data-disabled] {
   cursor: not-allowed;
   opacity: 0.6;
   background-color: var(--andes-color-muted);
 }
 
-.andes-select__trigger--invalid {
-  border-color: var(--andes-color-danger);
+/* Status: `error` (also `aria-invalid`) and `warning`. */
+
+.andes-select__trigger--invalid,
+.andes-select__trigger[data-status='error'] {
+  --_select-status-border: var(--andes-color-danger);
 }
 
-.andes-select__trigger--invalid:focus-visible {
+.andes-select__trigger[data-status='warning'] {
+  --_select-status-border: var(--andes-color-warning);
+}
+
+/* prettier-ignore */
+.andes-select__trigger--invalid:has(.andes-select__combobox:focus-visible) {
   outline-color: var(--andes-color-danger);
 }
 
-/* Sizes, matching the Button's own sm/md/lg steps. */
+/* Variants. `outlined` is the base rule above. */
+
+.andes-select__trigger[data-variant='filled'] {
+  border-color: var(--_select-status-border, transparent);
+  background-color: var(--andes-color-muted);
+}
+
+.andes-select__trigger[data-variant='filled'][data-state='open'] {
+  border-color: var(--_select-status-border, var(--andes-color-primary));
+  background-color: var(--andes-color-background);
+}
+
+.andes-select__trigger[data-variant='borderless'] {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.andes-select__trigger[data-variant='borderless']:hover:not([data-disabled]) {
+  border-color: transparent;
+}
+
+.andes-select__trigger[data-variant='underlined'] {
+  border-color: transparent;
+  border-bottom-color: var(--_select-status-border, var(--andes-color-input));
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.andes-select__trigger[data-variant='underlined']:hover:not([data-disabled]) {
+  border-color: transparent;
+  border-bottom-color: var(--_select-status-border, var(--andes-color-border));
+}
+
+.andes-select__trigger[data-variant='underlined'][data-state='open'] {
+  border-color: transparent;
+  border-bottom-color: var(--_select-status-border, var(--andes-color-primary));
+}
+
+/* Sizes, matching the Button's own sm/md/lg steps. `min-height`, so tags can wrap. */
 
 .andes-select__trigger--sm {
-  height: 2rem;
+  min-height: 2rem;
   padding-inline: var(--andes-space-2);
   font-size: 0.875rem;
 }
 
 .andes-select__trigger--md {
-  height: 2.5rem;
+  min-height: 2.5rem;
   padding-inline: var(--andes-space-3);
   font-size: 1rem;
 }
 
 .andes-select__trigger--lg {
-  height: 3rem;
+  min-height: 3rem;
   padding-inline: var(--andes-space-4);
   font-size: 1.125rem;
+}
+
+.andes-select__trigger[data-mode='multiple'],
+.andes-select__trigger[data-mode='tags'] {
+  padding-block: var(--andes-space-1);
+  padding-inline-start: var(--andes-space-1);
+}
+
+/* Selection area: the value, or the tags and the combobox. */
+
+.andes-select__selection {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+  gap: var(--andes-space-1);
+}
+
+.andes-select__trigger[data-mode='multiple'] .andes-select__selection,
+.andes-select__trigger[data-mode='tags'] .andes-select__selection {
+  flex-wrap: wrap;
+}
+
+/* The combobox, button or input, carries no chrome of its own: the box draws it. */
+.andes-select__combobox {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: start;
+  cursor: inherit;
+  outline: none;
+}
+
+.andes-select__combobox:disabled {
+  cursor: not-allowed;
+}
+
+.andes-select__trigger[data-mode='multiple'] .andes-select__combobox,
+.andes-select__trigger[data-mode='tags'] .andes-select__combobox {
+  min-width: 1rem;
+}
+
+/*
+  The input always sits on top of something in flow that gives the row its size: the
+  value or placeholder ("ghost") while there is no search text in single mode, and a
+  hidden mirror of the typed text in multiple mode, so the input is exactly as wide as
+  what has been typed and does not push itself onto a new row early, as in Ant Design.
+*/
+.andes-select__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  color: var(--andes-color-foreground);
+  cursor: text;
+}
+
+.andes-select__search {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+}
+
+/* With tags present, the search area shrinks to its mirror. */
+/* prettier-ignore */
+.andes-select__trigger[data-mode='multiple']:not([data-placeholder]) .andes-select__search,
+.andes-select__trigger[data-mode='tags']:not([data-placeholder]) .andes-select__search {
+  flex: 0 1 auto;
+  min-width: 0.75rem;
+  max-width: 100%;
+}
+
+.andes-select__trigger[data-mode='multiple'] .andes-select__search,
+.andes-select__trigger[data-mode='tags'] .andes-select__search {
+  padding-inline-start: var(--andes-space-1);
+}
+
+.andes-select__trigger[data-mode='multiple'] .andes-select__input,
+.andes-select__trigger[data-mode='tags'] .andes-select__input {
+  inset-inline-start: var(--andes-space-1);
+  width: calc(100% - var(--andes-space-1));
+}
+
+.andes-select__search-ghost {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.andes-select__search-mirror {
+  overflow: hidden;
+  visibility: hidden;
+  white-space: pre;
+}
+
+/* prettier-ignore */
+.andes-select__trigger[data-mode='single'][data-state='open'] .andes-select__search-ghost {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Tags. */
+
+.andes-select__tag {
+  display: inline-flex;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: 1.75rem;
+  align-items: center;
+  gap: var(--andes-space-1);
+  padding-inline: var(--andes-space-2);
+  /* The border keeps the tag legible on the hovered and filled boxes, whose tints are
+     the same family as the tag's own background. */
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-foreground);
+  font-size: 0.875em;
+  line-height: 1;
+  cursor: default;
+}
+
+.andes-select__trigger--sm .andes-select__tag {
+  height: 1.25rem;
+  padding-inline: var(--andes-space-1);
+}
+
+.andes-select__trigger--lg .andes-select__tag {
+  height: 2.25rem;
+}
+
+.andes-select__tag[data-disabled] {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-select__tag--rest {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-select__tag-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.andes-select__tag-remove {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-select__tag-remove:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-select__tag-remove svg {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+/* Prefix and suffix icons. */
+
+.andes-select__prefix {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-select__suffix {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--andes-space-1);
+  color: var(--andes-color-muted-foreground);
 }
 
 .andes-select__chevron {
   display: inline-flex;
   flex: 0 0 auto;
-  color: var(--andes-color-muted-foreground);
   transition: transform 0.15s ease;
 }
 
@@ -87,4 +348,69 @@
 
 .andes-select__trigger[data-state='open'] .andes-select__chevron {
   transform: rotate(180deg);
+}
+
+/*
+  The clear button replaces the chevron while the pointer is over the box, or while the
+  box holds focus, as in Ant Design. Devices without hover show it all the time.
+*/
+.andes-select__clear {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-full);
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-select__clear:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-select__clear svg {
+  width: 1em;
+  height: 1em;
+}
+
+.andes-select__trigger[data-clearable]:hover .andes-select__clear,
+.andes-select__trigger[data-clearable]:focus-within .andes-select__clear {
+  display: inline-flex;
+}
+
+.andes-select__trigger[data-clearable]:hover .andes-select__chevron,
+.andes-select__trigger[data-clearable]:focus-within .andes-select__chevron {
+  display: none;
+}
+
+@media (hover: none) {
+  .andes-select__trigger[data-clearable] .andes-select__clear {
+    display: inline-flex;
+  }
+}
+
+.andes-select__spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--andes-radius-full);
+  animation: andes-select-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-select__spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+@keyframes andes-select-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -75,3 +75,8 @@
   width: 1em;
   height: 1em;
 }
+
+/* `display: flex` above would otherwise beat the user-agent `[hidden]` rule. */
+.andes-select__option[hidden] {
+  display: none;
+}

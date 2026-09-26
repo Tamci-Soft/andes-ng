@@ -33,3 +33,15 @@
 .andes-select__panel[data-size='lg'] {
   font-size: 1.125rem;
 }
+
+.andes-select__listbox {
+  display: block;
+}
+
+/* Loading and empty states, rendered next to the listbox rather than inside it. */
+.andes-select__status {
+  padding: var(--andes-space-3) var(--andes-space-2);
+  color: var(--andes-color-muted-foreground);
+  font-size: 0.875em;
+  text-align: center;
+}

@@ -3,7 +3,7 @@
   then gives it the semantics a listbox child must have. Disabled options keep their
   focusability (and say so with `aria-disabled`) because a listbox option the keyboard
   cannot reach cannot be read out either - the native `disabled` attribute would take
-  that away.
+  that away. `[disabled]` binds to the list-navigation directive, not the button.
 -->
 <button
   #option
@@ -12,11 +12,13 @@
   role="option"
   data-slot="select-item"
   class="andes-select__option"
-  [disabled]="disabled()"
+  [disabled]="skipped()"
+  [hidden]="filteredOut()"
   [typeaheadLabel]="label()"
   [attr.aria-selected]="selected()"
-  [attr.aria-disabled]="disabled() || null"
+  [attr.aria-disabled]="unavailable() || null"
   [attr.data-selected]="selected() ? '' : null"
+  (mousedown)="onMousedown($event)"
   (click)="onClick()"
 >
   <span class="andes-select__option-label"><ng-content /></span>

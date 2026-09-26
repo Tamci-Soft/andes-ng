@@ -1,13 +1,92 @@
 <ng-template>
   <div
     andesOverlayContent
-    data-slot="select-content"
+    data-slot="select-panel"
     class="andes-select__panel"
     [attr.data-size]="select.size()"
     [attr.data-match-trigger-width]="matchTriggerWidth() ? '' : null"
-    [attr.aria-labelledby]="select.ariaLabelledby()"
-    [attr.aria-label]="select.ariaLabelledby() ? null : select.ariaLabel()"
+    [style.max-height.px]="select.listHeight()"
   >
-    <ng-content />
+    <div
+      role="listbox"
+      data-slot="select-content"
+      class="andes-select__listbox"
+      [id]="select.listboxId"
+      [attr.aria-multiselectable]="select.isMultiple() || null"
+      [attr.aria-busy]="select.loading() || null"
+      [attr.aria-labelledby]="select.ariaLabelledby()"
+      [attr.aria-label]="select.ariaLabelledby() ? null : select.ariaLabel()"
+    >
+      @if (select.tagCandidate(); as candidate) {
+      <andes-select-item custom [value]="candidate" [label]="candidate"
+        >{{ candidate }}</andes-select-item
+      >
+      } @for (value of select.customTags(); track $index) {
+      <andes-select-item custom [value]="value" [label]="select.labelFor(value)"
+        >{{ select.labelFor(value) }}</andes-select-item
+      >
+      }
+
+      <ng-content />
+
+      <!--
+        The item markup is repeated rather than shared through an <ng-template>: an item
+        stamped out by `ngTemplateOutlet` takes its injector from where the template is
+        declared, so an item inside a group would no longer find that group.
+      -->
+      @for (entry of select.optionEntries(); track $index) { @if (entry.kind ===
+      'group') {
+      <andes-select-group>
+        <andes-select-label>{{ entry.label }}</andes-select-label>
+        @for (option of entry.options; track $index) {
+        <andes-select-item
+          [value]="option.value"
+          [label]="option.label"
+          [disabled]="option.disabled ?? false"
+          [data]="option"
+        >
+          @if (select.optionTemplate(); as template) {
+          <ng-container
+            [ngTemplateOutlet]="template"
+            [ngTemplateOutletContext]="{
+                      $implicit: option,
+                      selected: select.isSelectedValue(option.value),
+                    }"
+          />
+          } @else { {{ option.label }} }
+        </andes-select-item>
+        }
+      </andes-select-group>
+      } @else { @let option = entry.option;
+      <andes-select-item
+        [value]="option.value"
+        [label]="option.label"
+        [disabled]="option.disabled ?? false"
+        [data]="option"
+      >
+        @if (select.optionTemplate(); as template) {
+        <ng-container
+          [ngTemplateOutlet]="template"
+          [ngTemplateOutletContext]="{
+                      $implicit: option,
+                      selected: select.isSelectedValue(option.value),
+                    }"
+        />
+        } @else { {{ option.label }} }
+      </andes-select-item>
+      } }
+    </div>
+
+    @if (select.showLoadingRow()) {
+    <div class="andes-select__status" data-slot="select-loading-row">
+      Loading…
+    </div>
+    } @else if (select.showEmpty()) {
+    <div class="andes-select__status" data-slot="select-empty">
+      @if (notFoundTemplate(); as template) {
+      <ng-container [ngTemplateOutlet]="template" />
+      } @else { {{ notFoundText() }} }
+    </div>
+    }
   </div>
 </ng-template>

@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,24 +7,33 @@ import {
   input,
 } from '@angular/core';
 
-import { AndesSelectState } from './select-state';
+import { AndesSelectState, type AndesSelectLabelContext } from './select-state';
 
 /**
  * The selected option's text inside the trigger, or the placeholder while nothing is
- * selected.
+ * selected. In `multiple`/`tags` mode the selection is rendered as tags instead, so this
+ * only ever shows the placeholder there.
  *
  * A value that no option carries - a stale value, or one whose option has not loaded
  * yet - is rendered by the select's `displayWith` input, and stringified if there is
- * none.
+ * none. The select's `labelTemplate` replaces the text entirely.
  */
 @Component({
   selector: 'andes-select-value',
-  template: `{{ text() }}`,
+  imports: [NgTemplateOutlet],
+  template: `@if (labelContext(); as context) {
+      <ng-container
+        [ngTemplateOutlet]="select.labelTemplate() ?? null"
+        [ngTemplateOutletContext]="context"
+      />
+    } @else {
+      {{ text() }}
+    }`,
   styleUrl: './select-value.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     'data-slot': 'select-value',
-    '[attr.data-placeholder]': 'select.hasValue() ? null : ""',
+    '[attr.data-placeholder]': 'select.displayLabel() === null ? "" : null',
   },
 })
 export class AndesSelectValue {
@@ -37,5 +47,15 @@ export class AndesSelectValue {
       this.select.displayLabel() ??
       this.placeholder() ??
       this.select.placeholder(),
+  );
+
+  protected readonly labelContext = computed<AndesSelectLabelContext | null>(
+    () => {
+      const label = this.select.displayLabel();
+      if (!this.select.labelTemplate() || label === null) {
+        return null;
+      }
+      return { $implicit: { value: this.select.rawValue(), label } };
+    },
   );
 }
