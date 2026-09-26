@@ -4,12 +4,45 @@
   andesListNavigationItem
   [attr.aria-selected]="isSelected()"
   [attr.aria-controls]="panelId()"
+  [attr.aria-keyshortcuts]="showRemove() ? 'Delete' : null"
   [disabled]="disabled()"
   [attr.disabled]="disabled() ? '' : null"
   [class]="classes()"
-  (click)="onSelect()"
+  (click)="onClick($event)"
   (keydown.enter)="onSelect()"
   (keydown.space)="onSelect()"
+  (keydown.delete)="onDeleteKey($event)"
 >
+  @if (icon(); as iconTemplate) {
+  <span class="andes-tabs__icon" aria-hidden="true">
+    <ng-container [ngTemplateOutlet]="iconTemplate" />
+  </span>
+  }
   <ng-content />
 </button>
+@if (showRemove()) {
+<button
+  type="button"
+  class="andes-tabs__remove"
+  tabindex="-1"
+  aria-hidden="true"
+  (mousedown)="$event.preventDefault()"
+  (click)="onRemove($event)"
+>
+  @if (resolvedCloseIcon(); as removeIcon) {
+  <ng-container [ngTemplateOutlet]="removeIcon" />
+  } @else {
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </svg>
+  }
+</button>
+}
