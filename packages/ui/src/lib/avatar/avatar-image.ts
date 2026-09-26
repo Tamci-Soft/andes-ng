@@ -12,10 +12,9 @@ import {
 import { AndesAvatarState } from './avatar-state';
 
 /**
- * Emitted by `AndesAvatarImage` `(loadError)`. Ant's `onError` lets the
- * handler return `false` to keep the image instead of falling back; an
- * Angular output can't return a value, so this is the cancelable-event
- * equivalent: call `preventFallback()` from the handler.
+ * Emitted by `AndesAvatarImage` `(loadError)`. An Angular output can't
+ * return a value, so a handler that wants to keep the image instead of
+ * falling back cancels the event: call `preventFallback()` from the handler.
  */
 export interface AndesAvatarImageErrorEvent {
   /** The native `<img>` `error` event. */
@@ -70,7 +69,7 @@ export class AndesAvatarImage {
   readonly sizes = input<string | undefined>(undefined);
   /**
    * Whether the image can be dragged. Unset leaves the browser default (which
-   * is draggable, like Ant's default); `false` suits avatars inside
+   * is draggable); `false` suits avatars inside
    * draggable/sortable rows, where dragging the photo would hijack the row's
    * own drag.
    */
@@ -78,8 +77,8 @@ export class AndesAvatarImage {
 
   /**
    * The image failed to load. Call `preventFallback()` on the event to keep
-   * showing the image rather than the fallback (Ant's `onError` returning
-   * `false`). Not named `error`, which would shadow the native DOM event.
+   * showing the image rather than the fallback. Not named `error`, which
+   * would shadow the native DOM event.
    */
   readonly loadError = output<AndesAvatarImageErrorEvent>();
 

@@ -315,7 +315,7 @@ export const GroupWithOverflowReveal: Story = {
   }),
 };
 
-// --- Ant Design parity ------------------------------------------------------
+// --- Extended sizing, fallback and overflow ----------------------------------
 
 export const PixelSizes: Story = {
   name: 'Pixel sizes (size as a number)',
@@ -323,7 +323,7 @@ export const PixelSizes: Story = {
     docs: {
       description: {
         story:
-          "Besides the `xs`-`xl` presets, `size` takes any pixel number (Ant's `size={64}`). The box is sized inline and the font size follows at ~35% of the box, with a 10px floor.",
+          "Besides the `xs`-`xl` presets, `size` takes any pixel number (e.g. `[size]=\"64\"`). The box is sized inline and the font size follows at ~35% of the box, with a 10px floor.",
       },
     },
   },
@@ -351,7 +351,7 @@ export const ResponsiveSize: Story = {
     docs: {
       description: {
         story:
-          "Pass a breakpoint map - `{ xs: 'sm', md: 48, xl: 72 }` - and the avatar resizes with the viewport (`matchMedia`, Ant's breakpoints: sm 576, md 768, lg 992, xl 1200, xxl 1600). Mobile-first: a breakpoint with no key of its own uses the nearest smaller one. Resize the preview to see it change.",
+          "Pass a breakpoint map - `{ xs: 'sm', md: 48, xl: 72 }` - and the avatar resizes with the viewport (`matchMedia`, breakpoints: sm 576, md 768, lg 992, xl 1200, xxl 1600). Mobile-first: a breakpoint with no key of its own uses the nearest smaller one. Resize the preview to see it change.",
       },
     },
   },
@@ -370,7 +370,7 @@ export const TextAutoScaling: Story = {
     docs: {
       description: {
         story:
-          'Fallback text wider than the avatar is scaled down to fit, keeping `gap` px (default 4, as in Ant) clear on each side - measured with a ResizeObserver, so it re-fits when the size, the text or the font changes. The second row uses `[gap]="8"`.',
+          'Fallback text wider than the avatar is scaled down to fit, keeping `gap` px (default 4) clear on each side - measured with a ResizeObserver, so it re-fits when the size, the text or the font changes. The second row uses `[gap]="8"`.',
       },
     },
   },
@@ -425,7 +425,7 @@ export const LoadErrorKeepsImage: Story = {
     docs: {
       description: {
         story:
-          "`(loadError)` fires when the image fails. Calling `$event.preventFallback()` in the handler keeps the `<img>` (the browser's broken-image/alt rendering) instead of switching to the fallback - Ant's `onError` returning `false`. Left: default behaviour. Right: fallback prevented.",
+          "`(loadError)` fires when the image fails. Calling `$event.preventFallback()` in the handler keeps the `<img>` (the browser's broken-image/alt rendering) instead of switching to the fallback. Left: default behaviour. Right: fallback prevented.",
       },
     },
   },
@@ -474,7 +474,7 @@ export const GroupMax: Story = {
     docs: {
       description: {
         story:
-          "`[max]=\"{ count: 3 }\"` keeps the first three avatars and collapses the rest into a generated `+N` chip that lists who is hidden (each avatar's image `alt`, icon `label` or fallback text) on hover, focus or tap - Ant's `Avatar.Group` `max`. `max.popover` takes `{ label, placement: 'top' | 'bottom', trigger: 'hover' | 'click', template }` or `false`; `max.class` / `max.style` style the chip.",
+          "`[max]=\"{ count: 3 }\"` keeps the first three avatars and collapses the rest into a generated `+N` chip that lists who is hidden (each avatar's image `alt`, icon `label` or fallback text) on hover, focus or tap. `max.popover` takes `{ label, placement: 'top' | 'bottom', trigger: 'hover' | 'click', template }` or `false`; `max.class` / `max.style` style the chip.",
       },
     },
   },

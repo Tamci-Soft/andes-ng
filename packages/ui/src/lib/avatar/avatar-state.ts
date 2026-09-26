@@ -19,7 +19,7 @@ export class AndesAvatarState {
 
   /**
    * Set when an `AndesAvatarImage` `(loadError)` handler called
-   * `preventFallback()` - Ant's `onError` returning `false`. The status still
+   * `preventFallback()`. The status still
    * reads `error` (it's the truth, and `data-status` exposes it), but the
    * `<img>` stays rendered - showing the browser's broken-image/`alt`
    * rendering - and the fallback stays hidden.

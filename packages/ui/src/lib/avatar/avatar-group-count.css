@@ -135,7 +135,7 @@
   white-space: nowrap;
 }
 
-/* `placement="bottom"` (Ant's `max.popover.placement`) - for a group near
+/* `placement="bottom"` (`max.popover.placement`) - for a group near
    the top of the viewport, where a panel above the chip would be cut off. */
 :host(.andes-avatar-group-count--bottom) .andes-avatar-group-count__panel {
   inset-block-start: calc(100% + var(--andes-space-2));

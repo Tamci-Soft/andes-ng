@@ -41,7 +41,7 @@ export class AndesAvatarFallback {
 
   /**
    * Minimum space (px) kept between the text and each side of the avatar
-   * (Ant's `gap`, default `4`). Text wider than the avatar minus twice this
+   * (default `4`). Text wider than the avatar minus twice this
    * is scaled down to fit - so a long name or three-letter initials still
    * read inside an `xs` avatar instead of being clipped at the edges.
    */
@@ -55,11 +55,11 @@ export class AndesAvatarFallback {
   private readonly contentWidth = signal(0);
 
   /**
-   * Ant's text-scaling rule: shrink (never grow) the content to fit the
+   * Text-scaling rule: shrink (never grow) the content to fit the
    * avatar's width minus `gap` on both sides. Widths come from `offsetWidth`,
    * which ignores the transform this produces, so applying the scale never
    * feeds back into the measurement. A `gap` that eats the whole avatar is
-   * ignored rather than scaling the text to nothing, as in Ant.
+   * ignored rather than scaling the text to nothing.
    */
   protected readonly scale = computed(() => {
     const hostWidth = this.hostWidth();
