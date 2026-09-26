@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { AndesButton } from '../button/button';
@@ -75,12 +76,18 @@ const meta: Meta<AndesDialog> = {
     closeOnEscape: { control: 'boolean' },
     closeOnOutsideClick: { control: 'boolean' },
     lockScroll: { control: 'boolean' },
+    centered: { control: 'boolean' },
+    mask: { control: 'boolean' },
+    loading: { control: 'boolean' },
   },
   args: {
     size: 'md',
     closeOnEscape: true,
     closeOnOutsideClick: true,
     lockScroll: true,
+    centered: true,
+    mask: true,
+    loading: false,
   },
   render: (args) => ({
     moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS, AndesButton] },
@@ -92,6 +99,9 @@ const meta: Meta<AndesDialog> = {
         [closeOnEscape]="closeOnEscape"
         [closeOnOutsideClick]="closeOnOutsideClick"
         [lockScroll]="lockScroll"
+        [centered]="centered"
+        [mask]="mask"
+        [loading]="loading"
       >
         <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Edit profile</button>
 
@@ -215,4 +225,285 @@ export const ScrollingContent: Story = {
       </andes-dialog>
     `,
   }),
+};
+
+const LOG_STYLE =
+  'font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground);';
+
+/**
+ * `footer="default"` renders Ant's built-in Cancel/OK pair. OK emits `(ok)` and does
+ * not close on its own - the handler flips `confirmLoading` around the async work and
+ * closes when it is done, exactly like Ant's `onOk` + `confirmLoading`. Cancel, the
+ * "x", Escape and a backdrop click all emit `(cancelled)`.
+ */
+export const BuiltInFooter: Story = {
+  render: () => {
+    const open = signal(false);
+    const saving = signal(false);
+    const log = signal<string[]>([]);
+    return {
+      moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+      props: {
+        open,
+        saving,
+        log,
+        push: (entry: string) => log.update((l) => [...l.slice(-5), entry]),
+        save() {
+          saving.set(true);
+          log.update((l) => [...l.slice(-5), 'ok']);
+          setTimeout(() => {
+            saving.set(false);
+            open.set(false);
+          }, 1500);
+        },
+      },
+      template: `
+        ${TRIGGER_STYLES}
+        <andes-dialog
+          [(open)]="open"
+          footer="default"
+          okText="Save changes"
+          cancelText="Cancel"
+          [confirmLoading]="saving()"
+          (ok)="save()"
+          (cancelled)="push('cancelled: ' + $event)"
+        >
+          <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Edit profile</button>
+
+          <andes-dialog-content *andesDialogContent>
+            <div andesDialogHeader>
+              <h2 andesDialogTitle>Edit profile</h2>
+              <p andesDialogDescription>OK spins for 1.5s, then the dialog closes.</p>
+            </div>
+
+            <label class="sb-field">
+              Name
+              <input value="Ada Lovelace" />
+            </label>
+          </andes-dialog-content>
+        </andes-dialog>
+        <p style="${LOG_STYLE}">Events: {{ log().join(', ') || '-' }}</p>
+      `,
+    };
+  },
+};
+
+/** `okType="danger"` - Ant's `okButtonProps={{ danger: true }}` - with focus on Cancel. */
+export const DangerousAction: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+    template: `
+      ${TRIGGER_STYLES}
+      <andes-dialog
+        #dialog
+        size="sm"
+        footer="default"
+        okText="Delete"
+        okType="danger"
+        autoFocusButton="cancel"
+        (ok)="dialog.hide()"
+      >
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Delete file</button>
+
+        <andes-dialog-content *andesDialogContent>
+          <div andesDialogHeader>
+            <h2 andesDialogTitle>Delete report.pdf?</h2>
+            <p andesDialogDescription>The file moves to the bin for 30 days.</p>
+          </div>
+        </andes-dialog-content>
+      </andes-dialog>
+    `,
+  }),
+};
+
+/**
+ * A custom `footer` template keeps the footer box (pinning, stacking) and receives
+ * `ok()`/`cancel()` - the Angular counterpart of Ant's footer render function with
+ * `{ OkBtn, CancelBtn }`.
+ */
+export const CustomFooter: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS, AndesButton] },
+    props: { lastAction: '' },
+    template: `
+      ${TRIGGER_STYLES}
+      <andes-dialog
+        #dialog
+        [footer]="footer"
+        (ok)="lastAction = 'publish'; dialog.hide()"
+        (cancelled)="lastAction = 'cancel'"
+      >
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Publish post</button>
+
+        <andes-dialog-content *andesDialogContent>
+          <div andesDialogHeader>
+            <h2 andesDialogTitle>Publish post</h2>
+            <p andesDialogDescription>Publish now, or keep it as a draft.</p>
+          </div>
+        </andes-dialog-content>
+      </andes-dialog>
+
+      <ng-template #footer let-ok="ok" let-cancel="cancel">
+        <andes-button variant="ghost" (click)="cancel()">Cancel</andes-button>
+        <andes-button variant="secondary" (click)="lastAction = 'draft'; dialog.hide()">Save draft</andes-button>
+        <andes-button variant="primary" (click)="ok()">Publish</andes-button>
+      </ng-template>
+      <p style="${LOG_STYLE}">Last action: {{ lastAction || '-' }}</p>
+    `,
+  }),
+};
+
+/**
+ * `[centered]="false"` is Ant's default placement: parked near the top so the surface
+ * does not jump as its content grows. `width` takes px, any CSS length or a
+ * per-breakpoint map - resize the viewport to watch this one step.
+ */
+export const TopAlignedResponsiveWidth: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+    props: { width: { xs: '100%', md: '80%', lg: 720, xl: 960 } },
+    template: `
+      ${TRIGGER_STYLES}
+      <andes-dialog [centered]="false" [width]="width" footer="default" okText="Done" [showCancel]="false" #dialog (ok)="dialog.hide()">
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Open wide dialog</button>
+
+        <andes-dialog-content *andesDialogContent>
+          <div andesDialogHeader>
+            <h2 andesDialogTitle>Responsive width</h2>
+            <p andesDialogDescription>
+              100% below 768px, 80% up to 992px, 720px up to 1200px, 960px beyond.
+            </p>
+          </div>
+        </andes-dialog-content>
+      </andes-dialog>
+    `,
+  }),
+};
+
+/**
+ * `loading` swaps the body for a skeleton (Ant's `loading`): the title stays so the
+ * dialog is still labelled, the footer is withheld until there is something to act on.
+ */
+export const LoadingSkeleton: Story = {
+  render: () => {
+    const loading = signal(false);
+    return {
+      moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+      props: {
+        loading,
+        load() {
+          loading.set(true);
+          setTimeout(() => loading.set(false), 2000);
+        },
+      },
+      template: `
+        ${TRIGGER_STYLES}
+        <andes-dialog [loading]="loading()" footer="default" (opened)="load()" #dialog (ok)="dialog.hide()">
+          <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Load invoice</button>
+
+          <andes-dialog-content *andesDialogContent>
+            <div andesDialogHeader>
+              <h2 andesDialogTitle>Invoice #1042</h2>
+            </div>
+            <p style="margin: 0; font-size: 0.875rem;">
+              Issued 3 March, due 2 April. Total: 1,240.00.
+            </p>
+          </andes-dialog-content>
+        </andes-dialog>
+      `,
+    };
+  },
+};
+
+/**
+ * `[destroyOnClose]="false"` keeps the content alive across a close: type something,
+ * close, reopen. The default destroys it, and `forceRender` builds it before the first
+ * open.
+ */
+export const KeepContentAlive: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+    template: `
+      ${TRIGGER_STYLES}
+      <andes-dialog [destroyOnClose]="false" footer="default" okText="Close" [showCancel]="false" #dialog (ok)="dialog.hide()">
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Draft message</button>
+
+        <andes-dialog-content *andesDialogContent>
+          <div andesDialogHeader>
+            <h2 andesDialogTitle>Draft message</h2>
+            <p andesDialogDescription>What you type survives closing the dialog.</p>
+          </div>
+
+          <label class="sb-field">
+            Message
+            <input placeholder="Type, close, reopen" />
+          </label>
+        </andes-dialog-content>
+      </andes-dialog>
+    `,
+  }),
+};
+
+/** `closeIcon` swaps the glyph; the button, its label and hit area stay the component's. */
+export const CustomCloseIcon: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+    template: `
+      ${TRIGGER_STYLES}
+      <andes-dialog [mask]="false">
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>No mask, custom close</button>
+
+        <andes-dialog-content *andesDialogContent [closeIcon]="icon" closeLabel="Dismiss">
+          <div andesDialogHeader>
+            <h2 andesDialogTitle>Without a mask</h2>
+            <p andesDialogDescription>
+              <code>[mask]="false"</code> drops the scrim; focus stays trapped and scroll stays locked.
+            </p>
+          </div>
+        </andes-dialog-content>
+      </andes-dialog>
+
+      <ng-template #icon>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="fill: none; stroke: currentcolor; stroke-width: 2; stroke-linecap: round;">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9 9l6 6M15 9l-6 6" />
+        </svg>
+      </ng-template>
+    `,
+  }),
+};
+
+/** Lifecycle outputs: `opened`, `afterOpenChange` (after the entry transition) and `closed` (Ant's `afterClose`). */
+export const LifecycleEvents: Story = {
+  render: () => {
+    const log = signal<string[]>([]);
+    const push = (entry: string) => log.update((l) => [...l.slice(-5), entry]);
+    return {
+      moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+      props: { log, push },
+      template: `
+        ${TRIGGER_STYLES}
+        <andes-dialog
+          footer="default"
+          [showCancel]="false"
+          #dialog
+          (ok)="dialog.hide()"
+          (opened)="push('opened')"
+          (afterOpenChange)="push('afterOpenChange: ' + $event)"
+          (cancelled)="push('cancelled: ' + $event)"
+          (closed)="push('closed: ' + $event)"
+        >
+          <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Open</button>
+
+          <andes-dialog-content *andesDialogContent>
+            <div andesDialogHeader>
+              <h2 andesDialogTitle>Lifecycle</h2>
+              <p andesDialogDescription>Close it any way you like.</p>
+            </div>
+          </andes-dialog-content>
+        </andes-dialog>
+        <p style="${LOG_STYLE}">{{ log().join(' -> ') || '-' }}</p>
+      `,
+    };
+  },
 };
