@@ -1,7 +1,6 @@
 .andes-switch {
   --andes-switch-track-height: 1.5rem;
-  /* A minimum, not a fixed width: the track grows to fit checked/unchecked track content
-     (Ant Design's checkedChildren/unCheckedChildren behave the same way). */
+  /* A minimum, not a fixed width: the track grows to fit checked/unchecked track content. */
   --andes-switch-track-width: 2.75rem;
   --andes-switch-thumb-size: 1.125rem;
   --andes-switch-track-padding: 0.1875rem;
@@ -58,7 +57,7 @@
   cursor: default;
 }
 
-/* Matches the disabled dimming (Ant Design renders loading as disabled), but the button stays
+/* Same dimming as disabled, since a loading switch cannot be toggled, but the button stays
    enabled and focusable - see the `loading` input's doc comment. */
 .andes-switch--loading {
   cursor: wait;
@@ -122,9 +121,10 @@
   }
 }
 
-/* Track content (Ant Design's checkedChildren/unCheckedChildren equivalent), on the opposite
-   side of the track from the thumb. Both labels share one grid cell so the track is as wide as
-   the wider of the two and does not change width on toggle; only the active one is visible. */
+/* Track content (`checkedChildren` / `unCheckedChildren` or the matching slots), on the
+   opposite side of the track from the thumb. Both labels share one grid cell so the track is
+   as wide as the wider of the two and does not change width on toggle; only the active one is
+   visible. */
 
 .andes-switch__inner {
   display: grid;

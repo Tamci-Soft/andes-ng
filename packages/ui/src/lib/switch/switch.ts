@@ -18,7 +18,7 @@ import clsx from 'clsx';
 export type AndesSwitchSize = 'sm' | 'md';
 
 /**
- * Payload of `changed` / `clicked` - Ant Design's `(checked, event)` callback pair folded into
+ * Payload of `changed` / `clicked`: the new checked state and the triggering event folded into
  * one object, since an Angular output emits a single value.
  */
 export interface AndesSwitchChangeEvent {
@@ -64,28 +64,28 @@ export class AndesSwitch implements ControlValueAccessor {
    * `isChecked` below coerces that back through `booleanAttribute` for template consumption;
    * callers still writing new templates should prefer a property binding (`[checked]="true"`).
    *
-   * A one-way `[checked]="expr"` works as an initial value (Ant Design's `defaultChecked`), but
-   * once the user toggles, re-evaluating an unchanged `expr` can't push it back: Angular only
-   * re-writes an input when the bound value itself changes. A parent that needs to own the state
-   * (e.g. to roll back a rejected toggle) binds `[(checked)]` so its own signal moves in lockstep.
+   * A one-way `[checked]="expr"` works as an initial value, but once the user toggles,
+   * re-evaluating an unchanged `expr` can't push it back: Angular only re-writes an input when
+   * the bound value itself changes. A parent that needs to own the state (e.g. to roll back a
+   * rejected toggle) binds `[(checked)]` so its own signal moves in lockstep.
    */
   readonly checked = model(false);
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly required = input(false, { transform: booleanAttribute });
   readonly readonly = input(false, { transform: booleanAttribute });
   /**
-   * Ant Design's `loading`. Unlike Ant, this does NOT natively disable the button: a switch that
-   * goes busy right after the user toggles it (the usual async-save pattern) would otherwise drop
-   * keyboard focus to `<body>` mid-interaction. It stays focusable, announces `aria-busy`, and
+   * Shows a busy state. This does NOT natively disable the button: a switch that goes busy right
+   * after the user toggles it (the usual async-save pattern) would otherwise drop keyboard focus
+   * to `<body>` mid-interaction. It stays focusable, announces `aria-busy`, and
    * `onClick` ignores activation until it clears.
    */
   readonly loading = input(false, { transform: booleanAttribute });
   readonly autoFocus = input(false, { transform: booleanAttribute });
   readonly size = input<AndesSwitchSize>('md');
   /**
-   * String fallbacks for the `[slot=checked]` / `[slot=unchecked]` track content (Ant Design's
-   * `checkedChildren` / `unCheckedChildren`). Rendered as `<ng-content>` fallback content, so a
-   * projected slot element - for icons or markup - wins over the string when both are given.
+   * String fallbacks for the `[slot=checked]` / `[slot=unchecked]` track content. Rendered as
+   * `<ng-content>` fallback content, so a projected slot element - for icons or markup - wins
+   * over the string when both are given.
    */
   readonly checkedChildren = input<string>('');
   readonly unCheckedChildren = input<string>('');
@@ -125,9 +125,9 @@ export class AndesSwitch implements ControlValueAccessor {
    */
   readonly changed = output<AndesSwitchChangeEvent>();
   /**
-   * Ant Design's `onClick`: fires for every activation that reaches the control, carrying the
-   * state after it (unchanged when `readonly`). Not emitted while `disabled` or `loading`, where
-   * Ant's own switch is natively disabled and never sees the click.
+   * Fires for every activation that reaches the control, carrying the state after it (unchanged
+   * when `readonly`). Not emitted while `disabled` or `loading`, since neither state accepts
+   * activation.
    */
   readonly clicked = output<AndesSwitchChangeEvent>();
 
