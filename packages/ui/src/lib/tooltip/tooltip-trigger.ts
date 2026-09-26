@@ -72,8 +72,8 @@ function removeIdToken(element: HTMLElement, attr: string, id: string): void {
  *
  * Browsers do not reliably dispatch pointer events to a disabled form
  * control, so a tooltip explaining *why* a button is disabled would never
- * appear. Ant Design wraps such children in a `<span>`; the equivalent here is
- * that `<andes-tooltip>`'s own host becomes the wrapper: while the target
+ * appear. Instead of wrapping such children in an extra `<span>`,
+ * `<andes-tooltip>`'s own host becomes the wrapper: while the target
  * matches `:disabled`, it gets `pointer-events: none` (so the pointer lands on
  * the wrapper), the wrapper turns `inline-block` with a `not-allowed` cursor,
  * and hover/touch/click are handled there instead.

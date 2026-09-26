@@ -369,7 +369,7 @@ describe('tooltip placement helpers', () => {
     height,
   });
 
-  it('maps all 12 Ant placements onto side/align', () => {
+  it('maps all 12 named placements onto side/align', () => {
     expect(ANDES_TOOLTIP_PLACEMENTS).toHaveLength(12);
     const expected: Record<AndesTooltipPlacement, string> = {
       top: 'top/center',
@@ -537,7 +537,7 @@ class AndesButtonHostComponent {
   readonly disabled = signal(false);
 }
 
-describe('AndesTooltip (Ant Design parity)', () => {
+describe('AndesTooltip (extended options)', () => {
   withElementGeometry();
 
   function createHost() {
@@ -582,7 +582,7 @@ describe('AndesTooltip (Ant Design parity)', () => {
   });
 
   describe('placement', () => {
-    it('resolves an Ant placement into the overlay positioning', () => {
+    it('resolves a named placement into the overlay positioning', () => {
       const { fixture, host, overlay } = createHost();
       host.placement.set('rightBottom');
       fixture.detectChanges();
