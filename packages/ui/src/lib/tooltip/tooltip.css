@@ -1,9 +1,7 @@
 /*
- * Disabled-trigger wrapper (Ant Design wraps disabled children in an
- * inline-block <span> for the same reason): browsers do not reliably send
- * pointer events to a disabled form control, so while the trigger is
- * disabled it is made `pointer-events: none` and this host catches the
- * hover instead. It needs a box of its own to do that.
+ * Disabled-trigger wrapper: browsers do not reliably send pointer events to
+ * a disabled form control, so while the trigger is disabled it is made
+ * `pointer-events: none` and this host catches the hover instead. It needs a box of its own to do that.
  */
 :host([data-disabled-trigger]) {
   display: inline-block;
@@ -12,7 +10,7 @@
 
 /*
  * Deliberately theme-following rather than a fixed high-contrast "spotlight"
- * background (Ant Design's near-black regardless of theme): andes-ng has no
+ * background (near-black regardless of theme): andes-ng has no
  * dedicated token for that today, and adding one is a design-system decision
  * for whoever owns `packages/tokens/src/theme.css`, not something to bake in
  * here. `--andes-color-popover` already flips appropriately between the
@@ -98,7 +96,7 @@
 /*
  * An arbitrary `color`: black or white text, whichever reads better, picked
  * from the background's OKLCH lightness with relative color syntax. Browsers
- * without it keep the white fallback (what Ant Design uses for custom colors).
+ * without it keep the white fallback.
  */
 .andes-tooltip--custom-color {
   color: #fff;

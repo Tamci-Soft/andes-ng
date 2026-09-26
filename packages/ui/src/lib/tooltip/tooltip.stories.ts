@@ -127,7 +127,7 @@ export const Sides: Story = {
   }),
 };
 
-/** Ant Design's 12 named placements, laid out the way its docs do. */
+/** The 12 named placements, laid out around a 3x3 grid of triggers. */
 export const Placements: Story = {
   render: (args) => ({
     moduleMetadata: { imports: [AndesTooltipTrigger] },
@@ -336,7 +336,7 @@ export const Colors: Story = {
 /**
  * A disabled trigger still shows its tooltip: the `<andes-tooltip>` host
  * becomes an inline-block wrapper that catches the hover the disabled control
- * cannot (Ant Design's `<span>` wrapper).
+ * cannot.
  */
 export const DisabledTrigger: Story = {
   render: (args) => ({
@@ -390,7 +390,7 @@ export const RichContent: Story = {
   }),
 };
 
-/** `content` also takes a `TemplateRef` (Ant's `title` as a ReactNode). */
+/** `content` also takes a `TemplateRef` for rich content. */
 export const TemplateContent: Story = {
   render: (args) => ({
     moduleMetadata: { imports: [AndesTooltipTrigger] },
@@ -408,7 +408,7 @@ export const TemplateContent: Story = {
 
 /**
  * `maxWidth`, `tooltipClass` and the `--andes-tooltip-*` custom properties
- * replace Ant's overlay style props.
+ * style the tooltip panel.
  */
 export const Sizing: Story = {
   render: (args) => ({

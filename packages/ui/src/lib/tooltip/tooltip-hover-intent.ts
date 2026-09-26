@@ -5,8 +5,8 @@ import { AndesOverlayPrimitive } from '@andes-ng/primitives';
 import { AndesTooltipGroup } from './tooltip-group';
 
 /**
- * What opens a tooltip - Ant Design's `trigger` values. Combine them with an
- * array (`['hover', 'focus']` is the default).
+ * What opens a tooltip. Combine them with an array (`['hover', 'focus']` is
+ * the default).
  *
  * - `hover`: mouse/pen hover, after `openDelay`; closes on leave. On touch
  *   screens, where there is no hover, a long-press stands in for it.
