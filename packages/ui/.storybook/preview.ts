@@ -20,6 +20,9 @@ const withTheme: Decorator = (story, context) => {
   }
   document.body.style.backgroundColor =
     theme === 'dark' ? '#0f172a' : '#ffffff';
+  // Demo text around the components (captions, logs, plain triggers) uses the library font too,
+  // so a story reads as one surface instead of mixing Geist with the browser's Times/Arial.
+  document.body.style.fontFamily = 'var(--andes-font-family), sans-serif';
   // Grayscale antialiasing, as the tokens README recommends for consumer apps: macOS otherwise
   // renders text with a heavier stroke than the typeface was drawn with.
   document.body.style.setProperty('-webkit-font-smoothing', 'antialiased');
