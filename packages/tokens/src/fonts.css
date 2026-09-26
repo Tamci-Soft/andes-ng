@@ -1,0 +1,13 @@
+/*
+ * Optional font entry point: registers Geist and Geist Mono (both SIL OFL 1.1, variable weight
+ * 100-900) so the `--andes-font-family` and `--andes-font-family-mono` tokens resolve to them.
+ *
+ *   @import '@andes-ng/tokens/fonts.css';
+ *
+ * The files ship with the package, so nothing is fetched from a third-party CDN at runtime -
+ * which also keeps the fonts working on intranets without internet access. Skipping this import
+ * is safe: both tokens fall back to the platform's system fonts.
+ */
+
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';

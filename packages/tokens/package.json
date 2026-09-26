@@ -21,6 +21,10 @@
     "./theme.css": {
       "@andes-ng/source": "./src/theme.css",
       "default": "./dist/theme.css"
+    },
+    "./fonts.css": {
+      "@andes-ng/source": "./src/fonts.css",
+      "default": "./dist/fonts.css"
     }
   },
   "files": [
@@ -28,9 +32,12 @@
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": [
-    "./dist/theme.css"
+    "./dist/theme.css",
+    "./dist/fonts.css"
   ],
   "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "tslib": "^2.3.0"
   }
 }

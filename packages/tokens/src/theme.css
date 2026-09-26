@@ -77,8 +77,33 @@
      purpose - a scrim dims whatever is behind it regardless of the page's own light/dark theme. */
   --andes-color-overlay: rgb(15 23 42 / 45%);
 
-  --andes-font-family: system-ui, sans-serif;
+  /* Typography. Geist is the house typeface; it only loads when the consumer imports
+     `@andes-ng/tokens/fonts.css`, and every stack ends in the platform's system font so text
+     still renders sensibly without it. */
+  --andes-font-family: 'Geist Variable', 'Geist', system-ui, sans-serif;
+  --andes-font-family-mono:
+    'Geist Mono Variable', 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo,
+    Consolas, monospace;
+
+  /* Size / line-height pairs. `sm` is the default for component text: dense enough for data-heavy
+     screens, still comfortably readable. */
+  --andes-font-size-xs: 0.75rem;
+  --andes-line-height-xs: 1rem;
+  --andes-font-size-sm: 0.875rem;
+  --andes-line-height-sm: 1.25rem;
+  --andes-font-size-md: 1rem;
+  --andes-line-height-md: 1.5rem;
+  --andes-font-size-lg: 1.125rem;
+  --andes-line-height-lg: 1.75rem;
+  --andes-font-size-xl: 1.25rem;
+  --andes-line-height-xl: 1.75rem;
+  --andes-font-size-2xl: 1.5rem;
+  --andes-line-height-2xl: 2rem;
+
+  --andes-font-weight-regular: 400;
   --andes-font-weight-medium: 500;
+  --andes-font-weight-semibold: 600;
+  --andes-font-weight-bold: 700;
 
   --andes-radius-sm: 0.25rem;
   --andes-radius-md: 0.375rem;
