@@ -70,7 +70,7 @@ export type AndesCalendarMode = 'single' | 'range';
 export type AndesCalendarValue =
   Date | AndesDateRange | readonly [Date, Date] | null;
 
-/** Extra information handed to a `dateDisabled` predicate, as Ant's `disabledDate` does. */
+/** Extra information handed to a `dateDisabled` predicate. */
 export interface AndesDateDisabledInfo {
   /** The granularity the date is being offered at. */
   readonly type: AndesPickerType;
@@ -112,7 +112,7 @@ export interface AndesCalendarCell extends AndesCalendarDay {
   readonly classes: string;
 }
 
-/** Template context for `cellTemplate` (Ant's `cellRender`). */
+/** Template context for `cellTemplate`. */
 export interface AndesCalendarCellContext {
   /** The cell's date: the day, or the first day of its month/quarter/year. */
   readonly $implicit: Date;
@@ -120,7 +120,7 @@ export interface AndesCalendarCellContext {
   readonly view: AndesCalendarView;
 }
 
-/** Template context for `headerTemplate` (Ant's `headerRender`). */
+/** Template context for `headerTemplate`. */
 export interface AndesCalendarHeaderContext {
   /** First day of the (first) visible month. */
   readonly $implicit: Date;
@@ -187,8 +187,7 @@ const PARENT_VIEW: Readonly<
  * `picker` sets what is selected — a day, a week, a month, a quarter or a year —
  * and which grid opens. The caption is a button that climbs to the coarser grid
  * (days → months → years), and picking a cell in a coarser grid than `picker`
- * drills back down instead of selecting, the same panel model as Ant Design's
- * `DatePicker` and `Calendar`.
+ * drills back down instead of selecting.
  *
  * ## Accessibility
  *
@@ -232,9 +231,9 @@ export class AndesCalendar {
   readonly mode = input<AndesCalendarMode>('single');
 
   /**
-   * The granularity selected, as Ant's `picker`. The value written back is always
-   * the first day of the chosen period (the Monday/Sunday of a week, the 1st of a
-   * month, January 1st of a year).
+   * The granularity selected. The value written back is always the first day of
+   * the chosen period (the Monday/Sunday of a week, the 1st of a month, January
+   * 1st of a year).
    */
   readonly picker = input<AndesPickerType>('date');
 
@@ -244,10 +243,10 @@ export class AndesCalendar {
    */
   readonly value = model<AndesCalendarValue>(null);
 
-  /** Earliest selectable day, inclusive. Ant's `minDate` / `validRange[0]`. */
+  /** Earliest selectable day, inclusive. */
   readonly min = input<Date | null, unknown>(null, { transform: coerceDate });
 
-  /** Latest selectable day, inclusive. Ant's `maxDate` / `validRange[1]`. */
+  /** Latest selectable day, inclusive. */
   readonly max = input<Date | null, unknown>(null, { transform: coerceDate });
 
   /**
@@ -291,8 +290,8 @@ export class AndesCalendar {
   readonly showWeek = input(false, { transform: booleanAttribute });
 
   /**
-   * A roomy, full-width layout for page-level calendars (Ant's `fullscreen`), where
-   * each day has space for `cellTemplate` content under its number.
+   * A roomy, full-width layout for page-level calendars, where each day has space
+   * for `cellTemplate` content under its number.
    */
   readonly fullscreen = input(false, { transform: booleanAttribute });
 
@@ -301,21 +300,21 @@ export class AndesCalendar {
 
   /**
    * Per-date veto, applied on top of `min`/`max` (weekends, holidays, booked days).
-   * Ant's `disabledDate`. For month/quarter/year pickers it is called with each
-   * cell's first day and `info.type` set to the picker.
+   * For month/quarter/year pickers it is called with each cell's first day and
+   * `info.type` set to the picker.
    */
   readonly dateDisabled = input<AndesDateDisabledFn | null>(null);
 
   /**
-   * Custom cell content (Ant's `cellRender`/`fullCellRender`). Replaces the cell's
-   * text; in `fullscreen` it renders under the day number instead. Rendered inside
-   * the cell's button, so it must not contain interactive elements.
+   * Custom cell content. Replaces the cell's text; in `fullscreen` it renders
+   * under the day number instead. Rendered inside the cell's button, so it must
+   * not contain interactive elements.
    */
   readonly cellTemplate = input<TemplateRef<AndesCalendarCellContext> | null>(
     null,
   );
 
-  /** Replaces the whole navigation header (Ant's `headerRender`). */
+  /** Replaces the whole navigation header. */
   readonly headerTemplate =
     input<TemplateRef<AndesCalendarHeaderContext> | null>(null);
 
@@ -363,7 +362,7 @@ export class AndesCalendar {
   /** Emits the clicked day, even when it does not change `value`. */
   readonly daySelected = output<Date>();
 
-  /** Emits whenever the visible period or grid changes (Ant's `onPanelChange`). */
+  /** Emits whenever the visible period or grid changes. */
   readonly panelChange = output<AndesCalendarPanelChange>();
 
   /**
@@ -551,7 +550,7 @@ export class AndesCalendar {
         dates.push({ date: new Date(year, quarter * 3, 1), outside: false });
       }
     } else {
-      // Twelve cells: the decade plus the year either side, as Ant draws it.
+      // Twelve cells: the decade plus the year either side.
       const first = startOfDecade(anchor).getFullYear() - 1;
       for (let offset = 0; offset < 12; offset++) {
         dates.push({
@@ -746,7 +745,7 @@ export class AndesCalendar {
     this.panelChange.emit({ date: month, view: this.view() });
   }
 
-  /** Switches the visible grid (Ant's `mode` on `Calendar`). */
+  /** Switches the visible grid. */
   setView(view: AndesCalendarView): void {
     if (view === this.view()) {
       return;
@@ -874,7 +873,7 @@ export class AndesCalendar {
    * click on Mar 5 could equally mean "start over at Mar 5" or "widen to Mar 5-20",
    * and guessing wrong silently produces a range nobody asked for. Restarting is
    * always one further click away from any range the user wants, and it is what
-   * react-day-picker and Ant Design's `RangePicker` both do.
+   * react-day-picker does.
    *
    * A click on the second day of a half-open range closes it, swapped into order if
    * the user picked backwards. Clicking the same day twice yields a valid one-day
