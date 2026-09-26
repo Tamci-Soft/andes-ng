@@ -43,7 +43,7 @@ export class AndesAccordionTrigger {
   private readonly rootState = inject(AndesAccordionState);
   private readonly itemState = inject(AndesAccordionItemState);
 
-  /** Content rendered at the end of the header row (Ant Design's `extra`), outside the toggle
+  /** Content rendered at the end of the header row (e.g. actions), outside the toggle
    *  button. Content projected with the `andesAccordionExtra` attribute lands in the same spot. */
   readonly extra = input<string | TemplateRef<unknown> | undefined>(undefined);
 

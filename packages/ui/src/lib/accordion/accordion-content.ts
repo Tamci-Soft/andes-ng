@@ -33,7 +33,7 @@ const DESTROY_FALLBACK_MS = 300;
  *
  * Two kinds of body content, freely combined:
  * - projected content (`<ng-content>`) is always rendered and always keeps its state;
- * - an `<ng-template andesAccordionLazy>` is rendered on first open and then kept (Ant Design's
+ * - an `<ng-template andesAccordionLazy>` is rendered on first open and then kept (the
  *   default), up front with the item's `forceRender`, or removed again after every close with
  *   the root's `destroyOnHidden` - once the collapse animation has finished, so the panel
  *   doesn't visibly empty out while it's still closing.
