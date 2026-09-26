@@ -9,7 +9,8 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 
-import { AndesDropdownMenu } from './dropdown-menu';
+import { AndesDropdownMenuRoot } from './dropdown-menu-root';
+import { AndesDropdownMenuLevel } from './dropdown-menu-types';
 
 /**
  * A toggleable menu item with a checked/unchecked indicator.
@@ -62,6 +63,7 @@ import { AndesDropdownMenu } from './dropdown-menu';
     '(click)': 'activate()',
     '(keydown.enter)': 'onKeydownActivate($event)',
     '(keydown.space)': 'onKeydownActivate($event)',
+    '(pointerenter)': 'onPointerEnter($event)',
   },
 })
 export class AndesDropdownMenuCheckboxItem {
@@ -76,7 +78,8 @@ export class AndesDropdownMenuCheckboxItem {
   protected readonly navItem = inject(AndesListNavigationItem);
   protected readonly isDisabled = this.navItem.disabled;
 
-  private readonly menu = inject(AndesDropdownMenu);
+  private readonly menu = inject(AndesDropdownMenuRoot);
+  private readonly level = inject(AndesDropdownMenuLevel);
 
   protected activate(): void {
     if (this.isDisabled()) {
@@ -84,12 +87,19 @@ export class AndesDropdownMenuCheckboxItem {
     }
     this.checked.set(!this.checked());
     if (this.closeOnSelect()) {
-      this.menu.close('trigger');
+      this.menu.hide('item');
     }
   }
 
   protected onKeydownActivate(event: Event): void {
     event.preventDefault();
     this.activate();
+  }
+
+  /** Pointing at a sibling is the cue to close this level's open submenu. */
+  protected onPointerEnter(event: PointerEvent): void {
+    if (event.pointerType !== 'touch') {
+      this.level.openChild()?.scheduleClose();
+    }
   }
 }

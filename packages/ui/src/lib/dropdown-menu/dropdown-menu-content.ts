@@ -2,8 +2,11 @@ import { AndesOverlayContentPrimitive } from '@andes-ng/primitives';
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   ViewEncapsulation,
 } from '@angular/core';
+
+import { AndesDropdownMenuRoot } from './dropdown-menu-root';
 
 /**
  * The menu's popup surface. Everything inside it - items, groups, separators - is
@@ -11,6 +14,8 @@ import {
  * rendered lazily into a CDK overlay by `AndesDropdownMenu`.
  *
  * `role="menu"` and `data-state` come from the composed `AndesOverlayContentPrimitive`.
+ * Pointer enter/leave feed the root's hover-trigger timing, so moving from the trigger
+ * into the panel (or into a submenu's panel) does not count as leaving the menu.
  *
  * `dropdown-menu.css`'s selectors are plain BEM classes (`.andes-dropdown-menu__*`)
  * applied via each sub-component's `host: { class: ... }`, not inside any component's
@@ -35,6 +40,10 @@ import {
   encapsulation: ViewEncapsulation.None,
   host: {
     class: 'andes-dropdown-menu__content',
+    '(pointerenter)': 'root.pointerEntered()',
+    '(pointerleave)': 'root.pointerLeft()',
   },
 })
-export class AndesDropdownMenuContent {}
+export class AndesDropdownMenuContent {
+  protected readonly root = inject(AndesDropdownMenuRoot);
+}
