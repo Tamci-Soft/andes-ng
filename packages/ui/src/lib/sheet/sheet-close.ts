@@ -1,10 +1,15 @@
-import { AndesOverlayClosePrimitive } from '@andes-ng/primitives';
-import { Directive } from '@angular/core';
+import { Directive, inject } from '@angular/core';
+
+import { AndesSheet } from './sheet';
 
 /**
- * Closes the enclosing sheet when activated. Compose onto any element inside the
- * sheet's content, typically a footer "Cancel" button - the panel already renders
- * its own close-icon button in the corner, this is for consumer-authored ones.
+ * Closes the enclosing sheet when activated, with its slide-out animation.
+ * Compose onto any element inside the sheet's content, typically a footer
+ * "Cancel" button - the panel already renders its own close-icon button in the
+ * corner (unless `closable` is off), this is for consumer-authored ones.
+ *
+ * It deliberately does not compose `AndesOverlayClosePrimitive`: that closes the
+ * overlay synchronously, skipping the slide-out.
  *
  * ```html
  * <andes-sheet-footer>
@@ -14,6 +19,10 @@ import { Directive } from '@angular/core';
  */
 @Directive({
   selector: '[andesSheetClose]',
-  hostDirectives: [AndesOverlayClosePrimitive],
+  host: {
+    '(click)': 'sheet.requestClose()',
+  },
 })
-export class AndesSheetClose {}
+export class AndesSheetClose {
+  protected readonly sheet = inject(AndesSheet);
+}
