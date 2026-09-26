@@ -86,6 +86,64 @@
   max-width: 26rem;
 }
 
+/* An explicit `width` (Ant's `width`, including its per-breakpoint object form). The
+   component writes one custom property per breakpoint, already resolved so each one
+   inherits the nearest smaller breakpoint given; the rules below only pick the one for
+   the current viewport. Doubled class so it outranks the alert variant's own step above.
+   `width: 100%` on the surface still caps it at the pane, so a large value can never
+   overflow a narrow screen. */
+.andes-dialog.andes-dialog--custom-width {
+  max-width: var(--andes-dialog-width-xs);
+}
+
+@media (width >= 36rem) {
+  .andes-dialog.andes-dialog--custom-width {
+    max-width: var(--andes-dialog-width-sm);
+  }
+}
+
+@media (width >= 48rem) {
+  .andes-dialog.andes-dialog--custom-width {
+    max-width: var(--andes-dialog-width-md);
+  }
+}
+
+@media (width >= 62rem) {
+  .andes-dialog.andes-dialog--custom-width {
+    max-width: var(--andes-dialog-width-lg);
+  }
+}
+
+@media (width >= 75rem) {
+  .andes-dialog.andes-dialog--custom-width {
+    max-width: var(--andes-dialog-width-xl);
+  }
+}
+
+@media (width >= 100rem) {
+  .andes-dialog.andes-dialog--custom-width {
+    max-width: var(--andes-dialog-width-xxl);
+  }
+}
+
+@media (width >= 120rem) {
+  .andes-dialog.andes-dialog--custom-width {
+    max-width: var(--andes-dialog-width-xxxl);
+  }
+}
+
+/* `[centered]="false"`: parked near the top, Ant's default placement, so the surface
+   does not jump as its content grows. 100px on a tall screen (Ant's `top: 100px`),
+   shrinking with the viewport and never below the pane's own gutter. The pane rule
+   further down applies the same offset; the height cap here has to subtract it. */
+.andes-dialog--top {
+  max-height: calc(
+    100dvh -
+      clamp(var(--andes-space-5), 10dvh, calc(var(--andes-space-5) * 5)) -
+      var(--andes-space-5)
+  );
+}
+
 .andes-dialog__header {
   display: flex;
   flex-direction: column;
@@ -162,6 +220,50 @@
   gap: var(--andes-space-2);
 }
 
+/* `loading`: a skeleton stands in for the body. The header stays - it is what labels
+   the dialog - and everything else the consumer projected (body and their own footer)
+   is hidden rather than destroyed, so it reappears with its state intact. */
+/* One line on purpose (hence the prettier-ignore): a selector split at its
+   combinators is mis-scoped by Angular's style shim in Storybook. */
+/* prettier-ignore */
+.andes-dialog--loading > .andes-dialog__viewport > :not(.andes-dialog__header, .andes-dialog__skeleton) {
+  display: none;
+}
+
+.andes-dialog__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-3);
+}
+
+/* Mixed from the foreground, like the close control's hover: --andes-color-muted is
+   the same value as the popover surface in the dark theme, so the bars vanished. */
+.andes-dialog__skeleton-line {
+  display: block;
+  height: 0.875rem;
+  border-radius: var(--andes-radius-sm);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 10%,
+    transparent
+  );
+  animation: andes-dialog-skeleton 1.4s ease-in-out infinite;
+}
+
+.andes-dialog__skeleton-line:first-child {
+  width: 40%;
+}
+
+.andes-dialog__skeleton-line:last-child {
+  width: 70%;
+}
+
+@keyframes andes-dialog-skeleton {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 /* The built-in close ("x") control. */
 .andes-dialog__close {
   position: absolute;
@@ -216,6 +318,12 @@
   outline-offset: 2px;
 }
 
+/* A consumer's `closeIcon` gets the same box as the built-in glyph. */
+.andes-dialog__close > svg:not(.andes-dialog__close-icon) {
+  width: 1rem;
+  height: 1rem;
+}
+
 .andes-dialog__close-icon {
   width: 1rem;
   height: 1rem;
@@ -223,6 +331,58 @@
   stroke: currentcolor;
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+/* Imperative dialogs from AndesDialogService: Ant's method layout, a status icon beside
+   the title and content. */
+.andes-dialog__method {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--andes-space-3);
+}
+
+/* Clearance for the optional "x" (`closable`), the same step the header gets. */
+.andes-dialog--method-closable .andes-dialog__method {
+  padding-inline-end: calc(var(--andes-dialog-padding) + var(--andes-space-2));
+}
+
+/* 1.5rem, the title's line height, so the glyph centres on the title's first line. */
+.andes-dialog__method-icon {
+  display: inline-flex;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--andes-color-warning);
+}
+
+.andes-dialog__method-icon > svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-dialog--method-info .andes-dialog__method-icon {
+  color: var(--andes-color-info);
+}
+
+.andes-dialog--method-success .andes-dialog__method-icon {
+  color: var(--andes-color-success);
+}
+
+.andes-dialog--method-error .andes-dialog__method-icon {
+  color: var(--andes-color-danger);
+}
+
+.andes-dialog__method-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--andes-space-2);
+  min-width: 0;
 }
 
 /* On a narrow screen the actions stack and fill the width. `column-reverse` keeps the
@@ -248,13 +408,32 @@
 
 /* Entry motion, applied to the pane the primitive creates rather than to the surface,
    so a consumer restyling the surface cannot lose it. */
-.andes-overlay-pane:has(> .andes-dialog) {
+/* The second form matches a kept-alive surface (`destroyOnClose` off, `forceRender`),
+   which sits inside a `display: contents` adopter element. */
+/* prettier-ignore */
+.andes-overlay-pane:has(> .andes-dialog, > .andes-dialog-keep-alive > .andes-dialog) {
   display: flex;
   justify-content: center;
   box-sizing: border-box;
   width: 100%;
   padding: var(--andes-space-5);
   animation: andes-dialog-enter 0.16s ease-out;
+}
+
+/* Parks a `[centered]="false"` surface near the top. The CDK wrapper centres the pane
+   with inline flex alignment, which `align-self` overrides for this one item. */
+/* prettier-ignore */
+.andes-overlay-pane:has(> .andes-dialog--top, > .andes-dialog-keep-alive > .andes-dialog--top) {
+  align-self: flex-start;
+  padding-block-start: clamp(
+    var(--andes-space-5),
+    10dvh,
+    calc(var(--andes-space-5) * 5)
+  );
+}
+
+.andes-dialog-keep-alive {
+  display: contents;
 }
 
 /* The CDK's prebuilt stylesheet fades every backdrop over 400ms, so the scrim kept
@@ -279,7 +458,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .andes-overlay-pane:has(> .andes-dialog) {
+  /* prettier-ignore */
+  .andes-overlay-pane:has(> .andes-dialog, > .andes-dialog-keep-alive > .andes-dialog) {
+    animation: none;
+  }
+
+  .andes-dialog__skeleton-line {
     animation: none;
   }
 

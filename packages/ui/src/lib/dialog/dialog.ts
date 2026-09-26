@@ -19,14 +19,17 @@ import {
   TemplateRef,
   ViewEncapsulation,
 } from '@angular/core';
-import clsx from 'clsx';
+import { NgTemplateOutlet } from '@angular/common';
 
+import { AndesDialogActions } from './dialog-actions';
 import {
   ANDES_DIALOG_BACKDROP_CLASS,
   AndesDialogRoot,
   AndesDialogRootBase,
   AndesDialogSurface,
   AndesDialogSurfaceBase,
+  dialogSurfaceClasses,
+  dialogWidthStyles,
   registerDialogLabel,
 } from './dialog-base';
 
@@ -74,6 +77,20 @@ export class AndesDialogContentTemplate {
  *       <button type="button" (click)="save()">Save</button>
  *     </div>
  *   </andes-dialog-content>
+ * </andes-dialog>
+ * ```
+ *
+ * Or, Ant `Modal` style, with the built-in Cancel/OK footer instead of composing one:
+ *
+ * ```html
+ * <andes-dialog
+ *   [(open)]="open"
+ *   footer="default"
+ *   okText="Save"
+ *   [confirmLoading]="saving()"
+ *   (ok)="save()"
+ * >
+ *   <andes-dialog-content *andesDialogContent> ... </andes-dialog-content>
  * </andes-dialog>
  * ```
  */
@@ -155,7 +172,7 @@ export class AndesDialogTrigger {
   styleUrl: './dialog.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AndesOverlayClosePrimitive],
+  imports: [AndesDialogActions, NgTemplateOutlet],
   hostDirectives: [AndesOverlayContentPrimitive],
   providers: [
     {
@@ -165,21 +182,36 @@ export class AndesDialogTrigger {
   ],
   host: {
     '[class]': 'classes()',
+    '[style]': 'styles()',
     '[attr.aria-labelledby]': 'titleId()',
     '[attr.aria-describedby]': 'descriptionId()',
+    '[attr.aria-busy]': 'root.loading() || null',
     '[attr.data-slot]': '"dialog-content"',
   },
 })
 export class AndesDialogContent extends AndesDialogSurfaceBase {
-  private readonly root = inject(AndesDialogRoot);
+  protected readonly root = inject(AndesDialogRoot);
 
-  /** Render the built-in close ("x") control. Mirrors shadcn's `showCloseButton`. */
+  /**
+   * Render the built-in close ("x") control. Mirrors shadcn's `showCloseButton` and
+   * Ant's `closable`. Activating it counts as a cancel (emits the root's `cancelled`).
+   */
   readonly showCloseButton = input(true, { transform: booleanAttribute });
   /** Accessible label for the built-in close control. */
   readonly closeLabel = input('Close');
+  /**
+   * Replaces the built-in "x" glyph. Mirrors Ant's `closeIcon`; the button, its
+   * label and its hit area stay the component's, so the icon should be decorative
+   * (`aria-hidden="true"`).
+   */
+  readonly closeIcon = input<TemplateRef<unknown> | null>(null);
 
   protected readonly classes = computed(() =>
-    clsx('andes-dialog', `andes-dialog--${this.root.size()}`),
+    dialogSurfaceClasses(this.root).join(' '),
+  );
+
+  protected readonly styles = computed(() =>
+    dialogWidthStyles(this.root.width()),
   );
 }
 

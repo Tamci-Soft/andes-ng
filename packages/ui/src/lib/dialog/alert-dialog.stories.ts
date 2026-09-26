@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { AndesButton } from '../button/button';
@@ -140,4 +141,57 @@ export const ReportsTheOutcome: Story = {
       </p>
     `,
   }),
+};
+
+/**
+ * The built-in footer on an alert dialog: `okType="danger"`, focus on Cancel, and OK
+ * held in its loading state (`confirmLoading`) while the deletion runs. The dialog
+ * closes when the consumer says so, not when OK is pressed.
+ */
+export const AsyncConfirmation: Story = {
+  render: () => {
+    const open = signal(false);
+    const deleting = signal(false);
+    return {
+      moduleMetadata: { imports: [ANDES_ALERT_DIALOG_IMPORTS] },
+      props: {
+        open,
+        deleting,
+        remove() {
+          deleting.set(true);
+          setTimeout(() => {
+            deleting.set(false);
+            open.set(false);
+          }, 1500);
+        },
+      },
+      template: `
+        ${TRIGGER_STYLES}
+        <andes-alert-dialog
+          [(open)]="open"
+          footer="default"
+          okText="Delete project"
+          okType="danger"
+          autoFocusButton="cancel"
+          [confirmLoading]="deleting()"
+          [cancelDisabled]="deleting()"
+          [closeOnEscape]="!deleting()"
+          (ok)="remove()"
+        >
+          <button type="button" class="sb-alert-trigger" andesAlertDialogTrigger>
+            Delete project
+          </button>
+
+          <andes-alert-dialog-content *andesAlertDialogContent>
+            <div andesAlertDialogHeader>
+              <h2 andesAlertDialogTitle>Delete this project?</h2>
+              <p andesAlertDialogDescription>
+                This permanently removes the project and everything in it.
+              </p>
+            </div>
+          </andes-alert-dialog-content>
+        </andes-alert-dialog>
+      `,
+    };
+  },
 };
