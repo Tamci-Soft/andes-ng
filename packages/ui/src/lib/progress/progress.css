@@ -269,7 +269,7 @@
   }
 }
 
-/* status="active": a highlight that grows across the filled part, like Ant Design's. */
+/* status="active": a highlight that grows across the filled part. */
 
 .andes-progress__indicator--active::after {
   content: '';
