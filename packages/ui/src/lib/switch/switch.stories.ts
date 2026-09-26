@@ -165,7 +165,7 @@ export const LoadingAllSizes: Story = {
 };
 
 /**
- * Ant Design's async-save pattern: the switch goes busy while a (fake) request runs, ignoring
+ * The async-save pattern: the switch goes busy while a (fake) request runs, ignoring
  * further clicks, then settles. `[(checked)]` keeps the parent's state and the switch's in step.
  */
 export const AsyncToggle: Story = {
