@@ -156,7 +156,7 @@ describe('AndesPopconfirm', () => {
     expect(panel()?.getAttribute('aria-describedby')).toBe(description?.id);
   });
 
-  it('defaults to Ant placement (top) with an arrow', async () => {
+  it('defaults to top placement with an arrow', async () => {
     const { panel, openIt } = setup();
     await openIt();
 

@@ -2,7 +2,7 @@ import type { AndesOverlayAlign, AndesOverlaySide } from '@andes-ng/primitives';
 import type { TemplateRef } from '@angular/core';
 
 /**
- * Ant Design's twelve placements. The first word is the side of the trigger the
+ * The twelve supported placements. The first word is the side of the trigger the
  * panel renders on; the second (if any) is which edge of the panel lines up with
  * the matching edge of the trigger.
  */
@@ -47,5 +47,5 @@ export const ANDES_POPOVER_PLACEMENTS: Readonly<
   rightBottom: { side: 'right', align: 'end' },
 };
 
-/** Default hover open/close delay, in ms - Ant's `0.1s`. */
+/** Default hover open/close delay, in ms (0.1s). */
 export const ANDES_POPOVER_DEFAULT_HOVER_DELAY = 100;

@@ -317,7 +317,7 @@ describe('AndesPopover', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Ant Design parity: structured title/content, trigger modes, placements,
+// Extended features: structured title/content, trigger modes, placements,
 // collision handling, destroyOnHidden, zIndex, disabled handling.
 // ---------------------------------------------------------------------------
 
@@ -395,7 +395,7 @@ class FeatureHost {
 })
 class WrapperHost {}
 
-describe('AndesPopover - Ant parity', () => {
+describe('AndesPopover - extended features', () => {
   withElementGeometry();
 
   function setup() {

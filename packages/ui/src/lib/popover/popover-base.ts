@@ -91,7 +91,7 @@ export abstract class AndesPopoverBase {
   protected readonly panelRole: AndesOverlayRole = 'dialog';
 
   /**
-   * Ant-style shorthand for `side` + `align` (`'bottomLeft'` = `side="bottom"
+   * Single-value shorthand for `side` + `align` (`'bottomLeft'` = `side="bottom"
    * align="start"`). Takes precedence over `side`/`align` when set.
    */
   readonly placement = input<AndesPopoverPlacement | undefined>(undefined);
@@ -107,7 +107,7 @@ export abstract class AndesPopoverBase {
   readonly showArrow = input(false, { transform: booleanAttribute });
   /**
    * Shifts `start`/`end`-aligned panels so the arrow points at the trigger's
-   * center rather than near its edge (Ant's `arrow={{ pointAtCenter: true }}`).
+   * center rather than near its edge.
    * Only meaningful with `showArrow`. Default `false`.
    */
   readonly arrowPointAtCenter = input(false, { transform: booleanAttribute });

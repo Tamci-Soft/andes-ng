@@ -110,7 +110,7 @@ export const AlignEnd: Story = {
   args: { align: 'end' },
 };
 
-/** Ant's `title` + `content` as plain strings: a structured header and body. */
+/** `title` + `content` as plain strings: a structured header and body. */
 export const TitleAndContent: Story = {
   render: (args) => ({
     moduleMetadata: { imports },
@@ -180,7 +180,7 @@ export const HoverDelays: Story = {
   args: { trigger: 'hover', openDelay: 500, closeDelay: 50, showArrow: true },
 };
 
-/** Ant's twelve `placement` values. */
+/** The twelve `placement` values. */
 export const Placements: Story = {
   render: () => ({
     moduleMetadata: { imports },
@@ -343,8 +343,8 @@ export const DestroyOnHidden: Story = {
 };
 
 /**
- * Theming through `--andes-popover-*` custom properties (Ant's
- * `overlayInnerStyle`), set here on `<andes-popover-content>`; a `panelClass`
+ * Theming through `--andes-popover-*` custom properties, set here on
+ * `<andes-popover-content>`; a `panelClass`
  * or a global rule works too.
  */
 export const CustomProperties: Story = {
