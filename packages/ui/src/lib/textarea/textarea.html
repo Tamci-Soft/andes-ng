@@ -1,0 +1,53 @@
+<div [class]="wrapperClasses()">
+  <textarea
+    #textareaEl
+    data-slot="textarea"
+    class="andes-textarea__control"
+    [attr.data-size]="size()"
+    [attr.id]="id()"
+    [attr.name]="name()"
+    [rows]="autoSizeEnabled() ? 1 : rows()"
+    [attr.placeholder]="placeholder()"
+    [attr.maxlength]="maxLength()"
+    [disabled]="isDisabled()"
+    [readOnly]="readonly()"
+    [required]="required()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-labelledby]="ariaLabelledby()"
+    [attr.aria-describedby]="describedBy()"
+    [attr.aria-invalid]="isInvalid() || null"
+    [value]="value()"
+    (input)="onInput($event)"
+    (blur)="onBlur()"
+    (keydown)="onKeydown($event)"
+  ></textarea>
+  @if (showClear()) {
+  <button
+    type="button"
+    class="andes-textarea__clear"
+    aria-label="Clear"
+    (click)="clear($event)"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  }
+</div>
+@if (showCount()) {
+<span
+  class="andes-textarea__count"
+  [class.andes-textarea__count--exceeded]="countExceeded()"
+  [id]="countId"
+  >{{ countText() }}</span
+>
+}
