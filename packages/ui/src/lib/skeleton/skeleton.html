@@ -1,7 +1,59 @@
+@if (isBlock()) {
 <div
   data-slot="skeleton"
   [attr.data-shape]="shape()"
-  [class]="classes()"
+  [class]="blockClasses()"
   [style.width]="widthStyle()"
   [style.height]="heightStyle()"
 ></div>
+} @else if (loading()) {
+<div data-slot="skeleton" [class]="classes()">
+  <span
+    data-slot="skeleton-status"
+    class="andes-skeleton-composite__status"
+    role="status"
+    >{{ loadingLabel() }}</span
+  >
+  <div class="andes-skeleton-composite__body" aria-hidden="true">
+    @if (avatarConfig(); as avatar) {
+    <div class="andes-skeleton-composite__header">
+      <andes-skeleton-avatar
+        [size]="avatar.size"
+        [shape]="avatar.shape"
+        [active]="active()"
+      />
+    </div>
+    }
+    <div class="andes-skeleton-composite__content">
+      @if (titleWidth() !== null) {
+      <div
+        data-slot="skeleton-title"
+        class="andes-skeleton-composite__title andes-skeleton-fill"
+        [class.andes-skeleton-fill--active]="active()"
+        [style.width]="titleWidth()"
+      ></div>
+      } @if (paragraphRows().length > 0) {
+      <div
+        data-slot="skeleton-paragraph"
+        class="andes-skeleton-composite__paragraph"
+      >
+        @for (rowWidth of paragraphRows(); track $index) {
+        <div
+          data-slot="skeleton-paragraph-row"
+          class="andes-skeleton-composite__row andes-skeleton-fill"
+          [class.andes-skeleton-fill--active]="active()"
+          [style.width]="rowWidth"
+        ></div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+</div>
+} @else {
+<ng-container [ngTemplateOutlet]="content" />
+}
+
+<!-- The one and only <ng-content>: projected once here and stamped out only in the loaded
+     branch above, so it is never duplicated across the @if/@else. -->
+<ng-template #content><ng-content /></ng-template>
