@@ -3,9 +3,17 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { AndesAccordion, AndesAccordionType } from './accordion';
+import {
+  AndesAccordion,
+  type AndesAccordionCollapsible,
+  type AndesAccordionExpandIconPosition,
+  type AndesAccordionItemConfig,
+  type AndesAccordionSize,
+  AndesAccordionType,
+} from './accordion';
 import { AndesAccordionContent } from './accordion-content';
 import { AndesAccordionItem } from './accordion-item';
+import { AndesAccordionLazy } from './accordion-lazy';
 import { AndesAccordionTrigger } from './accordion-trigger';
 
 @Component({
@@ -365,6 +373,676 @@ describe('AndesAccordion / AndesAccordionItem / AndesAccordionTrigger / AndesAcc
       // absence of any keydown handling and of a `tabindex` attribute above already confirms.
       triggers[0].focus();
       expect(document.activeElement).toBe(triggers[0]);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Ant Design Collapse parity
+// ---------------------------------------------------------------------------------------------
+
+@Component({
+  imports: [
+    AndesAccordion,
+    AndesAccordionItem,
+    AndesAccordionTrigger,
+    AndesAccordionContent,
+    AndesAccordionLazy,
+  ],
+  template: `<andes-accordion
+    [type]="type()"
+    [(activeKey)]="activeKey"
+    (activeKeyChange)="changes.push($event)"
+    [bordered]="bordered()"
+    [ghost]="ghost()"
+    [size]="size()"
+    [collapsible]="collapsible()"
+    [expandIcon]="useCustomIcon() ? customIcon : undefined"
+    [expandIconPosition]="iconPosition()"
+    [destroyOnHidden]="destroyOnHidden()"
+    [arrowNavigation]="arrowNavigation()"
+  >
+    <ng-template #customIcon let-active let-value="value">
+      <span class="custom-icon"
+        >{{ value }}:{{ active ? 'open' : 'closed' }}</span
+      >
+    </ng-template>
+    <andes-accordion-item
+      value="a"
+      [collapsible]="itemACollapsible()"
+      [showArrow]="itemAShowArrow()"
+    >
+      <andes-accordion-trigger>
+        Section A
+        <button type="button" class="extra-action" andesAccordionExtra>
+          Edit
+        </button>
+      </andes-accordion-trigger>
+      <andes-accordion-content>
+        Eager A
+        <ng-template andesAccordionLazy
+          ><span class="lazy-a">Lazy A</span></ng-template
+        >
+      </andes-accordion-content>
+    </andes-accordion-item>
+    <andes-accordion-item value="b" [forceRender]="itemBForceRender()">
+      <andes-accordion-trigger extra="3 files"
+        >Section B</andes-accordion-trigger
+      >
+      <andes-accordion-content>
+        <ng-template andesAccordionLazy
+          ><span class="lazy-b">Lazy B</span></ng-template
+        >
+      </andes-accordion-content>
+    </andes-accordion-item>
+    <andes-accordion-item value="c" [disabled]="itemCDisabled()">
+      <andes-accordion-trigger>Section C</andes-accordion-trigger>
+      <andes-accordion-content>Content C</andes-accordion-content>
+    </andes-accordion-item>
+    <andes-accordion-item value="d">
+      <andes-accordion-trigger>Section D</andes-accordion-trigger>
+      <andes-accordion-content>Content D</andes-accordion-content>
+    </andes-accordion-item>
+  </andes-accordion>`,
+})
+class FeatureHostComponent {
+  readonly type = signal<AndesAccordionType>('multiple');
+  readonly activeKey = signal<string[]>([]);
+  readonly changes: string[][] = [];
+  readonly bordered = signal(false);
+  readonly ghost = signal(false);
+  readonly size = signal<AndesAccordionSize>('md');
+  readonly collapsible = signal<AndesAccordionCollapsible | undefined>(
+    undefined,
+  );
+  readonly useCustomIcon = signal(false);
+  readonly iconPosition = signal<AndesAccordionExpandIconPosition>('end');
+  readonly destroyOnHidden = signal(false);
+  readonly arrowNavigation = signal(false);
+  readonly itemACollapsible = signal<AndesAccordionCollapsible | undefined>(
+    undefined,
+  );
+  readonly itemAShowArrow = signal(true);
+  readonly itemBForceRender = signal(false);
+  readonly itemCDisabled = signal(false);
+}
+
+@Component({
+  imports: [AndesAccordion],
+  template: `<andes-accordion
+    type="multiple"
+    [items]="items()"
+    [(activeKey)]="activeKey"
+  />`,
+})
+class ItemsHostComponent {
+  readonly activeKey = signal<string[]>([]);
+  readonly items = signal<AndesAccordionItemConfig[]>([
+    { key: 'one', label: 'First', content: 'First body', extra: 'Extra one' },
+    { key: 'two', label: 'Second', content: 'Second body', disabled: true },
+    {
+      key: 'three',
+      label: 'Third',
+      content: 'Third body',
+      forceRender: true,
+      showArrow: false,
+    },
+  ]);
+}
+
+@Component({
+  imports: [AndesAccordion],
+  template: `<ng-template #label
+      ><strong class="rich-label">Rich</strong></ng-template
+    >
+    <ng-template #body><em class="rich-body">Body</em></ng-template>
+    <ng-template #extra
+      ><button type="button" class="rich-extra">More</button></ng-template
+    >
+    <andes-accordion
+      [items]="[
+        {
+          key: 'x',
+          label: label,
+          content: body,
+          extra: extra,
+          forceRender: true,
+        },
+      ]"
+    />`,
+})
+class TemplateItemsHostComponent {}
+
+describe('AndesAccordion - Ant Design Collapse parity', () => {
+  function createFeatureHost(setup?: (host: FeatureHostComponent) => void) {
+    const fixture = TestBed.createComponent(FeatureHostComponent);
+    setup?.(fixture.componentInstance);
+    fixture.detectChanges();
+    const root = fixture.nativeElement.querySelector(
+      'andes-accordion',
+    ) as HTMLElement;
+    const items = () =>
+      Array.from(
+        root.querySelectorAll('andes-accordion-item'),
+      ) as HTMLElement[];
+    const headers = () =>
+      Array.from(
+        root.querySelectorAll('.andes-accordion-trigger__header'),
+      ) as HTMLElement[];
+    const buttons = () =>
+      Array.from(
+        root.querySelectorAll(
+          '.andes-accordion-trigger__button, .andes-accordion-trigger__icon-button',
+        ),
+      ) as HTMLButtonElement[];
+    const panels = () =>
+      Array.from(
+        root.querySelectorAll('andes-accordion-content'),
+      ) as HTMLElement[];
+    const click = (el: Element) => {
+      (el as HTMLElement).click();
+      fixture.detectChanges();
+    };
+    return {
+      fixture,
+      host: fixture.componentInstance,
+      root,
+      items,
+      headers,
+      buttons,
+      panels,
+      click,
+    };
+  }
+
+  describe('activeKey (two-way) and activeKeyChange', () => {
+    it('opens the panels whose values are bound into activeKey', () => {
+      const { panels } = createFeatureHost((h) => h.activeKey.set(['b', 'd']));
+
+      expect(panels().map((p) => p.getAttribute('data-state'))).toEqual([
+        'closed',
+        'open',
+        'closed',
+        'open',
+      ]);
+    });
+
+    it('reacts to the parent changing activeKey after init', () => {
+      const { fixture, host, panels } = createFeatureHost();
+
+      host.activeKey.set(['c']);
+      fixture.detectChanges();
+
+      expect(panels()[2].getAttribute('data-state')).toBe('open');
+    });
+
+    it('writes user toggles back into the bound activeKey', () => {
+      const { host, buttons, click } = createFeatureHost();
+
+      click(buttons()[0]);
+      click(buttons()[3]);
+      expect(host.activeKey()).toEqual(['a', 'd']);
+
+      click(buttons()[0]);
+      expect(host.activeKey()).toEqual(['d']);
+    });
+
+    it('emits activeKeyChange with the full key list on user toggles only', () => {
+      const { fixture, host, buttons, click } = createFeatureHost();
+
+      host.activeKey.set(['b']);
+      fixture.detectChanges();
+      expect(host.changes).toEqual([]);
+
+      click(buttons()[0]);
+      expect(host.changes).toEqual([['b', 'a']]);
+    });
+
+    it('honors only the first key in single mode', () => {
+      const { panels, buttons, host, click } = createFeatureHost((h) => {
+        h.type.set('single');
+        h.activeKey.set(['b', 'd']);
+      });
+
+      expect(panels()[1].getAttribute('data-state')).toBe('open');
+      expect(panels()[3].getAttribute('data-state')).toBe('closed');
+
+      click(buttons()[0]);
+      expect(host.activeKey()).toEqual(['a']);
+    });
+  });
+
+  describe('bordered / ghost / size', () => {
+    it('is divider-only by default', () => {
+      const { root, items } = createFeatureHost();
+
+      expect(root.getAttribute('data-variant')).toBe('default');
+      expect(getComputedStyle(root).overflow).not.toBe('hidden');
+      expect(items()[0].getAttribute('data-variant')).toBe('default');
+      expect(getComputedStyle(items()[0]).borderBottomStyle).not.toBe('none');
+    });
+
+    it('renders an outlined, rounded block with tinted headers when bordered', () => {
+      const { root, headers, panels } = createFeatureHost((h) =>
+        h.bordered.set(true),
+      );
+
+      expect(root.getAttribute('data-variant')).toBe('bordered');
+      const rootStyle = getComputedStyle(root);
+      // (jsdom can't resolve a `border` shorthand holding var(), so the outline itself was
+      // verified in a live Storybook; radius + clipping are the computable half.)
+      expect(rootStyle.borderRadius).toContain('var(--andes-radius-lg)');
+      expect(rootStyle.overflow).toBe('hidden');
+      expect(getComputedStyle(headers()[0]).backgroundColor).toContain(
+        'var(--andes-color-muted)',
+      );
+      const body = panels()[0].querySelector(
+        '.andes-accordion-content__body',
+      ) as HTMLElement;
+      expect(body.getAttribute('data-variant')).toBe('bordered');
+      expect(getComputedStyle(body).getPropertyValue('padding')).toBe(
+        'var(--andes-space-4)',
+      );
+    });
+
+    it('drops every divider in ghost mode, even with bordered set', () => {
+      const { root, items } = createFeatureHost((h) => {
+        h.bordered.set(true);
+        h.ghost.set(true);
+      });
+
+      expect(root.getAttribute('data-variant')).toBe('ghost');
+      expect(getComputedStyle(root).overflow).not.toBe('hidden');
+      for (const item of items()) {
+        expect(getComputedStyle(item).borderBottomStyle).toBe('none');
+      }
+    });
+
+    it.each([
+      ['sm', 'var(--andes-space-2)', '0.875rem'],
+      ['md', 'var(--andes-space-4)', '1rem'],
+      ['lg', 'var(--andes-space-5)', '1.125rem'],
+    ] as const)(
+      'applies the %s header padding and font size',
+      (size, padding, fontSize) => {
+        const { headers } = createFeatureHost((h) => h.size.set(size));
+        const style = getComputedStyle(headers()[0]);
+
+        expect(headers()[0].getAttribute('data-size')).toBe(size);
+        expect(style.getPropertyValue('padding-block')).toBe(padding);
+        expect(style.fontSize).toBe(fontSize);
+      },
+    );
+  });
+
+  describe('expandIcon / expandIconPosition / showArrow', () => {
+    it('renders a custom expand icon template with isActive and value', () => {
+      const { root, buttons, click } = createFeatureHost((h) =>
+        h.useCustomIcon.set(true),
+      );
+      const icon = () => root.querySelector('.custom-icon') as HTMLElement;
+
+      expect(
+        root.querySelector('svg.andes-accordion-trigger__icon'),
+      ).toBeNull();
+      expect(icon().textContent).toBe('a:closed');
+
+      click(buttons()[0]);
+      expect(icon().textContent).toBe('a:open');
+    });
+
+    it('places the icon after the text by default and before it with position "start"', () => {
+      const order = (button: HTMLElement) =>
+        Array.from(button.children).map((c) =>
+          c.classList.contains('andes-accordion-trigger__text')
+            ? 'text'
+            : 'icon',
+        );
+
+      const end = createFeatureHost();
+      expect(order(end.buttons()[0])).toEqual(['text', 'icon']);
+
+      const start = createFeatureHost((h) => h.iconPosition.set('start'));
+      expect(order(start.buttons()[0])).toEqual(['icon', 'text']);
+    });
+
+    it('hides the arrow of an item with showArrow=false', () => {
+      const { headers } = createFeatureHost((h) => h.itemAShowArrow.set(false));
+
+      expect(
+        headers()[0].querySelector('.andes-accordion-trigger__icon'),
+      ).toBeNull();
+      expect(
+        headers()[1].querySelector('.andes-accordion-trigger__icon'),
+      ).not.toBeNull();
+    });
+  });
+
+  describe('collapsible', () => {
+    it('makes the whole row the button by default', () => {
+      const { buttons } = createFeatureHost();
+
+      // `data-collapsible="full"` is what stretches the button's ::after over the row (jsdom
+      // can't compute pseudo-element styles - verified in a live Storybook instead).
+      expect(buttons()[0].getAttribute('data-collapsible')).toBe('full');
+      expect(
+        buttons()[0].querySelector('.andes-accordion-trigger__icon'),
+      ).not.toBeNull();
+    });
+
+    it('"header": only the text (and the icon) toggle, not the rest of the row', () => {
+      const { root, host, headers, buttons, click } = createFeatureHost((h) =>
+        h.collapsible.set('header'),
+      );
+      const button = buttons()[0];
+
+      expect(button.getAttribute('data-collapsible')).toBe('header');
+      // The icon lives outside the (shrunk) text button...
+      expect(button.querySelector('.andes-accordion-trigger__icon')).toBeNull();
+
+      click(headers()[0]);
+      expect(host.activeKey()).toEqual([]);
+
+      click(button);
+      expect(host.activeKey()).toEqual(['a']);
+
+      click(
+        root.querySelector('.andes-accordion-trigger__icon-toggle') as Element,
+      );
+      expect(host.activeKey()).toEqual([]);
+    });
+
+    it('"icon": only the icon is a button, named by the header text', () => {
+      const { host, headers, click } = createFeatureHost((h) =>
+        h.collapsible.set('icon'),
+      );
+      const header = headers()[0];
+      const iconButton = header.querySelector(
+        '.andes-accordion-trigger__icon-button',
+      ) as HTMLButtonElement;
+      const text = header.querySelector(
+        '.andes-accordion-trigger__text',
+      ) as HTMLElement;
+
+      expect(
+        header.querySelector('.andes-accordion-trigger__button'),
+      ).toBeNull();
+      expect(iconButton.getAttribute('aria-labelledby')).toBe(text.id);
+      expect(text.textContent).toContain('Section A');
+      expect(iconButton.getAttribute('aria-controls')).toBeTruthy();
+
+      click(text);
+      expect(host.activeKey()).toEqual([]);
+
+      click(iconButton);
+      expect(host.activeKey()).toEqual(['a']);
+      expect(iconButton.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('"icon" without an arrow falls back to "header" so the panel stays operable', () => {
+      const { buttons } = createFeatureHost((h) => {
+        h.collapsible.set('icon');
+        h.itemAShowArrow.set(false);
+      });
+
+      expect(buttons()[0].getAttribute('data-collapsible')).toBe('header');
+      expect(buttons()[0].textContent).toContain('Section A');
+    });
+
+    it('"disabled": the trigger cannot be toggled', () => {
+      const { host, buttons, click } = createFeatureHost((h) =>
+        h.collapsible.set('disabled'),
+      );
+
+      expect(buttons().every((b) => b.disabled)).toBe(true);
+      click(buttons()[0]);
+      expect(host.activeKey()).toEqual([]);
+    });
+
+    it('lets an item override the root collapsible', () => {
+      const { buttons } = createFeatureHost((h) => {
+        h.collapsible.set('header');
+        h.itemACollapsible.set('disabled');
+      });
+
+      expect(buttons()[0].disabled).toBe(true);
+      expect(buttons()[1].getAttribute('data-collapsible')).toBe('header');
+      expect(buttons()[1].disabled).toBe(false);
+    });
+  });
+
+  describe('extra', () => {
+    it('renders projected [andesAccordionExtra] content outside the heading and the button', () => {
+      const { host, headers, click } = createFeatureHost();
+      const extra = headers()[0].querySelector('.extra-action') as HTMLElement;
+
+      expect(extra.closest('.andes-accordion-trigger__extra')).toBeTruthy();
+      expect(extra.closest('h3')).toBeNull();
+      expect(extra.closest('.andes-accordion-trigger__button')).toBeNull();
+
+      click(extra);
+      expect(host.activeKey()).toEqual([]);
+    });
+
+    it('sits above the stretched row button so clicks reach it', () => {
+      const { headers } = createFeatureHost();
+      const slot = headers()[0].querySelector(
+        '.andes-accordion-trigger__extra',
+      ) as HTMLElement;
+
+      expect(getComputedStyle(slot).position).toBe('relative');
+      expect(getComputedStyle(slot).zIndex).toBe('1');
+    });
+
+    it('renders the trigger extra input', () => {
+      const { headers } = createFeatureHost();
+
+      expect(
+        headers()[1].querySelector('.andes-accordion-trigger__extra')
+          ?.textContent,
+      ).toContain('3 files');
+    });
+  });
+
+  describe('lazy content, forceRender and destroyOnHidden', () => {
+    it('always renders projected content, but a lazy template only once opened', () => {
+      const { root, buttons, click } = createFeatureHost();
+
+      expect(root.textContent).toContain('Eager A');
+      expect(root.querySelector('.lazy-a')).toBeNull();
+
+      click(buttons()[0]);
+      expect(root.querySelector('.lazy-a')).not.toBeNull();
+    });
+
+    it('keeps a lazy body rendered after closing by default', () => {
+      const { root, buttons, click } = createFeatureHost();
+
+      click(buttons()[0]);
+      click(buttons()[0]);
+      expect(root.querySelector('.lazy-a')).not.toBeNull();
+    });
+
+    it('renders a lazy body up front with forceRender', () => {
+      const { root } = createFeatureHost((h) => h.itemBForceRender.set(true));
+
+      expect(root.querySelector('.lazy-b')).not.toBeNull();
+      expect(root.querySelector('.lazy-a')).toBeNull();
+    });
+
+    it('destroys a lazy body once its collapse transition ends with destroyOnHidden', () => {
+      const { fixture, root, panels, buttons, click } = createFeatureHost((h) =>
+        h.destroyOnHidden.set(true),
+      );
+
+      click(buttons()[0]);
+      expect(root.querySelector('.lazy-a')).not.toBeNull();
+
+      click(buttons()[0]);
+      // Still there while the panel animates closed...
+      expect(root.querySelector('.lazy-a')).not.toBeNull();
+
+      // ...a transition bubbling up from the body's own content doesn't count...
+      root
+        .querySelector('.lazy-a')
+        ?.dispatchEvent(new Event('transitionend', { bubbles: true }));
+      fixture.detectChanges();
+      expect(root.querySelector('.lazy-a')).not.toBeNull();
+
+      // ...the panel's own collapse finishing does.
+      panels()[0].dispatchEvent(new Event('transitionend', { bubbles: true }));
+      fixture.detectChanges();
+      expect(root.querySelector('.lazy-a')).toBeNull();
+    });
+
+    it('destroys a lazy body even if no transitionend ever fires', async () => {
+      const { fixture, root, buttons, click } = createFeatureHost((h) =>
+        h.destroyOnHidden.set(true),
+      );
+
+      click(buttons()[0]);
+      click(buttons()[0]);
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      fixture.detectChanges();
+
+      expect(root.querySelector('.lazy-a')).toBeNull();
+    });
+
+    it('lets destroyOnHidden win over forceRender while closed', () => {
+      const { root } = createFeatureHost((h) => {
+        h.itemBForceRender.set(true);
+        h.destroyOnHidden.set(true);
+      });
+
+      expect(root.querySelector('.lazy-b')).toBeNull();
+    });
+  });
+
+  describe('arrowNavigation (opt-in)', () => {
+    function press(target: HTMLElement, key: string) {
+      const event = new KeyboardEvent('keydown', {
+        key,
+        bubbles: true,
+        cancelable: true,
+      });
+      target.dispatchEvent(event);
+      return event;
+    }
+
+    it('moves focus with ArrowDown/ArrowUp (wrapping) and Home/End, skipping disabled triggers', () => {
+      const { fixture, buttons } = createFeatureHost((h) => {
+        h.arrowNavigation.set(true);
+        h.itemCDisabled.set(true);
+      });
+      const [a, b, , d] = buttons();
+      fixture.detectChanges();
+
+      a.focus();
+      const event = press(a, 'ArrowDown');
+      expect(event.defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(b);
+
+      press(b, 'ArrowDown');
+      expect(document.activeElement).toBe(d);
+
+      press(d, 'ArrowDown');
+      expect(document.activeElement).toBe(a);
+
+      press(a, 'ArrowUp');
+      expect(document.activeElement).toBe(d);
+
+      press(d, 'Home');
+      expect(document.activeElement).toBe(a);
+
+      press(a, 'End');
+      expect(document.activeElement).toBe(d);
+    });
+
+    it('never manages tabindex, even when enabled', () => {
+      const { buttons } = createFeatureHost((h) => h.arrowNavigation.set(true));
+
+      expect(buttons().some((b) => b.hasAttribute('tabindex'))).toBe(false);
+    });
+
+    it('leaves arrow keys alone when disabled (the default)', () => {
+      const { buttons } = createFeatureHost();
+      const [a] = buttons();
+
+      a.focus();
+      const event = press(a, 'ArrowDown');
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(a);
+    });
+  });
+
+  describe('items input', () => {
+    function createItemsHost() {
+      const fixture = TestBed.createComponent(ItemsHostComponent);
+      fixture.detectChanges();
+      const root = fixture.nativeElement.querySelector(
+        'andes-accordion',
+      ) as HTMLElement;
+      return { fixture, root };
+    }
+
+    it('renders one item per config entry with its label and extra', () => {
+      const { root } = createItemsHost();
+      const triggers = Array.from(
+        root.querySelectorAll('andes-accordion-trigger'),
+      ) as HTMLElement[];
+
+      expect(triggers).toHaveLength(3);
+      expect(
+        triggers[0].querySelector('.andes-accordion-trigger__text')
+          ?.textContent,
+      ).toContain('First');
+      expect(
+        triggers[0].querySelector('.andes-accordion-trigger__extra')
+          ?.textContent,
+      ).toContain('Extra one');
+    });
+
+    it('maps disabled, showArrow and forceRender, and renders content lazily', () => {
+      const { root } = createItemsHost();
+      const buttons = Array.from(
+        root.querySelectorAll('.andes-accordion-trigger__button'),
+      ) as HTMLButtonElement[];
+
+      expect(buttons[1].disabled).toBe(true);
+      expect(
+        buttons[2].querySelector('.andes-accordion-trigger__icon'),
+      ).toBeNull();
+      expect(root.textContent).not.toContain('First body');
+      expect(root.textContent).toContain('Third body');
+    });
+
+    it('opens items through the shared activeKey model', () => {
+      const { fixture, root } = createItemsHost();
+      const button = root.querySelector(
+        '.andes-accordion-trigger__button',
+      ) as HTMLButtonElement;
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.activeKey()).toEqual(['one']);
+      expect(root.textContent).toContain('First body');
+    });
+
+    it('accepts TemplateRef labels, content and extra', () => {
+      const fixture = TestBed.createComponent(TemplateItemsHostComponent);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(
+        root.querySelector('.andes-accordion-trigger__button .rich-label'),
+      ).not.toBeNull();
+      expect(
+        root.querySelector('.andes-accordion-trigger__extra .rich-extra'),
+      ).not.toBeNull();
+      expect(
+        root.querySelector('.andes-accordion-content__body .rich-body'),
+      ).not.toBeNull();
     });
   });
 });

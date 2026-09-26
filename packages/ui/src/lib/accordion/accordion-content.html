@@ -1,5 +1,12 @@
 <div class="andes-accordion-content__inner">
-  <div class="andes-accordion-content__body">
+  <div
+    class="andes-accordion-content__body"
+    [attr.data-size]="size()"
+    [attr.data-variant]="variant()"
+  >
     <ng-content />
+    @if (lazy(); as lazy) { @if (shouldRenderLazy()) {
+    <ng-container [ngTemplateOutlet]="lazy.templateRef" />
+    } }
   </div>
 </div>

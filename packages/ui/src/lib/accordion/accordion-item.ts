@@ -3,14 +3,19 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   input,
 } from '@angular/core';
 import clsx from 'clsx';
 
-import { AndesAccordionItemState } from './accordion-item-state';
-import { AndesAccordionState } from './accordion-state';
+import {
+  AndesAccordionItemState,
+  type AndesAccordionTriggerMode,
+} from './accordion-item-state';
+import {
+  type AndesAccordionCollapsible,
+  AndesAccordionState,
+} from './accordion-state';
 
 /**
  * One header/panel pair. Provides its own `AndesAccordionItemState` (see accordion-item-state.ts)
@@ -28,20 +33,44 @@ import { AndesAccordionState } from './accordion-state';
     '[class]': 'classes()',
     '[attr.data-state]': "isOpen() ? 'open' : 'closed'",
     '[attr.data-disabled]': 'isDisabled() ? "" : null',
+    '[attr.data-variant]': 'rootState.variant()',
   },
 })
 export class AndesAccordionItem {
-  private readonly rootState = inject(AndesAccordionState);
+  protected readonly rootState = inject(AndesAccordionState);
   private readonly itemState = inject(AndesAccordionItemState);
 
-  /** Unique identifier for this item within its accordion - what `AndesAccordionState` tracks
-   *  open/closed state by. */
+  /** Unique identifier for this item within its accordion - what the root's `activeKey`
+   *  tracks open/closed state by (Ant Design's panel `key`). */
   readonly value = input.required<string>();
   readonly disabled = input(false, { transform: booleanAttribute });
-
-  protected readonly isDisabled = computed(
-    () => this.disabled() || this.rootState.disabled(),
+  /** Overrides the root's `collapsible` for this item only. */
+  readonly collapsible = input<AndesAccordionCollapsible | undefined>(
+    undefined,
   );
+  /** Hides this item's expand icon. Ant Design forbids `collapsible="icon"` without an arrow;
+   *  here that combination falls back to `header` so the panel stays operable. */
+  readonly showArrow = input(true, { transform: booleanAttribute });
+  /** Renders a lazy (`ng-template[andesAccordionLazy]`) panel body up front, before the first
+   *  open. Has no effect on eagerly projected content, which is always rendered. */
+  readonly forceRender = input(false, { transform: booleanAttribute });
+
+  protected readonly mode = computed<AndesAccordionTriggerMode>(() => {
+    const collapsible = this.collapsible() ?? this.rootState.collapsible();
+    if (
+      this.disabled() ||
+      this.rootState.disabled() ||
+      collapsible === 'disabled'
+    ) {
+      return 'disabled';
+    }
+    if (collapsible === 'icon' && !this.showArrow()) {
+      return 'header';
+    }
+    return collapsible ?? 'full';
+  });
+
+  protected readonly isDisabled = computed(() => this.mode() === 'disabled');
   protected readonly isOpen = computed(() =>
     this.rootState.isOpen(this.value()),
   );
@@ -55,7 +84,12 @@ export class AndesAccordionItem {
   );
 
   constructor() {
-    effect(() => this.itemState.setValue(this.value()));
-    effect(() => this.itemState.setDisabled(this.isDisabled()));
+    this.itemState.connect({
+      value: this.value,
+      disabled: this.isDisabled,
+      mode: this.mode,
+      showArrow: this.showArrow,
+      forceRender: this.forceRender,
+    });
   }
 }

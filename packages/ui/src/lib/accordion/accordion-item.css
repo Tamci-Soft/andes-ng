@@ -11,3 +11,8 @@
 :host(:last-child) {
   border-bottom: none;
 }
+
+/* Ghost: no dividers at all - the whole accordion reads as plain text on its backdrop. */
+:host([data-variant='ghost']) {
+  border-bottom: none;
+}
