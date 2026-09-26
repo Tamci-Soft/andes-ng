@@ -1,7 +1,20 @@
-import { Component, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  inject,
+  signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { AndesAlert, AndesAlertRole, AndesAlertSeverity } from './alert';
+import {
+  AndesAlert,
+  AndesAlertCloseEvent,
+  AndesAlertRole,
+  AndesAlertSeverity,
+  AndesAlertTemplateContext,
+} from './alert';
 
 @Component({
   imports: [AndesAlert],
@@ -11,23 +24,37 @@ import { AndesAlert, AndesAlertRole, AndesAlertSeverity } from './alert';
     [showIcon]="showIcon()"
     [role]="role()"
     [closeLabel]="closeLabel()"
-    (closed)="onClosed()"
+    (closing)="onClosing($event)"
+    (afterClose)="afterCloseCount = afterCloseCount + 1"
   >
     <span slot="title">Heads up</span>
     Something you should know.
   </andes-alert>`,
 })
 class HostComponent {
-  readonly severity = signal<AndesAlertSeverity>('info');
+  private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  readonly severity = signal<AndesAlertSeverity | undefined>('info');
   readonly closable = signal(false);
   readonly showIcon = signal(true);
   readonly role = signal<AndesAlertRole | undefined>(undefined);
   readonly closeLabel = signal('Close');
   closedCount = 0;
+  afterCloseCount = 0;
+  preventClose = false;
+  lastCloseEvent?: AndesAlertCloseEvent;
 
-  onClosed(): void {
+  onClosing(event: AndesAlertCloseEvent): void {
     this.closedCount++;
+    this.lastCloseEvent = event;
+    // Observed before hiding: the card must still be on screen when `closing` fires.
+    this.visibleWhenClosing = !(
+      this.elementRef.nativeElement.querySelector(
+        '[data-slot="alert"]',
+      ) as HTMLElement
+    ).hidden;
+    if (this.preventClose) event.preventDefault();
   }
+  visibleWhenClosing?: boolean;
 }
 
 describe('AndesAlert', () => {
@@ -296,7 +323,7 @@ describe('AndesAlert', () => {
     expect(close.getAttribute('aria-label')).toBe('Dismiss');
   });
 
-  it('hides itself and emits closed when the close button is clicked', () => {
+  it('hides itself and emits closing when the close button is clicked', () => {
     const { fixture, alert } = createHost();
     fixture.componentInstance.closable.set(true);
     fixture.detectChanges();
@@ -345,5 +372,405 @@ describe('AndesAlert', () => {
 
     expect(alert.querySelector('.andes-alert__close')).toBeTruthy();
     expect(alert.querySelector('.andes-alert__icon')).toBeTruthy();
+  });
+
+  describe('closing and afterClose', () => {
+    function clickClose(fixture: ReturnType<typeof createHost>['fixture']) {
+      fixture.componentInstance.closable.set(true);
+      fixture.detectChanges();
+      const close = fixture.nativeElement.querySelector(
+        '.andes-alert__close',
+      ) as HTMLButtonElement;
+      close.click();
+      fixture.detectChanges();
+    }
+
+    it('emits closing with the originating click before anything is hidden', () => {
+      const { fixture } = createHost();
+
+      clickClose(fixture);
+
+      const event = fixture.componentInstance.lastCloseEvent;
+      expect(event).toBeInstanceOf(AndesAlertCloseEvent);
+      expect(event?.originalEvent).toBeInstanceOf(MouseEvent);
+      expect(fixture.componentInstance.visibleWhenClosing).toBe(true);
+    });
+
+    it('keeps the alert open when closing is default-prevented', async () => {
+      const { fixture, alert } = createHost();
+      fixture.componentInstance.preventClose = true;
+
+      clickClose(fixture);
+      await fixture.whenStable();
+
+      expect(fixture.componentInstance.lastCloseEvent?.defaultPrevented).toBe(
+        true,
+      );
+      expect(alert.hidden).toBe(false);
+      expect(fixture.componentInstance.afterCloseCount).toBe(0);
+    });
+
+    it('emits afterClose once the alert is hidden', async () => {
+      const { fixture, alert } = createHost();
+
+      clickClose(fixture);
+      await fixture.whenStable();
+
+      expect(alert.hidden).toBe(true);
+      expect(fixture.componentInstance.afterCloseCount).toBe(1);
+    });
+
+    it('takes the host out of layout, not just the inner card', async () => {
+      const { fixture } = createHost();
+      const host = fixture.nativeElement.querySelector(
+        'andes-alert',
+      ) as HTMLElement;
+
+      expect(host.style.display).toBe('');
+
+      clickClose(fixture);
+      await fixture.whenStable();
+
+      expect(host.style.display).toBe('none');
+    });
+
+    describe('collapse animation', () => {
+      let animate: ReturnType<typeof vi.fn>;
+      let cancel: ReturnType<typeof vi.fn>;
+      let finish: () => void;
+      let reducedMotion: boolean;
+
+      beforeEach(() => {
+        reducedMotion = false;
+        cancel = vi.fn();
+        animate = vi.fn(() => {
+          const finished = new Promise<void>((resolve) => (finish = resolve));
+          return { finished, cancel } as unknown as Animation;
+        });
+        Object.defineProperty(HTMLElement.prototype, 'animate', {
+          configurable: true,
+          value: animate,
+        });
+        // jsdom implements neither API, so both are installed for this block only.
+        Object.defineProperty(window, 'matchMedia', {
+          configurable: true,
+          value: (query: string) =>
+            ({
+              matches: query.includes('reduce') && reducedMotion,
+              media: query,
+            }) as MediaQueryList,
+        });
+      });
+
+      afterEach(() => {
+        delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
+        delete (window as Partial<Window>).matchMedia;
+      });
+
+      it('collapses the host before hiding it, then emits afterClose', async () => {
+        const { fixture, alert } = createHost();
+
+        clickClose(fixture);
+
+        expect(animate).toHaveBeenCalledTimes(1);
+        const [keyframes, options] = animate.mock.calls[0];
+        expect(keyframes.at(-1)).toEqual({ height: '0px', opacity: 0 });
+        expect(options.fill).toBe('forwards');
+        // Mid-collapse: still visible, afterClose not yet fired.
+        expect(alert.hidden).toBe(false);
+        expect(fixture.componentInstance.afterCloseCount).toBe(0);
+
+        finish();
+        // Let the component's `finished.then(...)` run before waiting for the render.
+        await Promise.resolve();
+        await fixture.whenStable();
+
+        expect(alert.hidden).toBe(true);
+        expect(cancel).toHaveBeenCalled();
+        expect(fixture.componentInstance.afterCloseCount).toBe(1);
+      });
+
+      it('ignores repeat clicks while collapsing', async () => {
+        const { fixture } = createHost();
+
+        clickClose(fixture);
+        (
+          fixture.nativeElement.querySelector(
+            '.andes-alert__close',
+          ) as HTMLButtonElement
+        ).click();
+
+        expect(animate).toHaveBeenCalledTimes(1);
+        expect(fixture.componentInstance.closedCount).toBe(1);
+
+        finish();
+        // Let the component's `finished.then(...)` run before waiting for the render.
+        await Promise.resolve();
+        await fixture.whenStable();
+        expect(fixture.componentInstance.afterCloseCount).toBe(1);
+      });
+
+      it('skips the animation under prefers-reduced-motion', async () => {
+        reducedMotion = true;
+        const { fixture, alert } = createHost();
+
+        clickClose(fixture);
+        await fixture.whenStable();
+
+        expect(animate).not.toHaveBeenCalled();
+        expect(alert.hidden).toBe(true);
+        expect(fixture.componentInstance.afterCloseCount).toBe(1);
+      });
+    });
+  });
+
+  describe('banner', () => {
+    @Component({
+      imports: [AndesAlert],
+      template: `<andes-alert
+        [banner]="banner()"
+        [severity]="severity()"
+        [showIcon]="showIcon()"
+        >Scheduled maintenance tonight.</andes-alert
+      >`,
+    })
+    class BannerHost {
+      readonly banner = signal(true);
+      readonly severity = signal<AndesAlertSeverity | undefined>(undefined);
+      readonly showIcon = signal(true);
+    }
+
+    function createBanner() {
+      const fixture = TestBed.createComponent(BannerHost);
+      fixture.detectChanges();
+      const alert = fixture.nativeElement.querySelector(
+        '[data-slot="alert"]',
+      ) as HTMLElement;
+      return { fixture, alert };
+    }
+
+    it('adds the banner modifier', () => {
+      const { alert } = createBanner();
+
+      expect(alert.classList).toContain('andes-alert--banner');
+    });
+
+    it('defaults to the warning severity (Ant Design parity) and shows its icon', () => {
+      const { alert } = createBanner();
+
+      expect(alert.getAttribute('data-severity')).toBe('warning');
+      expect(alert.classList).toContain('andes-alert--warning');
+      expect(alert.querySelector('.andes-alert__icon svg')).toBeTruthy();
+      expect(alert.getAttribute('role')).toBe('status');
+    });
+
+    it('still honours an explicit severity', () => {
+      const { fixture, alert } = createBanner();
+      fixture.componentInstance.severity.set('danger');
+      fixture.detectChanges();
+
+      expect(alert.getAttribute('data-severity')).toBe('danger');
+      expect(alert.getAttribute('role')).toBe('alert');
+    });
+
+    it('falls back to info when neither banner nor severity is set', () => {
+      const { fixture, alert } = createBanner();
+      fixture.componentInstance.banner.set(false);
+      fixture.detectChanges();
+
+      expect(alert.classList).not.toContain('andes-alert--banner');
+      expect(alert.getAttribute('data-severity')).toBe('info');
+    });
+  });
+
+  describe('template inputs', () => {
+    @Component({
+      imports: [AndesAlert],
+      template: `<ng-template #iconTpl let-severity
+          ><b class="custom-icon">{{ severity }}</b></ng-template
+        >
+        <ng-template #closeTpl><i class="custom-close">close</i></ng-template>
+        <ng-template #titleTpl let-severity
+          ><em class="rich-title">Rich {{ severity }} title</em></ng-template
+        >
+        <ng-template #descriptionTpl
+          ><strong class="rich-description">Rich body</strong></ng-template
+        >
+        <ng-template #actionTpl
+          ><button type="button" class="tpl-action">Retry</button></ng-template
+        >
+        <andes-alert
+          severity="danger"
+          closable
+          [icon]="useIcon() ? iconTpl : null"
+          [closeIcon]="useCloseIcon() ? closeTpl : null"
+          [title]="title()"
+          [description]="description()"
+          [action]="useAction() ? actionTpl : null"
+        >
+          <span slot="title" class="slot-title">Slot title</span>
+          <span class="slot-description">Slot body</span>
+          <button slot="action" type="button" class="slot-action">Undo</button>
+        </andes-alert>`,
+    })
+    class TemplateHost {
+      readonly titleTpl =
+        viewChild.required<TemplateRef<AndesAlertTemplateContext>>('titleTpl');
+      readonly descriptionTpl =
+        viewChild.required<TemplateRef<AndesAlertTemplateContext>>(
+          'descriptionTpl',
+        );
+      readonly useIcon = signal(false);
+      readonly useCloseIcon = signal(false);
+      readonly useAction = signal(false);
+      readonly title = signal<
+        string | TemplateRef<AndesAlertTemplateContext> | null
+      >(null);
+      readonly description = signal<
+        string | TemplateRef<AndesAlertTemplateContext> | null
+      >(null);
+    }
+
+    function createTemplateHost() {
+      const fixture = TestBed.createComponent(TemplateHost);
+      fixture.detectChanges();
+      const alert = fixture.nativeElement.querySelector(
+        '[data-slot="alert"]',
+      ) as HTMLElement;
+      return { fixture, alert, host: fixture.componentInstance };
+    }
+
+    it('falls back to the projected slots when no inputs are set', () => {
+      const { alert } = createTemplateHost();
+
+      expect(
+        alert.querySelector('.andes-alert__title .slot-title'),
+      ).toBeTruthy();
+      expect(
+        alert.querySelector('.andes-alert__description .slot-description'),
+      ).toBeTruthy();
+      expect(
+        alert.querySelector('.andes-alert__action .slot-action'),
+      ).toBeTruthy();
+    });
+
+    it('renders a custom icon template with the severity as context, inside the tinted icon slot', () => {
+      const { fixture, alert, host } = createTemplateHost();
+      host.useIcon.set(true);
+      fixture.detectChanges();
+
+      const icon = alert.querySelector('.andes-alert__icon') as HTMLElement;
+      expect(icon.querySelector('.custom-icon')?.textContent).toBe('danger');
+      expect(icon.querySelector('svg')).toBeFalsy();
+      expect(icon.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('does not render a custom icon when showIcon is false', () => {
+      @Component({
+        imports: [AndesAlert],
+        template: `<ng-template #tpl><b class="custom-icon">!</b></ng-template>
+          <andes-alert [showIcon]="false" [icon]="tpl">Body</andes-alert>`,
+      })
+      class NoIconHost {}
+
+      const fixture = TestBed.createComponent(NoIconHost);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.custom-icon')).toBeFalsy();
+    });
+
+    it('renders a custom close icon while keeping the accessible name', () => {
+      const { fixture, alert, host } = createTemplateHost();
+      host.useCloseIcon.set(true);
+      fixture.detectChanges();
+
+      const close = alert.querySelector('.andes-alert__close') as HTMLElement;
+      expect(close.querySelector('.custom-close')).toBeTruthy();
+      expect(close.querySelector('svg')).toBeFalsy();
+      expect(close.getAttribute('aria-label')).toBe('Close');
+    });
+
+    it('renders plain-text title and description inputs over the slots', () => {
+      const { fixture, alert, host } = createTemplateHost();
+      host.title.set('Text title');
+      host.description.set('Text body');
+      fixture.detectChanges();
+
+      const title = alert.querySelector('.andes-alert__title') as HTMLElement;
+      const description = alert.querySelector(
+        '.andes-alert__description',
+      ) as HTMLElement;
+      expect(title.textContent?.trim()).toBe('Text title');
+      expect(description.textContent?.trim()).toBe('Text body');
+      expect(alert.querySelector('.slot-title')).toBeFalsy();
+      expect(alert.querySelector('.slot-description')).toBeFalsy();
+    });
+
+    it('renders title, description and action templates over the slots', () => {
+      const { fixture, alert, host } = createTemplateHost();
+      host.title.set(host.titleTpl());
+      host.description.set(host.descriptionTpl());
+      host.useAction.set(true);
+      fixture.detectChanges();
+
+      expect(
+        alert.querySelector('.andes-alert__title .rich-title')?.textContent,
+      ).toBe('Rich danger title');
+      expect(
+        alert.querySelector('.andes-alert__description .rich-description'),
+      ).toBeTruthy();
+      expect(
+        alert.querySelector('.andes-alert__action .tpl-action'),
+      ).toBeTruthy();
+      expect(alert.querySelector('.slot-title')).toBeFalsy();
+      expect(alert.querySelector('.slot-action')).toBeFalsy();
+    });
+
+    it('treats an empty-string title as unset and keeps the slot', () => {
+      const { fixture, alert, host } = createTemplateHost();
+      host.title.set('');
+      fixture.detectChanges();
+
+      expect(alert.querySelector('.slot-title')).toBeTruthy();
+    });
+  });
+
+  it('keeps a static title attribute off the host (no native tooltip)', () => {
+    @Component({
+      imports: [AndesAlert],
+      template: `<andes-alert title="Saved"
+        >Your changes are live.</andes-alert
+      >`,
+    })
+    class StaticTitleHost {}
+
+    const fixture = TestBed.createComponent(StaticTitleHost);
+    fixture.detectChanges();
+    const host = fixture.nativeElement.querySelector(
+      'andes-alert',
+    ) as HTMLElement;
+
+    expect(host.hasAttribute('title')).toBe(false);
+    expect(host.querySelector('.andes-alert__title')?.textContent?.trim()).toBe(
+      'Saved',
+    );
+  });
+
+  it('keeps the title and description containers empty (so :empty hides them) when nothing is provided', () => {
+    @Component({
+      imports: [AndesAlert],
+      template: `<andes-alert />`,
+    })
+    class EmptyHost {}
+
+    const fixture = TestBed.createComponent(EmptyHost);
+    fixture.detectChanges();
+
+    for (const part of ['title', 'description', 'action']) {
+      const el = fixture.nativeElement.querySelector(
+        `.andes-alert__${part}`,
+      ) as HTMLElement;
+      expect(el.matches(':empty')).toBe(true);
+    }
   });
 });
