@@ -278,7 +278,7 @@ export const Submenus: Story = {
 };
 
 /**
- * The `items` array (Ant's `menu.items`) instead of projected content: plain items with
+ * The data-driven `items` array instead of projected content: plain items with
  * `icon`/`extra`/`danger`/`disabled`, `type: 'group'`, `type: 'divider'` (optionally
  * `dashed`) and submenus via `children`. Icons and any rich label are `TemplateRef`s.
  */
@@ -510,7 +510,7 @@ export const Selectable: Story = {
   }),
 };
 
-/** `Dropdown.Button`: a main action plus a caret that opens the menu, aligned `bottomRight` under the caret. */
+/** `AndesDropdownButton`: a main action plus a caret that opens the menu, aligned `bottomRight` under the caret. */
 export const DropdownButton: Story = {
   render: () => ({
     moduleMetadata: {

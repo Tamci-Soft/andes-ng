@@ -99,7 +99,7 @@ interface ShowOptions {
 
 /**
  * A menu of actions, triggered by a button, positioned relative to it and navigated
- * with the arrow keys - Ant Design's `Dropdown` + the `Menu` it hosts.
+ * with the arrow keys.
  *
  * Built on the shared `@andes-ng/primitives` overlay (portal, positioning, focus-return)
  * and listbox (roving-tabindex arrow-key navigation, typeahead) primitives rather than
@@ -125,8 +125,7 @@ interface ShowOptions {
  * </andes-dropdown-menu>
  * ```
  *
- * or described by the `items` array (Ant's `menu.items`), in which case nothing but the
- * trigger is projected.
+ * or described by the `items` array, in which case nothing but the trigger is projected.
  */
 @Component({
   selector: 'andes-dropdown-menu',
@@ -176,7 +175,10 @@ export class AndesDropdownMenu
    * still lets the menu close itself, the usual `model()` contract.
    */
   readonly open = model(false);
-  /** What opens the menu - one action or several. Default `'click'` (Ant's is `'hover'`). */
+  /**
+   * What opens the menu - one action or several. Default `'click'`, so existing menus keep
+   * their current behavior.
+   */
   readonly trigger = input<
     AndesDropdownMenuTriggerAction | readonly AndesDropdownMenuTriggerAction[]
   >('click');
@@ -207,9 +209,9 @@ export class AndesDropdownMenu
   /** Hover-close grace period in ms, for `trigger="hover"`. Default `100`. */
   readonly mouseLeaveDelay = input(100, { transform: numberAttribute });
 
-  /** Data-driven menu content (Ant's `menu.items`). When set, projected content is ignored. */
+  /** Data-driven menu content. When set, projected content is ignored. */
   readonly items = input<readonly AndesDropdownMenuItemDef[] | null>(null);
-  /** Whether items with a `key` are selectable (Ant's `menu.selectable`). Default `false`. */
+  /** Whether items with a `key` are selectable. Default `false`. */
   readonly selectable = input(false, { transform: booleanAttribute });
   /** Allow more than one selected key. Default `false`. */
   readonly multiple = input(false, { transform: booleanAttribute });
@@ -224,9 +226,9 @@ export class AndesDropdownMenu
   /** Grace period before a submenu closes when the pointer moves to a sibling, in ms. Default `100`. */
   readonly subMenuCloseDelay = input(100, { transform: numberAttribute });
 
-  /** Emits every open-state change the user caused, with its source (Ant's `onOpenChange(open, info)`). */
+  /** Emits every open-state change the user caused, with its source. */
   readonly openStateChange = output<AndesDropdownMenuOpenChange>();
-  /** Emits when an item with a `key` is activated (Ant's `menu.onClick`). */
+  /** Emits when an item with a `key` is activated. */
   readonly itemClick = output<AndesDropdownMenuClickEvent>();
   /** Emits when `selectable` is on and a key becomes selected. */
   readonly itemSelect = output<AndesDropdownMenuSelectEvent>();
@@ -709,7 +711,8 @@ export class AndesDropdownMenu
       }
       return;
     }
-    // Single mode never deselects by clicking the selected item again (Ant's rule).
+    // Single mode never deselects by clicking the selected item again, so re-picking the
+    // current choice is harmless.
     if (current.length === 1 && current[0] === key) {
       return;
     }

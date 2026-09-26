@@ -61,7 +61,7 @@ export type AndesDropdownMenuItemVariant = 'default' | 'destructive';
 export class AndesDropdownMenuItem {
   /** Identifies the item in `(itemClick)`/`selectedKeys`. Optional for a plain action. */
   readonly key = input<string | undefined>(undefined);
-  /** Styles the item red, for a destructive action (Ant's `danger`). Default `'default'`. */
+  /** Styles the item red, for a destructive action. Default `'default'`. */
   readonly variant = input<AndesDropdownMenuItemVariant>('default');
   /**
    * Whether selecting the item closes the menu. Default `true`, except in a
