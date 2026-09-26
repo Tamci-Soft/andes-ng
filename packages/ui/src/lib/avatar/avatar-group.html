@@ -1,0 +1,13 @@
+<ng-content />
+@if (overflowCount() > 0) {
+<andes-avatar-group-count
+  [count]="overflowCount()"
+  [hiddenNames]="hiddenNames()"
+  [overflowLabel]="popover()?.label ?? ''"
+  [placement]="popover()?.placement ?? 'top'"
+  [trigger]="popover()?.trigger ?? 'hover'"
+  [panelTemplate]="popover()?.template"
+  [class]="max()?.class ?? ''"
+  [style]="max()?.style ?? null"
+/>
+}
