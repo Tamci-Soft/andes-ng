@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 
 /**
  * Internal image-load state machine shared between `AndesAvatarImage` and
@@ -17,15 +17,34 @@ export class AndesAvatarState {
   private readonly _status = signal<AndesAvatarImageStatus>('loading');
   readonly status = this._status.asReadonly();
 
+  /**
+   * Set when an `AndesAvatarImage` `(loadError)` handler called
+   * `preventFallback()` - Ant's `onError` returning `false`. The status still
+   * reads `error` (it's the truth, and `data-status` exposes it), but the
+   * `<img>` stays rendered - showing the browser's broken-image/`alt`
+   * rendering - and the fallback stays hidden.
+   */
+  private readonly _keepImageOnError = signal(false);
+
+  /** Whether the `<img>` should be displayed rather than the fallback. */
+  readonly showsImage = computed(
+    () =>
+      this._status() === 'loaded' ||
+      (this._status() === 'error' && this._keepImageOnError()),
+  );
+
   setLoading(): void {
+    this._keepImageOnError.set(false);
     this._status.set('loading');
   }
 
   setLoaded(): void {
+    this._keepImageOnError.set(false);
     this._status.set('loaded');
   }
 
-  setError(): void {
+  setError(keepImage = false): void {
+    this._keepImageOnError.set(keepImage);
     this._status.set('error');
   }
 }

@@ -6,9 +6,17 @@
 /* `andes-avatar`/`andes-avatar-group-count` are projected content, declared in
    the consumer's own template rather than this component's - `::ng-deep` is
    required to reach past that encapsulation boundary, same as the icon-sizing
-   rule in the button component. A ring in the page background color keeps
-   overlapping avatars visually separated, mirroring Ant's `groupBorderColor`;
-   the negative margin mirrors its `groupOverlapping` (-8px). */
+   rule in the button component. (The `+N` chip that `max` generates lives in
+   this component's own template, and `:host ::ng-deep` reaches it just the
+   same.) A ring in the page background color keeps overlapping avatars
+   visually separated, mirroring Ant's `groupBorderColor`; the negative margin
+   mirrors its `groupOverlapping` (-8px).
+
+   The overlap is read from `--andes-avatar-group-overlap`, a component-level
+   hook like avatar.css's `--andes-avatar-radius` (not a theme token): set it
+   on the group - e.g. `style="--andes-avatar-group-overlap: -1rem"` for a
+   tighter stack of large avatars, or `0.25rem` for Ant's spaced-out
+   `groupSpace` look. */
 
 :host ::ng-deep andes-avatar,
 :host ::ng-deep andes-avatar-group-count {
@@ -17,5 +25,5 @@
 
 :host ::ng-deep andes-avatar:not(:first-child),
 :host ::ng-deep andes-avatar-group-count {
-  margin-inline-start: -0.625rem;
+  margin-inline-start: var(--andes-avatar-group-overlap, -0.625rem);
 }
