@@ -12,7 +12,7 @@
     } @else { {{ item.label }} }
   </andes-accordion-trigger>
   <andes-accordion-content>
-    <!-- Lazy, like Ant Design's items: rendered on first open (see AndesAccordionContent). -->
+    <!-- Lazy: rendered on first open, not up front (see AndesAccordionContent). -->
     <ng-template andesAccordionLazy>
       @if (isTemplate(item.content)) {
       <ng-container [ngTemplateOutlet]="item.content" />

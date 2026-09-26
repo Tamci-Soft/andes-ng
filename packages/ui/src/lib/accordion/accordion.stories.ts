@@ -137,8 +137,8 @@ export const Preopened: Story = {
         <andes-accordion-item value="one">
           <andes-accordion-trigger>First section</andes-accordion-trigger>
           <andes-accordion-content>
-            Opened initially through a one-way [activeKey] binding (Ant Design's
-            defaultActiveKey). Click any trigger to expand/collapse it independently.
+            Opened initially through a one-way [activeKey] binding (an initial
+            value only). Click any trigger to expand/collapse it independently.
           </andes-accordion-content>
         </andes-accordion-item>
         <andes-accordion-item value="two">

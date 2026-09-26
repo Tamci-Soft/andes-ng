@@ -33,7 +33,7 @@ export type {
   AndesAccordionType,
 } from './accordion-state';
 
-/** One entry of the `items` input - Ant Design's `ItemType`, with `children` named `content`. */
+/** One entry of the `items` input: the data-driven equivalent of a projected accordion item. */
 export interface AndesAccordionItemConfig {
   key: string;
   label: string | TemplateRef<unknown>;
@@ -50,14 +50,14 @@ const TRIGGER_CONTROL_SELECTOR =
   '.andes-accordion-trigger__button, .andes-accordion-trigger__icon-button';
 
 /**
- * Root of the accordion compound component (Ant Design's `Collapse`). Provides
+ * Root of the accordion compound component. Provides
  * `AndesAccordionState`, shared via DI by every projected `AndesAccordionItem` - see
  * accordion-state.ts for why this pattern (rather than `@ContentChildren`) is used.
  *
  * Panels come from projected `andes-accordion-item`s, from the `items` input, or both (items
  * first). Open state is the `activeKey` model: bind `[(activeKey)]` for two-way, `[activeKey]`
- * for an initial value (Ant Design's `defaultActiveKey`), or listen to `(activeKeyChange)`,
- * which fires only on user interaction (Ant Design's `onChange`).
+ * for an initial value, or listen to `(activeKeyChange)`, which fires only on user
+ * interaction.
  *
  * Keyboard: every trigger is a native `<button>` in the natural tab order (Enter/Space toggle).
  * Arrow-key focus movement between triggers is the WAI-ARIA APG's *optional* accordion
@@ -90,13 +90,13 @@ export class AndesAccordion {
   protected readonly state = inject(AndesAccordionState);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** Whether one (`'single'`) or several (`'multiple'`) panels can be open at once - Ant
-   *  Design's `accordion` flag, named after shadcn's historical `type` prop. */
+  /** Whether one (`'single'`) or several (`'multiple'`) panels can be open at once -
+   *  named after shadcn's historical `type` prop. */
   readonly type = input<AndesAccordionType>('single');
   readonly disabled = input(false, { transform: booleanAttribute });
   /** Values of the open items. In `single` mode only the first key is honored. */
   readonly activeKey = model<string[]>([]);
-  /** Ant Design-style outlined block with tinted headers. Off by default, which keeps the
+  /** Outlined block with tinted headers. Off by default, which keeps the
    *  divider-only look. */
   readonly bordered = input(false, { transform: booleanAttribute });
   /** Transparent and borderless, with no dividers. Wins over `bordered`. */

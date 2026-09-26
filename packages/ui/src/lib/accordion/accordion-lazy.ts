@@ -2,7 +2,7 @@ import { Directive, inject, TemplateRef } from '@angular/core';
 
 /**
  * Marks an `<ng-template>` inside `<andes-accordion-content>` as the panel's lazy body - the
- * Angular equivalent of Ant Design's default (render on first open). Projected `<ng-content>`
+ * Angular way to render the body only on first open. Projected `<ng-content>`
  * can't be lazy: the parent instantiates it whether or not the panel ever opens, so
  * `forceRender` and the root's `destroyOnHidden` only apply to content declared this way.
  *

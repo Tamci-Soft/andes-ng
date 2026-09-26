@@ -378,7 +378,7 @@ describe('AndesAccordion / AndesAccordionItem / AndesAccordionTrigger / AndesAcc
 });
 
 // ---------------------------------------------------------------------------------------------
-// Ant Design Collapse parity
+// Extended features: activeKey, variants, icons, collapsible, extra, lazy content, items
 // ---------------------------------------------------------------------------------------------
 
 @Component({
@@ -513,7 +513,7 @@ class ItemsHostComponent {
 })
 class TemplateItemsHostComponent {}
 
-describe('AndesAccordion - Ant Design Collapse parity', () => {
+describe('AndesAccordion - extended features', () => {
   function createFeatureHost(setup?: (host: FeatureHostComponent) => void) {
     const fixture = TestBed.createComponent(FeatureHostComponent);
     setup?.(fixture.componentInstance);
