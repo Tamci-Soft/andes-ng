@@ -62,6 +62,21 @@
     }
   </div>
   <div class="andes-alert__description">
+    @if (marquee()) {
+    <span
+      #marqueeTrack
+      class="andes-alert__marquee"
+      [style.animation-duration]="marqueeDuration()"
+    >
+      <ng-container [ngTemplateOutlet]="descriptionContent" />
+    </span>
+    } @else {
+    <ng-container [ngTemplateOutlet]="descriptionContent" />
+    }
+  </div>
+  <!-- Rendered from one template so the description's <ng-content> is declared once, whichever
+       of the two branches above is showing it. -->
+  <ng-template #descriptionContent>
     @if (descriptionTemplate(); as tpl) {
     <ng-container
       [ngTemplateOutlet]="tpl"
@@ -70,7 +85,7 @@
     } @else if (descriptionText(); as text) { {{ text }} } @else {
     <ng-content />
     }
-  </div>
+  </ng-template>
   <div class="andes-alert__action">
     @if (action(); as tpl) {
     <ng-container

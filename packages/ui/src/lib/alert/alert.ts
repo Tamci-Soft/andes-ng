@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   ElementRef,
   inject,
   Injector,
@@ -12,11 +13,17 @@ import {
   output,
   signal,
   TemplateRef,
+  viewChild,
 } from '@angular/core';
 import clsx from 'clsx';
 
 export type AndesAlertSeverity = 'success' | 'info' | 'warning' | 'danger';
 export type AndesAlertRole = 'alert' | 'status';
+/**
+ * `tinted` fills the card with a soft wash of the severity color; `outlined` keeps the neutral
+ * card surface and carries the severity only in the icon and a tinted border.
+ */
+export type AndesAlertVariant = 'tinted' | 'outlined';
 
 /** Context handed to every template input (`icon`, `title`, `description`, `action`, `closeIcon`). */
 export interface AndesAlertTemplateContext {
@@ -58,6 +65,9 @@ export class AndesAlertCloseEvent {
  */
 const COLLAPSE_DURATION_MS = 180;
 
+/** Used until the marquee track has been measured, and wherever it can't be (SSR, jsdom). */
+const DEFAULT_MARQUEE_SPEED = 60;
+
 @Component({
   selector: 'andes-alert',
   imports: [NgTemplateOutlet],
@@ -87,6 +97,7 @@ export class AndesAlert {
 
   /** Left unset, resolves to `info` - or to `warning` in `banner` mode. */
   readonly severity = input<AndesAlertSeverity | undefined>(undefined);
+  readonly variant = input<AndesAlertVariant>('tinted');
   readonly closable = input(false, { transform: booleanAttribute });
   readonly showIcon = input(true, { transform: booleanAttribute });
   /**
@@ -95,6 +106,15 @@ export class AndesAlert {
    * floating card: the radius and the inline-side borders.
    */
   readonly banner = input(false, { transform: booleanAttribute });
+  /**
+   * Scrolls the description across the alert in a continuous loop, for a one-line notice that
+   * is longer than the space it gets (typically inside a `banner`). The loop pauses while the
+   * pointer is over the alert or focus is inside it, and is replaced by the normal wrapped text
+   * under prefers-reduced-motion.
+   */
+  readonly marquee = input(false, { transform: booleanAttribute });
+  /** Marquee speed in pixels per second, so long and short messages travel at the same pace. */
+  readonly marqueeSpeed = input(DEFAULT_MARQUEE_SPEED);
   /**
    * Overrides the automatically-picked ARIA role. Leave unset unless the consumer knows
    * better than the component's own default whether this alert is static page content or a
@@ -126,6 +146,41 @@ export class AndesAlert {
 
   protected readonly visible = signal(true);
   private readonly leaving = signal(false);
+
+  private readonly marqueeTrack =
+    viewChild<ElementRef<HTMLElement>>('marqueeTrack');
+  /** Width of the marquee track - its own content plus the one-column run-in before it. */
+  private readonly marqueeDistance = signal<number | null>(null);
+
+  /**
+   * One pass has to cover the whole track, so the duration grows with the message instead of
+   * long messages racing past. Null until measured, leaving the stylesheet's fallback in place.
+   */
+  protected readonly marqueeDuration = computed(() => {
+    const distance = this.marqueeDistance();
+    const speed = this.marqueeSpeed();
+    if (!distance || !(speed > 0)) return null;
+    return `${Math.round((distance / speed) * 100) / 100}s`;
+  });
+
+  constructor() {
+    effect((onCleanup) => {
+      const track = this.marqueeTrack()?.nativeElement;
+      const view = this.document.defaultView;
+      if (!track || typeof view?.ResizeObserver !== 'function') {
+        this.marqueeDistance.set(null);
+        return;
+      }
+      // Measured once up front as well: resize callbacks only fire while the page is being
+      // rendered, so a tab opened in the background would otherwise keep the fallback pace.
+      this.marqueeDistance.set(track.offsetWidth);
+      const observer = new view.ResizeObserver(() =>
+        this.marqueeDistance.set(track.offsetWidth),
+      );
+      observer.observe(track);
+      onCleanup(() => observer.disconnect());
+    });
+  }
 
   protected readonly resolvedSeverity = computed<AndesAlertSeverity>(
     () => this.severity() ?? (this.banner() ? 'warning' : 'info'),
@@ -172,11 +227,17 @@ export class AndesAlert {
    * keeps the two layouts assertable from a unit test.
    */
   protected readonly classes = computed(() =>
-    clsx('andes-alert', `andes-alert--${this.resolvedSeverity()}`, {
-      'andes-alert--no-icon': !this.showIcon(),
-      'andes-alert--closable': this.closable(),
-      'andes-alert--banner': this.banner(),
-    }),
+    clsx(
+      'andes-alert',
+      `andes-alert--${this.resolvedSeverity()}`,
+      `andes-alert--${this.variant()}`,
+      {
+        'andes-alert--no-icon': !this.showIcon(),
+        'andes-alert--closable': this.closable(),
+        'andes-alert--banner': this.banner(),
+        'andes-alert--marquee': this.marquee(),
+      },
+    ),
   );
 
   protected dismiss(event: MouseEvent): void {
