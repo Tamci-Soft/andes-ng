@@ -1,0 +1,62 @@
+<ng-content select="[andesSheetTrigger]" />
+
+<ng-template #panel>
+  <div
+    andesOverlayContent
+    class="andes-sheet__panel"
+    [class]="panelClass()"
+    [attr.data-side]="side()"
+    [attr.data-pushed]="pushed() ? '' : null"
+    [style.--andes-sheet-size]="panelSize()"
+    [style.--andes-sheet-push-distance]="pushDistance()"
+    [attr.aria-labelledby]="ariaLabelledBy()"
+    [attr.aria-describedby]="ariaDescribedBy()"
+  >
+    @if (closable()) {
+    <button
+      type="button"
+      class="andes-sheet__close"
+      [attr.aria-label]="closeLabel()"
+      (click)="requestClose('close-button')"
+    >
+      @if (closeIcon(); as icon) {
+      <ng-container [ngTemplateOutlet]="icon" />
+      } @else {
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M6 6L18 18M18 6L6 18"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+      }
+    </button>
+    }
+
+    <ng-content select="andes-sheet-header" />
+
+    <div class="andes-sheet__body" [attr.aria-busy]="loading() ? 'true' : null">
+      @if (loading()) {
+      <div class="andes-sheet__skeleton" aria-hidden="true">
+        <span class="andes-sheet__skeleton-line"></span>
+        <span class="andes-sheet__skeleton-line"></span>
+        <span class="andes-sheet__skeleton-line"></span>
+        <span class="andes-sheet__skeleton-line"></span>
+      </div>
+      }
+      <div [hidden]="loading()">
+        <ng-content />
+        <div andesEdgePanelLazyOutlet class="andes-sheet__lazy"></div>
+      </div>
+    </div>
+
+    <ng-content select="andes-sheet-footer" />
+  </div>
+</ng-template>

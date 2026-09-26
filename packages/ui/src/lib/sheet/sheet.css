@@ -1,0 +1,234 @@
+/* Public styling hooks (set them on the panel via `panelClass`, or globally):
+   --andes-sheet-size          width (left/right) or height (top/bottom); 378px
+   --andes-sheet-padding       header/body/footer padding; --andes-space-4
+   --andes-sheet-push-distance how far a `push` panel moves for a nested one */
+
+/* The size is capped with viewport units, not `100%`: the CDK pane around the
+   panel is sized by its content along the slide axis, so a percentage there
+   resolves against the content and silently shrinks the panel to fit it. */
+
+.andes-sheet__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 20%);
+  outline: none;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.andes-sheet__panel[data-side='right'] {
+  width: min(100vw, var(--andes-sheet-size, 378px));
+  height: 100%;
+  border-left: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-right 0.25s ease-out;
+}
+
+.andes-sheet__panel[data-side='left'] {
+  width: min(100vw, var(--andes-sheet-size, 378px));
+  height: 100%;
+  border-right: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-left 0.25s ease-out;
+}
+
+.andes-sheet__panel[data-side='top'] {
+  width: 100%;
+  height: min(100dvh, var(--andes-sheet-size, 378px));
+  border-bottom: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-top 0.25s ease-out;
+}
+
+.andes-sheet__panel[data-side='bottom'] {
+  width: 100%;
+  height: min(100dvh, var(--andes-sheet-size, 378px));
+  border-top: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-bottom 0.25s ease-out;
+}
+
+/* Slide-out. `data-closing` is set by AndesSheet right before it removes the
+   overlay, which waits for this animation to end. */
+.andes-sheet__panel[data-side='right'][data-closing] {
+  animation: andes-sheet-slide-out-right 0.2s ease-in forwards;
+}
+
+.andes-sheet__panel[data-side='left'][data-closing] {
+  animation: andes-sheet-slide-out-left 0.2s ease-in forwards;
+}
+
+.andes-sheet__panel[data-side='top'][data-closing] {
+  animation: andes-sheet-slide-out-top 0.2s ease-in forwards;
+}
+
+.andes-sheet__panel[data-side='bottom'][data-closing] {
+  animation: andes-sheet-slide-out-bottom 0.2s ease-in forwards;
+}
+
+/* `push`: a nested sheet is open, so this one moves aside (away from its own
+   edge) to show the stacking. */
+.andes-sheet__panel[data-side='right'][data-pushed] {
+  transform: translateX(calc(-1 * var(--andes-sheet-push-distance, 180px)));
+}
+
+.andes-sheet__panel[data-side='left'][data-pushed] {
+  transform: translateX(var(--andes-sheet-push-distance, 180px));
+}
+
+.andes-sheet__panel[data-side='top'][data-pushed] {
+  transform: translateY(var(--andes-sheet-push-distance, 180px));
+}
+
+.andes-sheet__panel[data-side='bottom'][data-pushed] {
+  transform: translateY(calc(-1 * var(--andes-sheet-push-distance, 180px)));
+}
+
+/* Header/footer/title/description are their own small components (see
+   sheet-parts.ts) with their own inline styles - a class here would never match
+   them, since projected content carries the *consumer's* emulated-encapsulation
+   attribute, not AndesSheet's. */
+
+.andes-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--andes-sheet-padding, var(--andes-space-4));
+  overflow-y: auto;
+}
+
+.andes-sheet__lazy {
+  display: contents;
+}
+
+.andes-sheet__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-3);
+}
+
+.andes-sheet__skeleton-line {
+  display: block;
+  height: 0.875rem;
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-secondary);
+  animation: andes-sheet-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.andes-sheet__skeleton-line:first-child {
+  width: 40%;
+  height: 1.25rem;
+}
+
+.andes-sheet__skeleton-line:last-child {
+  width: 60%;
+}
+
+.andes-sheet__close {
+  position: absolute;
+  top: var(--andes-space-3);
+  right: var(--andes-space-3);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-sheet__close:hover {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-sheet__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-sheet__panel[data-side] {
+    animation: none;
+    transition: none;
+  }
+
+  .andes-sheet__panel[data-side][data-closing] {
+    animation: none;
+  }
+
+  .andes-sheet__skeleton-line {
+    animation: none;
+  }
+}
+
+@keyframes andes-sheet-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes andes-sheet-slide-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes andes-sheet-slide-out-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes andes-sheet-slide-out-top {
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes andes-sheet-slide-out-bottom {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes andes-sheet-skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}

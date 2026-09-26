@@ -1,0 +1,610 @@
+import { Component, signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+
+import { AndesDrawer } from './drawer';
+import { AndesDrawerClose } from './drawer-close';
+import { AndesDrawerContent } from './drawer-content';
+import type { AndesEdgePanelSize } from '../sheet/edge-panel';
+import {
+  AndesDrawerDescription,
+  AndesDrawerFooter,
+  AndesDrawerHeader,
+  AndesDrawerTitle,
+} from './drawer-parts';
+import { AndesDrawerTrigger } from './drawer-trigger';
+
+/**
+ * jsdom reports zero geometry for every element, which makes CDK's
+ * `InteractivityChecker` treat them all as invisible and therefore untabbable.
+ * Giving elements a nominal size is the only way to exercise real focus-trap
+ * behavior here; it says nothing about the component itself. Mirrors the same
+ * helper in `overlay-primitive.spec.ts`.
+ */
+function withElementGeometry() {
+  const descriptors = (['offsetWidth', 'offsetHeight'] as const).map(
+    (prop) =>
+      [
+        prop,
+        Object.getOwnPropertyDescriptor(HTMLElement.prototype, prop),
+      ] as const,
+  );
+
+  beforeAll(() => {
+    for (const [prop] of descriptors) {
+      Object.defineProperty(HTMLElement.prototype, prop, {
+        configurable: true,
+        get: () => 1,
+      });
+    }
+  });
+
+  afterAll(() => {
+    for (const [prop, descriptor] of descriptors) {
+      if (descriptor) {
+        Object.defineProperty(HTMLElement.prototype, prop, descriptor);
+      } else {
+        delete (HTMLElement.prototype as unknown as Record<string, unknown>)[
+          prop
+        ];
+      }
+    }
+  });
+}
+
+/**
+ * CDK (correctly) refuses to block scroll on a document that cannot scroll, and
+ * jsdom reports every document as unscrollable.
+ */
+function withScrollableDocument() {
+  beforeEach(() => {
+    Object.defineProperty(document.documentElement, 'scrollHeight', {
+      configurable: true,
+      get: () => 5000,
+    });
+  });
+
+  afterEach(() => {
+    delete (document.documentElement as unknown as Record<string, unknown>)[
+      'scrollHeight'
+    ];
+  });
+}
+
+@Component({
+  imports: [
+    AndesDrawer,
+    AndesDrawerTrigger,
+    AndesDrawerHeader,
+    AndesDrawerTitle,
+    AndesDrawerDescription,
+    AndesDrawerFooter,
+    AndesDrawerClose,
+  ],
+  template: `
+    <button type="button" id="outside">Outside</button>
+    <andes-drawer
+      [(open)]="open"
+      [closeOnEscape]="closeOnEscape()"
+      [closeOnOutsideClick]="closeOnOutsideClick()"
+    >
+      <button type="button" andesDrawerTrigger id="trigger">Open</button>
+
+      <andes-drawer-header>
+        <andes-drawer-title id="title">Move goal</andes-drawer-title>
+        <andes-drawer-description id="description"
+          >Set your daily activity goal.</andes-drawer-description
+        >
+      </andes-drawer-header>
+
+      <input id="middle" />
+
+      <andes-drawer-footer>
+        <button type="button" andesDrawerClose id="cancel">Cancel</button>
+      </andes-drawer-footer>
+    </andes-drawer>
+  `,
+})
+class HostComponent {
+  readonly open = signal(false);
+  readonly closeOnEscape = signal(true);
+  readonly closeOnOutsideClick = signal(true);
+}
+
+/**
+ * Stands in for a wrapper button component such as `AndesButton`: a
+ * non-focusable custom-element host whose real `<button>` lives in its template.
+ * Deliberately a local stub rather than the real `AndesButton`, so this spec
+ * tests the trigger's contract with *any* such wrapper, not one component.
+ */
+@Component({
+  selector: 'andes-test-wrapper-button',
+  template: '<button type="button"><ng-content /></button>',
+})
+class WrapperButtonComponent {}
+
+@Component({
+  imports: [
+    AndesDrawer,
+    AndesDrawerTrigger,
+    AndesDrawerHeader,
+    AndesDrawerTitle,
+    WrapperButtonComponent,
+  ],
+  template: `
+    <andes-drawer>
+      <andes-test-wrapper-button andesDrawerTrigger
+        >Open</andes-test-wrapper-button
+      >
+
+      <andes-drawer-header>
+        <andes-drawer-title>Move goal</andes-drawer-title>
+      </andes-drawer-header>
+    </andes-drawer>
+  `,
+})
+class WrapperTriggerHostComponent {}
+
+describe('AndesDrawer', () => {
+  withElementGeometry();
+  withScrollableDocument();
+
+  function createHost() {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    const drawerDebugElement = fixture.debugElement.query(
+      (node) => node.componentInstance instanceof AndesDrawer,
+    );
+    const drawer = drawerDebugElement.componentInstance as AndesDrawer;
+
+    const byId = (id: string) =>
+      (fixture.nativeElement.querySelector(`#${id}`) ??
+        document.querySelector(`#${id}`)) as HTMLElement;
+
+    return {
+      fixture,
+      host: fixture.componentInstance,
+      drawer,
+      trigger: () => byId('trigger'),
+      outside: () => byId('outside'),
+      panel: () => document.querySelector('.andes-drawer__panel'),
+      cancel: () => byId('cancel'),
+    };
+  }
+
+  function pressEscape() {
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        keyCode: 27,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  }
+
+  function clickOn(element: Element) {
+    element.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+    );
+    element.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+  }
+
+  it('is closed until the trigger is clicked', () => {
+    const { panel } = createHost();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('opens on trigger click and updates the bound `open` model', () => {
+    const { fixture, trigger, panel, host } = createHost();
+
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    expect(panel()).toBeTruthy();
+    expect(host.open()).toBe(true);
+  });
+
+  it('toggles closed on a second trigger click', () => {
+    const { fixture, trigger, panel } = createHost();
+
+    clickOn(trigger());
+    fixture.detectChanges();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('closes on Escape and syncs the model back to false', () => {
+    const { fixture, trigger, panel, host } = createHost();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    pressEscape();
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+    expect(host.open()).toBe(false);
+  });
+
+  it('does not close on Escape when closeOnEscape is false', () => {
+    const { fixture, host, trigger, panel } = createHost();
+    host.closeOnEscape.set(false);
+    fixture.detectChanges();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    pressEscape();
+    fixture.detectChanges();
+
+    expect(panel()).toBeTruthy();
+  });
+
+  it('closes on an outside click', () => {
+    const { fixture, trigger, outside, panel } = createHost();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    clickOn(outside());
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('does not close on outside click when closeOnOutsideClick is false', () => {
+    const { fixture, host, trigger, outside, panel } = createHost();
+    host.closeOnOutsideClick.set(false);
+    fixture.detectChanges();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    clickOn(outside());
+    fixture.detectChanges();
+
+    expect(panel()).toBeTruthy();
+  });
+
+  it('closes on a backdrop click', () => {
+    const { fixture, trigger, panel } = createHost();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    const backdrop = document.querySelector('.andes-overlay-backdrop');
+    expect(backdrop).toBeTruthy();
+    clickOn(backdrop as HTMLElement);
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('closes via a consumer-authored andesDrawerClose button', () => {
+    const { fixture, trigger, cancel, panel } = createHost();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    cancel().click();
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('closes via the built-in close-icon button', () => {
+    const { fixture, trigger, panel } = createHost();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    const closeIcon = document.querySelector<HTMLButtonElement>(
+      '.andes-drawer__close',
+    );
+    expect(closeIcon).toBeTruthy();
+    closeIcon?.click();
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('opens programmatically when the `open` model is set to true', () => {
+    const { fixture, host, panel } = createHost();
+
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()).toBeTruthy();
+  });
+
+  it('is always anchored to the bottom edge and spans the viewport width', () => {
+    const { fixture, trigger } = createHost();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    // The CDK overlay pane itself carries the implied edge sizing; the
+    // `.andes-drawer__panel` div is a child of it, not the pane.
+    const pane = document.querySelector<HTMLElement>('.andes-overlay-pane');
+    expect(pane?.style.width).toBe('100%');
+  });
+
+  describe('accessibility', () => {
+    it('renders role="dialog" and aria-modal="true"', () => {
+      const { fixture, trigger, panel } = createHost();
+      clickOn(trigger());
+      fixture.detectChanges();
+
+      expect(panel()?.getAttribute('role')).toBe('dialog');
+      expect(panel()?.getAttribute('aria-modal')).toBe('true');
+    });
+
+    it('links the panel to its title and description', () => {
+      const { fixture, trigger, panel } = createHost();
+      clickOn(trigger());
+      fixture.detectChanges();
+
+      const titleId = document.querySelector('#title h2')?.id;
+      const descriptionId = document.querySelector('#description p')?.id;
+
+      expect(panel()?.getAttribute('aria-labelledby')).toBe(titleId);
+      expect(panel()?.getAttribute('aria-describedby')).toBe(descriptionId);
+    });
+
+    it('exposes aria-expanded and aria-controls on the trigger', () => {
+      const { fixture, trigger, panel } = createHost();
+      expect(trigger().getAttribute('aria-expanded')).toBe('false');
+
+      clickOn(trigger());
+      fixture.detectChanges();
+
+      expect(trigger().getAttribute('aria-expanded')).toBe('true');
+      expect(trigger().getAttribute('aria-controls')).toBe(panel()?.id);
+    });
+  });
+
+  describe('focus management', () => {
+    it('traps focus inside the panel while open', async () => {
+      const { fixture, trigger, outside, panel } = createHost();
+      clickOn(trigger());
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      outside().focus();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(panel()?.contains(document.activeElement)).toBe(true);
+    });
+
+    it('returns focus to the trigger on close', async () => {
+      const { fixture, trigger } = createHost();
+      trigger().focus();
+      clickOn(trigger());
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(document.activeElement).not.toBe(trigger());
+
+      pressEscape();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(trigger());
+    });
+
+    // Regression: the trigger registers itself as the element focus returns to,
+    // but a wrapper-component host (`<andes-button andesDrawerTrigger>`) is not
+    // focusable - focus() on it no-ops and focus would be stranded on <body>.
+    it('returns focus to the inner control when the trigger is a wrapper component', async () => {
+      const fixture = TestBed.createComponent(WrapperTriggerHostComponent);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const innerButton = fixture.nativeElement.querySelector(
+        'andes-test-wrapper-button button',
+      ) as HTMLElement;
+      innerButton.focus();
+
+      clickOn(innerButton);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(document.activeElement).not.toBe(innerButton);
+
+      pressEscape();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(innerButton);
+    });
+  });
+
+  describe('scroll lock', () => {
+    it('blocks document scroll while open and releases it on close', () => {
+      const { fixture, trigger } = createHost();
+      clickOn(trigger());
+      fixture.detectChanges();
+
+      expect(
+        document.documentElement.classList.contains('cdk-global-scrollblock'),
+      ).toBe(true);
+
+      pressEscape();
+      fixture.detectChanges();
+
+      expect(
+        document.documentElement.classList.contains('cdk-global-scrollblock'),
+      ).toBe(false);
+    });
+  });
+});
+
+@Component({
+  imports: [
+    AndesDrawer,
+    AndesDrawerTrigger,
+    AndesDrawerHeader,
+    AndesDrawerTitle,
+    AndesDrawerFooter,
+    AndesDrawerClose,
+    AndesDrawerContent,
+  ],
+  template: `
+    <andes-drawer
+      [(open)]="open"
+      [size]="size()"
+      [height]="height()"
+      [closable]="closable()"
+      [loading]="loading()"
+      [push]="push()"
+      [destroyOnHidden]="destroyOnHidden()"
+      (afterOpenChange)="afterOpenChange.push($event)"
+    >
+      <button type="button" andesDrawerTrigger id="trigger">Open</button>
+
+      <andes-drawer-header>
+        <andes-drawer-title>Move goal</andes-drawer-title>
+        <button type="button" andesDrawerExtra id="extra">Help</button>
+      </andes-drawer-header>
+
+      <ng-template andesDrawerContent>
+        <input id="lazy-input" />
+        <andes-drawer [(open)]="childOpen">
+          <p id="child-body">Nested</p>
+        </andes-drawer>
+      </ng-template>
+
+      <andes-drawer-footer>
+        <button type="button" andesDrawerClose id="cancel">Cancel</button>
+      </andes-drawer-footer>
+    </andes-drawer>
+  `,
+})
+class DrawerFeatureHostComponent {
+  readonly open = signal(false);
+  readonly childOpen = signal(false);
+  readonly size = signal<AndesEdgePanelSize>('default');
+  readonly height = signal<number | string | null>(null);
+  readonly closable = signal(true);
+  readonly loading = signal(false);
+  readonly push = signal<boolean | number | string>(false);
+  readonly destroyOnHidden = signal(false);
+  readonly afterOpenChange: boolean[] = [];
+}
+
+describe('AndesDrawer (panel options)', () => {
+  withElementGeometry();
+  withScrollableDocument();
+
+  function setup() {
+    const fixture = TestBed.createComponent(DrawerFeatureHostComponent);
+    fixture.detectChanges();
+    const host = fixture.componentInstance;
+    const openDrawer = () => {
+      host.open.set(true);
+      fixture.detectChanges();
+    };
+    const panels = () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>('.andes-drawer__panel'),
+      );
+    return { fixture, host, openDrawer, panel: () => panels()[0], panels };
+  }
+
+  it('maps size and height onto --andes-drawer-size, height winning', () => {
+    const { fixture, host, openDrawer, panel } = setup();
+    openDrawer();
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('');
+
+    host.size.set('large');
+    fixture.detectChanges();
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('736px');
+
+    host.height.set(320);
+    fixture.detectChanges();
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('320px');
+  });
+
+  it('hides the built-in close button when closable is false', () => {
+    const { fixture, host, openDrawer } = setup();
+    host.closable.set(false);
+    fixture.detectChanges();
+    openDrawer();
+
+    expect(document.querySelector('.andes-drawer__close')).toBeNull();
+    expect(
+      document
+        .querySelector('andes-drawer-header')
+        ?.classList.contains('andes-drawer-header--closable'),
+    ).toBe(false);
+  });
+
+  it('projects andesDrawerExtra at the trailing end of the header', () => {
+    const { openDrawer } = setup();
+    openDrawer();
+
+    expect(
+      document.querySelector('andes-drawer-header')?.lastElementChild?.id,
+    ).toBe('extra');
+  });
+
+  it('shows a skeleton while loading', () => {
+    const { fixture, host, openDrawer } = setup();
+    host.loading.set(true);
+    fixture.detectChanges();
+    openDrawer();
+
+    const body = document.querySelector('.andes-drawer__body');
+    expect(body?.getAttribute('aria-busy')).toBe('true');
+    expect(body?.querySelector('.andes-drawer__skeleton')).toBeTruthy();
+  });
+
+  it('renders lazy content on open and keeps it alive unless destroyOnHidden', () => {
+    const { fixture, host, openDrawer } = setup();
+    expect(document.querySelector('#lazy-input')).toBeNull();
+
+    openDrawer();
+    const input = document.querySelector('#lazy-input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    input.value = 'kept';
+
+    host.open.set(false);
+    fixture.detectChanges();
+    openDrawer();
+    expect(
+      (document.querySelector('#lazy-input') as HTMLInputElement).value,
+    ).toBe('kept');
+
+    host.destroyOnHidden.set(true);
+    host.open.set(false);
+    fixture.detectChanges();
+    openDrawer();
+    expect(
+      (document.querySelector('#lazy-input') as HTMLInputElement).value,
+    ).toBe('');
+  });
+
+  it('emits afterOpenChange after opening and closing', () => {
+    const { fixture, host, openDrawer } = setup();
+    openDrawer();
+    document.querySelector<HTMLButtonElement>('#cancel')?.click();
+    fixture.detectChanges();
+
+    expect(host.afterOpenChange).toEqual([true, false]);
+    expect(host.open()).toBe(false);
+  });
+
+  it('pushes the parent drawer up while a nested one is open, when opted in', () => {
+    const { fixture, host, openDrawer, panels } = setup();
+    host.push.set(true);
+    openDrawer();
+
+    host.childOpen.set(true);
+    fixture.detectChanges();
+
+    expect(panels()).toHaveLength(2);
+    expect(panels()[0].hasAttribute('data-pushed')).toBe(true);
+    expect(
+      panels()[0].style.getPropertyValue('--andes-drawer-push-distance'),
+    ).toBe('180px');
+
+    host.childOpen.set(false);
+    fixture.detectChanges();
+
+    expect(panels()[0].hasAttribute('data-pushed')).toBe(false);
+  });
+});
