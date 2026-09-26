@@ -1,0 +1,40 @@
+<!-- Each `<ng-content>` selector appears exactly once in this template - see tag.html. -->
+<span
+  class="andes-badge-wrapper"
+  [class.andes-badge-wrapper--standalone]="isStandalone()"
+>
+  @if (!isStandalone()) {
+  <ng-content />
+  } @if (customCount(); as countTemplate) {
+  <span
+    class="andes-badge-custom"
+    [attr.aria-label]="ariaLabel() ?? null"
+    [attr.title]="title() ?? null"
+    [style.--andes-badge-offset-x.px]="offsetX()"
+    [style.--andes-badge-offset-y.px]="offsetY()"
+  >
+    <ng-container [ngTemplateOutlet]="countTemplate" />
+  </span>
+  } @else if (visible()) {
+  <span
+    [class]="classes()"
+    [attr.aria-label]="ariaLabel() ?? null"
+    [attr.title]="title() ?? null"
+    [style.--andes-badge-color]="customColor() ?? null"
+    [style.--andes-badge-offset-x.px]="offsetX()"
+    [style.--andes-badge-offset-y.px]="offsetY()"
+  >
+    @if (isProcessing()) {
+    <span class="andes-badge__ping" aria-hidden="true"></span>
+    } @if (!isDot()) { {{ displayValue() }} }
+  </span>
+  } @if (isStandalone()) { @if (textTemplate(); as textTpl) {
+  <span class="andes-badge__text"
+    ><ng-container [ngTemplateOutlet]="textTpl"
+  /></span>
+  } @else if (textString()) {
+  <span class="andes-badge__text">{{ textString() }}</span>
+  }
+  <ng-content select="[slot=label]" />
+  }
+</span>

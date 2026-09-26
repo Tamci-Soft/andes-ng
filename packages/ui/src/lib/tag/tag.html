@@ -1,0 +1,82 @@
+<!--
+  The icon/label projection markers live here ONCE, not once per branch below: Angular
+  resolves an `<ng-content>` selector to a single content bucket per component template,
+  and a bucket is only ever handed to whichever `<ng-content>` instance for that selector
+  is the first one Angular's renderer walks past when it actually attaches the component's
+  view - with four structurally-identical copies (one per `@if`/`@else if` branch), only
+  that one copy renders the projected nodes and the other three silently render nothing,
+  even though they're never simultaneously in the DOM. Routing every branch through this
+  one shared template via `ngTemplateOutlet` means there is exactly one `<ng-content>` per
+  selector in the whole component, so the ambiguity can't arise.
+-->
+<ng-template #content>
+  <ng-content select="[slot=icon]" />
+  <ng-content />
+</ng-template>
+
+@if (dismissed()) {
+<!-- hideOnClose: closed and not vetoed - render nothing. -->
+} @else if (isClosable()) {
+<span
+  data-slot="tag"
+  [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
+>
+  <ng-container [ngTemplateOutlet]="content" />
+  <button
+    type="button"
+    class="andes-tag__close"
+    [disabled]="disabled()"
+    [attr.aria-label]="closeAriaLabel()"
+    (click)="onClose($event)"
+  >
+    @if (closeIcon(); as icon) {
+    <ng-container [ngTemplateOutlet]="icon" />
+    } @else {
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <line x1="5" y1="5" x2="19" y2="19" />
+      <line x1="19" y1="5" x2="5" y2="19" />
+    </svg>
+    }
+  </button>
+</span>
+} @else if (isLink()) {
+<a
+  data-slot="tag"
+  [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
+  [attr.href]="disabled() ? null : href()"
+  [attr.target]="target()"
+  [attr.aria-disabled]="disabled() ? 'true' : null"
+  (click)="onTagClick($event)"
+>
+  <ng-container [ngTemplateOutlet]="content" />
+</a>
+} @else if (isInteractive()) {
+<button
+  type="button"
+  data-slot="tag"
+  [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
+  [disabled]="disabled()"
+  [attr.aria-pressed]="checkable() ? isChecked() : null"
+  (click)="onTagClick($event)"
+>
+  <ng-container [ngTemplateOutlet]="content" />
+</button>
+} @else {
+<span
+  data-slot="tag"
+  [class]="classes()"
+  [style.--andes-tag-color]="customColor()"
+>
+  <ng-container [ngTemplateOutlet]="content" />
+</span>
+}
