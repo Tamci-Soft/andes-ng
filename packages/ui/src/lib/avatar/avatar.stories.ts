@@ -323,7 +323,7 @@ export const PixelSizes: Story = {
     docs: {
       description: {
         story:
-          "Besides the `xs`-`xl` presets, `size` takes any pixel number (e.g. `[size]=\"64\"`). The box is sized inline and the font size follows at ~35% of the box, with a 10px floor.",
+          'Besides the `xs`-`xl` presets, `size` takes any pixel number (e.g. `[size]="64"`). The box is sized inline and the font size follows at ~35% of the box, with a 10px floor.',
       },
     },
   },
