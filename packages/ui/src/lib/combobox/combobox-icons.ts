@@ -10,9 +10,8 @@ export interface AndesComboboxIcon {
 }
 
 /**
- * The empty-state glyph: an open inbox, the same "nothing in this container" illustration
- * Ant Design's own `notFoundContent` default falls back to
- * (`<Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />`).
+ * The empty-state glyph: an open inbox, a "nothing in this container" illustration that
+ * reads as an answer where bare text would read as a rendering glitch.
  */
 export const ANDES_COMBOBOX_EMPTY_ICON: AndesComboboxIcon = {
   viewBox: '0 0 24 24',

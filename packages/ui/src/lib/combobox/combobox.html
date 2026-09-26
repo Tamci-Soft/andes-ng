@@ -8,7 +8,7 @@
     @if (loading()) {
     <span class="andes-combobox-spinner" aria-hidden="true"></span>
     } @if (showClear()) {
-    <!-- Out of the tab order, like Ant Design's: keyboard users already clear with
+    <!-- Out of the tab order: keyboard users already clear with
          Ctrl/Cmd+A, Backspace. mousedown is cancelled so the input never blurs. -->
     <button
       type="button"

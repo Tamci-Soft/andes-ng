@@ -54,7 +54,7 @@ export interface AndesComboboxOption<T = string> {
   readonly disabled?: boolean;
 }
 
-/** A labelled group of suggestions in the `[options]` mode - Ant Design's `OptGroup`. */
+/** A labelled group of suggestions in the `[options]` mode. */
 export interface AndesComboboxOptionGroup<T = string> {
   readonly label: string;
   readonly options: readonly AndesComboboxOption<T>[];
@@ -65,7 +65,7 @@ export type AndesComboboxOptionEntry<T = string> =
   AndesComboboxOption<T> | AndesComboboxOptionGroup<T>;
 
 /**
- * Ant Design's `filterOption` function: given the input's current (untrimmed) text and a
+ * A custom `filterOption` function: given the input's current (untrimmed) text and a
  * suggestion, decides whether that suggestion stays in the list. In the projected-items
  * mode each item is handed over wrapped as `{ value: item, label: itemToStringValue(item) }`.
  */
@@ -81,7 +81,7 @@ export type AndesComboboxVariant =
 export type AndesComboboxPlacement =
   'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
 
-/** Payload of `(optionSelect)`: Ant Design's `onSelect(value, option)`. */
+/** Payload of `(optionSelect)`: the chosen value and the option it came from. */
 export interface AndesComboboxSelectEvent<T = string> {
   readonly value: T;
   readonly option: AndesComboboxOption<T>;
@@ -124,7 +124,7 @@ function filterOptionAttribute<T>(
   return typeof value === 'function' ? value : booleanAttribute(value);
 }
 
-/** Ant Design's `popupMatchSelectWidth: boolean | number`, attribute-friendly. */
+/** `popupMatchSelectWidth` as `boolean | number`, attribute-friendly. */
 function matchWidthAttribute(
   value: boolean | number | string,
 ): boolean | number {
@@ -144,7 +144,7 @@ function optionalNumberAttribute(value: unknown): number | undefined {
 let nextUniqueId = 0;
 
 /**
- * Root of the Combobox / AutoComplete component: a free-text input backed by a filtered,
+ * Root of the Combobox / autocomplete component: a free-text input backed by a filtered,
  * keyboard-navigable list of suggestions.
  *
  * Composes two shared behavior primitives directly rather than reinventing either:
@@ -156,8 +156,8 @@ let nextUniqueId = 0;
  *
  * It can be used two ways.
  *
- * **Data-driven**, like Ant Design's `AutoComplete`: pass `[options]` and the component
- * renders the input, the popup, groups, options and the empty/loading states itself.
+ * **Data-driven**: pass `[options]` and the component renders the input, the popup,
+ * groups, options and the empty/loading states itself.
  *
  * ```html
  * <andes-combobox [options]="fruits" placeholder="Search fruit..." [(ngModel)]="fruit" />
@@ -222,16 +222,16 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
    * edited away from the chosen suggestion's label. Two-way bindable as `[(value)]`, and
    * written by `[(ngModel)]`/`[formControl]` through the ControlValueAccessor as well.
    *
-   * Note this differs from Ant Design, whose `value` is the input's free text: the text
-   * here is reported by `(searchChange)`, the chosen suggestion by `value`/`(optionSelect)`.
+   * `value` is never the input's free text: that is reported by `(searchChange)`, the
+   * chosen suggestion by `value`/`(optionSelect)`.
    */
   readonly value = model<T | null>(null);
 
   /**
-   * Whether the suggestion popup is open. Two-way bindable as `[(open)]` - Ant Design's
-   * `open`/`onOpenChange` - and kept in sync however the popup opens or closes (focus,
-   * typing, Escape, an outside click, a selection). Named `isOpen` on the class so the
-   * imperative `open()`/`close()` methods keep their names.
+   * Whether the suggestion popup is open. Two-way bindable as `[(open)]`, and kept in sync
+   * however the popup opens or closes (focus, typing, Escape, an outside click, a
+   * selection). Named `isOpen` on the class so the imperative `open()`/`close()` methods
+   * keep their names.
    */
   readonly isOpen = model(false, { alias: 'open' });
 
@@ -257,7 +257,7 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
     input<AndesComboboxItemToString<T>>(defaultItemToString);
 
   /**
-   * Ant Design's `filterOption`. `true` (the default) keeps suggestions whose
+   * Client-side filtering. `true` (the default) keeps suggestions whose
    * `optionFilterProp` contains the input's text, case-insensitively; `false` turns
    * client-side filtering off entirely - for suggestions already filtered by a server; a
    * function decides per suggestion.
@@ -287,14 +287,14 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
 
   /**
    * Highlights the first filtered match automatically whenever the list changes, so Enter
-   * picks it straight away. Ant Design's `defaultActiveFirstOption`.
+   * picks it straight away.
    */
   readonly autoHighlight = input(true, { transform: booleanAttribute });
 
   /**
-   * Ant Design's `backfill`: moving the highlight with the arrow keys previews that
-   * suggestion's label in the input, without re-filtering the list. Enter or leaving the
-   * field commits the previewed suggestion; Escape restores the text that was typed.
+   * When on, moving the highlight with the arrow keys previews that suggestion's label in
+   * the input, without re-filtering the list. Enter or leaving the field commits the
+   * previewed suggestion; Escape restores the text that was typed.
    */
   readonly backfill = input(false, { transform: booleanAttribute });
 
@@ -327,8 +327,8 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
   readonly placement = input<AndesComboboxPlacement>('bottom-start');
 
   /**
-   * Ant Design's `popupMatchSelectWidth`: `true` (the default) makes the popup exactly as
-   * wide as the input, `false` sizes it to its content, a number sets that width in px.
+   * Popup width: `true` (the default) makes the popup exactly as wide as the input,
+   * `false` sizes it to its content, a number sets that width in px.
    */
   readonly popupMatchSelectWidth = input<
     boolean | number,
@@ -338,7 +338,7 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
   /**
    * What the `[options]` mode's popup shows when nothing matches: a message (rendered with
    * the inbox illustration) or a template. `null` hides the popup while there are no
-   * matches, as Ant Design's AutoComplete does by default.
+   * matches.
    */
   readonly notFoundContent = input<string | TemplateRef<void> | null>(
     'No results found.',
@@ -372,15 +372,15 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
   });
 
   /**
-   * Ant Design's `onSearch`: the input's text, on every edit (typing, or clearing). Not
-   * named `search`, which is a native DOM event.
+   * The input's text, on every edit (typing, or clearing). Not named `search`, which is
+   * a native DOM event.
    */
   readonly searchChange = output<string>();
-  /** Ant Design's `onSelect`: a suggestion was chosen, even if it was already the value. */
+  /** A suggestion was chosen, even if it was already the value. */
   readonly optionSelect = output<AndesComboboxSelectEvent<T>>();
-  /** Ant Design's `onClear`: the clear button was used. */
+  /** The clear button was used. */
   readonly clear = output<void>();
-  /** Ant Design's `onPopupScroll`, for the `[options]` mode's popup (e.g. infinite loading). */
+  /** Scroll events of the `[options]` mode's popup (e.g. for infinite loading). */
   readonly popupScroll = output<Event>();
 
   /** @internal */

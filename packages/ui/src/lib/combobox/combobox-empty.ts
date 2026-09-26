@@ -20,11 +20,11 @@ import {
  * contributes `role="status"` so assistive tech announces the message the moment it
  * appears - the equivalent of Base UI Autocomplete's live-region `Status` part.
  *
- * The one thing it adds to the consumer's own message is an inbox glyph above it, the way
- * Ant Design's `notFoundContent` default renders a simple container illustration rather
- * than bare text: a panel holding nothing but one line of small muted text reads as a
- * rendering glitch, where an icon reads as an answer. The glyph is `aria-hidden`, so the
- * live region still announces exactly the message and nothing more.
+ * The one thing it adds to the consumer's own message is an inbox glyph above it, a simple
+ * container illustration rather than bare text: a panel holding nothing but one line of
+ * small muted text reads as a rendering glitch, where an icon reads as an answer. The
+ * glyph is `aria-hidden`, so the live region still announces exactly the message and
+ * nothing more.
  *
  * ```html
  * @for (item of combobox.filteredItems(); track item) {

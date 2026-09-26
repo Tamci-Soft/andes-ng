@@ -228,7 +228,7 @@ function setup<H>(component: new () => H) {
   };
 }
 
-describe('AndesCombobox (Ant Design AutoComplete parity)', () => {
+describe('AndesCombobox (data-driven options mode)', () => {
   afterEach(() => {
     document
       .querySelectorAll('.cdk-overlay-container')
