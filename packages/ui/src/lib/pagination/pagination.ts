@@ -62,13 +62,13 @@ export interface AndesPaginationTotalContext {
   range: [number, number];
 }
 
-/** Emitted by `pageChange` whenever the page or the page size changes (Ant's `onChange`). */
+/** Emitted by `pageChange` whenever the page or the page size changes. */
 export interface AndesPaginationChange {
   page: number;
   pageSize: number;
 }
 
-/** Emitted by `showSizeChange` when the page size changes (Ant's `onShowSizeChange`). */
+/** Emitted by `showSizeChange` when the page size changes. */
 export interface AndesPaginationSizeChange {
   current: number;
   pageSize: number;
@@ -108,7 +108,7 @@ function parsePageInput(text: string): number | null {
   return Number.parseInt(trimmed, 10);
 }
 
-/** Matches Ant Design's `xs` breakpoint (`max-width: 575px`). */
+/** Phone-sized viewports (`xs`, up to 575px wide). */
 const RESPONSIVE_QUERY = '(max-width: 575.98px)';
 
 @Component({
@@ -176,7 +176,7 @@ export class AndesPagination {
 
   /**
    * Shows the page-size changer. Left unset, it appears automatically once `total`
-   * exceeds `totalBoundaryShowSizeChanger` (Ant Design's default behavior).
+   * exceeds `totalBoundaryShowSizeChanger`, so short lists aren't cluttered with it.
    */
   readonly showSizeChanger = input<boolean | undefined, unknown>(undefined, {
     transform: toOptionalBoolean,
@@ -207,7 +207,7 @@ export class AndesPagination {
   readonly itemRender =
     input<TemplateRef<AndesPaginationItemRenderContext> | null>(null);
 
-  // Labels (Ant's `locale` object, as individual inputs).
+  // Labels, one input each so every string can be localized.
   readonly ariaLabel = input('Pagination', { alias: 'aria-label' });
   readonly previousLabel = input('Previous page');
   readonly nextLabel = input('Next page');
@@ -435,7 +435,7 @@ export class AndesPagination {
       return;
     }
 
-    // Same rule as Ant: keep the current page unless it no longer exists at the new
+    // Keep the current page unless it no longer exists at the new
     // size, in which case land on the new last page.
     const explicitTotalPages = this.totalPages();
     const newTotalPages =
