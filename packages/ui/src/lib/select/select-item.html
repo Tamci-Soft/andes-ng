@@ -1,0 +1,36 @@
+<!--
+  A real <button> so the option is natively focusable and activatable; `role="option"`
+  then gives it the semantics a listbox child must have. Disabled options keep their
+  focusability (and say so with `aria-disabled`) because a listbox option the keyboard
+  cannot reach cannot be read out either - the native `disabled` attribute would take
+  that away. `[disabled]` binds to the list-navigation directive, not the button.
+-->
+<button
+  #option
+  andesListNavigationItem
+  type="button"
+  role="option"
+  data-slot="select-item"
+  class="andes-select__option"
+  [disabled]="skipped()"
+  [hidden]="filteredOut()"
+  [typeaheadLabel]="label()"
+  [attr.aria-selected]="selected()"
+  [attr.aria-disabled]="unavailable() || null"
+  [attr.data-selected]="selected() ? '' : null"
+  (mousedown)="onMousedown($event)"
+  (click)="onClick()"
+>
+  <span class="andes-select__option-label"><ng-content /></span>
+  <span class="andes-select__option-indicator" aria-hidden="true">
+    @if (selected()) {
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path
+        d="M20 6 9 17l-5-5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    }
+  </span>
+</button>

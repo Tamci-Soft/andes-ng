@@ -1,0 +1,212 @@
+<!--
+  The box is the overlay's positioning anchor (`andesOverlayTrigger`) but not its ARIA
+  owner: `ariaAttachment="none"` keeps `aria-haspopup`/`aria-expanded`/`aria-controls` off
+  this non-focusable div, and they are bound on the combobox element below instead.
+
+  Its click handler is a pointer convenience only - a click anywhere on the box, not just
+  on the combobox, opens the panel - so it needs neither focusability nor a key handler:
+  keyboard users reach the same behaviour through the combobox's own keydown handler.
+-->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+<div
+  #box
+  andesOverlayTrigger
+  ariaAttachment="none"
+  data-slot="select-trigger"
+  [class]="classes()"
+  [attr.data-size]="select.size()"
+  [attr.data-mode]="select.mode()"
+  [attr.data-variant]="select.variant()"
+  [attr.data-status]="select.status() ?? null"
+  [attr.data-placeholder]="select.hasValue() ? null : ''"
+  [attr.data-disabled]="select.isDisabled() ? '' : null"
+  [attr.data-clearable]="select.showClear() ? '' : null"
+  (click)="onBoxClick($event)"
+  (mousedown)="onBoxMousedown($event)"
+>
+  @if (select.prefix(); as prefix) {
+  <span class="andes-select__prefix" data-slot="select-prefix">
+    <ng-container [ngTemplateOutlet]="prefix" />
+  </span>
+  }
+
+  <div class="andes-select__selection">
+    @if (select.isMultiple()) { @for (tag of select.visibleTags(); track $index)
+    { @if (select.tagTemplate(); as tagTemplate) {
+    <ng-container
+      [ngTemplateOutlet]="tagTemplate"
+      [ngTemplateOutletContext]="tagContext(tag)"
+    />
+    } @else {
+    <span
+      class="andes-select__tag"
+      data-slot="select-tag"
+      [attr.title]="tag.label"
+      [attr.data-disabled]="tag.closable ? null : ''"
+    >
+      <span class="andes-select__tag-label">{{ tagText(tag) }}</span>
+      @if (tag.closable) {
+      <!--
+                Out of the tab order on purpose: keyboard users remove tags with
+                Backspace from the combobox, which is one tab stop instead of one per tag.
+              -->
+      <button
+        type="button"
+        tabindex="-1"
+        class="andes-select__tag-remove"
+        data-slot="select-tag-remove"
+        [attr.aria-label]="'Remove ' + tag.label"
+        (mousedown)="$event.preventDefault()"
+        (click)="removeTag(tag, $event)"
+      >
+        @if (select.removeIcon(); as removeIcon) {
+        <ng-container [ngTemplateOutlet]="removeIcon" />
+        } @else {
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path
+            d="M18 6 6 18M6 6l12 12"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        }
+      </button>
+      }
+    </span>
+    } } @if (select.omittedTags().length > 0) {
+    <span
+      class="andes-select__tag andes-select__tag--rest"
+      data-slot="select-tag-rest"
+    >
+      @if (select.maxTagPlaceholderTemplate(); as restTemplate) {
+      <ng-container
+        [ngTemplateOutlet]="restTemplate"
+        [ngTemplateOutletContext]="{ $implicit: select.omittedTags() }"
+      />
+      } @else { {{ select.maxTagPlaceholderText() }} }
+    </span>
+    } }
+
+    <!-- The one <ng-content>, rendered through an outlet by whichever branch needs it. -->
+    <ng-template #valueSlot><ng-content /></ng-template>
+
+    @if (select.searchEnabled()) {
+    <span class="andes-select__search">
+      @if (showSearchGhost()) {
+      <span class="andes-select__search-ghost" aria-hidden="true">
+        <ng-container [ngTemplateOutlet]="valueSlot" />
+      </span>
+      } @else if (select.isMultiple()) {
+      <span class="andes-select__search-mirror" aria-hidden="true"
+        >{{ select.searchValue() }}&nbsp;</span
+      >
+      }
+      <input
+        #combobox
+        type="text"
+        role="combobox"
+        autocomplete="off"
+        aria-autocomplete="list"
+        aria-haspopup="listbox"
+        class="andes-select__combobox andes-select__input"
+        [value]="select.searchValue()"
+        [disabled]="select.isDisabled()"
+        [attr.data-state]="select.isOpen() ? 'open' : 'closed'"
+        [attr.aria-expanded]="select.isOpen()"
+        [attr.aria-controls]="select.isOpen() ? select.listboxId : null"
+        [attr.aria-activedescendant]="select.activeDescendantId()"
+        [attr.aria-label]="select.ariaLabel()"
+        [attr.aria-labelledby]="select.ariaLabelledby()"
+        [attr.aria-describedby]="describedBy()"
+        [attr.aria-invalid]="select.invalid() || null"
+        [attr.aria-required]="select.required() || null"
+        (input)="select.onSearchInput($any($event.target).value)"
+        (keydown)="select.onTriggerKeydown($event)"
+        (blur)="select.markAsTouched()"
+      />
+    </span>
+    } @else {
+    <button
+      #combobox
+      type="button"
+      role="combobox"
+      aria-haspopup="listbox"
+      class="andes-select__combobox"
+      [disabled]="select.isDisabled()"
+      [attr.data-state]="select.isOpen() ? 'open' : 'closed'"
+      [attr.data-placeholder]="select.hasValue() ? null : ''"
+      [attr.aria-expanded]="select.isOpen()"
+      [attr.aria-controls]="select.isOpen() ? select.listboxId : null"
+      [attr.aria-label]="select.ariaLabel()"
+      [attr.aria-labelledby]="select.ariaLabelledby()"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-invalid]="select.invalid() || null"
+      [attr.aria-required]="select.required() || null"
+      (keydown)="select.onTriggerKeydown($event)"
+      (blur)="select.markAsTouched()"
+    >
+      @if (!select.isMultiple() || !select.hasValue()) {
+      <ng-container [ngTemplateOutlet]="valueSlot" />
+      }
+    </button>
+    }
+  </div>
+
+  <span class="andes-select__suffix">
+    @if (select.showClear()) {
+    <button
+      type="button"
+      tabindex="-1"
+      class="andes-select__clear"
+      data-slot="select-clear"
+      aria-label="Clear"
+      (mousedown)="$event.preventDefault()"
+      (click)="onClear($event)"
+    >
+      @if (select.clearIcon(); as clearIcon) {
+      <ng-container [ngTemplateOutlet]="clearIcon" />
+      } @else {
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="currentColor" />
+        <path
+          d="m15 9-6 6m0-6 6 6"
+          fill="none"
+          stroke="var(--andes-color-background)"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+      }
+    </button>
+    } @if (select.loading()) {
+    <span
+      class="andes-select__spinner"
+      data-slot="select-loading"
+      aria-hidden="true"
+    ></span>
+    } @else if (select.suffixIcon() !== null) {
+    <span class="andes-select__chevron" aria-hidden="true">
+      @if (select.suffixIcon(); as suffixIcon) {
+      <ng-container [ngTemplateOutlet]="suffixIcon" />
+      } @else {
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      }
+    </span>
+    }
+  </span>
+
+  <span hidden [id]="select.summaryId">{{ select.selectionSummary() }}</span>
+</div>
