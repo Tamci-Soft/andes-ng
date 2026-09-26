@@ -3,6 +3,36 @@
      itself carried the control off the top of the dialog along with the content. -->
 <div class="andes-dialog__viewport">
   <ng-content />
+
+  @if (root.loading()) {
+  <!-- Stands in for the body while it loads. The header stays (it labels the dialog),
+       everything else the consumer projected is hidden by the stylesheet. -->
+  <div
+    class="andes-dialog__skeleton"
+    data-slot="dialog-skeleton"
+    aria-hidden="true"
+  >
+    <span class="andes-dialog__skeleton-line"></span>
+    <span class="andes-dialog__skeleton-line"></span>
+    <span class="andes-dialog__skeleton-line"></span>
+  </div>
+  } @else if (root.footer(); as footer) {
+  <andes-dialog-actions
+    [template]="footer === 'default' ? null : footer"
+    [context]="root.footerContext"
+    [okText]="root.okText()"
+    [cancelText]="root.cancelText()"
+    [okType]="root.okType()"
+    [okDisabled]="root.okDisabled()"
+    [cancelDisabled]="root.cancelDisabled()"
+    [okLoading]="root.confirmLoading()"
+    [cancelLoading]="root.cancelLoading()"
+    [showCancel]="root.showCancel()"
+    [autoFocusButton]="root.autoFocusButton()"
+    (okClick)="root.requestOk()"
+    (cancelClick)="root.requestCancel()"
+  />
+  }
 </div>
 
 @if (showCloseButton()) {
@@ -14,9 +44,12 @@
   type="button"
   class="andes-dialog__close"
   data-slot="dialog-close-button"
-  andesOverlayClose
   [attr.aria-label]="closeLabel()"
+  (click)="root.requestCancel()"
 >
+  @if (closeIcon(); as icon) {
+  <ng-container *ngTemplateOutlet="icon" />
+  } @else {
   <svg
     class="andes-dialog__close-icon"
     viewBox="0 0 24 24"
@@ -25,5 +58,6 @@
   >
     <path d="M6 6 18 18M18 6 6 18" />
   </svg>
+  }
 </button>
 }

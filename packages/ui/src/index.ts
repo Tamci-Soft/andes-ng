@@ -2,7 +2,24 @@ export { AndesButton } from './lib/button/button';
 export type { AndesButtonSize, AndesButtonVariant } from './lib/button/button';
 
 export { AndesDialogRoot, AndesDialogSurface } from './lib/dialog/dialog-base';
-export type { AndesDialogSize } from './lib/dialog/dialog-base';
+export type {
+  AndesDialogAutoFocusButton,
+  AndesDialogBreakpoint,
+  AndesDialogFooterActions,
+  AndesDialogFooterContext,
+  AndesDialogFooterOption,
+  AndesDialogSize,
+  AndesDialogWidth,
+} from './lib/dialog/dialog-base';
+export {
+  AndesDialogMethodRef,
+  AndesDialogService,
+} from './lib/dialog/dialog.service';
+export type {
+  AndesDialogMethodConfig,
+  AndesDialogMethodContent,
+  AndesDialogMethodKind,
+} from './lib/dialog/dialog.service';
 export {
   ANDES_DIALOG_IMPORTS,
   AndesDialog,

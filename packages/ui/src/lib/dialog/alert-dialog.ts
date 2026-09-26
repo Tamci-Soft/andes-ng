@@ -17,14 +17,16 @@ import {
   TemplateRef,
   ViewEncapsulation,
 } from '@angular/core';
-import clsx from 'clsx';
 
+import { AndesDialogActions } from './dialog-actions';
 import {
   ANDES_DIALOG_BACKDROP_CLASS,
   AndesDialogRoot,
   AndesDialogRootBase,
   AndesDialogSurface,
   AndesDialogSurfaceBase,
+  dialogSurfaceClasses,
+  dialogWidthStyles,
   registerDialogLabel,
 } from './dialog-base';
 
@@ -130,12 +132,11 @@ export class AndesAlertDialogTrigger {
  */
 @Component({
   selector: 'andes-alert-dialog-content',
-  // Same viewport wrapper as AndesDialogContent, so a long confirmation scrolls its body
-  // under a pinned header and footer rather than scrolling the whole surface.
-  template: '<div class="andes-dialog__viewport"><ng-content /></div>',
+  templateUrl: './alert-dialog-content.html',
   styleUrl: './dialog.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [AndesDialogActions],
   hostDirectives: [AndesOverlayContentPrimitive],
   providers: [
     {
@@ -145,20 +146,22 @@ export class AndesAlertDialogTrigger {
   ],
   host: {
     '[class]': 'classes()',
+    '[style]': 'styles()',
     '[attr.aria-labelledby]': 'titleId()',
     '[attr.aria-describedby]': 'descriptionId()',
+    '[attr.aria-busy]': 'root.loading() || null',
     '[attr.data-slot]': '"alert-dialog-content"',
   },
 })
 export class AndesAlertDialogContent extends AndesDialogSurfaceBase {
-  private readonly root = inject(AndesDialogRoot);
+  protected readonly root = inject(AndesDialogRoot);
 
   protected readonly classes = computed(() =>
-    clsx(
-      'andes-dialog',
-      'andes-dialog--alert',
-      `andes-dialog--${this.root.size()}`,
-    ),
+    [...dialogSurfaceClasses(this.root), 'andes-dialog--alert'].join(' '),
+  );
+
+  protected readonly styles = computed(() =>
+    dialogWidthStyles(this.root.width()),
   );
 }
 
@@ -230,8 +233,9 @@ export class AndesAlertDialogCancel {}
  * The affirmative action. Closes the alert dialog, like shadcn's
  * `AlertDialogAction`; bind your own `(click)` for the work it confirms.
  *
- * For a confirmation that must stay open until an async call resolves, drive
- * `[(open)]` on the root from your own button instead.
+ * For a confirmation that must stay open until an async call resolves, use the
+ * root's built-in footer instead (`footer="default"`, `(ok)`, `[confirmLoading]`),
+ * or `AndesDialogService.confirm()` with an `onOk` that returns a promise.
  */
 @Directive({
   selector: '[andesAlertDialogAction]',
