@@ -19,10 +19,10 @@ import clsx from 'clsx';
 export type AndesCardVariant = 'outlined' | 'borderless';
 export type AndesCardSize = 'default' | 'sm';
 export type AndesCardTitleLevel = 2 | 3 | 4 | 5 | 6;
-/** `'inner'` is Ant Design's nested-card style: a tinted, divided header for cards inside cards. */
+/** `'inner'` is the nested-card style: a tinted, divided header for cards inside cards. */
 export type AndesCardType = 'default' | 'inner';
 
-/** One entry of `AndesCard`'s header tab strip (Ant Design's `tabList` item). */
+/** One entry of `AndesCard`'s header tab strip. */
 export interface AndesCardTab {
   /** Identifies the tab in `activeTabKey`; must be unique within the list. */
   readonly key: string;
@@ -45,18 +45,18 @@ export abstract class AndesCardPanel {
 
 /**
  * Root container of a compound Card. Purely presentational - no interactive/behavioral
- * primitive is involved (mirrors shadcn/ui's plain-`<div>` Card and Ant Design's static
- * container), so there is nothing to coordinate via `@andes-ng/primitives`.
+ * primitive is involved (mirrors shadcn/ui's plain-`<div>` Card), so there is nothing to
+ * coordinate via `@andes-ng/primitives`.
  *
  * Compose it with `AndesCardHeader`, `AndesCardContent`, `AndesCardActions` and
  * `AndesCardFooter` as direct children, in any combination - none are required. A cover image
- * is not a dedicated sub-component (neither reference library needs one): place an `<img>` as
+ * is not a dedicated sub-component (it has no behavior of its own): place an `<img>` as
  * the first child, before `<andes-card-header>`, and the card's own `overflow: hidden` + border
  * radius will clip it to match the card's corners.
  *
  * The card-level state that sub-parts react to (`type`, `loading`, the header tab strip) lives
  * here and is read by the parts through DI rather than re-declared on each part, so a consumer
- * sets it once, on the element Ant Design puts it on.
+ * sets it once, on the card itself.
  */
 @Component({
   selector: 'andes-card',
@@ -78,18 +78,18 @@ export class AndesCard {
   readonly type = input<AndesCardType>('default');
   /**
    * Swaps `AndesCardContent`'s projected body for a skeleton placeholder while data loads. The
-   * header, cover and actions stay visible, as in Ant Design - only the body is unknown yet.
+   * header, cover and actions stay visible - only the body is unknown yet.
    */
   readonly loading = input(false, { transform: booleanAttribute });
   /** Tabs rendered at the bottom of `AndesCardHeader`. Empty (the default) renders no strip. */
   readonly tabList = input<readonly AndesCardTab[]>([]);
   /**
    * Two-way active tab key. Left unbound, the card manages it itself starting from the first
-   * enabled tab, so a static `activeTabKey="..."` doubles as Ant's `defaultActiveTabKey`; and
-   * `(activeTabKeyChange)` fires only on user selection, which makes it Ant's `onTabChange`.
+   * enabled tab, so a static `activeTabKey="..."` doubles as an initial default; and
+   * `(activeTabKeyChange)` fires only on user selection, so it works as a tab-change handler.
    */
   readonly activeTabKey = model<string | undefined>(undefined);
-  /** Content rendered at the trailing end of the tab strip (Ant's `tabBarExtraContent`). */
+  /** Content rendered at the trailing end of the tab strip. */
   readonly tabBarExtraContent = input<TemplateRef<unknown> | undefined>(
     undefined,
   );
@@ -166,10 +166,10 @@ export class AndesCardDescription {}
  * grid so `AndesCardAction` can sit in the top-right regardless of where it appears in the
  * projected content, without extra markup juggling (mirrors shadcn's `CardHeader`).
  *
- * When the parent card has a `tabList`, the tab strip renders here, spanning both columns
- * beneath the title - the same place Ant Design puts it (inside the card head). AndesTabs isn't
- * available to this package yet, so this is a minimal internal strip implementing the WAI-ARIA
- * tabs pattern (roving tabindex, arrow/Home/End keys, automatic activation).
+ * When the parent card has a `tabList`, the tab strip renders here, spanning both columns beneath
+ * the title, inside the card head. AndesTabs isn't available to this package yet, so this is a
+ * minimal internal strip implementing the WAI-ARIA tabs pattern (roving tabindex, arrow/Home/End
+ * keys, automatic activation).
  */
 @Component({
   selector: 'andes-card-header',
@@ -275,9 +275,8 @@ export class AndesCardHeader {
 
 /**
  * The card's primary heading. Renders a real `h2`-`h6` element (default `h3`) rather than a
- * styled `div`, so cards compose correctly into a page's heading outline - neither shadcn nor
- * Ant Design document this, leaving it to the consumer, which is an easy accessibility gap to
- * inherit by accident.
+ * styled `div`, so cards compose correctly into a page's heading outline - shadcn leaves this
+ * to the consumer, which is an easy accessibility gap to inherit by accident.
  */
 @Component({
   selector: 'andes-card-title',
@@ -355,9 +354,8 @@ function clampCardTitleLevel(level: number): AndesCardTitleLevel {
 }
 
 /**
- * Places content (e.g. a button, badge or menu trigger) in the header's top-right corner - Ant
- * Design's `extra`. Must be used as a child of `AndesCardHeader` - its own styling assumes that
- * grid context.
+ * Places content (e.g. a button, badge or menu trigger) in the header's top-right corner. Must
+ * be used as a child of `AndesCardHeader` - its own styling assumes that grid context.
  */
 @Component({
   selector: 'andes-card-action',
@@ -369,11 +367,11 @@ function clampCardTitleLevel(level: number): AndesCardTitleLevel {
 export class AndesCardAction {}
 
 /**
- * Ant Design's `Card.Meta`: an avatar beside a title + description block, typically placed in
- * `AndesCardContent` under a cover image. Title and description reuse `AndesCardTitle` /
- * `AndesCardDescription` (so the title keeps its real heading element) and the avatar is any
- * element marked `slot="avatar"` - the same `slot` attribute convention AndesButton uses for its
- * icons. There is no Avatar component in this package yet, so any image/icon/initials works.
+ * An avatar beside a title + description block, typically placed in `AndesCardContent` under a
+ * cover image. Title and description reuse `AndesCardTitle` / `AndesCardDescription` (so the title
+ * keeps its real heading element) and the avatar is any element marked `slot="avatar"` - the same
+ * `slot` attribute convention AndesButton uses for its icons. There is no Avatar component in this
+ * package yet, so any image/icon/initials works.
  */
 @Component({
   selector: 'andes-card-meta',
@@ -390,9 +388,9 @@ export class AndesCardAction {}
 export class AndesCardMeta {}
 
 /**
- * Ant Design's `Card.Grid`: one cell of a divided grid laid out edge to edge inside
- * `AndesCardContent`. Cells default to three per row; set `--andes-card-grid-columns` on the
- * card or content (or a `width` on an individual cell) to change that.
+ * One cell of a divided grid laid out edge to edge inside `AndesCardContent`. Cells default to
+ * three per row; set `--andes-card-grid-columns` on the card or content (or a `width` on an
+ * individual cell) to change that.
  */
 @Component({
   selector: 'andes-card-grid',
@@ -406,7 +404,7 @@ export class AndesCardMeta {}
   },
 })
 export class AndesCardGrid {
-  /** Defaults to `true`, as in Ant Design - grid cells lift on hover unless opted out. */
+  /** Defaults to `true` - grid cells lift on hover unless opted out. */
   readonly hoverable = input(true, { transform: booleanAttribute });
 }
 
@@ -475,10 +473,10 @@ export class AndesCardContent implements AndesCardPanel {
 }
 
 /**
- * Ant Design's `actions`: a row of equal-width cells along the card's bottom edge, separated by
- * vertical dividers. Each direct child becomes one cell, so place one control (typically a
- * ghost `AndesButton`) per action. Separate from `AndesCardFooter`, which is a free-form
- * padded row rather than a divided action bar.
+ * A row of equal-width cells along the card's bottom edge, separated by vertical dividers. Each
+ * direct child becomes one cell, so place one control (typically a ghost `AndesButton`) per action.
+ * Separate from `AndesCardFooter`, which is a free-form padded row rather than a divided action
+ * bar.
  */
 @Component({
   selector: 'andes-card-actions',
