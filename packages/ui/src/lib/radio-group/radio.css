@@ -1,8 +1,10 @@
-/* The `andes-radio--checked`/`andes-radio--disabled` classes are applied to this component's
-   own host element (see radio.ts), so any rule keying off them must use :host(...) - a plain
+/* The `andes-radio--*` modifier classes are applied to this component's own host element (see
+   radio.ts), so any rule keying off them must use :host(...) - a plain
    `.andes-radio--checked .foo { ... }` rule never matches under Angular's emulated view
    encapsulation, since the host carries an `_nghost-*` attribute rather than the `_ngcontent-*`
-   attribute Angular appends to plain class selectors used inside the template. */
+   attribute Angular appends to plain class selectors used inside the template.
+   Every `:host(...) .descendant` selector stays on one line on purpose - Angular's style shim
+   mis-scopes a compound selector whose combinator is split across lines. */
 :host {
   display: inline-flex;
 }
@@ -22,9 +24,18 @@
   opacity: 0.6;
 }
 
+/* Label before the control. The label fills the item and pushes the control to the far end,
+   so a vertical stack of items keeps its controls aligned regardless of label length. */
+:host(.andes-radio--label-start) .andes-radio__label {
+  flex: 1;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+}
+
 /* Visually hidden but still focusable/operable - the real interactive element stays a native
-   <input type="radio"> for correct semantics and free browser keyboard behavior; the visible
-   circle/dot pair is purely decorative (aria-hidden). */
+   <input type="radio"> in both option types, for correct semantics and free browser keyboard
+   behavior (arrow keys move focus AND selection within the shared `name`; Space selects the
+   focused item); the visible circle/dot or segment face is purely decorative. */
 .andes-radio__input {
   position: absolute;
   width: 1px;
@@ -56,6 +67,11 @@
   border-color: var(--andes-color-primary);
 }
 
+/* prettier-ignore */
+:host(:not(.andes-radio--disabled)) .andes-radio__label:hover .andes-radio__control {
+  border-color: var(--andes-color-primary);
+}
+
 .andes-radio__dot {
   width: 0.5rem;
   height: 0.5rem;
@@ -76,4 +92,145 @@
 
 .andes-radio__text:empty {
   display: none;
+}
+
+/* Block: the group shares its full width equally between the items. */
+
+:host(.andes-radio--block) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+:host(.andes-radio--block) .andes-radio__label {
+  flex: 1;
+  justify-content: center;
+}
+
+/* Button option type (Ant Design's Radio.Button): the text span becomes the segment face.
+   Adjacent segments overlap by 1px so their borders collapse into a single line; the
+   checked/focused segment is raised above its neighbours so its colored border wins. */
+
+:host(.andes-radio--button) {
+  position: relative;
+}
+
+:host(.andes-radio--button.andes-radio--checked) {
+  z-index: 1;
+}
+
+:host(.andes-radio--button:focus-within) {
+  z-index: 2;
+}
+
+:host(.andes-radio--button.andes-radio--horizontal) {
+  margin-inline-start: -1px;
+}
+
+:host(.andes-radio--button.andes-radio--vertical) {
+  margin-block-start: -1px;
+}
+
+:host(.andes-radio--button:first-child) {
+  margin: 0;
+}
+
+:host(.andes-radio--button) .andes-radio__label {
+  display: flex;
+  flex: 1;
+}
+
+:host(.andes-radio--button) .andes-radio__text {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-2);
+  box-sizing: border-box;
+  white-space: nowrap;
+  border: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--horizontal:first-child) .andes-radio__text {
+  border-start-start-radius: var(--andes-radius-md);
+  border-end-start-radius: var(--andes-radius-md);
+}
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--horizontal:last-child) .andes-radio__text {
+  border-start-end-radius: var(--andes-radius-md);
+  border-end-end-radius: var(--andes-radius-md);
+}
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--vertical:first-child) .andes-radio__text {
+  border-start-start-radius: var(--andes-radius-md);
+  border-start-end-radius: var(--andes-radius-md);
+}
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--vertical:last-child) .andes-radio__text {
+  border-end-start-radius: var(--andes-radius-md);
+  border-end-end-radius: var(--andes-radius-md);
+}
+
+.andes-radio__input:focus-visible ~ .andes-radio__text {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Sizes - heights/paddings/font-sizes mirror AndesButton's sm/md/lg. */
+
+:host(.andes-radio--sm) .andes-radio__text {
+  height: 2rem;
+  padding-inline: var(--andes-space-3);
+  font-size: 0.875rem;
+}
+
+:host(.andes-radio--md) .andes-radio__text {
+  height: 2.5rem;
+  padding-inline: var(--andes-space-4);
+  font-size: 1rem;
+}
+
+:host(.andes-radio--lg) .andes-radio__text {
+  height: 3rem;
+  padding-inline: var(--andes-space-5);
+  font-size: 1.125rem;
+}
+
+/* Hover (unchecked, enabled): tint the text like Ant's outline buttons. */
+
+/* prettier-ignore */
+:host(.andes-radio--button:not(.andes-radio--checked):not(.andes-radio--disabled)) .andes-radio__label:hover .andes-radio__text {
+  color: var(--andes-color-primary-text);
+}
+
+/* Checked - outline style */
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--outline.andes-radio--checked) .andes-radio__text {
+  border-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-text);
+}
+
+/* Checked - solid style */
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--solid.andes-radio--checked) .andes-radio__text {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--solid.andes-radio--checked:not(.andes-radio--disabled)) .andes-radio__label:hover .andes-radio__text {
+  border-color: var(--andes-color-primary-hover);
+  background-color: var(--andes-color-primary-hover);
 }
