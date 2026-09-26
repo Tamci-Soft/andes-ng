@@ -8,7 +8,7 @@ export interface AndesCheckboxOption {
   readonly label: string;
   readonly value: string;
   readonly disabled?: boolean;
-  /** Native tooltip for the option (Ant's per-option `title`). */
+  /** Native tooltip for the option (the rendered checkbox's `title` attribute). */
   readonly title?: string;
 }
 

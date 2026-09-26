@@ -515,7 +515,7 @@ describe('AndesCheckbox', () => {
     });
   });
 
-  describe('changed output (Ant onChange parity)', () => {
+  describe('changed output (user-toggle event)', () => {
     @Component({
       imports: [AndesCheckbox],
       template: `<div (change)="bubbled = bubbled + 1">
