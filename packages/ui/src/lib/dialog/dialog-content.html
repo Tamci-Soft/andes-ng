@@ -1,0 +1,63 @@
+<!-- The projected body is wrapped so it, and not the surface, is the scrolling box:
+     the close control below is positioned against the surface, so scrolling the surface
+     itself carried the control off the top of the dialog along with the content. -->
+<div class="andes-dialog__viewport">
+  <ng-content />
+
+  @if (root.loading()) {
+  <!-- Stands in for the body while it loads. The header stays (it labels the dialog),
+       everything else the consumer projected is hidden by the stylesheet. -->
+  <div
+    class="andes-dialog__skeleton"
+    data-slot="dialog-skeleton"
+    aria-hidden="true"
+  >
+    <span class="andes-dialog__skeleton-line"></span>
+    <span class="andes-dialog__skeleton-line"></span>
+    <span class="andes-dialog__skeleton-line"></span>
+  </div>
+  } @else if (root.footer(); as footer) {
+  <andes-dialog-actions
+    [template]="footer === 'default' ? null : footer"
+    [context]="root.footerContext"
+    [okText]="root.okText()"
+    [cancelText]="root.cancelText()"
+    [okType]="root.okType()"
+    [okDisabled]="root.okDisabled()"
+    [cancelDisabled]="root.cancelDisabled()"
+    [okLoading]="root.confirmLoading()"
+    [cancelLoading]="root.cancelLoading()"
+    [showCancel]="root.showCancel()"
+    [autoFocusButton]="root.autoFocusButton()"
+    (okClick)="root.requestOk()"
+    (cancelClick)="root.requestCancel()"
+  />
+  }
+</div>
+
+@if (showCloseButton()) {
+<!-- Rendered after the projected content so the focus trap lands on the dialog's own
+     first control rather than on the dismiss affordance. Base UI's guidance is that a
+     modal must carry an in-surface close control at all: Escape and outside-click are
+     unreachable for touch screen-reader users. -->
+<button
+  type="button"
+  class="andes-dialog__close"
+  data-slot="dialog-close-button"
+  [attr.aria-label]="closeLabel()"
+  (click)="root.requestCancel()"
+>
+  @if (closeIcon(); as icon) {
+  <ng-container *ngTemplateOutlet="icon" />
+  } @else {
+  <svg
+    class="andes-dialog__close-icon"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M6 6 18 18M18 6 6 18" />
+  </svg>
+  }
+</button>
+}

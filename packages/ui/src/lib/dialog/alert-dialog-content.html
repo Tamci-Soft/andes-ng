@@ -1,0 +1,34 @@
+<!-- Same viewport wrapper as AndesDialogContent, so a long confirmation scrolls its body
+     under a pinned header and footer rather than scrolling the whole surface. -->
+<div class="andes-dialog__viewport">
+  <ng-content />
+
+  @if (root.loading()) {
+  <div
+    class="andes-dialog__skeleton"
+    data-slot="alert-dialog-skeleton"
+    aria-hidden="true"
+  >
+    <span class="andes-dialog__skeleton-line"></span>
+    <span class="andes-dialog__skeleton-line"></span>
+    <span class="andes-dialog__skeleton-line"></span>
+  </div>
+  } @else if (root.footer(); as footer) {
+  <andes-dialog-actions
+    slot="alert-dialog-footer"
+    [template]="footer === 'default' ? null : footer"
+    [context]="root.footerContext"
+    [okText]="root.okText()"
+    [cancelText]="root.cancelText()"
+    [okType]="root.okType()"
+    [okDisabled]="root.okDisabled()"
+    [cancelDisabled]="root.cancelDisabled()"
+    [okLoading]="root.confirmLoading()"
+    [cancelLoading]="root.cancelLoading()"
+    [showCancel]="root.showCancel()"
+    [autoFocusButton]="root.autoFocusButton()"
+    (okClick)="root.requestOk()"
+    (cancelClick)="root.requestCancel()"
+  />
+  }
+</div>
