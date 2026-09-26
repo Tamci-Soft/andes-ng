@@ -215,8 +215,8 @@ export class AndesAlertDialogFooter {}
 
 /**
  * The dismissing action. Place it before the affirmative action in the DOM so the
- * focus trap's initial focus lands on the safe choice, the way Ant defaults
- * `autoFocusButton` to `'cancel'` for confirmations.
+ * focus trap's initial focus lands on the safe choice, the same default the
+ * built-in footer uses for confirmations (`autoFocusButton: 'cancel'`).
  */
 @Directive({
   selector: '[andesAlertDialogCancel]',

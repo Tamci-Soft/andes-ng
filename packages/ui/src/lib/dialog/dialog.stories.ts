@@ -231,9 +231,9 @@ const LOG_STYLE =
   'font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground);';
 
 /**
- * `footer="default"` renders Ant's built-in Cancel/OK pair. OK emits `(ok)` and does
+ * `footer="default"` renders the built-in Cancel/OK pair. OK emits `(ok)` and does
  * not close on its own - the handler flips `confirmLoading` around the async work and
- * closes when it is done, exactly like Ant's `onOk` + `confirmLoading`. Cancel, the
+ * closes when it is done. Cancel, the
  * "x", Escape and a backdrop click all emit `(cancelled)`.
  */
 export const BuiltInFooter: Story = {
@@ -288,7 +288,7 @@ export const BuiltInFooter: Story = {
   },
 };
 
-/** `okType="danger"` - Ant's `okButtonProps={{ danger: true }}` - with focus on Cancel. */
+/** `okType="danger"` for a destructive action, with focus on Cancel. */
 export const DangerousAction: Story = {
   render: () => ({
     moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
@@ -318,8 +318,7 @@ export const DangerousAction: Story = {
 
 /**
  * A custom `footer` template keeps the footer box (pinning, stacking) and receives
- * `ok()`/`cancel()` - the Angular counterpart of Ant's footer render function with
- * `{ OkBtn, CancelBtn }`.
+ * `ok()`/`cancel()`, so bespoke actions keep the built-in OK/Cancel semantics.
  */
 export const CustomFooter: Story = {
   render: () => ({
@@ -354,7 +353,7 @@ export const CustomFooter: Story = {
 };
 
 /**
- * `[centered]="false"` is Ant's default placement: parked near the top so the surface
+ * `[centered]="false"` parks the dialog near the top so the surface
  * does not jump as its content grows. `width` takes px, any CSS length or a
  * per-breakpoint map - resize the viewport to watch this one step.
  */
@@ -381,7 +380,7 @@ export const TopAlignedResponsiveWidth: Story = {
 };
 
 /**
- * `loading` swaps the body for a skeleton (Ant's `loading`): the title stays so the
+ * `loading` swaps the body for a skeleton: the title stays so the
  * dialog is still labelled, the footer is withheld until there is something to act on.
  */
 export const LoadingSkeleton: Story = {
@@ -473,7 +472,7 @@ export const CustomCloseIcon: Story = {
   }),
 };
 
-/** Lifecycle outputs: `opened`, `afterOpenChange` (after the entry transition) and `closed` (Ant's `afterClose`). */
+/** Lifecycle outputs: `opened`, `afterOpenChange` (after the entry transition) and `closed`. */
 export const LifecycleEvents: Story = {
   render: () => {
     const log = signal<string[]>([]);

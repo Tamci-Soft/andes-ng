@@ -80,7 +80,7 @@ export class AndesDialogContentTemplate {
  * </andes-dialog>
  * ```
  *
- * Or, Ant `Modal` style, with the built-in Cancel/OK footer instead of composing one:
+ * Or with the built-in Cancel/OK footer instead of composing one:
  *
  * ```html
  * <andes-dialog
@@ -109,8 +109,7 @@ export class AndesDialogContentTemplate {
 export class AndesDialog extends AndesDialogRootBase {
   /**
    * A pointer event on the backdrop (or otherwise outside the surface) closes the
-   * dialog. The equivalent of Base UI's `disablePointerDismissal` inverted, and of
-   * Ant's `mask.closable`.
+   * dialog. The equivalent of Base UI's `disablePointerDismissal` inverted.
    */
   readonly closeOnOutsideClick = input(true, { transform: booleanAttribute });
 
@@ -193,14 +192,14 @@ export class AndesDialogContent extends AndesDialogSurfaceBase {
   protected readonly root = inject(AndesDialogRoot);
 
   /**
-   * Render the built-in close ("x") control. Mirrors shadcn's `showCloseButton` and
-   * Ant's `closable`. Activating it counts as a cancel (emits the root's `cancelled`).
+   * Render the built-in close ("x") control. Mirrors shadcn's `showCloseButton`.
+   * Activating it counts as a cancel (emits the root's `cancelled`).
    */
   readonly showCloseButton = input(true, { transform: booleanAttribute });
   /** Accessible label for the built-in close control. */
   readonly closeLabel = input('Close');
   /**
-   * Replaces the built-in "x" glyph. Mirrors Ant's `closeIcon`; the button, its
+   * Replaces the built-in "x" glyph. The button, its
    * label and its hit area stay the component's, so the icon should be decorative
    * (`aria-hidden="true"`).
    */
