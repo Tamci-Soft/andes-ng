@@ -1,0 +1,278 @@
+<div [class]="wrapperClasses()">
+  @if (headerTemplate(); as header) {
+  <div class="andes-calendar__custom-header" data-slot="calendar-header">
+    <ng-container
+      [ngTemplateOutlet]="header"
+      [ngTemplateOutletContext]="headerContext()"
+    />
+  </div>
+  }
+
+  <!-- Keys are handled on the cell buttons rather than on the grids: they are the
+       elements that actually hold focus, so a listener on a non-focusable container
+       would only ever see events bubbling up from them anyway. -->
+  @if (view() === 'date') {
+  <div class="andes-calendar__panels">
+    @for (panel of panels(); track panel.key; let first = $first; let last =
+    $last) {
+    <div class="andes-calendar__panel" data-slot="calendar-panel">
+      @if (!headerTemplate()) {
+      <div class="andes-calendar__header">
+        @if (first) {
+        <button
+          type="button"
+          class="andes-calendar__nav"
+          data-slot="calendar-previous-year"
+          [attr.aria-label]="previousYearLabel()"
+          [disabled]="!canGoPreviousYear()"
+          (click)="goToPreviousYear()"
+        >
+          <ng-container [ngTemplateOutlet]="doubleChevronLeft" />
+        </button>
+        <button
+          type="button"
+          class="andes-calendar__nav"
+          data-slot="calendar-previous"
+          [attr.aria-label]="previousLabel()"
+          [disabled]="!canGoPrevious()"
+          (click)="goToPrevious()"
+        >
+          <ng-container [ngTemplateOutlet]="chevronLeft" />
+        </button>
+        } @else {
+        <span class="andes-calendar__nav-spacer" aria-hidden="true"></span>
+        }
+
+        <ng-container
+          [ngTemplateOutlet]="caption"
+          [ngTemplateOutletContext]="{ $implicit: panel.caption }"
+        />
+
+        @if (last) {
+        <button
+          type="button"
+          class="andes-calendar__nav"
+          data-slot="calendar-next"
+          [attr.aria-label]="nextLabel()"
+          [disabled]="!canGoNext()"
+          (click)="goToNext()"
+        >
+          <ng-container [ngTemplateOutlet]="chevronRight" />
+        </button>
+        <button
+          type="button"
+          class="andes-calendar__nav"
+          data-slot="calendar-next-year"
+          [attr.aria-label]="nextYearLabel()"
+          [disabled]="!canGoNextYear()"
+          (click)="goToNextYear()"
+        >
+          <ng-container [ngTemplateOutlet]="doubleChevronRight" />
+        </button>
+        } @else {
+        <span class="andes-calendar__nav-spacer" aria-hidden="true"></span>
+        }
+      </div>
+      }
+
+      <div
+        class="andes-calendar__grid"
+        data-slot="calendar-grid"
+        role="grid"
+        [attr.aria-label]="panel.gridLabel"
+        (mouseleave)="clearHover()"
+      >
+        <div
+          class="andes-calendar__row andes-calendar__row--weekdays"
+          role="row"
+        >
+          @if (showWeekNumbers()) {
+          <div
+            class="andes-calendar__weekday andes-calendar__week-number"
+            role="columnheader"
+            [attr.aria-label]="weekNumberLabel()"
+          >
+            #
+          </div>
+          } @for (weekday of weekdays(); track weekday.key) {
+          <!-- The abbreviation stays visible to assistive tech rather than being
+               aria-hidden behind the aria-label: a column header with no text
+               content trips axe's `empty-table-header`. `aria-label` still
+               upgrades the announced name from "Sun" to "Sunday". -->
+          <div
+            class="andes-calendar__weekday"
+            role="columnheader"
+            [attr.aria-label]="weekday.long"
+          >
+            {{ weekday.short }}
+          </div>
+          }
+        </div>
+
+        @for (week of panel.rows; track week.key) {
+        <div class="andes-calendar__row" role="row">
+          @if (week.weekNumber !== null) {
+          <div class="andes-calendar__week-number" role="rowheader">
+            {{ week.weekNumber }}
+          </div>
+          } @for (day of week.cells; track $index) { @if (day) {
+          <ng-container
+            [ngTemplateOutlet]="cellButton"
+            [ngTemplateOutletContext]="{ $implicit: day }"
+          />
+          } @else {
+          <!-- Keeps the row at seven cells so the grid's column geometry, and
+               therefore vertical arrow navigation, stays intact. -->
+          <div class="andes-calendar__day-placeholder" role="gridcell"></div>
+          } }
+        </div>
+        }
+      </div>
+    </div>
+    }
+  </div>
+  } @else {
+  <div class="andes-calendar__panel" data-slot="calendar-panel">
+    @if (!headerTemplate()) {
+    <div class="andes-calendar__header">
+      <button
+        type="button"
+        class="andes-calendar__nav"
+        data-slot="calendar-previous"
+        [attr.aria-label]="previousLabel()"
+        [disabled]="!canGoPrevious()"
+        (click)="goToPrevious()"
+      >
+        <ng-container [ngTemplateOutlet]="doubleChevronLeft" />
+      </button>
+
+      <ng-container
+        [ngTemplateOutlet]="caption"
+        [ngTemplateOutletContext]="{ $implicit: periodCaption() }"
+      />
+
+      <button
+        type="button"
+        class="andes-calendar__nav"
+        data-slot="calendar-next"
+        [attr.aria-label]="nextLabel()"
+        [disabled]="!canGoNext()"
+        (click)="goToNext()"
+      >
+        <ng-container [ngTemplateOutlet]="doubleChevronRight" />
+      </button>
+    </div>
+    }
+
+    <div
+      class="andes-calendar__grid andes-calendar__grid--period"
+      data-slot="calendar-grid"
+      role="grid"
+      [attr.aria-label]="periodGridLabel()"
+      [attr.data-view]="view()"
+      (mouseleave)="clearHover()"
+    >
+      @for (row of periodRows(); track row.key) {
+      <div class="andes-calendar__period-row" role="row">
+        @for (cell of row.cells; track $index) { @if (cell) {
+        <ng-container
+          [ngTemplateOutlet]="cellButton"
+          [ngTemplateOutletContext]="{ $implicit: cell }"
+        />
+        } }
+      </div>
+      }
+    </div>
+  </div>
+  }
+</div>
+
+<!-- The caption climbs to the coarser grid (days → months → years). It stays a
+     live region so a keyboard user paging through periods hears where they
+     landed; the grid's own aria-label carries the same text for context. -->
+<ng-template #caption let-text>
+  <div class="andes-calendar__caption-wrap" aria-live="polite">
+    @if (canClimb()) {
+    <button
+      type="button"
+      class="andes-calendar__caption andes-calendar__caption--button"
+      data-slot="calendar-caption"
+      (click)="climb()"
+    >
+      {{ text }}
+    </button>
+    } @else {
+    <span class="andes-calendar__caption" data-slot="calendar-caption">
+      {{ text }}
+    </span>
+    }
+  </div>
+</ng-template>
+
+<ng-template #cellButton let-cell>
+  <button
+    type="button"
+    role="gridcell"
+    [class]="cell.classes"
+    [attr.data-date]="cell.key"
+    [attr.data-outside]="cell.outside || null"
+    [attr.data-today]="cell.isToday || null"
+    [attr.data-selected]="cell.selected || null"
+    [attr.data-in-range]="cell.inRange || null"
+    [attr.data-in-preview]="cell.inPreview || null"
+    [attr.tabindex]="cell.active ? 0 : -1"
+    [attr.aria-label]="cell.label"
+    [attr.aria-selected]="cell.selected"
+    [attr.aria-disabled]="cell.disabled || null"
+    [attr.aria-current]="cell.isToday ? 'date' : null"
+    (click)="selectCell(cell)"
+    (keydown)="onCellKeydown($event, cell)"
+    (mouseenter)="onCellHover(cell)"
+    (focus)="onCellHover(cell)"
+  >
+    @if (cellTemplate(); as template) { @if (fullscreen()) {
+    <span class="andes-calendar__cell-text" aria-hidden="true"
+      >{{ cell.text }}</span
+    >
+    }
+    <span class="andes-calendar__cell-content">
+      <ng-container
+        [ngTemplateOutlet]="template"
+        [ngTemplateOutletContext]="{
+          $implicit: cell.date,
+          cell: cell,
+          view: cell.view
+        }"
+      />
+    </span>
+    } @else {
+    <span class="andes-calendar__cell-text" aria-hidden="true"
+      >{{ cell.text }}</span
+    >
+    }
+  </button>
+</ng-template>
+
+<ng-template #chevronLeft>
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+</ng-template>
+
+<ng-template #chevronRight>
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+</ng-template>
+
+<ng-template #doubleChevronLeft>
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" />
+  </svg>
+</ng-template>
+
+<ng-template #doubleChevronRight>
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M13 7l5 5-5 5M6 7l5 5-5 5" />
+  </svg>
+</ng-template>
