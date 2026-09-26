@@ -14,7 +14,7 @@ import { AndesPopoverContent } from './popover-content';
 import type { AndesPopoverRenderable } from './popover-types';
 
 /**
- * Non-modal floating panel anchored to a trigger element (Ant's `Popover`).
+ * Non-modal floating panel anchored to a trigger element.
  *
  * `AndesPopover` owns the shared `AndesOverlayPrimitive` instance (portal, anchored
  * positioning, escape/outside-click dismissal, focus-in-without-trapping) and

@@ -1,6 +1,6 @@
 /* Every visual property reads an `--andes-popover-*` custom property first and
-   falls back to the theme tokens - the CSS equivalent of Ant's
-   `overlayInnerStyle`/`styles.container`, without an inline-style input. */
+   falls back to the theme tokens, so the panel can be restyled from CSS without an
+   inline-style input. */
 .andes-popover-content {
   position: relative;
   display: block;

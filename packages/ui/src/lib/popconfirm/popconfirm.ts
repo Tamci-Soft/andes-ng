@@ -42,9 +42,9 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
 }
 
 /**
- * A small confirmation bubble anchored to the element that triggered an action
- * (Ant's `Popconfirm`) - lighter than an alert dialog for "are you sure?" checks
- * on reversible or low-stakes actions.
+ * A small confirmation bubble anchored to the element that triggered an action -
+ * lighter than an alert dialog for "are you sure?" checks on reversible or
+ * low-stakes actions.
  *
  * ```html
  * <andes-popconfirm
@@ -60,7 +60,7 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
  * ```
  *
  * Shares placement, triggers, arrow, collision handling and `[(open)]` with
- * `AndesPopover`, with Ant's defaults for a confirmation: `placement` top, arrow
+ * `AndesPopover`, with defaults suited to a confirmation: `placement` top, arrow
  * on, `click` trigger. The panel is a non-modal `alertdialog` labelled by the
  * title and described by the description; focus starts on Cancel (on OK when
  * `showCancel` is off), Escape counts as Cancel, and an outside click simply
@@ -121,14 +121,14 @@ export class AndesPopconfirm extends AndesPopoverBase {
   /** Renders the Cancel button. Default `true`. */
   readonly showCancel = input(true, { transform: booleanAttribute });
   /**
-   * Async-aware confirm handler (Ant's `onConfirm` returning a promise). The
+   * Async-aware confirm handler (may return a promise). The
    * `confirm` output still fires first on every OK press.
    */
   readonly onConfirm = input<AndesPopconfirmHandler | undefined>(undefined);
 
   /** OK was pressed. */
   readonly confirm = output<void>();
-  /** Cancel was pressed, or Escape dismissed the popconfirm (Ant's `onCancel`). */
+  /** Cancel was pressed, or Escape dismissed the popconfirm. */
   readonly cancelled = output<void>();
 
   protected readonly panelTemplate = viewChild<TemplateRef<unknown>>('panel');
