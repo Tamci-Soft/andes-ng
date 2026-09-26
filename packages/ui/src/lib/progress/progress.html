@@ -2,23 +2,209 @@
   data-slot="progress"
   role="progressbar"
   [class]="classes()"
-  [attr.aria-valuemin]="min()"
-  [attr.aria-valuemax]="max()"
+  [attr.data-type]="type()"
+  [attr.data-status]="mergedStatus()"
+  [attr.aria-valuemin]="range().min"
+  [attr.aria-valuemax]="range().max"
   [attr.aria-valuenow]="isIndeterminate() ? null : clampedValue()"
-  [attr.aria-valuetext]="ariaValuetext() ?? null"
+  [attr.aria-valuetext]="mergedAriaValuetext()"
   [attr.aria-label]="ariaLabel() ?? null"
   [attr.aria-labelledby]="ariaLabelledby() ?? null"
   [attr.data-progressing]="state() === 'progressing' ? '' : null"
   [attr.data-complete]="state() === 'complete' ? '' : null"
   [attr.data-indeterminate]="state() === 'indeterminate' ? '' : null"
 >
-  <div class="andes-progress__track">
-    <div
-      class="andes-progress__indicator"
-      [style.width.%]="isIndeterminate() ? null : percent()"
-      [attr.data-progressing]="state() === 'progressing' ? '' : null"
-      [attr.data-complete]="state() === 'complete' ? '' : null"
-      [attr.data-indeterminate]="state() === 'indeterminate' ? '' : null"
-    ></div>
+  @if (isCircle()) {
+  <div
+    class="andes-progress__circle"
+    [style.width.px]="circleSize()"
+    [style.height.px]="circleSize()"
+    [style.font-size.px]="circleFontSize()"
+  >
+    <svg
+      class="andes-progress__svg"
+      viewBox="0 0 100 100"
+      aria-hidden="true"
+      focusable="false"
+    >
+      @if (circleGradient(); as stops) {
+      <defs>
+        <linearGradient
+          [attr.id]="gradientId"
+          x1="100%"
+          y1="0%"
+          x2="0%"
+          y2="0%"
+        >
+          @for (stop of stops; track $index) {
+          <stop
+            [attr.offset]="stop.offset + '%'"
+            [attr.stop-color]="stop.color"
+          />
+          }
+        </linearGradient>
+      </defs>
+      } @if (circleSteps().length > 0) { @for (step of circleSteps(); track
+      step.index) {
+      <circle
+        class="andes-progress__circle-step"
+        [class.andes-progress__circle-step--active]="step.active"
+        cx="50"
+        cy="50"
+        [attr.r]="radius()"
+        [attr.stroke-width]="circleStrokeWidth()"
+        [attr.transform]="circleTransform()"
+        [style.stroke-dasharray]="step.dasharray"
+        [style.stroke-dashoffset]="step.dashoffset"
+        [style.stroke]="step.active ? (step.color ?? circleStroke()) : step.color"
+      />
+      } } @else {
+      <circle
+        class="andes-progress__circle-rail"
+        cx="50"
+        cy="50"
+        [attr.r]="radius()"
+        [attr.stroke-width]="circleStrokeWidth()"
+        [attr.stroke-linecap]="strokeLinecap()"
+        [attr.transform]="circleTransform()"
+        [style.stroke-dasharray]="railDasharray()"
+        [style.stroke]="trailColor() ?? null"
+      />
+      <circle
+        class="andes-progress__circle-indicator"
+        cx="50"
+        cy="50"
+        [attr.r]="radius()"
+        [attr.stroke-width]="circleStrokeWidth()"
+        [attr.stroke-linecap]="strokeLinecap()"
+        [attr.transform]="circleTransform()"
+        [attr.data-indeterminate]="isIndeterminate() ? '' : null"
+        [style.--_andes-progress-arc]="arcLength() + 'px'"
+        [style.--_andes-progress-perimeter]="perimeter() + 'px'"
+        [style.stroke-dasharray]="isIndeterminate() ? null : indicatorDasharray()"
+        [style.stroke]="circleStroke()"
+        [style.opacity]="isIndeterminate() || mergedPercent() > 0 ? null : 0"
+      />
+      @if (successPercent() !== undefined && !isIndeterminate()) {
+      <circle
+        class="andes-progress__circle-success"
+        cx="50"
+        cy="50"
+        [attr.r]="radius()"
+        [attr.stroke-width]="circleStrokeWidth()"
+        [attr.stroke-linecap]="strokeLinecap()"
+        [attr.transform]="circleTransform()"
+        [style.stroke-dasharray]="successDasharray()"
+        [style.stroke]="success()?.strokeColor ?? null"
+        [style.opacity]="(successPercent() ?? 0) > 0 ? null : 0"
+      />
+      } }
+    </svg>
+    @if (infoVisible()) {
+    <span class="andes-progress__info" aria-hidden="true">
+      <ng-container *ngTemplateOutlet="info" />
+    </span>
+    }
   </div>
+  } @else if (stepCount() > 0) {
+  <div class="andes-progress__body">
+    <div class="andes-progress__steps">
+      @for (step of lineSteps(); track step.index) {
+      <div
+        class="andes-progress__step"
+        [class.andes-progress__step--active]="step.active"
+        [style.width.px]="step.width"
+        [style.height.px]="step.height"
+        [style.background-color]="step.color"
+      ></div>
+      }
+    </div>
+    @if (infoVisible()) {
+    <span class="andes-progress__info" aria-hidden="true">
+      <ng-container *ngTemplateOutlet="info" />
+    </span>
+    }
+  </div>
+  } @else {
+  <div class="andes-progress__body" [style.width]="lineWidth()">
+    <div
+      class="andes-progress__track"
+      [style.height.px]="lineHeight()"
+      [style.background-color]="trailColor() ?? null"
+    >
+      <div
+        class="andes-progress__indicator"
+        [class.andes-progress__indicator--active]="
+          mergedStatus() === 'active' && !isIndeterminate()
+        "
+        [style.width.%]="isIndeterminate() ? null : mergedPercent()"
+        [style.background]="lineBackground()"
+        [attr.data-progressing]="state() === 'progressing' ? '' : null"
+        [attr.data-complete]="state() === 'complete' ? '' : null"
+        [attr.data-indeterminate]="state() === 'indeterminate' ? '' : null"
+      >
+        @if (infoVisible() && infoInner()) {
+        <span class="andes-progress__info" aria-hidden="true">
+          <ng-container *ngTemplateOutlet="info" />
+        </span>
+        }
+      </div>
+      @if (successPercent() !== undefined && !isIndeterminate()) {
+      <div
+        class="andes-progress__success"
+        [style.width.%]="successPercent()"
+        [style.background-color]="success()?.strokeColor ?? null"
+      ></div>
+      }
+    </div>
+    @if (infoVisible() && !infoInner()) {
+    <span class="andes-progress__info" aria-hidden="true">
+      <ng-container *ngTemplateOutlet="info" />
+    </span>
+    }
+  </div>
+  }
 </div>
+
+<ng-template #info>
+  @switch (infoKind()) { @case ('template') {
+  <ng-container *ngTemplateOutlet="infoTemplate(); context: infoContext()" />
+  } @case ('success-icon') { @if (isCircle()) {
+  <svg
+    class="andes-progress__icon andes-progress__icon--success"
+    viewBox="0 0 24 24"
+    focusable="false"
+  >
+    <path class="andes-progress__icon-stroke" d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+  } @else {
+  <svg
+    class="andes-progress__icon andes-progress__icon--success"
+    viewBox="0 0 16 16"
+    focusable="false"
+  >
+    <circle class="andes-progress__icon-disc" cx="8" cy="8" r="8" />
+    <path class="andes-progress__icon-mark" d="M4.75 8.25 7 10.5l4.25-4.5" />
+  </svg>
+  } } @case ('exception-icon') { @if (isCircle()) {
+  <svg
+    class="andes-progress__icon andes-progress__icon--exception"
+    viewBox="0 0 24 24"
+    focusable="false"
+  >
+    <path
+      class="andes-progress__icon-stroke"
+      d="M6.5 6.5l11 11M17.5 6.5l-11 11"
+    />
+  </svg>
+  } @else {
+  <svg
+    class="andes-progress__icon andes-progress__icon--exception"
+    viewBox="0 0 16 16"
+    focusable="false"
+  >
+    <circle class="andes-progress__icon-disc" cx="8" cy="8" r="8" />
+    <path class="andes-progress__icon-mark" d="M5.5 5.5l5 5M10.5 5.5l-5 5" />
+  </svg>
+  } } @default { {{ infoText() }} } }
+</ng-template>

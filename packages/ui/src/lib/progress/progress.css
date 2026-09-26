@@ -1,21 +1,68 @@
 .andes-progress {
+  /* Private per-instance fill color, set by the variant/status class below and read by every
+     shape (bar, steps, ring). Underscore-prefixed: not a public token. */
+  --_andes-progress-color: var(--andes-color-primary);
+
   display: block;
+  width: 100%;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--andes-color-foreground);
+}
+
+.andes-progress--type-circle,
+.andes-progress--type-dashboard {
+  display: inline-block;
+  width: auto;
+  vertical-align: middle;
+}
+
+.andes-progress--sm {
+  font-size: 0.75rem;
+}
+
+/* ---------------------------------------------------------------- Line */
+
+.andes-progress__body {
+  display: flex;
+  align-items: center;
   width: 100%;
 }
 
 .andes-progress__track {
   position: relative;
   overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
   width: 100%;
   border-radius: var(--andes-radius-full);
   background-color: var(--andes-color-muted);
 }
 
 .andes-progress__indicator {
+  position: relative;
   height: 100%;
   border-radius: var(--andes-radius-full);
-  background-color: var(--andes-color-primary);
+  background-color: var(--_andes-progress-color);
   transition: width 0.3s ease;
+}
+
+/* The "already done" segment, laid over the start of the main bar. */
+.andes-progress__success {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-success);
+  transition: width 0.3s ease;
+}
+
+/* strokeLinecap butt/square: a line bar has no caps, so it just loses its rounding. */
+.andes-progress--square .andes-progress__track,
+.andes-progress--square .andes-progress__indicator,
+.andes-progress--square .andes-progress__success {
+  border-radius: 0;
 }
 
 /* Sizes (track thickness) */
@@ -32,22 +79,175 @@
   height: 0.75rem;
 }
 
-/* Variants (indicator color) */
+/* Variants / statuses (fill color). Status classes come from `color()`, so `success` and
+   `exception` land here as the success/danger classes. */
 
-.andes-progress--primary .andes-progress__indicator {
-  background-color: var(--andes-color-primary);
+.andes-progress--primary {
+  --_andes-progress-color: var(--andes-color-primary);
 }
 
-.andes-progress--success .andes-progress__indicator {
-  background-color: var(--andes-color-success);
+.andes-progress--success {
+  --_andes-progress-color: var(--andes-color-success);
 }
 
-.andes-progress--warning .andes-progress__indicator {
-  background-color: var(--andes-color-warning);
+.andes-progress--warning {
+  --_andes-progress-color: var(--andes-color-warning);
 }
 
-.andes-progress--danger .andes-progress__indicator {
-  background-color: var(--andes-color-danger);
+.andes-progress--danger {
+  --_andes-progress-color: var(--andes-color-danger);
+}
+
+/* Info text / status icon */
+
+.andes-progress__info {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.andes-progress--align-end .andes-progress__info {
+  /* Reserves room for "100%" so the bar doesn't jump as the digits change. */
+  min-width: 2.75em;
+  margin-inline-start: var(--andes-space-2);
+}
+
+.andes-progress--steps .andes-progress__info {
+  min-width: 2.75em;
+  margin-inline-start: var(--andes-space-2);
+}
+
+.andes-progress--align-start .andes-progress__info {
+  order: -1;
+  justify-content: flex-end;
+  min-width: 2.75em;
+  margin-inline-end: var(--andes-space-2);
+}
+
+.andes-progress--align-center .andes-progress__body {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--andes-space-1);
+}
+
+.andes-progress--align-center .andes-progress__info {
+  justify-content: center;
+}
+
+/* percentPosition.type = inner: the text rides inside the filled bar, so the bar grows to fit
+   it and the fill clips it instead of spilling onto the rail. */
+
+.andes-progress--inner .andes-progress__track {
+  display: flex;
+  min-height: 1rem;
+}
+
+.andes-progress--inner .andes-progress__indicator {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  height: auto;
+}
+
+.andes-progress--inner .andes-progress__info {
+  min-width: 0;
+  margin: 0;
+  padding-inline: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-progress--inner.andes-progress--align-start .andes-progress__indicator {
+  justify-content: flex-start;
+}
+
+.andes-progress--inner.andes-progress--align-center .andes-progress__indicator {
+  justify-content: center;
+}
+
+.andes-progress--inner.andes-progress--primary .andes-progress__info {
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-progress--inner.andes-progress--danger .andes-progress__info {
+  color: var(--andes-color-danger-foreground);
+}
+
+/* White on the success green (3.3:1) and the warning token's own brown on amber (4.2:1) both
+   miss AA for 12px text, so text on those fills uses a near-black shade of the fill itself
+   (>= 5.6:1 in both themes, since these fills don't change with the theme). */
+.andes-progress--inner.andes-progress--success .andes-progress__info {
+  color: color-mix(in srgb, var(--andes-color-success) 15%, black);
+}
+
+.andes-progress--inner.andes-progress--warning .andes-progress__info {
+  color: color-mix(in srgb, var(--andes-color-warning) 15%, black);
+}
+
+/* Status icons. Only non-text graphics are status-colored (>= 3:1 on both theme backgrounds);
+   a custom `format` text stays in the foreground color. */
+
+.andes-progress__icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+
+.andes-progress__icon--success {
+  color: var(--andes-color-success);
+}
+
+.andes-progress__icon--exception {
+  color: var(--andes-color-danger);
+}
+
+.andes-progress__icon-disc {
+  fill: currentColor;
+}
+
+.andes-progress__icon-mark {
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-progress__icon--success .andes-progress__icon-mark {
+  stroke: var(--andes-color-success-foreground);
+}
+
+.andes-progress__icon--exception .andes-progress__icon-mark {
+  stroke: var(--andes-color-danger-foreground);
+}
+
+.andes-progress__icon-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Steps */
+
+.andes-progress__steps {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.andes-progress__step {
+  flex: none;
+  background-color: var(--andes-color-muted);
+  transition: background-color 0.3s ease;
+}
+
+.andes-progress__step--active {
+  background-color: var(--_andes-progress-color);
 }
 
 /* Indeterminate: unknown-length highlight sweeping across the track, since
@@ -69,8 +269,127 @@
   }
 }
 
+/* status="active": a highlight that grows across the filled part, like Ant Design's. */
+
+.andes-progress__indicator--active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--andes-color-background);
+  opacity: 0;
+  animation: andes-progress-active 2.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+}
+
+@keyframes andes-progress-active {
+  0% {
+    transform: translateX(-100%) scaleX(0);
+    opacity: 0.1;
+  }
+  20% {
+    transform: translateX(-100%) scaleX(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(0) scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- Circle / dashboard */
+
+.andes-progress__circle {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+}
+
+.andes-progress__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.andes-progress__circle-rail,
+.andes-progress__circle-indicator,
+.andes-progress__circle-success,
+.andes-progress__circle-step {
+  fill: none;
+}
+
+.andes-progress__circle-rail,
+.andes-progress__circle-step {
+  stroke: var(--andes-color-muted);
+}
+
+.andes-progress__circle-indicator {
+  stroke: var(--_andes-progress-color);
+  transition:
+    stroke-dasharray 0.3s ease,
+    stroke 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.andes-progress__circle-success {
+  stroke: var(--andes-color-success);
+  transition:
+    stroke-dasharray 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.andes-progress__circle-step {
+  transition: stroke 0.3s ease;
+}
+
+.andes-progress__circle-step--active {
+  stroke: var(--_andes-progress-color);
+}
+
+.andes-progress__circle .andes-progress__info {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+  margin: 0;
+  /* Keeps a longer custom format inside the ring, wrapping instead of crossing the stroke. */
+  padding-inline: 15%;
+  white-space: normal;
+  text-align: center;
+}
+
+.andes-progress__circle .andes-progress__icon {
+  width: 1.1666em;
+  height: 1.1666em;
+}
+
+/* Indeterminate ring: an arc that grows and shrinks while travelling along the drawn arc, so
+   it never crosses a dashboard's opening. */
+.andes-progress__circle-indicator[data-indeterminate] {
+  animation: andes-progress-circle-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes andes-progress-circle-indeterminate {
+  0% {
+    stroke-dasharray: 0 var(--_andes-progress-perimeter);
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: calc(var(--_andes-progress-arc) * 0.5)
+      var(--_andes-progress-perimeter);
+    stroke-dashoffset: calc(var(--_andes-progress-arc) * -0.25);
+  }
+  100% {
+    stroke-dasharray: 0 var(--_andes-progress-perimeter);
+    stroke-dashoffset: calc(var(--_andes-progress-arc) * -1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .andes-progress__indicator[data-indeterminate] {
+  .andes-progress__indicator[data-indeterminate],
+  .andes-progress__circle-indicator[data-indeterminate] {
     animation-duration: 3s;
+  }
+
+  .andes-progress__indicator--active::after {
+    animation: none;
   }
 }
