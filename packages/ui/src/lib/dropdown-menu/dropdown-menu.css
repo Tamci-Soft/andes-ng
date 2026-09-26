@@ -199,3 +199,126 @@
   letter-spacing: 0.05em;
   color: var(--andes-color-muted-foreground);
 }
+
+/*
+ * Selection (`selectable` menus). The row keeps the accent tint while not hovered, so
+ * the current choice is findable at a glance. The theme-aware primary text color and
+ * the heavier weight must survive hover and keyboard focus too - otherwise a selected
+ * row that is also the focused one (the usual case right after opening) looks exactly
+ * like any other focused row - hence the `:not([data-disabled])` rule, which ties the
+ * hover/active rules on specificity and wins by coming later.
+ */
+.andes-dropdown-menu__item[data-selected] {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-dropdown-menu__item[data-selected]:not([data-disabled]) {
+  color: var(--andes-color-primary-text);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-dropdown-menu__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.andes-dropdown-menu__separator[data-dashed] {
+  height: 0;
+  background-color: transparent;
+  border-top-width: 1px;
+  border-top-style: dashed;
+  border-top-color: var(--andes-color-border);
+}
+
+/* Trailing `extra` content of an `items` entry - styled like a shortcut hint. */
+.andes-dropdown-menu__extra {
+  margin-left: auto;
+  padding-left: var(--andes-space-4);
+  font-size: 0.75rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__item:hover:not([data-disabled]) .andes-dropdown-menu__item-icon,
+.andes-dropdown-menu__item[data-active]:not([data-disabled]) .andes-dropdown-menu__item-icon,
+.andes-dropdown-menu__item[data-variant='destructive'] .andes-dropdown-menu__item-icon {
+  color: inherit;
+}
+
+/*
+ * Submenus. The trigger keeps its highlight while its submenu is open (`data-state`
+ * comes from the overlay trigger primitive), so the path to the open panel stays
+ * visible after the pointer has moved into it.
+ */
+.andes-dropdown-menu__sub-trigger[data-state='open']:not([data-disabled]) {
+  background-color: var(--andes-color-accent-hover);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-dropdown-menu__expand-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: var(--andes-space-2);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__sub-trigger[data-state='open'] .andes-dropdown-menu__expand-icon,
+.andes-dropdown-menu__sub-trigger:hover .andes-dropdown-menu__expand-icon,
+.andes-dropdown-menu__sub-trigger[data-active] .andes-dropdown-menu__expand-icon {
+  color: inherit;
+}
+
+/*
+ * The arrow is a rotated square rendered as the panel's sibling inside the overlay
+ * pane (the panel itself scrolls, so it would clip anything outside its own box).
+ * Only its outer half is painted (`clip-path` along the diagonal), sitting 1px into
+ * the panel so that diagonal covers the panel's border where they meet - which is what
+ * makes the two read as one shape - without the inner half poking into the first item's
+ * highlight. `data-side` and the offset custom property are set from the rendered
+ * geometry by `AndesDropdownMenu`, so the arrow follows a collision flip.
+ */
+.andes-dropdown-menu__arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  background-color: var(--andes-color-popover);
+  border: 1px solid var(--andes-color-border);
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.andes-dropdown-menu__arrow[data-side='bottom'] {
+  top: -4px;
+  left: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.andes-dropdown-menu__arrow[data-side='top'] {
+  bottom: -4px;
+  left: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.andes-dropdown-menu__arrow[data-side='right'] {
+  left: -4px;
+  top: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.andes-dropdown-menu__arrow[data-side='left'] {
+  right: -4px;
+  top: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+/* Before its side is measured (one frame), keep it out of sight rather than misplaced. */
+.andes-dropdown-menu__arrow:not([data-side]) {
+  visibility: hidden;
+}

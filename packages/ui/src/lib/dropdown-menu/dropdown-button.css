@@ -1,0 +1,49 @@
+/*
+ * `AndesDropdownButton` is `ViewEncapsulation.None` for the same reason as every
+ * dropdown-menu part (see `AndesDropdownMenuContent`): its class lives on its own host.
+ * Every selector is namespaced `andes-dropdown-button*`.
+ *
+ * The two halves are ordinary `AndesButton`s; joining them means reaching the real
+ * `.andes-button` element inside each. The extra `.andes-dropdown-button` ancestor
+ * keeps these rules above the button's own emulated `.andes-button[_ngcontent-*]`
+ * rules regardless of which stylesheet happened to be inserted first.
+ */
+.andes-dropdown-button {
+  display: inline-flex;
+  align-items: stretch;
+  vertical-align: middle;
+}
+
+.andes-dropdown-button__main,
+.andes-dropdown-button__caret {
+  display: inline-flex;
+}
+
+.andes-dropdown-button .andes-dropdown-button__main .andes-button {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.andes-dropdown-button .andes-dropdown-button__caret .andes-button {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/*
+ * Filled variants get a 1px seam of page background between the halves; bordered
+ * ones overlap their touching borders into a single line instead of a doubled one.
+ */
+.andes-dropdown-button__caret {
+  margin-inline-start: 1px;
+}
+
+.andes-dropdown-button[data-variant='outline'] .andes-dropdown-button__caret,
+.andes-dropdown-button[data-variant='dashed'] .andes-dropdown-button__caret {
+  margin-inline-start: -1px;
+}
+
+/* Keep the focus ring of whichever half is focused above its neighbour's border. */
+.andes-dropdown-button .andes-button:focus-visible {
+  position: relative;
+  z-index: 1;
+}
