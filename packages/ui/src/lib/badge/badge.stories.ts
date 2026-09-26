@@ -119,7 +119,7 @@ export const Variants: Story = {
 
 /**
  * Shape progression: one character is a true circle, two or more elongate into a pill - the
- * same convention Ant Design's and shadcn's count indicators follow.
+ * same convention shadcn's count indicators follow.
  */
 export const Shapes: Story = {
   render: () => ({
@@ -165,13 +165,13 @@ export const OnIconButton: Story = {
   }),
 };
 
-/** Ant's `overflowCount` - an alias of `max` that wins when both are set. */
+/** `overflowCount` - an alias of `max` that wins when both are set. */
 export const OverflowCountAlias: Story = {
   args: { count: 15, overflowCount: 9 },
 };
 
 /**
- * Ant's `status` + `text`: an inline status indicator. Implies `standalone` + `dot`;
+ * `status` + `text`: an inline status indicator. Implies `standalone` + `dot`;
  * `processing` pulses.
  */
 export const Status: Story = {

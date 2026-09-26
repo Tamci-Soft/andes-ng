@@ -33,12 +33,12 @@
   line-height: 1;
   white-space: nowrap;
   pointer-events: none;
-  /* Separates the badge from whatever it overlaps, the way Ant Design's ring does. */
+  /* A ring in the page background color separates the badge from whatever it overlaps. */
   box-shadow: 0 0 0 2px var(--andes-color-background);
 }
 
-/* A one-character count renders as a true circle, the way Ant Design's and shadcn's count
-   indicators do - only 2+ characters are allowed to elongate into a pill.
+/* A one-character count renders as a true circle, the way shadcn's count indicators do -
+   only 2+ characters are allowed to elongate into a pill.
    `min-width` above cannot produce that circle by itself: it floors the box at the height, but
    `padding-inline` is then added *outside* that floor (the badge is content-box, and under a
    consumer's `box-sizing: border-box` reset the glyph would push past it instead), so a lone
@@ -87,9 +87,9 @@
   box-shadow: none;
 }
 
-/* Processing ping - a looping expanding-and-fading ring, matching Ant's status="processing"
-   pulse. An isolated ::before-like span (not ::before itself) so it composes with the
-   count/dot content already inside .andes-badge without an extra wrapper element. */
+/* Processing ping - a looping expanding-and-fading ring for status="processing" (and the
+   `processing` input). An isolated ::before-like span (not ::before itself) so it composes
+   with the count/dot content already inside .andes-badge without an extra wrapper element. */
 .andes-badge__ping {
   position: absolute;
   inset: 0;
@@ -157,7 +157,7 @@
   color: var(--andes-color-background);
 }
 
-/* status="default" - Ant's neutral gray status dot. Internal only (not an AndesBadgeVariant):
+/* status="default" - a neutral gray status dot. Internal only (not an AndesBadgeVariant):
    a gray *count* bubble would read as disabled rather than as a count. */
 .andes-badge--default {
   background-color: var(--andes-color-muted-foreground);
@@ -186,7 +186,7 @@
   }
 }
 
-/* `count` given as a TemplateRef - Ant's custom-node count. Pinned to the same corner as the
+/* `count` given as a TemplateRef - a custom-node count. Pinned to the same corner as the
    bubble, but with no bubble styling of its own: the template decides what it looks like. */
 .andes-badge-custom {
   position: absolute;
