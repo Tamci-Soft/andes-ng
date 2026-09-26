@@ -15,7 +15,7 @@ import {
 
 /**
  * A bottom-anchored panel - shadcn's `Drawer` (Base UI–backed since its migration
- * off `vaul`), Ant Design's `Drawer` with `placement="bottom"`.
+ * off `vaul`).
  *
  * Shares its whole behavior with `AndesSheet` (same overlay primitive, `drawer`
  * preset, dismissal, slide-out, `size`/`height`, `push`, `loading`, lazy

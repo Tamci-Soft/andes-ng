@@ -14,7 +14,7 @@ let nextId = 0;
  * body. Place it directly inside `<andes-drawer>`.
  *
  * An element marked `andesDrawerExtra` is laid out at the header's trailing end,
- * opposite the title - Ant Design's `extra` slot for header actions:
+ * opposite the title - a slot for header actions:
  *
  * ```html
  * <andes-drawer-header>

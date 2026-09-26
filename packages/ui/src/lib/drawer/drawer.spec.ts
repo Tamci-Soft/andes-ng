@@ -486,7 +486,7 @@ class DrawerFeatureHostComponent {
   readonly afterOpenChange: boolean[] = [];
 }
 
-describe('AndesDrawer (Ant Design Drawer parity)', () => {
+describe('AndesDrawer (panel options)', () => {
   withElementGeometry();
   withScrollableDocument();
 
