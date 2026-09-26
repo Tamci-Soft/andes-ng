@@ -28,8 +28,8 @@ import {
 } from '@angular/core';
 
 /**
- * Preset panel size, Ant Design's `size`: `'default'` (378px) or `'large'`
- * (736px) along the axis the panel slides on, or any number (px) / CSS length.
+ * Preset panel size: `'default'` (378px) or `'large'` (736px) along the axis
+ * the panel slides on, or any number (px) / CSS length.
  */
 export type AndesEdgePanelSize = 'default' | 'large' | number | string;
 
@@ -51,9 +51,9 @@ export const ANDES_EDGE_PANEL = new InjectionToken<AndesEdgePanel>(
   'AndesEdgePanel',
 );
 
-/** Ant Design's preset: 378px by default, 736px when `large`. */
+/** Panel size when `large`; the 378px default is left to CSS. */
 const LARGE_SIZE = '736px';
-/** Ant Design's default `push.distance`. */
+/** How far `push` moves the outer panel when set to `true`. */
 const DEFAULT_PUSH_DISTANCE = '180px';
 /** Class of the CDK overlay container; clicks inside it belong to *some* overlay. */
 const OVERLAY_CONTAINER_SELECTOR = '.cdk-overlay-container';
@@ -200,9 +200,9 @@ export abstract class AndesEdgePanel {
 
   /** Render the backdrop mask. `false` makes the panel non-modal (no focus trap, scroll lock or `aria-modal`). Default `true`. */
   readonly mask = input(true, { transform: booleanAttribute });
-  /** Escape closes the panel - Ant's `keyboard`. Default `true`. */
+  /** Escape closes the panel. Default `true`. */
   readonly closeOnEscape = input(true, { transform: booleanAttribute });
-  /** A click on the backdrop or outside the panel closes it - Ant's `maskClosable`. Default `true`. */
+  /** A click on the backdrop or outside the panel closes it. Default `true`. */
   readonly closeOnOutsideClick = input(true, { transform: booleanAttribute });
 
   /** Render the built-in close button. Default `true`. */
@@ -224,7 +224,7 @@ export abstract class AndesEdgePanel {
   readonly destroyOnHidden = input(false, { transform: booleanAttribute });
 
   /**
-   * Push this panel aside while a nested Sheet/Drawer is open, Ant's `push`.
+   * Push this panel aside while a nested Sheet/Drawer is open.
    * `true` pushes 180px; a number (px) or CSS length sets the distance. Opt-in.
    */
   readonly push = input<boolean | AndesEdgePanelLength>(false);

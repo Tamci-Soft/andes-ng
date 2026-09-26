@@ -125,7 +125,7 @@ export const NoOutsideDismiss: Story = {
   args: { closeOnOutsideClick: false, closeOnEscape: false },
 };
 
-/** `size="large"` is Ant's 736px preset (capped at the viewport). */
+/** `size="large"` is the 736px preset (capped at the viewport). */
 export const Large: Story = {
   args: { size: 'large' },
 };
@@ -146,7 +146,7 @@ export const Loading: Story = {
 };
 
 /**
- * `andesSheetExtra` puts actions at the header's trailing end (Ant's `extra`);
+ * `andesSheetExtra` puts actions at the header's trailing end;
  * `[closeIcon]` swaps the X for a template; `closable=false` removes it.
  */
 export const ExtraAndCloseIcon: Story = {
@@ -220,8 +220,8 @@ export const LazyContent: Story = {
 };
 
 /**
- * `push` on the outer sheet moves it aside while a nested sheet is open, like
- * Ant's nested drawers. `(afterOpenChange)` fires once each slide finishes.
+ * `push` on the outer sheet moves it aside while a nested sheet is open.
+ * `(afterOpenChange)` fires once each slide finishes.
  */
 export const NestedPush: Story = {
   render: () => ({

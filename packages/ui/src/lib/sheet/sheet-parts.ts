@@ -14,7 +14,7 @@ let nextId = 0;
  * body. Place it directly inside `<andes-sheet>`.
  *
  * An element marked `andesSheetExtra` is laid out at the header's trailing end,
- * opposite the title - Ant Design's `extra` slot for header actions:
+ * opposite the title - a slot for header actions:
  *
  * ```html
  * <andes-sheet-header>

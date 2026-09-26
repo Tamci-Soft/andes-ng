@@ -18,7 +18,7 @@ export type AndesSheetSide = AndesOverlayEdge;
 
 /**
  * A side panel that complements the main content of the screen - shadcn's
- * `Sheet`, Ant Design's `Drawer` (`side` is Ant's `placement`).
+ * `Sheet`.
  *
  * Built on the same `@andes-ng/primitives` overlay primitive as Dialog, configured
  * with the `drawer` preset (modal semantics: focus trap, scroll lock, backdrop) and
@@ -69,7 +69,7 @@ export type AndesSheetSide = AndesOverlayEdge;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AndesSheet extends AndesEdgePanel {
-  /** Which viewport edge the panel slides in from, Ant's `placement`. Default `'right'`. */
+  /** Which viewport edge the panel slides in from. Default `'right'`. */
   readonly side = input<AndesSheetSide>('right');
 
   /**
