@@ -14,6 +14,7 @@ import {
   AndesAlertRole,
   AndesAlertSeverity,
   AndesAlertTemplateContext,
+  AndesAlertVariant,
 } from './alert';
 
 @Component({
@@ -580,6 +581,154 @@ describe('AndesAlert', () => {
 
       expect(alert.classList).not.toContain('andes-alert--banner');
       expect(alert.getAttribute('data-severity')).toBe('info');
+    });
+  });
+
+  describe('variant', () => {
+    @Component({
+      imports: [AndesAlert],
+      template: `<andes-alert [variant]="variant()" severity="success"
+        >Saved.</andes-alert
+      >`,
+    })
+    class VariantHost {
+      readonly variant = signal<AndesAlertVariant>('tinted');
+    }
+
+    it('defaults to the tinted variant', () => {
+      @Component({
+        imports: [AndesAlert],
+        template: `<andes-alert>Saved.</andes-alert>`,
+      })
+      class DefaultHost {}
+
+      const fixture = TestBed.createComponent(DefaultHost);
+      fixture.detectChanges();
+      const alert = fixture.nativeElement.querySelector(
+        '[data-slot="alert"]',
+      ) as HTMLElement;
+
+      expect(alert.classList).toContain('andes-alert--tinted');
+      expect(alert.classList).not.toContain('andes-alert--outlined');
+    });
+
+    it('switches to the outlined variant', () => {
+      const fixture = TestBed.createComponent(VariantHost);
+      fixture.detectChanges();
+      fixture.componentInstance.variant.set('outlined');
+      fixture.detectChanges();
+      const alert = fixture.nativeElement.querySelector(
+        '[data-slot="alert"]',
+      ) as HTMLElement;
+
+      expect(alert.classList).toContain('andes-alert--outlined');
+      expect(alert.classList).not.toContain('andes-alert--tinted');
+      expect(alert.classList).toContain('andes-alert--success');
+    });
+  });
+
+  describe('marquee', () => {
+    @Component({
+      imports: [AndesAlert],
+      template: `<andes-alert
+        banner
+        [marquee]="marquee()"
+        [marqueeSpeed]="speed()"
+        [description]="description()"
+        >Projected notice
+        <a href="#" class="notice-link">details</a></andes-alert
+      >`,
+    })
+    class MarqueeHost {
+      readonly marquee = signal(true);
+      readonly speed = signal(60);
+      readonly description = signal<string | null>(null);
+    }
+
+    function createMarquee() {
+      const fixture = TestBed.createComponent(MarqueeHost);
+      fixture.detectChanges();
+      const alert = fixture.nativeElement.querySelector(
+        '[data-slot="alert"]',
+      ) as HTMLElement;
+      return { fixture, alert };
+    }
+
+    it('wraps the projected description in a scrolling track', () => {
+      const { alert } = createMarquee();
+
+      expect(alert.classList).toContain('andes-alert--marquee');
+      const track = alert.querySelector(
+        '.andes-alert__description > .andes-alert__marquee',
+      ) as HTMLElement;
+      expect(track).toBeTruthy();
+      expect(track.textContent).toContain('Projected notice');
+      expect(track.querySelector('.notice-link')).toBeTruthy();
+    });
+
+    it('scrolls a plain-text description input as well', () => {
+      const { fixture, alert } = createMarquee();
+      fixture.componentInstance.description.set('Input notice');
+      fixture.detectChanges();
+
+      expect(
+        alert.querySelector('.andes-alert__marquee')?.textContent?.trim(),
+      ).toBe('Input notice');
+    });
+
+    it('keeps the projected content when the marquee is switched off and on again', () => {
+      const { fixture, alert } = createMarquee();
+
+      fixture.componentInstance.marquee.set(false);
+      fixture.detectChanges();
+      const description = alert.querySelector(
+        '.andes-alert__description',
+      ) as HTMLElement;
+      expect(alert.classList).not.toContain('andes-alert--marquee');
+      expect(description.querySelector('.andes-alert__marquee')).toBeNull();
+      expect(description.textContent).toContain('Projected notice');
+      expect(description.querySelector('.notice-link')).toBeTruthy();
+
+      fixture.componentInstance.marquee.set(true);
+      fixture.detectChanges();
+      expect(
+        alert.querySelector('.andes-alert__marquee .notice-link'),
+      ).toBeTruthy();
+    });
+
+    it('derives the loop duration from the measured track width and the speed', () => {
+      let resize: (() => void) | undefined;
+      class FakeResizeObserver {
+        constructor(callback: () => void) {
+          resize = callback;
+        }
+        observe(): void {
+          /* measured on demand through `resize` */
+        }
+        disconnect(): void {
+          /* nothing to release */
+        }
+      }
+      const original = window.ResizeObserver;
+      window.ResizeObserver =
+        FakeResizeObserver as unknown as typeof ResizeObserver;
+      try {
+        const { fixture, alert } = createMarquee();
+        const track = alert.querySelector(
+          '.andes-alert__marquee',
+        ) as HTMLElement;
+        Object.defineProperty(track, 'offsetWidth', { value: 900 });
+
+        resize?.();
+        fixture.detectChanges();
+        expect(track.style.animationDuration).toBe('15s');
+
+        fixture.componentInstance.speed.set(90);
+        fixture.detectChanges();
+        expect(track.style.animationDuration).toBe('10s');
+      } finally {
+        window.ResizeObserver = original;
+      }
     });
   });
 
