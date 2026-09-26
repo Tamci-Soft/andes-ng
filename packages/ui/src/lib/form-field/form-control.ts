@@ -174,7 +174,7 @@ export class AndesFormControl implements OnInit, AndesFormControlApi {
   private readonly field = inject(ANDES_FORM_FIELD, { optional: true });
   /** The enclosing reactive (`[formGroup]`) or template-driven (`<form>`/`ngForm`) form, if
    *  any - only read for its `submitted` flag, so errors surface after a submit attempt even
-   *  on fields the user never reached (Ant shows every error on a failed submit, too). */
+   *  on fields the user never reached - a failed submit shows every error at once. */
   private readonly formDirective =
     inject(FormGroupDirective, { optional: true }) ??
     inject(NgForm, { optional: true });

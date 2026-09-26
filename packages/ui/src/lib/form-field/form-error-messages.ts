@@ -25,9 +25,9 @@ export const ANDES_DEFAULT_FORM_ERROR_MESSAGES: AndesFormErrorMessages = {
 
 /**
  * Registers error messages for every `AndesFormField` in the injector subtree it is provided
- * in (app config, a route, or a component's `providers`) - Ant's `validateMessages`, as an
- * Angular provider. Entries are merged over the built-in defaults, and are themselves
- * overridden by an `AndesForm`'s or `AndesFormField`'s own `errorMessages` input.
+ * in (app config, a route, or a component's `providers`). Entries are merged over the built-in
+ * defaults, and are themselves overridden by an `AndesForm`'s or `AndesFormField`'s own
+ * `errorMessages` input.
  *
  * ```ts
  * providers: [provideAndesFormErrorMessages({ required: 'Campo obligatorio.' })]

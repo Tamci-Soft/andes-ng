@@ -27,10 +27,9 @@ const FOCUSABLE =
   'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * Form-wide layout and presentation defaults for every `AndesFormField` inside it - the
- * andes-ng counterpart of Ant Design's `<Form>` *presentation* props (`layout`, `labelCol`,
- * `wrapperCol`, `labelAlign`, `labelWrap`, `colon`, `requiredMark`, `size`,
- * `validateMessages`, `scrollToFirstError`).
+ * Form-wide layout and presentation defaults for every `AndesFormField` inside it (`layout`,
+ * `labelCol`, `wrapperCol`, `labelAlign`, `labelWrap`, `colon`, `requiredMark`, `size`,
+ * `errorMessages`, `scrollToFirstError`).
  *
  * It is an attribute directive, not a component, so it composes with - rather than replaces -
  * Angular's own form directives on the same element:
@@ -40,7 +39,7 @@ const FOCUSABLE =
  * ```
  *
  * Form *state* (values, validation, disabled, reset, submit) stays with `FormGroupDirective` /
- * `NgForm`; nothing here duplicates Ant's form store. The defaults reach the fields through DI
+ * `NgForm`; nothing here duplicates a form store. The defaults reach the fields through DI
  * (`ANDES_FORM`), and every field-level input of the same name overrides them.
  *
  * Its host classes (`andes-form`, `andes-form--<layout>`) are styled from `form-field.css`,
@@ -67,8 +66,8 @@ export class AndesForm implements AndesFormApi {
   private readonly injector = inject(Injector);
 
   /** Defaults to `vertical` - the stacked layout every `AndesFormField` already had before
-   *  this directive existed - rather than Ant's `horizontal`, so wrapping an existing form
-   *  in `andesForm` never changes how it looks. */
+   *  this directive existed - so wrapping an existing form in `andesForm` never changes how
+   *  it looks. */
   readonly layout = input<AndesFormLayout>('vertical');
   /** Label text alignment inside its column; only visible in `horizontal` layout. */
   readonly labelAlign = input<AndesFormLabelAlign>('right');
@@ -78,18 +77,18 @@ export class AndesForm implements AndesFormApi {
   readonly wrapperCol = input<AndesFormColumn | undefined>(undefined);
   /** Let long labels wrap instead of being truncated with an ellipsis (`horizontal`). */
   readonly labelWrap = input(false, { transform: booleanAttribute });
-  /** Trailing colon after each label. As in Ant, only ever drawn in `horizontal` layout. */
+  /** Trailing colon after each label. Only ever drawn in `horizontal` layout. */
   readonly colon = input(true, { transform: booleanAttribute });
   readonly requiredMark = input<AndesFormRequiredMark>(true);
   /** Suffix used by `requiredMark="optional"` - override it to localize. */
   readonly optionalText = input('(optional)');
   /**
    * Size hint for the controls inside. Fields do not resize anything themselves; controls
-   * read it through {@link injectAndesFormSize} (Ant's `<Form size>` cascade). Also reflected
+   * read it through {@link injectAndesFormSize}. Also reflected
    * as `data-size` on the host for plain-CSS consumers.
    */
   readonly size = input<AndesFormSize | undefined>(undefined);
-  /** Error messages for every field in this form (Ant's `validateMessages`). */
+  /** Error messages for every field in this form. */
   readonly errorMessages = input<AndesFormErrorMessages | undefined>(undefined);
   /**
    * On submit, scroll to and focus the first field in an error state. Waits one render so
@@ -125,8 +124,8 @@ export class AndesForm implements AndesFormApi {
 
 /**
  * The size of the nearest enclosing `AndesForm`, or `undefined` outside one - the hook a
- * control calls (in an injection context) to default its own `size` from the form's, the way
- * Ant's controls pick up `<Form size>`:
+ * control calls (in an injection context) to default its own `size` from the form's, so one
+ * `size` on the form cascades to every control inside it:
  *
  * ```ts
  * private readonly formSize = injectAndesFormSize();

@@ -59,7 +59,7 @@
 }
 
 /* ---------------------------------------------------------------------------------------
-   Ant Design Form.Item parity. Everything below is keyed off classes/attributes that
+   Layout, status and feedback presentation. Everything below is keyed off classes/attributes that
    AndesFormField puts on its own `.andes-form-field` root (layout, status, feedback), so a
    field's look never depends on anything outside it except the optional `[andesForm]` host.
    Compound selectors that contain a combinator are kept on ONE line: Angular's style shim
@@ -104,7 +104,7 @@ andes-form-label {
    centre on each other whatever the control's height), messages under the control. The
    horizontal column widths come from AndesFormField's inline `grid-template-columns`
    (labelCol/wrapperCol); a label-less horizontal field keeps the empty label column, which
-   is what lines a submit row up under the controls (Ant's `wrapperCol.offset`). */
+   is what lines a submit row up under the controls. */
 .andes-form-field--horizontal,
 .andes-form-field--inline {
   display: grid;
@@ -145,7 +145,7 @@ andes-form-label {
   grid-row: 2;
 }
 
-/* Ant truncates long horizontal labels unless `labelWrap` is set. */
+/* Long horizontal labels are truncated unless `labelWrap` is set. */
 /* prettier-ignore */
 .andes-form-field--horizontal:not(.andes-form-field--label-wrap) .andes-form-label {
   min-width: 0;
