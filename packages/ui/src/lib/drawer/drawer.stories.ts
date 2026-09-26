@@ -94,7 +94,7 @@ export const NoOutsideDismiss: Story = {
   args: { closeOnOutsideClick: false, closeOnEscape: false },
 };
 
-/** `size="large"` is Ant's 736px preset, capped at the viewport height. */
+/** `size="large"` is the 736px preset, capped at the viewport height. */
 export const Large: Story = {
   args: { size: 'large' },
 };
@@ -115,9 +115,9 @@ export const NoMask: Story = {
 };
 
 /**
- * `andesDrawerExtra` puts an action at the header's trailing end (Ant's
- * `extra`), and `<ng-template andesDrawerContent>` renders the body lazily on
- * first open (kept alive between opens unless `destroyOnHidden`).
+ * `andesDrawerExtra` puts an action at the header's trailing end, and
+ * `<ng-template andesDrawerContent>` renders the body lazily on first open
+ * (kept alive between opens unless `destroyOnHidden`).
  */
 export const ExtraAndLazyContent: Story = {
   render: () => ({
@@ -144,8 +144,8 @@ export const ExtraAndLazyContent: Story = {
 };
 
 /**
- * `push` on the outer drawer lifts it while a nested drawer is open, like Ant's
- * nested drawers. `(afterOpenChange)` fires once each slide finishes.
+ * `push` on the outer drawer lifts it while a nested drawer is open.
+ * `(afterOpenChange)` fires once each slide finishes.
  */
 export const NestedPush: Story = {
   render: () => ({

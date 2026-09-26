@@ -552,7 +552,7 @@ class NestedHostComponent {
   readonly childOpen = signal(false);
 }
 
-describe('AndesSheet (Ant Design Drawer parity)', () => {
+describe('AndesSheet (panel options)', () => {
   withElementGeometry();
   withScrollableDocument();
 

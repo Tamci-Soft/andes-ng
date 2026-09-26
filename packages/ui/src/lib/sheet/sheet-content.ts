@@ -3,8 +3,8 @@ import { DestroyRef, Directive, inject, TemplateRef } from '@angular/core';
 import { AndesSheet } from './sheet';
 
 /**
- * Marks an `<ng-template>` as the sheet's lazily rendered body content, the
- * Angular counterpart of Ant Design rendering `Drawer` children only once opened.
+ * Marks an `<ng-template>` as the sheet's lazily rendered body content, so the
+ * body is only rendered once the sheet is first opened.
  *
  * The content is created on first open and, by default, kept alive between opens
  * so its state (form values, scroll position of inner widgets…) survives; set
