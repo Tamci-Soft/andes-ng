@@ -86,7 +86,7 @@
   max-width: 26rem;
 }
 
-/* An explicit `width` (Ant's `width`, including its per-breakpoint object form). The
+/* An explicit `width`, including its per-breakpoint object form. The
    component writes one custom property per breakpoint, already resolved so each one
    inherits the nearest smaller breakpoint given; the rules below only pick the one for
    the current viewport. Doubled class so it outranks the alert variant's own step above.
@@ -132,8 +132,8 @@
   }
 }
 
-/* `[centered]="false"`: parked near the top, Ant's default placement, so the surface
-   does not jump as its content grows. 100px on a tall screen (Ant's `top: 100px`),
+/* `[centered]="false"`: parked near the top so the surface does not jump as its
+   content grows. 100px on a tall screen,
    shrinking with the viewport and never below the pane's own gutter. The pane rule
    further down applies the same offset; the height cap here has to subtract it. */
 .andes-dialog--top {
@@ -159,8 +159,7 @@
   padding-inline-end: calc(var(--andes-dialog-padding) + var(--andes-space-2));
 }
 
-/* Pin the header and the footer while the body between them scrolls, the way Ant's Modal
-   does: in a long dialog the title and the actions are exactly what the reader needs kept
+/* Pin the header and the footer while the body between them scrolls: in a long dialog the title and the actions are exactly what the reader needs kept
    in view, and before this both scrolled away entirely.
 
    The sticky constraint is inset by the scrolling box's padding, so `0` already parks each
@@ -333,8 +332,8 @@
   stroke-linecap: round;
 }
 
-/* Imperative dialogs from AndesDialogService: Ant's method layout, a status icon beside
-   the title and content. */
+/* Imperative dialogs from AndesDialogService: a status icon beside the title and
+   content. */
 .andes-dialog__method {
   display: flex;
   align-items: flex-start;

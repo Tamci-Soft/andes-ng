@@ -33,7 +33,7 @@ import type {
   AndesDialogWidth,
 } from './dialog-base';
 
-/** The five imperative flavours. Mirrors `Modal.confirm/info/success/error/warning`. */
+/** The five imperative flavours: one confirmation and four acknowledgements. */
 export type AndesDialogMethodKind =
   'confirm' | 'info' | 'success' | 'error' | 'warning';
 
@@ -42,8 +42,8 @@ export type AndesDialogMethodContent =
   string | TemplateRef<{ $implicit: AndesDialogMethodRef }>;
 
 /**
- * Configuration for `AndesDialogService.confirm()` and its siblings. Mirrors the
- * `Modal.method()` config; field names are Ant's wherever the concept carries over.
+ * Configuration for `AndesDialogService.confirm()` and its siblings. Field names match
+ * the declarative dialog's inputs wherever the concept carries over.
  */
 export interface AndesDialogMethodConfig {
   /** Heading, wired as the dialog's accessible name. */
@@ -61,13 +61,13 @@ export interface AndesDialogMethodConfig {
   readonly cancelText?: string;
   /** OK button variant. Default `'primary'`; `'danger'` for a destructive confirm. */
   readonly okType?: AndesButtonVariant;
-  /** Disable OK. Ant's `okButtonProps.disabled`. */
+  /** Disable OK. */
   readonly okDisabled?: boolean;
-  /** Disable Cancel. Ant's `cancelButtonProps.disabled`. */
+  /** Disable Cancel. */
   readonly cancelDisabled?: boolean;
   /**
    * Show Cancel next to OK. Defaults to `true` for `confirm` and `false` for the
-   * four acknowledgement kinds, as in Ant.
+   * four acknowledgement kinds, which only need dismissing.
    */
   readonly okCancel?: boolean;
   /**
@@ -90,19 +90,19 @@ export interface AndesDialogMethodConfig {
    * `'ok'`, the only button, for the other kinds.
    */
   readonly autoFocusButton?: AndesDialogAutoFocusButton;
-  /** Render a close ("x") control. Default `false`, as in Ant. */
+  /** Render a close ("x") control. Default `false`; the footer already offers a way out. */
   readonly closable?: boolean;
   /** Accessible label for the "x". Default `'Close'`. */
   readonly closeLabel?: string;
-  /** Escape closes the dialog (as a cancel). Default `true`. Ant's `keyboard`. */
+  /** Escape closes the dialog (as a cancel). Default `true`. */
   readonly keyboard?: boolean;
   /** Render the backdrop scrim. Default `true`. */
   readonly mask?: boolean;
-  /** Block document scroll while open. Default `true`. Ant's `scrollLock`. */
+  /** Block document scroll while open. Default `true`. */
   readonly lockScroll?: boolean;
   /** Centre vertically. Default `true`; `false` parks it near the top. */
   readonly centered?: boolean;
-  /** Surface max-width step. Default `'md'` (26rem, Ant's 416px method width). */
+  /** Surface max-width step. Default `'md'` (26rem, 416px). */
   readonly size?: AndesDialogSize;
   /** Explicit width, overriding `size`. */
   readonly width?: AndesDialogWidth | null;
@@ -114,14 +114,13 @@ export interface AndesDialogMethodConfig {
    * on, or the dialog has no way out).
    */
   readonly footer?: TemplateRef<AndesDialogFooterContext> | null;
-  /** Extra classes on the surface. Ant's `className`. */
+  /** Extra classes on the surface. */
   readonly className?: string;
 }
 
 /**
- * Handle to one imperative dialog. Mirrors what `Modal.confirm()` returns
- * (`update`/`destroy`), plus a `result` promise - the counterpart of awaiting a
- * `useModal` instance.
+ * Handle to one imperative dialog: `update`/`destroy` it, or await its `result`
+ * promise to learn how it closed.
  */
 export class AndesDialogMethodRef {
   private readonly _config: WritableSignal<AndesDialogMethodConfig>;
@@ -154,8 +153,7 @@ export class AndesDialogMethodRef {
 
   /**
    * Merges new configuration into the open dialog - retitle it, flip `okDisabled`,
-   * swap its content. Accepts a patch or a function of the previous config, as
-   * Ant's `update` does.
+   * swap its content. Accepts a patch or a function of the previous config.
    */
   update(
     patch:
@@ -197,7 +195,7 @@ export class AndesDialogMethodRef {
 }
 
 const METHOD_ICON_PATHS: Record<AndesDialogMethodKind, string> = {
-  // Ant draws `confirm` with the same exclamation glyph as `warning`.
+  // `confirm` shares the exclamation glyph with `warning`: both ask for attention.
   confirm: 'M12 7.5v5.5M12 16.5h.01',
   warning: 'M12 7.5v5.5M12 16.5h.01',
   error: 'M9 9l6 6M15 9l-6 6',
@@ -207,8 +205,8 @@ const METHOD_ICON_PATHS: Record<AndesDialogMethodKind, string> = {
 
 /**
  * The component `AndesDialogService` instantiates per call: an `AndesAlertDialog` -
- * `role="alertdialog"`, no outside-click dismissal - laid out as Ant's method
- * dialogs are (status icon beside title and content, actions below).
+ * `role="alertdialog"`, no outside-click dismissal - laid out with a status icon
+ * beside title and content and the actions below.
  *
  * Internal: created only by the service.
  */
@@ -450,8 +448,8 @@ export class AndesDialogMethod {
 
   /**
    * Runs a handler, holding `loading` while a returned promise is pending. Resolves
-   * whether the dialog should now close: a rejected promise keeps it open (Ant's
-   * retry behavior) and is logged rather than swallowed.
+   * whether the dialog should now close: a rejected promise keeps it open (so the
+   * user can retry) and is logged rather than swallowed.
    */
   private async settleThrough(
     handler: (() => unknown) | undefined,
@@ -489,13 +487,12 @@ function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
 }
 
 /**
- * Imperative dialogs: the Angular counterpart of Ant's `Modal.confirm()`,
- * `Modal.info()`, `Modal.success()`, `Modal.error()` and `Modal.warning()`.
+ * Imperative dialogs: `confirm()`, `info()`, `success()`, `error()` and `warning()`.
  *
  * Each call renders an `AndesAlertDialog` and returns an `AndesDialogMethodRef` to
  * update, destroy or await it. Because the service is injected, dialogs it opens
- * already live inside the app's injector tree - the job Ant's `Modal.useModal()`
- * context holder exists to do in React.
+ * already live inside the app's injector tree, so no separate context holder is
+ * needed.
  *
  * ```ts
  * private readonly dialogs = inject(AndesDialogService);
@@ -545,7 +542,7 @@ export class AndesDialogService {
     return this.show('warning', config);
   }
 
-  /** Destroys every dialog this service has open. Ant's `Modal.destroyAll()`. */
+  /** Destroys every dialog this service has open. */
   destroyAll(): void {
     for (const ref of [...this.open]) {
       ref.destroy();
