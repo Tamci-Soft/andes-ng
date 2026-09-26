@@ -192,7 +192,12 @@ describe('AndesSelect', () => {
 
       expect(trigger.getAttribute('aria-required')).toBe('true');
       expect(trigger.getAttribute('aria-invalid')).toBe('true');
-      expect(trigger.classList).toContain('andes-select__trigger--invalid');
+      // The invalid styling hook lives on the trigger box around the combobox button,
+      // which is where the border is drawn since the box also holds tags and icons.
+      expect(
+        fixture.nativeElement.querySelector('[data-slot="select-trigger"]')
+          .classList,
+      ).toContain('andes-select__trigger--invalid');
     });
 
     it('disables the button and refuses to open when disabled', () => {
