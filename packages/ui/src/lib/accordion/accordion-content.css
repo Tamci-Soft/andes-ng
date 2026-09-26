@@ -34,3 +34,29 @@
   padding-bottom: var(--andes-space-4);
   color: var(--andes-color-foreground);
 }
+
+.andes-accordion-content__body[data-size='sm'] {
+  padding-bottom: var(--andes-space-2);
+  font-size: 0.875rem;
+}
+
+.andes-accordion-content__body[data-size='lg'] {
+  padding-bottom: var(--andes-space-5);
+  font-size: 1.125rem;
+}
+
+/* Bordered: a separate content band under the tinted header. The divider is a border on this
+   (non-clipping) box too, so a closed panel clips it away along with everything else. */
+.andes-accordion-content__body[data-variant='bordered'] {
+  padding: var(--andes-space-4);
+  border-top: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-background);
+}
+
+.andes-accordion-content__body[data-variant='bordered'][data-size='sm'] {
+  padding: var(--andes-space-3);
+}
+
+.andes-accordion-content__body[data-variant='bordered'][data-size='lg'] {
+  padding: var(--andes-space-5);
+}
