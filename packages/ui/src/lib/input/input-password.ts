@@ -13,8 +13,8 @@ import { AndesButton } from '../button/button';
 import { ANDES_INPUT_HOST, AndesInputBase } from './input-base';
 
 /**
- * A password field with a show/hide toggle - Ant Design's `Input.Password`. Everything
- * `andes-input` accepts (size, variant, status, addons, count, clear, forms...) applies here too.
+ * A password field with a show/hide toggle. Everything `andes-input` accepts (size, variant,
+ * status, addons, count, clear, forms...) applies here too.
  */
 @Component({
   selector: 'andes-input-password',
@@ -32,7 +32,7 @@ import { ANDES_INPUT_HOST, AndesInputBase } from './input-base';
   host: ANDES_INPUT_HOST,
 })
 export class AndesInputPassword extends AndesInputBase {
-  /** Whether to render the show/hide toggle at all (Ant's `visibilityToggle`). */
+  /** Whether to render the show/hide toggle at all. */
   readonly visibilityToggle = input(true, { transform: booleanAttribute });
   /** Whether the password is shown as plain text - two-way bindable as `[(visible)]`. */
   readonly visible = model(false);
