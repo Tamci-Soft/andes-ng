@@ -1,7 +1,7 @@
 /* Standalone placeholder shapes (andes-skeleton-avatar/-button/-input/-image/-node). Heights
    follow AndesButton's size scale (sm 2rem, md 2.5rem, lg 3rem) so a Button/Input placeholder
-   occupies exactly the space of the control it stands in for. Widths follow Ant Design's ratios
-   (button = 2x height, input = 5x height). */
+   occupies exactly the space of the control it stands in for. Widths are fixed multiples of the
+   height (button = 2x, input = 5x). */
 
 :host {
   display: inline-block;

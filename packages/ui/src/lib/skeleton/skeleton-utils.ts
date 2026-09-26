@@ -1,4 +1,4 @@
-/** Numbers are pixels (as in Ant Design); strings are passed through verbatim (`'50%'`, `'3rem'`). */
+/** Numbers are pixels; strings are passed through verbatim (`'50%'`, `'3rem'`). */
 export function toCssSize(
   value: string | number | null | undefined,
 ): string | undefined {

@@ -29,8 +29,8 @@ export interface AndesSkeletonTitleConfig {
 export interface AndesSkeletonParagraphConfig {
   rows?: number;
   /**
-   * An array sets each row's width in order; a single value sets only the LAST row's width
-   * (Ant Design semantics). Numbers are pixels.
+   * An array sets each row's width in order; a single value sets only the LAST row's width,
+   * so the paragraph ends on a shorter line. Numbers are pixels.
    */
   width?: number | string | (number | string)[];
 }
@@ -75,7 +75,7 @@ function definedOnly<T extends object>(value: T): Partial<T> {
   },
 })
 export class AndesSkeleton {
-  // --- Composite (Ant Design `Skeleton`) API ---------------------------------------------------
+  // --- Composite API ---------------------------------------------------------------------------
 
   /** Shows the placeholder while true; renders the projected content once false. */
   readonly loading = input(true, { transform: booleanAttribute });
@@ -124,7 +124,7 @@ export class AndesSkeleton {
   protected readonly widthStyle = computed(() => toCssSize(this.width()));
   protected readonly heightStyle = computed(() => toCssSize(this.height()));
 
-  // Section defaults mirror Ant Design so a bare <andes-skeleton /> looks balanced: the title
+  // Section defaults are chosen so a bare <andes-skeleton /> looks balanced: the title
   // shortens and the paragraph gets fewer rows as more sections share the space.
 
   protected readonly avatarConfig = computed(
