@@ -90,7 +90,7 @@ export const LargerBoundaryCount: Story = {
   args: { totalPages: 20, current: 10, boundaryCount: 2 },
 };
 
-/** Page count derived from `total` / `pageSize`, like Ant Design's `total`. */
+/** Page count derived from `total` / `pageSize` instead of an explicit `totalPages`. */
 export const DerivedFromTotal: Story = {
   args: { totalPages: undefined, total: 240, pageSize: 25, current: 4 },
 };
@@ -238,7 +238,7 @@ export const ItemRender: Story = {
   }),
 };
 
-/** Ant's `locale` object is exposed as individual label inputs. */
+/** Every visible and accessible label is its own input, so it can be localized. */
 export const CustomLabels: Story = {
   render: () => ({
     template: `<andes-pagination
