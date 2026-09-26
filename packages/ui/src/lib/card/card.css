@@ -12,6 +12,9 @@
      token, so it lives here rather than in packages/tokens/src/theme.css. Only the root
      overrides it; descendants merely consume the cascaded value. */
   --andes-card-spacing: var(--andes-space-4);
+  /* Card-local as well: reset on every card root so a nested card never inherits an inner
+     card's smaller title. */
+  --andes-card-title-font-size: 1rem;
   gap: var(--andes-card-spacing);
   border-radius: var(--andes-radius-lg);
   background-color: var(--andes-color-card);
@@ -33,6 +36,10 @@
   --andes-card-spacing: var(--andes-space-3);
 }
 
+:host(.andes-card--inner) {
+  --andes-card-title-font-size: 0.875rem;
+}
+
 :host(.andes-card--hoverable) {
   cursor: pointer;
 }
@@ -49,16 +56,125 @@
 :host(.andes-card__header) {
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: start;
+  /* Centres the title against a taller header action when they share the only row (Ant's
+     title/extra alignment). With a description the title row is only as tall as the title, so
+     this is a no-op there and the action keeps its own top alignment. */
+  align-items: center;
   gap: var(--andes-space-1);
   padding-inline: var(--andes-card-spacing, var(--andes-space-4));
   padding-block-start: var(--andes-card-spacing, var(--andes-space-4));
 }
 
+:host(.andes-card__header--described) {
+  grid-template-rows: auto auto;
+}
+
+/* type="inner" (Ant's nested-card style): a tinted head divided from the body, so a card inside a
+   card reads as a sub-section rather than a second, competing surface. */
+:host(.andes-card__header--inner) {
+  padding-block: var(--andes-space-3);
+  /* A foreground tint over the card surface rather than --andes-color-muted: in dark mode muted
+     and card are the same colour, so a muted head would vanish. */
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 5%,
+    var(--andes-color-card)
+  );
+  border-block-end: 1px solid var(--andes-color-border);
+}
+
+/* Header tab strip. Bleeds to the card's edges (negative inline margin + matching padding) so its
+   baseline rule spans the full card width, as Ant's head tabs do. The rule is an inset shadow on
+   the strip rather than a border, so the active tab's own indicator paints over it instead of
+   stacking beneath it. */
+.andes-card__tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-3);
+  margin-block-start: var(--andes-space-2);
+  margin-inline: calc(-1 * var(--andes-card-spacing, var(--andes-space-4)));
+  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
+  box-shadow: inset 0 -1px 0 var(--andes-color-border);
+}
+
+/* The inner header already draws its own bottom rule and padding - sit the strip on that rule. */
+:host(.andes-card__header--inner) .andes-card__tabs {
+  margin-block-end: calc(-1 * var(--andes-space-3));
+  box-shadow: none;
+}
+
+.andes-card__tablist {
+  display: flex;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+  gap: var(--andes-space-5);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.andes-card__tab {
+  flex: none;
+  appearance: none;
+  margin: 0;
+  padding-block: calc(var(--andes-card-spacing, var(--andes-space-4)) * 0.75);
+  padding-inline: 0;
+  border: 0;
+  /* The transparent top border balances the 2px indicator so the label stays vertically
+     centred with the strip's extra content. */
+  border-block: 2px solid transparent;
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.andes-card__tab:hover {
+  color: var(--andes-color-card-foreground);
+}
+
+.andes-card__tab[aria-selected='true'] {
+  color: var(--andes-color-primary-text);
+  border-block-end-color: var(--andes-color-primary);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-card__tab:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-card__tab:disabled {
+  color: var(--andes-color-muted-foreground);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.andes-card__tabs-extra {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+}
+
+/* Same line-box collapse as the header action slot below - the extra content is the consumer's
+   template, so reaching its <andes-button> hosts needs ::ng-deep. */
+.andes-card__tabs-extra ::ng-deep andes-button {
+  display: flex;
+}
+
 .andes-card__title {
   grid-column: 1;
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--andes-card-title-font-size, 1rem);
   font-weight: var(--andes-font-weight-medium);
   line-height: 1.2;
 }
@@ -100,6 +216,129 @@
 :host(.andes-card__content) {
   padding-inline: var(--andes-card-spacing, var(--andes-space-4));
   padding-block: var(--andes-card-spacing, var(--andes-space-4));
+}
+
+:host(.andes-card__content--grid) {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0;
+  /* Draws the rule above the first row. Pulled up 1px so a header-less grid's rule tucks under
+     the card's own clipped edge instead of doubling the outlined border. */
+  margin-block-start: -1px;
+  border-block-start: 1px solid var(--andes-color-border);
+}
+
+/* Loading skeleton (Ant renders a 4-row, title-less Skeleton here). Internal markup because no
+   Skeleton component is available to this package yet. */
+.andes-card__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-3);
+}
+
+.andes-card__skeleton-line {
+  display: block;
+  height: 1rem;
+  border-radius: var(--andes-radius-sm);
+  /* Tinted from the foreground, not --andes-color-muted, which equals the card surface in dark
+     mode and would make the placeholder invisible there. */
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 10%,
+    transparent
+  );
+  animation: andes-card-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.andes-card__skeleton-line:last-child {
+  width: 61%;
+}
+
+@keyframes andes-card-skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-card__skeleton-line {
+    animation: none;
+  }
+}
+
+/* Card.Meta: avatar beside a title/description column. */
+:host(.andes-card__meta) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--andes-space-4);
+}
+
+/* display:flex collapses the avatar's line box (the same phantom-leading issue as the action
+   slot); :empty drops the wrapper - and its gap - when no avatar is projected. */
+.andes-card__meta-avatar {
+  flex: none;
+  display: flex;
+}
+
+.andes-card__meta-avatar:empty {
+  display: none;
+}
+
+.andes-card__meta-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+}
+
+/* Card.Grid cell. Each cell draws the rules on its own trailing and bottom edges as 1px outer
+   shadows; the card's overflow clipping hides the ones that land on its outer edge, leaving
+   only the internal dividers. */
+:host(.andes-card__grid) {
+  box-sizing: border-box;
+  width: calc(100% / var(--andes-card-grid-columns, 3));
+  padding: var(--andes-card-spacing, var(--andes-space-4));
+  box-shadow:
+    1px 0 0 0 var(--andes-color-border),
+    0 1px 0 0 var(--andes-color-border),
+    1px 1px 0 0 var(--andes-color-border);
+  transition: box-shadow 0.2s ease;
+}
+
+:host(.andes-card__grid--hoverable:hover) {
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    1px 0 0 0 var(--andes-color-border),
+    0 1px 0 0 var(--andes-color-border),
+    0 4px 16px
+      color-mix(in srgb, var(--andes-color-foreground) 16%, transparent);
+}
+
+/* Actions bar: equal-width cells split by dividers, flush to the card's bottom edge. The children
+   are projected content in the consumer's encapsulation context, hence ::ng-deep. Each child is
+   made a flex container too, which both centers it and collapses an <andes-button> host's line
+   box (it has no display of its own). */
+:host(.andes-card__actions) {
+  display: flex;
+  margin-block-start: auto;
+  /* Derived from the card's density knob (12px default, 9px at size="sm") so the bar follows
+     `size` without reading the card's classes from here. */
+  padding-block: calc(var(--andes-card-spacing, var(--andes-space-4)) * 0.75);
+  border-block-start: 1px solid var(--andes-color-border);
+}
+
+:host(.andes-card__actions) ::ng-deep > * {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:host(.andes-card__actions) ::ng-deep > * + * {
+  border-inline-start: 1px solid var(--andes-color-border);
 }
 
 :host(.andes-card__footer) {
