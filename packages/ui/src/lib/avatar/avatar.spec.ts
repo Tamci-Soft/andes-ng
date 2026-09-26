@@ -382,9 +382,9 @@ describe('AndesAvatarGroup', () => {
     expect(style.borderRadius).not.toBe('0px');
   });
 
-  // The stacked look is the whole point of a group: Ant's `groupOverlapping`
-  // pulls each avatar back over the previous one and draws a ring in the page
-  // background so the overlap still reads as separate people. Without the
+  // The stacked look is the whole point of a group: a negative margin pulls
+  // each avatar back over the previous one, and a ring in the page
+  // background keeps the overlap reading as separate people. Without the
   // negative margin the group is just a row of detached circles.
   it('overlaps the stacked avatars instead of laying them out with a gap', () => {
     const fixture = TestBed.createComponent(GroupHost);
@@ -491,7 +491,7 @@ describe('AndesAvatarGroupCount overflow reveal', () => {
   });
 
   // Hover-only would make the hidden members unreachable by keyboard, which
-  // is the accessibility half of the Ant `Avatar.Group` behaviour this
+  // is the accessibility half of the overflow-reveal behaviour this
   // implements - not an optional extra.
   it('reveals the names on keyboard focus and ties the panel to the trigger', () => {
     const { fixture, count } = createRevealHost();

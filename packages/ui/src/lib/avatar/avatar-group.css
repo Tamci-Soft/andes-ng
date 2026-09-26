@@ -9,14 +9,14 @@
    rule in the button component. (The `+N` chip that `max` generates lives in
    this component's own template, and `:host ::ng-deep` reaches it just the
    same.) A ring in the page background color keeps overlapping avatars
-   visually separated, mirroring Ant's `groupBorderColor`; the negative margin
-   mirrors its `groupOverlapping` (-8px).
+   visually separated; the negative margin (-8px) pulls each avatar back over
+   the previous one.
 
    The overlap is read from `--andes-avatar-group-overlap`, a component-level
    hook like avatar.css's `--andes-avatar-radius` (not a theme token): set it
    on the group - e.g. `style="--andes-avatar-group-overlap: -1rem"` for a
-   tighter stack of large avatars, or `0.25rem` for Ant's spaced-out
-   `groupSpace` look. */
+   tighter stack of large avatars, or `0.25rem` for a spaced-out, non-overlapping
+   look. */
 
 :host ::ng-deep andes-avatar,
 :host ::ng-deep andes-avatar-group-count {
