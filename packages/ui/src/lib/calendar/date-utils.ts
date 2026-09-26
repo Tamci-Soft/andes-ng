@@ -414,3 +414,214 @@ export function isInsideRange(
 export function today(): Date {
   return startOfDay(new Date());
 }
+
+// --- Periods: week / month / quarter / year --------------------------------
+
+/**
+ * The granularity a picker selects at. Mirrors Ant Design's `picker` prop: a
+ * `month` picker's value is the first day of the chosen month, a `week` picker's
+ * value the first day of the chosen week, and so on.
+ */
+export type AndesPickerType = 'date' | 'week' | 'month' | 'quarter' | 'year';
+
+/**
+ * Which grid the calendar is currently drawing. `week` has no view of its own: a
+ * week picker draws the day grid and selects whole rows of it.
+ */
+export type AndesCalendarView = 'date' | 'month' | 'quarter' | 'year';
+
+/** The view a picker type opens on. */
+export function baseViewFor(picker: AndesPickerType): AndesCalendarView {
+  return picker === 'week' ? 'date' : picker;
+}
+
+/** Local midnight of the first day of the week containing `date`. */
+export function startOfWeek(date: Date, weekStartsOn: AndesWeekday = 0): Date {
+  return addDays(date, -((date.getDay() - weekStartsOn + 7) % 7));
+}
+
+/** Local midnight of the first day of the quarter containing `date`. */
+export function startOfQuarter(date: Date): Date {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth() - (date.getMonth() % 3),
+    1,
+  );
+}
+
+/** Local midnight of January 1st of `date`'s year. */
+export function startOfYear(date: Date): Date {
+  return new Date(date.getFullYear(), 0, 1);
+}
+
+/** January 1st of the first year of `date`'s decade (2020 for 2024). */
+export function startOfDecade(date: Date): Date {
+  const year = date.getFullYear();
+  return new Date(year - (((year % 10) + 10) % 10), 0, 1);
+}
+
+/** 1-4. */
+export function quarterOf(date: Date): number {
+  return Math.floor(date.getMonth() / 3) + 1;
+}
+
+/** The first day of the period of the given granularity that contains `date`. */
+export function startOfPeriod(
+  date: Date,
+  unit: AndesPickerType,
+  weekStartsOn: AndesWeekday = 0,
+): Date {
+  switch (unit) {
+    case 'date':
+      return startOfDay(date);
+    case 'week':
+      return startOfWeek(date, weekStartsOn);
+    case 'month':
+      return startOfMonth(date);
+    case 'quarter':
+      return startOfQuarter(date);
+    case 'year':
+      return startOfYear(date);
+  }
+}
+
+/** The last day (local midnight) of the period of the given granularity. */
+export function endOfPeriod(
+  date: Date,
+  unit: AndesPickerType,
+  weekStartsOn: AndesWeekday = 0,
+): Date {
+  switch (unit) {
+    case 'date':
+      return startOfDay(date);
+    case 'week':
+      return addDays(startOfWeek(date, weekStartsOn), 6);
+    case 'month':
+      return endOfMonth(date);
+    case 'quarter':
+      return endOfMonth(addMonths(startOfQuarter(date), 2));
+    case 'year':
+      return new Date(date.getFullYear(), 11, 31);
+  }
+}
+
+/** Compares the periods containing `a` and `b`: negative, `0` or positive. */
+export function comparePeriods(
+  a: Date,
+  b: Date,
+  unit: AndesPickerType,
+  weekStartsOn: AndesWeekday = 0,
+): number {
+  return compareDays(
+    startOfPeriod(a, unit, weekStartsOn),
+    startOfPeriod(b, unit, weekStartsOn),
+  );
+}
+
+/** Whether `a` and `b` fall in the same period. `null` never matches. */
+export function isSamePeriod(
+  a: Date | null,
+  b: Date | null,
+  unit: AndesPickerType,
+  weekStartsOn: AndesWeekday = 0,
+): boolean {
+  return !!a && !!b && comparePeriods(a, b, unit, weekStartsOn) === 0;
+}
+
+/**
+ * How many days of a week must fall in the new year for that week to be the
+ * year's week 1. Monday-first weeks follow ISO 8601 (the week holding the first
+ * Thursday, i.e. 4 days); every other week start follows the North American rule
+ * (the week holding January 1st, i.e. 1 day). This is the same split CLDR makes.
+ */
+function minimalDaysInFirstWeek(weekStartsOn: AndesWeekday): number {
+  return weekStartsOn === 1 ? 4 : 1;
+}
+
+/**
+ * The week-numbering year and week number of `date`. The week-year can differ
+ * from the calendar year at the edges: 2024-12-30 is ISO week 1 of 2025.
+ */
+export function weekOfYear(
+  date: Date,
+  weekStartsOn: AndesWeekday = 0,
+): { readonly year: number; readonly week: number } {
+  // A week belongs to the year that holds its "anchor" day - the Thursday for
+  // ISO weeks, the Saturday for Sunday-first weeks.
+  const anchor = addDays(
+    startOfWeek(date, weekStartsOn),
+    7 - minimalDaysInFirstWeek(weekStartsOn),
+  );
+  const year = anchor.getFullYear();
+  const dayOfYear =
+    Math.round(
+      (anchor.getTime() - new Date(year, 0, 1).getTime()) / 86_400_000,
+    ) + 1;
+  return { year, week: Math.floor((dayOfYear - 1) / 7) + 1 };
+}
+
+/** First day of week `week` of week-numbering year `year`. Inverse of {@link weekOfYear}. */
+export function startOfWeekNumber(
+  year: number,
+  week: number,
+  weekStartsOn: AndesWeekday = 0,
+): Date {
+  const firstWeek = startOfWeek(
+    new Date(year, 0, minimalDaysInFirstWeek(weekStartsOn)),
+    weekStartsOn,
+  );
+  return addDays(firstWeek, (week - 1) * 7);
+}
+
+/** Wall-clock time of day, used by the date picker's `showTime` columns. */
+export interface AndesTimeOfDay {
+  readonly hours: number;
+  readonly minutes: number;
+  readonly seconds: number;
+}
+
+export const MIDNIGHT: AndesTimeOfDay = { hours: 0, minutes: 0, seconds: 0 };
+
+/** The time-of-day part of a date. */
+export function timeOf(date: Date | null): AndesTimeOfDay {
+  return date
+    ? {
+        hours: date.getHours(),
+        minutes: date.getMinutes(),
+        seconds: date.getSeconds(),
+      }
+    : MIDNIGHT;
+}
+
+/** `day`'s calendar date at `time`, in local time. */
+export function withTime(day: Date, time: AndesTimeOfDay): Date {
+  return new Date(
+    day.getFullYear(),
+    day.getMonth(),
+    day.getDate(),
+    time.hours,
+    time.minutes,
+    time.seconds,
+  );
+}
+
+/**
+ * Like {@link coerceDate}, but keeps the time of day. Used where a value may carry
+ * a time (`showTime`). ISO strings with a time and no offset (`2024-02-15T10:30`)
+ * are local by spec, so `new Date(string)` is correct for them; a date-only ISO
+ * string still goes through the local-midnight path.
+ */
+export function coerceDateTime(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return isValidDate(value) ? new Date(value.getTime()) : null;
+  }
+  if (typeof value === 'number') {
+    const fromEpoch = new Date(value);
+    return isValidDate(fromEpoch) ? fromEpoch : null;
+  }
+  if (typeof value === 'string' && /\d[T ]\d/.test(value.trim())) {
+    const parsed = new Date(value.trim().replace(' ', 'T'));
+    return isValidDate(parsed) ? parsed : null;
+  }
+  return coerceDate(value);
+}

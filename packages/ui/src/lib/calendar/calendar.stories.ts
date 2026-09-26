@@ -155,3 +155,147 @@ export const Locales: Story = {
     `,
   }),
 };
+
+/**
+ * `picker` sets the selection granularity, as Ant's `picker`. The caption climbs
+ * to the coarser grid (days → months → years); picking there drills back down.
+ */
+export const PickerModes: Story = {
+  render: () => ({
+    props: {
+      week: new Date(2024, 1, 12),
+      month: new Date(2024, 1, 1),
+      quarter: new Date(2024, 3, 1),
+      year: new Date(2024, 0, 1),
+    },
+    template: `
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start;">
+        <andes-calendar locale="en-US" picker="week" [weekStartsOn]="1" [value]="week" aria-label="Week picker" />
+        <andes-calendar locale="en-US" picker="month" [value]="month" aria-label="Month picker" />
+        <andes-calendar locale="en-US" picker="quarter" [value]="quarter" aria-label="Quarter picker" />
+        <andes-calendar locale="en-US" picker="year" [value]="year" aria-label="Year picker" />
+      </div>
+    `,
+  }),
+};
+
+/** ISO week numbers (Monday-first), in their own row-header column. */
+export const WeekNumbers: Story = {
+  render: () => ({
+    props: { defaultMonth: new Date(2024, 11, 1) },
+    template: `<andes-calendar locale="en-GB" [weekStartsOn]="1" showWeek [defaultMonth]="defaultMonth" />`,
+  }),
+};
+
+/**
+ * Two months side by side, as the range picker shows them. With the start picked,
+ * hovering (or arrowing) previews the range the next pick would close.
+ */
+export const TwoMonthRange: Story = {
+  render: () => ({
+    props: {
+      defaultMonth: FEBRUARY_2024,
+      value: { start: new Date(2024, 1, 20), end: null },
+    },
+    template: `<andes-calendar mode="range" locale="en-US" [numberOfMonths]="2" [defaultMonth]="defaultMonth" [(value)]="value" />`,
+  }),
+};
+
+/** A range of months, picked in the month grid. */
+export const MonthRange: Story = {
+  render: () => ({
+    props: {
+      value: { start: new Date(2024, 2, 1), end: new Date(2024, 7, 1) },
+    },
+    template: `<andes-calendar mode="range" picker="month" locale="en-US" [(value)]="value" />`,
+  }),
+};
+
+/**
+ * `cellTemplate` (Ant's `cellRender`) customises each cell. The context carries
+ * the date, the resolved cell state and the grid it belongs to.
+ */
+export const CustomCells: Story = {
+  render: () => ({
+    props: {
+      defaultMonth: FEBRUARY_2024,
+      busy: (date: Date) => [5, 12, 13, 21].includes(date.getDate()),
+    },
+    template: `
+      <ng-template #cell let-date let-cell="cell">
+        <span style="display: inline-flex; flex-direction: column; align-items: center; line-height: 1;">
+          {{ cell.text }}
+          <span [style.visibility]="busy(date) && !cell.outside ? 'visible' : 'hidden'"
+                style="width: 4px; height: 4px; margin-top: 2px; border-radius: 50%; background: currentColor;"></span>
+        </span>
+      </ng-template>
+      <andes-calendar locale="en-US" [defaultMonth]="defaultMonth" [cellTemplate]="cell" />
+    `,
+  }),
+};
+
+/**
+ * `fullscreen` (Ant's default `Calendar` look): a full-width grid whose cells hold
+ * `cellTemplate` content under the day number.
+ */
+export const Fullscreen: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => ({
+    props: {
+      defaultMonth: FEBRUARY_2024,
+      value: new Date(2024, 1, 14),
+      events: {
+        '2024-02-05': ['Sprint planning'],
+        '2024-02-14': ['Design review', 'Release 2.4'],
+        '2024-02-21': ['Retro'],
+      } as Record<string, string[]>,
+      key: (date: Date) =>
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+    },
+    template: `
+      <ng-template #cell let-date let-cell="cell">
+        @if (cell.view === 'date') {
+          @for (event of events[key(date)] ?? []; track event) {
+            <div style="overflow: hidden; margin-top: 2px; padding: 1px 4px; border-radius: 4px; background: var(--andes-color-accent); color: var(--andes-color-accent-foreground); white-space: nowrap; text-overflow: ellipsis;">{{ event }}</div>
+          }
+        }
+      </ng-template>
+      <div style="padding: 1rem;">
+        <andes-calendar fullscreen locale="en-US" [defaultMonth]="defaultMonth" [(value)]="value" [cellTemplate]="cell" />
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `headerTemplate` (Ant's `headerRender`) replaces the navigation header. The
+ * context exposes the visible month plus `goTo` and `setView`.
+ */
+export const CustomHeader: Story = {
+  render: () => ({
+    props: {
+      defaultMonth: FEBRUARY_2024,
+      months: Array.from({ length: 12 }, (_, month) =>
+        new Intl.DateTimeFormat('en-US', { month: 'long' }).format(
+          new Date(2024, month, 1),
+        ),
+      ),
+      years: [2022, 2023, 2024, 2025, 2026],
+      toDate: (year: string | number, month: string | number) =>
+        new Date(Number(year), Number(month), 1),
+    },
+    template: `
+      <ng-template #header let-month let-goTo="goTo">
+        <div style="display: flex; gap: 0.5rem; font: 0.875rem var(--andes-font-family), sans-serif;">
+          <select aria-label="Month" (change)="goTo(toDate(month.getFullYear(), $any($event.target).value))">
+            @for (name of months; track $index) { <option [value]="$index" [selected]="$index === month.getMonth()">{{ name }}</option> }
+          </select>
+          <select aria-label="Year" (change)="goTo(toDate($any($event.target).value, month.getMonth()))">
+            @for (year of years; track year) { <option [value]="year" [selected]="year === month.getFullYear()">{{ year }}</option> }
+          </select>
+        </div>
+      </ng-template>
+      <andes-calendar locale="en-US" [defaultMonth]="defaultMonth" [headerTemplate]="header" />
+    `,
+  }),
+};
