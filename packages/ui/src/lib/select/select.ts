@@ -215,12 +215,12 @@ export class AndesSelect
 
   /**
    * Turns the combobox into a text input that filters the options. Defaults to on in
-   * `multiple` mode and off in `single` mode, as in Ant Design; always on in `tags` mode.
+   * `multiple` mode and off in `single` mode; always on in `tags` mode.
    */
   readonly showSearch = input<boolean | undefined, unknown>(undefined, {
     transform: optionalBoolean,
   });
-  /** The search text. Two-way bindable; `searchValueChange` is Ant's `onSearch`. */
+  /** The search text. Two-way bindable; `searchValueChange` fires as the user types. */
   readonly searchValue = model('');
   /**
    * `true` filters by {@link optionFilterProp}, `false` never filters, and a function
@@ -229,8 +229,8 @@ export class AndesSelect
   readonly filterOption = input<boolean | AndesSelectFilterFn>(true);
   /**
    * Which option field(s) the built-in filter matches against: `label`, `value`, or any
-   * field of an `options` entry / an item's `data`. Defaults to `label` — Ant defaults to
-   * `value`, but for options whose values are ids that never matches what users type.
+   * field of an `options` entry / an item's `data`. Defaults to `label` rather than
+   * `value`: for options whose values are ids, `value` never matches what users type.
    */
   readonly optionFilterProp = input<string | readonly string[]>('label');
   /** Clear the search text after each selection in `multiple`/`tags` mode. */
@@ -312,14 +312,13 @@ export class AndesSelect
   /**
    * Emits the new value after a change made by the user - selecting, deselecting,
    * removing a tag, clearing - and never for values written by a form or a binding.
-   * Ant's `onChange`.
    */
   readonly selectionChange = output<unknown>();
-  /** Emits the value of an option the user selected. Ant's `onSelect`. */
+  /** Emits the value of an option the user selected. */
   readonly optionSelect = output<unknown>();
-  /** Emits a value the user removed in `multiple`/`tags` mode. Ant's `onDeselect`. */
+  /** Emits a value the user removed in `multiple`/`tags` mode. */
   readonly optionDeselect = output<unknown>();
-  /** Emits when the user clears the selection. Ant's `onClear`. */
+  /** Emits when the user clears the selection. */
   readonly cleared = output<void>();
 
   private readonly projectedContent = contentChild(AndesSelectContent, {
@@ -610,8 +609,8 @@ export class AndesSelect
       });
     });
 
-    // A new search text re-filters the options; the first match becomes active, as with
-    // Ant's `defaultActiveFirstOption`. This runs after render because the options'
+    // A new search text re-filters the options; the first match becomes active, so Enter
+    // picks it right away. This runs after render because the options'
     // navigability (their `disabled` binding on the list-navigation item) only updates
     // once the view has been checked.
     afterRenderEffect(() => {

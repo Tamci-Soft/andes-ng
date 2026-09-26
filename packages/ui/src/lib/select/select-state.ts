@@ -25,7 +25,7 @@ export type AndesSelectStatus = 'error' | 'warning';
 export type AndesSelectVariant =
   'outlined' | 'filled' | 'borderless' | 'underlined';
 
-/** Where the panel opens relative to the trigger, in Ant Design's vocabulary. */
+/** Where the panel opens relative to the trigger: vertical side, then horizontal edge. */
 export type AndesSelectPlacement =
   'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
 
