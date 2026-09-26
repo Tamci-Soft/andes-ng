@@ -1,0 +1,28 @@
+<ng-content select="[andesTableTop]" />
+<div class="andes-table__wrapper">
+  <div
+    #container
+    class="andes-table__container"
+    [class.andes-table__container--scroll-y]="scrollYLength()"
+    [style.max-height]="scrollYLength()"
+    (scroll)="updateScrollEdges()"
+  >
+    <table
+      [class]="tableClasses()"
+      [style.min-width]="scrollXLength()"
+      [attr.aria-busy]="loading() ? 'true' : null"
+    >
+      <ng-content />
+    </table>
+  </div>
+  @if (loading()) {
+  <div class="andes-table__loading" aria-hidden="true">
+    <span class="andes-table__spinner"></span>
+  </div>
+  }
+  <!-- Always present so the change of text is announced as a live-region update. -->
+  <div class="andes-table__sr-only" role="status">
+    @if (loading()) { {{ loadingLabel() }} }
+  </div>
+</div>
+<ng-content select="[andesTableBottom]" />

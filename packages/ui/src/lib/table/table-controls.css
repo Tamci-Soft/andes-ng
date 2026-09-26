@@ -1,0 +1,125 @@
+/* Shared by the small controls that sit inside table cells: row selection, "select
+   all", the expand toggle and the empty state. Each uses its own emulated scope. */
+
+:host(.andes-table-control) {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.andes-table-control__input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--andes-color-primary);
+  cursor: pointer;
+}
+
+.andes-table-control__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-table-control__input:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-table-control__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.andes-table-control__expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.andes-table-control__expand:hover {
+  background-color: var(--andes-color-accent-hover);
+}
+
+.andes-table-control__expand:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-table-control__expand:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-table-control__chevron {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+  background-color: currentcolor;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m9 18 6-6-6-6'/></svg>");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m9 18 6-6-6-6'/></svg>");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  transition: transform 0.15s ease;
+}
+
+/* prettier-ignore */
+.andes-table-control__expand[aria-expanded='true'] .andes-table-control__chevron {
+  transform: rotate(90deg);
+}
+
+/* Empty state */
+
+:host(.andes-table-empty) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--andes-space-2);
+  padding-block: var(--andes-space-5);
+  color: var(--andes-color-muted-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.andes-table-empty__icon {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: currentcolor;
+  opacity: 0.7;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M22 12h-6l-2 3h-4l-2-3H2'/><path d='M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/></svg>");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M22 12h-6l-2 3h-4l-2-3H2'/><path d='M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/></svg>");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-table-control__expand,
+  .andes-table-control__chevron {
+    transition: none;
+  }
+}
