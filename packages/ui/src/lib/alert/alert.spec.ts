@@ -549,11 +549,13 @@ describe('AndesAlert', () => {
 
     function dismissFromCloseButton(
       configure: (host: FocusHost) => void = () => undefined,
+      beforeDismiss: (root: HTMLElement) => void = () => undefined,
     ) {
       const fixture = TestBed.createComponent(FocusHost);
       configure(fixture.componentInstance);
       fixture.detectChanges();
       const root = fixture.nativeElement as HTMLElement;
+      beforeDismiss(root);
       const close = root.querySelector(
         '.andes-alert__close',
       ) as HTMLButtonElement;
@@ -577,13 +579,29 @@ describe('AndesAlert', () => {
     });
 
     it('falls back to a focusable ancestor when no tabbable element is left', () => {
-      const { root } = dismissFromCloseButton((h) => {
-        h.before.set(false);
-        h.after.set(false);
-        h.containerTabindex.set('-1');
-      });
+      // "No tabbable element left" has to hold for the whole document, which other specs
+      // sharing it (e.g. a leftover overlay input) can't be trusted to keep - so everything
+      // outside this fixture is made inert for the test, which the focus fallback skips.
+      const outside = Array.from(document.body.children).filter(
+        (el) => !el.hasAttribute('inert'),
+      );
+      const { root } = dismissFromCloseButton(
+        (h) => {
+          h.before.set(false);
+          h.after.set(false);
+          h.containerTabindex.set('-1');
+        },
+        (fixtureRoot) =>
+          outside
+            .filter((el) => !el.contains(fixtureRoot))
+            .forEach((el) => el.setAttribute('inert', '')),
+      );
 
-      expect(document.activeElement).toBe(root.querySelector('.container'));
+      try {
+        expect(document.activeElement).toBe(root.querySelector('.container'));
+      } finally {
+        outside.forEach((el) => el.removeAttribute('inert'));
+      }
     });
 
     it('leaves focus alone when it was not inside the alert', () => {
