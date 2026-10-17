@@ -1,30 +1,47 @@
 /* The outermost element: lays the optional addon-before / field / addon-after / search button
    out as one attached row. It is the component's surface root, so it carries the font-family
-   too (the wrapper keeps its own copy so the field reads the same with or without addons). */
+   too (the wrapper keeps its own copy so the field reads the same with or without addons).
+   `--_andes-input-radius` is the size's corner radius, shared by the field, the addons and the
+   search button so the row's outer corners match (set per size at the end of this file). */
 .andes-input-group {
+  --_andes-input-radius: var(--andes-control-radius-md, 0.375rem);
   display: inline-flex;
   align-items: stretch;
   width: 100%;
   font-family: var(--andes-font-family), sans-serif;
+  line-height: var(--andes-control-line-height, 1.375rem);
 }
 
 .andes-input-wrapper {
-  /* The size rules below set the field's outer height (2rem/2.5rem/3rem) like every other
-     text field; content-box sizing added the 1px border on top (a 42px md input). */
+  /* The size rules below set the field's outer height (24/32/40px, Ant Design's control scale)
+     like every other text field; content-box sizing added the 1px border on top (a 34px md
+     input). */
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  gap: var(--andes-space-2);
+  /* Prefix/suffix/clear/count sit 4px from the text, like Ant's affix margins. */
+  gap: var(--andes-space-1);
   width: 100%;
   min-width: 0;
-  border-radius: var(--andes-radius-md);
+  border-radius: var(--_andes-input-radius);
   border: 1px solid var(--andes-color-input);
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
+  line-height: var(--andes-control-line-height, 1.375rem);
   transition:
-    border-color 0.15s ease,
-    outline-color 0.15s ease;
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    box-shadow var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-input-wrapper {
+    transition: none;
+  }
 }
 
 /* Focus ring lives on the wrapper - not `.andes-input__control` - because the wrapper is
@@ -46,8 +63,10 @@
      drops box-shadow but paints outlines in a system color. */
   outline: 2px solid transparent;
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+  box-shadow: var(
+    --andes-focus-halo,
+    0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent)
+  );
 }
 
 /* Variants. Declared after the base focus rule (so the stylesheet's first `:has(...:focus-visible)`
@@ -98,6 +117,24 @@
     color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
 }
 
+/* Underlined has only a bottom edge, so a halo all round would float a box around a line.
+   Focus thickens that edge instead (border + a 1px shadow under it), in the status color when
+   there is one. After the status focus rules, which it overrides at equal specificity. */
+/* prettier-ignore */
+.andes-input-wrapper--underlined:has(.andes-input__control:focus-visible) {
+  box-shadow: 0 1px 0 0 var(--andes-color-focus-ring);
+}
+
+/* prettier-ignore */
+.andes-input-wrapper--underlined.andes-input-wrapper--invalid:has(.andes-input__control:focus-visible) {
+  box-shadow: 0 1px 0 0 var(--andes-color-danger);
+}
+
+/* prettier-ignore */
+.andes-input-wrapper--underlined.andes-input-wrapper--warning:has(.andes-input__control:focus-visible) {
+  box-shadow: 0 1px 0 0 var(--andes-color-warning);
+}
+
 .andes-input-wrapper--disabled {
   cursor: not-allowed;
   opacity: 0.6;
@@ -110,10 +147,12 @@
   border: none;
   background-color: transparent;
   color: inherit;
+  padding: 0;
   font-family: inherit;
   /* Native inputs don't inherit font-size (the UA gives them its own small-control size), so
      without this the sm/md/lg font-size on the wrapper never reached the typed text. */
   font-size: inherit;
+  line-height: inherit;
 }
 
 /* Suppress the browser's own default focus ring on the native input - and *only* there.
@@ -200,7 +239,6 @@
 .andes-input__count {
   flex-shrink: 0;
   color: var(--andes-color-muted-foreground);
-  font-size: 0.875em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -221,7 +259,7 @@
   align-items: center;
   flex-shrink: 0;
   gap: var(--andes-space-2);
-  padding-inline: var(--andes-space-3);
+  padding-inline: var(--andes-control-padding-x-md, 0.6875rem);
   border: 1px solid var(--andes-color-input);
   background-color: var(--andes-color-muted);
   color: var(--andes-color-foreground);
@@ -234,14 +272,14 @@
 
 .andes-input__addon--before {
   border-inline-end: 0;
-  border-start-start-radius: var(--andes-radius-md);
-  border-end-start-radius: var(--andes-radius-md);
+  border-start-start-radius: var(--_andes-input-radius);
+  border-end-start-radius: var(--_andes-input-radius);
 }
 
 .andes-input__addon--after {
   border-inline-start: 0;
-  border-start-end-radius: var(--andes-radius-md);
-  border-end-end-radius: var(--andes-radius-md);
+  border-start-end-radius: var(--_andes-input-radius);
+  border-end-end-radius: var(--_andes-input-radius);
 }
 
 .andes-input__addon ::ng-deep svg {
@@ -292,11 +330,30 @@
   margin-inline-start: -1px;
 }
 
+/* The button is sized from the field, not from its own size scale: it stretches to the row's
+   height, takes the field's font-size (the icon is 1em) and corner radius, and an icon-only
+   button is square. Ant Design's Input.Search joins its button the same way. */
 /* prettier-ignore */
 .andes-input__search-button ::ng-deep .andes-button {
   height: auto;
+  padding-inline: var(--_andes-input-search-padding-x);
   border-start-start-radius: 0;
   border-end-start-radius: 0;
+  border-start-end-radius: var(--_andes-input-radius);
+  border-end-end-radius: var(--_andes-input-radius);
+  font-size: inherit;
+}
+
+/* prettier-ignore */
+.andes-input__search-button ::ng-deep .andes-button[class*='andes-button--icon'] {
+  width: var(--_andes-input-height);
+  padding-inline: 0;
+}
+
+/* The outline button shares the field's border color so the joined edge reads as one line. */
+/* prettier-ignore */
+.andes-input__search-button ::ng-deep .andes-button--outline {
+  border-color: var(--andes-color-input);
 }
 
 /* prettier-ignore */
@@ -304,34 +361,81 @@
   appearance: none;
 }
 
-/* Sizes */
+/* Variants with addons: a filled/borderless field drops its border, so its addons do too (a
+   lone addon border next to a borderless field read as a stray frame). The filled addon keeps
+   a hairline divider on its inner edge. The underlined field keeps only its bottom edge. */
+
+/* prettier-ignore */
+.andes-input-group:has(> .andes-input-wrapper--filled) > .andes-input__addon {
+  border-color: transparent;
+}
+
+/* prettier-ignore */
+.andes-input-group:has(> .andes-input-wrapper--borderless) > .andes-input__addon {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+/* prettier-ignore */
+.andes-input-group:has(> .andes-input-wrapper--filled) > .andes-input__addon--before {
+  border-inline-end: 1px solid var(--andes-color-border);
+}
+
+/* prettier-ignore */
+.andes-input-group:has(> .andes-input-wrapper--filled) > .andes-input__addon--after {
+  border-inline-start: 1px solid var(--andes-color-border);
+}
+
+/* prettier-ignore */
+.andes-input-group:has(> .andes-input-wrapper--underlined) > .andes-input__addon {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Sizes: Ant Design's control scale - 24/32/40px tall, 14px text on a 22px line (16px on 24px
+   for lg), 7px/11px inline padding, 4/6/8px corners. */
 
 .andes-input-wrapper--sm {
-  height: 2rem;
-  padding-inline: var(--andes-space-3);
-  font-size: 0.875rem;
+  height: var(--andes-control-height-sm, 1.5rem);
+  padding-inline: var(--andes-control-padding-x-sm, 0.4375rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
 }
 
 .andes-input-wrapper--md {
-  height: 2.5rem;
-  padding-inline: var(--andes-space-3);
-  font-size: 1rem;
+  height: var(--andes-control-height-md, 2rem);
+  padding-inline: var(--andes-control-padding-x-md, 0.6875rem);
+  font-size: var(--andes-control-font-size-md, 0.875rem);
 }
 
 .andes-input-wrapper--lg {
-  height: 3rem;
-  padding-inline: var(--andes-space-4);
-  font-size: 1.125rem;
+  height: var(--andes-control-height-lg, 2.5rem);
+  padding-inline: var(--andes-control-padding-x-lg, 0.6875rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
+  line-height: 1.5rem;
 }
 
 .andes-input-group--sm {
-  font-size: 0.875rem;
+  --_andes-input-height: var(--andes-control-height-sm, 1.5rem);
+  --_andes-input-radius: var(--andes-control-radius-sm, 0.25rem);
+  --_andes-input-search-padding-x: 0.4375rem;
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
 }
 
 .andes-input-group--md {
-  font-size: 1rem;
+  --_andes-input-height: var(--andes-control-height-md, 2rem);
+  --_andes-input-radius: var(--andes-control-radius-md, 0.375rem);
+  --_andes-input-search-padding-x: 0.9375rem;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
 }
 
 .andes-input-group--lg {
-  font-size: 1.125rem;
+  --_andes-input-height: var(--andes-control-height-lg, 2.5rem);
+  --_andes-input-radius: var(--andes-control-radius-lg, 0.5rem);
+  --_andes-input-search-padding-x: 0.9375rem;
+  font-size: var(--andes-control-font-size-lg, 1rem);
+}
+
+.andes-input-group--sm > .andes-input__addon {
+  padding-inline: var(--andes-control-padding-x-sm, 0.4375rem);
 }

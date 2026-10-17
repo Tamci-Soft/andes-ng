@@ -9,16 +9,27 @@
 .andes-input-otp__cell {
   box-sizing: border-box;
   padding: 0;
-  border-radius: var(--andes-radius-md);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
   border: 1px solid var(--andes-color-input);
   background-color: var(--andes-color-background);
   color: inherit;
   font-family: inherit;
   font-size: inherit;
+  line-height: var(--andes-control-line-height, 1.375rem);
   text-align: center;
   transition:
-    border-color 0.15s ease,
-    outline-color 0.15s ease;
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    box-shadow var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-input-otp__cell {
+    transition: none;
+  }
 }
 
 /* Each cell is its own native control, so its focus ring goes straight on it: this authored
@@ -33,8 +44,10 @@
      drops box-shadow but paints outlines in a system color. */
   outline: 2px solid transparent;
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+  box-shadow: var(
+    --andes-focus-halo,
+    0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent)
+  );
 }
 
 .andes-input-otp__cell:disabled {
@@ -45,33 +58,37 @@
   color: var(--andes-color-muted-foreground);
 }
 
-/* Sizes: square cells matching AndesInput's heights. */
+/* Sizes: square cells matching AndesInput's heights (24/32/40px, like Ant Design's Input.OTP),
+   with the same type and corner scale. */
 
 .andes-input-otp--sm {
-  font-size: 0.875rem;
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
 }
 
 .andes-input-otp--sm .andes-input-otp__cell {
-  width: 2rem;
-  height: 2rem;
+  width: var(--andes-control-height-sm, 1.5rem);
+  height: var(--andes-control-height-sm, 1.5rem);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
 }
 
 .andes-input-otp--md {
-  font-size: 1rem;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
 }
 
 .andes-input-otp--md .andes-input-otp__cell {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--andes-control-height-md, 2rem);
+  height: var(--andes-control-height-md, 2rem);
 }
 
 .andes-input-otp--lg {
-  font-size: 1.125rem;
+  font-size: var(--andes-control-font-size-lg, 1rem);
 }
 
 .andes-input-otp--lg .andes-input-otp__cell {
-  width: 3rem;
-  height: 3rem;
+  width: var(--andes-control-height-lg, 2.5rem);
+  height: var(--andes-control-height-lg, 2.5rem);
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  line-height: 1.5rem;
 }
 
 /* Variants (same set and meaning as AndesInput's). */
@@ -117,6 +134,22 @@
   border-color: var(--andes-color-warning);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
+}
+
+/* Underlined cells have only a bottom edge: focus thickens it rather than haloing a box around
+   a line (same as AndesInput's underlined variant). */
+.andes-input-otp--underlined .andes-input-otp__cell:focus-visible {
+  box-shadow: 0 1px 0 0 var(--andes-color-focus-ring);
+}
+
+/* prettier-ignore */
+.andes-input-otp--underlined.andes-input-otp--invalid .andes-input-otp__cell:focus-visible {
+  box-shadow: 0 1px 0 0 var(--andes-color-danger);
+}
+
+/* prettier-ignore */
+.andes-input-otp--underlined.andes-input-otp--warning .andes-input-otp__cell:focus-visible {
+  box-shadow: 0 1px 0 0 var(--andes-color-warning);
 }
 
 .andes-input-otp--disabled .andes-input-otp__cell {

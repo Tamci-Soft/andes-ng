@@ -161,7 +161,8 @@ export abstract class AndesInputBase implements ControlValueAccessor {
         .join(' ') || null,
   );
 
-  // Matches the field's own height: sm/md/lg buttons are the same 2/2.5/3rem as the input sizes.
+  // The button's size class picks its icon/label style; input.css then sizes it from the field
+  // (the row's height, font-size and radius), so it lines up whatever the button's own scale.
   protected readonly searchButtonSize = computed<AndesButtonSize>(() => {
     const size = this.size();
     if (this.searchButton()?.label) {
