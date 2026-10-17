@@ -6,8 +6,8 @@
   display: block;
   width: 100%;
   font-family: var(--andes-font-family), sans-serif;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-foreground);
 }
 
@@ -24,10 +24,13 @@
 
 /* ---------------------------------------------------------------- Line */
 
+/* One text line tall (22px at the default size, as Ant Design's line progress), so stacked bars
+   keep a steady rhythm whether or not they show the percentage. */
 .andes-progress__body {
   display: flex;
   align-items: center;
   width: 100%;
+  min-height: var(--andes-text-line-height, 1.375rem);
 }
 
 .andes-progress__track {
@@ -45,7 +48,8 @@
   height: 100%;
   border-radius: var(--andes-radius-full);
   background-color: var(--_andes-progress-color);
-  transition: width 0.3s ease;
+  transition: width var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 /* The "already done" segment, laid over the start of the main bar. */
@@ -55,7 +59,8 @@
   inset-inline-start: 0;
   border-radius: var(--andes-radius-full);
   background-color: var(--andes-color-success);
-  transition: width 0.3s ease;
+  transition: width var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 /* strokeLinecap butt/square: a line bar has no caps, so it just loses its rounding. */
@@ -244,7 +249,8 @@
 .andes-progress__step {
   flex: none;
   background-color: var(--andes-color-muted);
-  transition: background-color 0.3s ease;
+  transition: background-color var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-progress__step--active {
@@ -326,20 +332,26 @@
 .andes-progress__circle-indicator {
   stroke: var(--_andes-progress-color);
   transition:
-    stroke-dasharray 0.3s ease,
-    stroke 0.3s ease,
-    opacity 0.3s ease;
+    stroke-dasharray var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    stroke var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    opacity var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-progress__circle-success {
   stroke: var(--andes-color-success);
   transition:
-    stroke-dasharray 0.3s ease,
-    opacity 0.3s ease;
+    stroke-dasharray var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    opacity var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-progress__circle-step {
-  transition: stroke 0.3s ease;
+  transition: stroke var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-progress__circle-step--active {
