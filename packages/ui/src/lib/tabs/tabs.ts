@@ -1,7 +1,14 @@
 import {
+  andesOverlayPreset,
   AndesListNavigation,
   AndesListNavigationItemRef,
+  AndesOverlayContentPrimitive,
+  AndesOverlayPrimitive,
+  AndesOverlayTriggerPrimitive,
+  provideAndesOverlay,
+  type AndesOverlaySide,
 } from '@andes-ng/primitives';
+import { CdkScrollable } from '@angular/cdk/scrolling';
 import { NgTemplateOutlet } from '@angular/common';
 import {
   afterNextRender,
@@ -28,6 +35,7 @@ import clsx from 'clsx';
 
 import { AndesTabsContent, AndesTabsContentLazy } from './tabs-content';
 import { AndesTabsList } from './tabs-list';
+import { AndesTabsMoreMenu } from './tabs-more-menu';
 import { AndesTabsTrigger } from './tabs-trigger';
 import {
   ANDES_TABS,
@@ -39,8 +47,12 @@ import {
   AndesTabsExtraContent,
   AndesTabsIndicator,
   AndesTabsItem,
+  AndesTabsMoreContext,
+  AndesTabsMoreTab,
+  AndesTabsMoreTrigger,
   AndesTabsOrientation,
   AndesTabsPosition,
+  AndesTabsReorderEvent,
   AndesTabsScrollEvent,
   AndesTabsSize,
   AndesTabsTriggerRef,
@@ -72,6 +84,13 @@ interface InkBarGeometry {
   length: number;
 }
 
+function sameKeys(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((key, i) => key === b[i]);
+}
+
+/** How long the pointer may be outside a hover-opened overflow menu before it closes. */
+const MORE_HOVER_CLOSE_DELAY = 150;
+
 function sameInkBar(a: InkBarGeometry | null, b: InkBarGeometry | null) {
   return (
     a === b || (!!a && !!b && a.offset === b.offset && a.length === b.length)
@@ -101,11 +120,20 @@ function sameInkBar(a: InkBarGeometry | null, b: InkBarGeometry | null) {
  * `line`-type ink bar, scroll arrows once the tabs overflow, the `editable-card` add button
  * and the `tabBarExtraContent` slots - all *outside* the `role="tablist"` element, which
  * keeps nothing but tabs in it.
+ *
+ * Once the tabs overflow, a "more" button next to the scroll arrows opens a menu of the tabs
+ * scrolled out of view (optionally with a search field, or a consumer template). With
+ * `draggable`, tabs can be dragged to a new place - or moved with `Alt`+`Shift`+arrow key -
+ * and `(reorder)` reports the move for the consumer to apply.
  */
 @Component({
   selector: 'andes-tabs',
   imports: [
     NgTemplateOutlet,
+    CdkScrollable,
+    AndesOverlayTriggerPrimitive,
+    AndesOverlayContentPrimitive,
+    AndesTabsMoreMenu,
     AndesTabsList,
     AndesTabsTrigger,
     AndesTabsContent,
@@ -113,6 +141,7 @@ function sameInkBar(a: InkBarGeometry | null, b: InkBarGeometry | null) {
   ],
   providers: [
     AndesListNavigation,
+    provideAndesOverlay(),
     { provide: ANDES_TABS, useExisting: forwardRef(() => AndesTabs) },
   ],
   templateUrl: './tabs.html',
@@ -127,6 +156,7 @@ export class AndesTabs implements AndesTabsContext {
   private readonly navigation = inject(AndesListNavigation);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly overlay = inject(AndesOverlayPrimitive);
 
   /** The active tab's value. Two-way bindable (`[(value)]`) for a controlled Tabs; when left
    * unbound, `AndesTabs` manages it itself, defaulting to the first enabled tab. A one-way
@@ -195,6 +225,46 @@ export class AndesTabs implements AndesTabsContext {
   /** Accessible name of the `editable-card` add button. */
   readonly addLabel = input('Add tab');
 
+  /** Inline styles for the tab bar (e.g. `{ position: 'sticky', top: 0 }` for a bar that
+   * stays visible while a long panel scrolls). */
+  readonly tabBarStyle = input<
+    Record<string, string | number> | string | null | undefined
+  >(undefined);
+
+  /** Extra classes for the tab bar. */
+  readonly tabBarClass = input<string | readonly string[] | undefined>(
+    undefined,
+  );
+
+  /** Lets the user reorder tabs by dragging them, or with `Alt`+`Shift`+arrow key on a
+   * focused tab. Only emits `(reorder)`; the consumer moves the tab in its own list. */
+  readonly draggable = input(false, { transform: booleanAttribute });
+
+  /** Shows the "more" button that lists the tabs scrolled out of view once the bar
+   * overflows. Default `true`. */
+  readonly more = input(true, { transform: booleanAttribute });
+
+  /** Custom icon for the "more" button. Default: a horizontal ellipsis. */
+  readonly moreIcon = input<TemplateRef<unknown> | undefined>(undefined);
+
+  /** Whether the overflow menu opens on click or on hover (a click still opens it, and
+   * moves focus into it). Default `'click'`. */
+  readonly moreTrigger = input<AndesTabsMoreTrigger>('click');
+
+  /** Accessible name of the "more" button and its menu. */
+  readonly moreLabel = input('More tabs');
+
+  /** Adds a search field that filters the overflow menu. */
+  readonly moreSearch = input(false, { transform: booleanAttribute });
+
+  /** Placeholder (and accessible name) of the overflow menu's search field. */
+  readonly moreSearchPlaceholder = input('Search tabs');
+
+  /** Replaces the overflow menu's content with a template; see {@link AndesTabsMoreContext}. */
+  readonly moreTemplate = input<TemplateRef<AndesTabsMoreContext> | undefined>(
+    undefined,
+  );
+
   /** `editable-card` only: `{ action: 'add' }` from the add button, `{ action: 'remove', key }`
    * from a tab's remove button or the `Delete` key on a focused closable tab. */
   readonly edit = output<AndesTabsEditEvent>();
@@ -204,6 +274,9 @@ export class AndesTabs implements AndesTabsContext {
 
   /** Fires whenever an overflowing tab bar scrolls (arrows, wheel, touch or focus). */
   readonly tabScroll = output<AndesTabsScrollEvent>();
+
+  /** `draggable` only: a tab was dropped at a new index, or moved with the keyboard. */
+  readonly reorder = output<AndesTabsReorderEvent>();
 
   readonly position = computed<AndesTabsPosition>(
     () =>
@@ -250,19 +323,27 @@ export class AndesTabs implements AndesTabsContext {
       this.type() !== 'line' && 'andes-tabs__bar--card',
       `andes-tabs__bar--${this.size()}`,
       this.centered() && 'andes-tabs__bar--centered',
+      this.tabBarClass(),
     ),
   );
 
   private readonly _triggers = signal<readonly AndesTabsTriggerRef[]>([]);
+
+  /** Bumped by {@link syncOrder} when existing tabs moved without re-registering. */
+  private readonly orderVersion = signal(0);
+
+  private readonly _sorting = signal(false);
+  readonly sorting = this._sorting.asReadonly();
 
   // Sorted lazily, on read, rather than at registration time: triggers register from their
   // own `ngOnInit`, which for content-projected components can run before their element
   // is actually attached under its final parent, when `compareDocumentPosition` cannot yet
   // tell DOM order apart. By the time anything reads this computed (e.g. after the initial
   // `ApplicationRef.tick()`), rendering has settled and document order is reliable.
-  private readonly sortedTriggers = computed(() =>
-    sortByDocumentOrder(this._triggers()),
-  );
+  private readonly sortedTriggers = computed(() => {
+    this.orderVersion();
+    return sortByDocumentOrder(this._triggers());
+  });
 
   private readonly firstEnabledValue = computed(() =>
     this.sortedTriggers()
@@ -304,9 +385,51 @@ export class AndesTabs implements AndesTabsContext {
     equal: sameInkBar,
   });
 
+  /** Values of the tabs at least partly scrolled out of view, in bar order. */
+  private readonly hiddenKeys = signal<readonly string[]>([], {
+    equal: sameKeys,
+  });
+
+  // The ink bar would mark the dragged tab's old place, so it steps aside during a drag.
   protected readonly showInkBar = computed(
-    () => this.type() === 'line' && this.inkBar() !== null,
+    () => this.type() === 'line' && this.inkBar() !== null && !this.sorting(),
   );
+
+  protected readonly showMore = computed(
+    () => this.more() && this.overflowing(),
+  );
+
+  protected readonly moreOpen = this.overlay.isOpen;
+
+  private readonly moreMenuTemplate =
+    viewChild.required<TemplateRef<unknown>>('moreMenu');
+
+  /** The tabs listed in the overflow menu. */
+  protected readonly moreTabs = computed<readonly AndesTabsMoreTab[]>(() => {
+    const hidden = new Set(this.hiddenKeys());
+    const active = this.activeValue();
+    // Re-read when the menu opens, so labels changed since the last scroll show up.
+    this.moreOpen();
+    return this.sortedTriggers()
+      .filter((trigger) => hidden.has(trigger.value()))
+      .map((trigger) => ({
+        key: trigger.value(),
+        label: untracked(() => trigger.labelText()),
+        icon: trigger.icon(),
+        disabled: trigger.disabled(),
+        removable: trigger.removable(),
+        selected: trigger.value() === active,
+      }));
+  });
+
+  protected readonly moreContext = computed<AndesTabsMoreContext>(() => ({
+    $implicit: this.moreTabs(),
+    select: this.pickFromMore,
+    close: this.closeMore,
+  }));
+
+  private moreOpenedByHover = false;
+  private moreHoverTimer: ReturnType<typeof setTimeout> | undefined;
 
   protected readonly inkBarClasses = computed(() =>
     clsx(
@@ -385,6 +508,33 @@ export class AndesTabs implements AndesTabsContext {
       this.measure();
     });
 
+    // The overflow menu hangs off the "more" button on the panels' side of the bar.
+    effect(() => {
+      const position = this.position();
+      const side: AndesOverlaySide =
+        position === 'top'
+          ? 'bottom'
+          : position === 'bottom'
+            ? 'top'
+            : position === 'left'
+              ? 'right'
+              : 'left';
+      this.overlay.configure({
+        ...andesOverlayPreset('menu'),
+        role: this.moreTemplate() || this.moreSearch() ? 'dialog' : 'menu',
+        positioning: { kind: 'anchored', side, align: 'end', sideOffset: 4 },
+      });
+    });
+
+    // The "more" button only exists while the bar overflows; its menu goes with it.
+    effect(() => {
+      if (!this.showMore() && untracked(this.moreOpen)) {
+        untracked(() => this.overlay.close('imperative'));
+      }
+    });
+
+    this.destroyRef.onDestroy(() => clearTimeout(this.moreHoverTimer));
+
     afterNextRender(() => {
       if (typeof ResizeObserver === 'undefined') {
         return;
@@ -453,6 +603,144 @@ export class AndesTabs implements AndesTabsContext {
     }
   }
 
+  /** @internal Called by `AndesTabsTrigger` when a drag starts or ends. */
+  setSorting(sorting: boolean): void {
+    this._sorting.set(sorting);
+  }
+
+  /** @internal Called by `AndesTabsList` when a dragged tab is dropped at a new index. */
+  requestReorder(
+    value: string,
+    previousIndex: number,
+    currentIndex: number,
+  ): void {
+    this.reorder.emit({ key: value, previousIndex, currentIndex });
+  }
+
+  /**
+   * @internal Called by `AndesTabsTrigger` on `Alt`+`Shift`+arrow key. Once the consumer has
+   * moved the tab, focus is put back on it: moving a focused element in the DOM can drop
+   * focus on `<body>`.
+   */
+  moveByKeyboard(value: string, step: -1 | 1): void {
+    const sorted = this.sortedTriggers();
+    const previousIndex = sorted.findIndex((t) => t.value() === value);
+    const currentIndex = previousIndex + step;
+    if (
+      previousIndex === -1 ||
+      currentIndex < 0 ||
+      currentIndex >= sorted.length
+    ) {
+      return;
+    }
+    const trigger = sorted[previousIndex];
+    this.reorder.emit({ key: value, previousIndex, currentIndex });
+    afterNextRender(() => trigger.navigationItem()?.focus(), {
+      injector: this.injector,
+    });
+  }
+
+  /**
+   * @internal Called by `AndesTabsList` whenever its children change. Tabs moved in the DOM
+   * without re-registering (a consumer reordering its list) would leave both this
+   * component's and `AndesListNavigation`'s registries - each sorted at registration - in
+   * the old order, so arrow keys and the ink bar would follow it. Re-registering the
+   * navigation items re-sorts them; the active item is carried over.
+   */
+  syncOrder(): void {
+    const current = untracked(this.sortedTriggers);
+    const fresh = sortByDocumentOrder(untracked(this._triggers));
+    if (fresh.every((trigger, i) => trigger === current[i])) {
+      return;
+    }
+    this.orderVersion.update((v) => v + 1);
+
+    const items = untracked(this.navigation.items);
+    const active = untracked(this.navigation.activeItem);
+    items.forEach((item) => this.navigation.unregister(item));
+    items.forEach((item) => this.navigation.register(item));
+    if (active && items.includes(active)) {
+      this.navigation.setActiveItemSilently(active);
+    }
+  }
+
+  // ---- Overflow menu ------------------------------------------------------------------------
+
+  protected onMoreClick(): void {
+    if (!this.moreOpen()) {
+      this.openMore(true);
+      return;
+    }
+    if (this.moreOpenedByHover) {
+      // A click on a hover-opened menu keeps it open and hands it the keyboard.
+      this.moreOpenedByHover = false;
+      clearTimeout(this.moreHoverTimer);
+      this.overlay.configure({ restoreFocus: true });
+      this.overlay
+        .contentElement()
+        ?.querySelector<HTMLElement>('input, [tabindex="0"], button')
+        ?.focus();
+      return;
+    }
+    this.overlay.close('trigger');
+  }
+
+  protected onMorePointerEnter(): void {
+    if (this.moreTrigger() !== 'hover') {
+      return;
+    }
+    clearTimeout(this.moreHoverTimer);
+    if (!this.moreOpen()) {
+      this.openMore(false);
+    }
+  }
+
+  protected onMorePointerLeave(): void {
+    if (this.moreTrigger() !== 'hover' || !this.moreOpenedByHover) {
+      return;
+    }
+    clearTimeout(this.moreHoverTimer);
+    this.moreHoverTimer = setTimeout(() => {
+      if (this.moreOpenedByHover) {
+        this.overlay.close('imperative');
+      }
+    }, MORE_HOVER_CLOSE_DELAY);
+  }
+
+  protected cancelMoreClose(): void {
+    clearTimeout(this.moreHoverTimer);
+  }
+
+  /** Opens the overflow menu; `withFocus` = moved into it, and back to the button after. */
+  private openMore(withFocus: boolean): void {
+    this.moreOpenedByHover = !withFocus;
+    this.overlay.configure({
+      autoFocus: withFocus ? 'first-tabbable' : 'none',
+      restoreFocus: withFocus,
+    });
+    this.overlay.open(this.moreMenuTemplate());
+  }
+
+  /** Closes the overflow menu. */
+  readonly closeMore = (): void => {
+    this.overlay.close('imperative');
+  };
+
+  /** Selects a tab from the overflow menu, closes it and focuses the tab. */
+  readonly pickFromMore = (value: string): void => {
+    const trigger = this.sortedTriggers().find((t) => t.value() === value);
+    if (!trigger || trigger.disabled()) {
+      return;
+    }
+    this.select(value);
+    this.overlay.close('imperative');
+    trigger.navigationItem()?.focus();
+  };
+
+  protected removeFromMore(value: string, event: Event): void {
+    this.edit.emit({ action: 'remove', key: value, event });
+  }
+
   protected onAdd(event: MouseEvent): void {
     this.edit.emit({ action: 'add', event });
   }
@@ -495,6 +783,7 @@ export class AndesTabs implements AndesTabsContext {
       });
     }
     this.updateScrollState(scroller);
+    this.updateHidden(scroller, vertical);
   }
 
   protected asTemplate(
@@ -521,6 +810,7 @@ export class AndesTabs implements AndesTabsContext {
         : scroller.scrollWidth > scroller.clientWidth + 1,
     );
     this.updateScrollState(scroller);
+    this.updateHidden(scroller, vertical);
 
     const activeValue = this.activeValue();
     const active = this.sortedTriggers().find(
@@ -578,6 +868,25 @@ export class AndesTabs implements AndesTabsContext {
       else if (rect.right > view.right)
         scroller.scrollLeft += rect.right - view.right;
     }
+  }
+
+  /** Records which tabs are (partly) outside the scroller's visible area. */
+  private updateHidden(scroller: HTMLElement, vertical: boolean): void {
+    if (!this.overflowing()) {
+      this.hiddenKeys.set([]);
+      return;
+    }
+    const view = scroller.getBoundingClientRect();
+    this.hiddenKeys.set(
+      this.sortedTriggers()
+        .filter((trigger) => {
+          const rect = trigger.element.getBoundingClientRect();
+          return vertical
+            ? rect.top < view.top - 1 || rect.bottom > view.bottom + 1
+            : rect.left < view.left - 1 || rect.right > view.right + 1;
+        })
+        .map((trigger) => trigger.value()),
+    );
   }
 
   private updateScrollState(scroller: HTMLElement): void {

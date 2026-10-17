@@ -1,5 +1,8 @@
+import { CdkDropList } from '@angular/cdk/drag-drop';
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { readFileSync } from 'node:fs';
+import { By } from '@angular/platform-browser';
 
 import { AndesTabs } from './tabs';
 import { AndesTabsContent, AndesTabsContentLazy } from './tabs-content';
@@ -11,8 +14,10 @@ import {
   AndesTabsEditEvent,
   AndesTabsIndicator,
   AndesTabsItem,
+  AndesTabsMoreTrigger,
   AndesTabsOrientation,
   AndesTabsPosition,
+  AndesTabsReorderEvent,
   AndesTabsScrollEvent,
   AndesTabsSize,
   AndesTabsType,
@@ -38,11 +43,16 @@ function keyCodeFor(key: string): number {
   return KEY_CODES[key] ?? key.toUpperCase().charCodeAt(0);
 }
 
-function pressKey(target: Element, key: string): KeyboardEvent {
+function pressKey(
+  target: Element,
+  key: string,
+  modifiers: KeyboardEventInit = {},
+): KeyboardEvent {
   const event = new KeyboardEvent('keydown', {
     key,
     bubbles: true,
     cancelable: true,
+    ...modifiers,
   });
   Object.defineProperty(event, 'keyCode', { get: () => keyCodeFor(key) });
   target.dispatchEvent(event);
@@ -378,7 +388,22 @@ interface TestTab {
     <ng-template #removeTpl><span class="custom-remove">x</span></ng-template>
     <ng-template #extraLeftTpl><span class="extra-left">L</span></ng-template>
     <ng-template #extraRightTpl><span class="extra-right">R</span></ng-template>
+    <ng-template #moreTpl let-hidden let-select="select">
+      @for (tab of hidden; track tab.key) {
+        <button class="custom-more" (click)="select(tab.key)">
+          {{ tab.label }}
+        </button>
+      }
+    </ng-template>
     <andes-tabs
+      [draggable]="draggable()"
+      [more]="more()"
+      [moreSearch]="moreSearch()"
+      [moreTrigger]="moreTrigger()"
+      [moreTemplate]="customMore() ? moreTpl : undefined"
+      [tabBarStyle]="barStyle()"
+      [tabBarClass]="barClass()"
+      (reorder)="onReorder($event)"
       [type]="type()"
       [tabPosition]="position()"
       [orientation]="orientation()"
@@ -445,8 +470,30 @@ class FeatureHost {
   readonly customIcons = signal(false);
   readonly extra = signal(false);
   readonly value = signal<string | undefined>(undefined);
+  readonly draggable = signal(false);
+  readonly more = signal(true);
+  readonly moreSearch = signal(false);
+  readonly moreTrigger = signal<AndesTabsMoreTrigger>('click');
+  readonly customMore = signal(false);
+  readonly barStyle = signal<Record<string, string> | undefined>(undefined);
+  readonly barClass = signal<string | undefined>(undefined);
 
   readonly edits: AndesTabsEditEvent[] = [];
+  readonly reorders: AndesTabsReorderEvent[] = [];
+  autoReorder = false;
+
+  onReorder(event: AndesTabsReorderEvent): void {
+    this.reorders.push(event);
+    if (this.autoReorder) {
+      this.tabs.update((tabs) => {
+        const next = [...tabs];
+        const [moved] = next.splice(event.previousIndex, 1);
+        next.splice(event.currentIndex, 0, moved);
+        return next;
+      });
+    }
+  }
+
   readonly clicked: string[] = [];
   readonly scrolls: AndesTabsScrollEvent[] = [];
   autoRemove = false;
@@ -869,6 +916,41 @@ describe('AndesTabs (extended features)', () => {
       expect(scroller.scrollLeft).toBe(160);
       expect(prev.disabled).toBe(false);
     });
+
+    it('fades only the edges the bar can still scroll past', async () => {
+      const { fixture, q, settle } = await createFeatureHost();
+      const scroller = q('.andes-tabs__nav-wrap') as HTMLElement;
+      const fades = () => ({
+        start: scroller.classList.contains('andes-tabs__nav-wrap--fade-start'),
+        end: scroller.classList.contains('andes-tabs__nav-wrap--fade-end'),
+      });
+      expect(fades()).toEqual({ start: false, end: false });
+
+      stubScroll(scroller, { scrollWidth: 600, clientWidth: 200 });
+      fixture.componentInstance.size.set('lg');
+      await settle();
+      expect(fades()).toEqual({ start: false, end: true });
+
+      scroller.scrollLeft = 200;
+      scroller.dispatchEvent(new Event('scroll'));
+      await settle();
+      expect(fades()).toEqual({ start: true, end: true });
+
+      scroller.scrollLeft = 400;
+      scroller.dispatchEvent(new Event('scroll'));
+      await settle();
+      expect(fades()).toEqual({ start: true, end: false });
+    });
+
+    it('fades along the reading direction, top to bottom when vertical', () => {
+      const css = readFileSync('packages/ui/src/lib/tabs/tabs.css', 'utf8');
+      expect(css).toMatch(
+        /\.andes-tabs__nav-wrap:dir\(rtl\)\s*\{\s*--andes-tabs-fade-direction: to left;/,
+      );
+      expect(css).toMatch(
+        /\.andes-tabs__bar--vertical \.andes-tabs__nav-wrap\s*\{\s*--andes-tabs-fade-direction: to bottom;/,
+      );
+    });
   });
 
   describe('ink bar and indicator', () => {
@@ -1040,6 +1122,325 @@ describe('AndesTabs (extended features)', () => {
     });
   });
 
+  describe('tabBarStyle and tabBarClass', () => {
+    it('applies inline styles and extra classes to the tab bar', async () => {
+      const { q } = await createFeatureHost((h) => {
+        h.barStyle.set({ position: 'sticky', top: '0px' });
+        h.barClass.set('my-bar');
+      });
+      const bar = q('.andes-tabs__bar') as HTMLElement;
+
+      expect(bar.style.position).toBe('sticky');
+      expect(bar.style.top).toBe('0px');
+      expect(bar.classList.contains('my-bar')).toBe(true);
+      expect(bar.classList.contains('andes-tabs__bar--top')).toBe(true);
+    });
+  });
+
+  describe('draggable', () => {
+    it('keeps dragging off by default', async () => {
+      const { q, triggers, tabs } = await createFeatureHost();
+
+      expect(
+        q('andes-tabs-list')?.classList.contains('cdk-drop-list-disabled'),
+      ).toBe(true);
+      expect(triggers().some((t) => t.hasAttribute('data-draggable'))).toBe(
+        false,
+      );
+      expect(tabs()[0].getAttribute('aria-keyshortcuts')).toBeNull();
+    });
+
+    it('makes every enabled tab draggable and advertises the keyboard alternative', async () => {
+      const { q, triggers, tabs } = await createFeatureHost((h) => {
+        h.draggable.set(true);
+        h.tabs.set([{ key: 'a' }, { key: 'b', disabled: true }, { key: 'c' }]);
+      });
+
+      expect(
+        q('andes-tabs-list')?.classList.contains('cdk-drop-list-disabled'),
+      ).toBe(false);
+      expect(triggers().map((t) => t.hasAttribute('data-draggable'))).toEqual([
+        true,
+        false,
+        true,
+      ]);
+      expect(tabs()[0].getAttribute('aria-keyshortcuts')).toBe(
+        'Alt+Shift+ArrowLeft Alt+Shift+ArrowRight',
+      );
+    });
+
+    it('emits (reorder) when a dragged tab is dropped at a new index', async () => {
+      const { fixture } = await createFeatureHost((h) => h.draggable.set(true));
+      const dropList = fixture.debugElement
+        .query(By.directive(AndesTabsList))
+        .injector.get(CdkDropList);
+
+      dropList.dropped.emit({
+        item: { data: 'c' },
+        previousIndex: 2,
+        currentIndex: 0,
+      } as never);
+      dropList.dropped.emit({
+        item: { data: 'b' },
+        previousIndex: 1,
+        currentIndex: 1,
+      } as never);
+
+      expect(fixture.componentInstance.reorders).toEqual([
+        { key: 'c', previousIndex: 2, currentIndex: 0 },
+      ]);
+    });
+
+    it('moves the focused tab one step with Alt+Shift+arrow keys', async () => {
+      const { fixture, tabs } = await createFeatureHost((h) =>
+        h.draggable.set(true),
+      );
+
+      pressKey(tabs()[0], 'ArrowRight', { altKey: true, shiftKey: true });
+      pressKey(tabs()[0], 'ArrowLeft', { altKey: true, shiftKey: true });
+      pressKey(tabs()[2], 'ArrowRight', { altKey: true, shiftKey: true });
+
+      expect(fixture.componentInstance.reorders).toEqual([
+        { key: 'a', previousIndex: 0, currentIndex: 1 },
+      ]);
+    });
+
+    it('ignores Alt+Shift+arrow keys when not draggable', async () => {
+      const { fixture, tabs } = await createFeatureHost();
+
+      pressKey(tabs()[0], 'ArrowRight', { altKey: true, shiftKey: true });
+
+      expect(fixture.componentInstance.reorders).toEqual([]);
+    });
+
+    it('keeps focus on a moved tab, and arrow keys follow the new order', async () => {
+      const { fixture, tabs, settle } = await createFeatureHost((h) => {
+        h.draggable.set(true);
+        h.autoReorder = true;
+      });
+      const tabA = tabs()[0];
+      tabA.focus();
+
+      pressKey(tabA, 'ArrowRight', { altKey: true, shiftKey: true });
+      await settle();
+      // Let the list's MutationObserver report the move.
+      await Promise.resolve();
+      await settle();
+
+      expect(tabs().map((t) => t.textContent?.trim())).toEqual([
+        'Tab b',
+        'Tab a',
+        'Tab c',
+      ]);
+      expect(document.activeElement).toBe(tabA);
+
+      pressKey(tabA, 'ArrowRight');
+      await settle();
+      expect(document.activeElement?.textContent?.trim()).toBe('Tab c');
+      expect(fixture.componentInstance.value()).toBe('c');
+    });
+  });
+
+  describe('overflow menu', () => {
+    async function overflowing(setup?: (host: FeatureHost) => void) {
+      const harness = await createFeatureHost(setup);
+      const scroller = harness.q('.andes-tabs__nav-wrap') as HTMLElement;
+      stubScroll(scroller, { scrollWidth: 600, clientWidth: 200 });
+      stubRect(scroller, { left: 0, width: 200, height: 40 });
+      const [a, b, c] = harness.triggers();
+      // "a" is scrolled off the start, "c" sticks out past the end.
+      stubRect(a, { left: -60, width: 60, height: 40 });
+      stubRect(b, { left: 0, width: 100, height: 40 });
+      stubRect(c, { left: 160, width: 100, height: 40 });
+      // Any layout-affecting change re-measures; a real browser gets there via ResizeObserver.
+      harness.fixture.componentInstance.size.set('lg');
+      await harness.settle();
+      return {
+        ...harness,
+        moreButton: () => harness.q('.andes-tabs__more') as HTMLButtonElement,
+        menu: () => document.querySelector('andes-tabs-more-menu'),
+      };
+    }
+
+    afterEach(() => {
+      document.querySelector('.cdk-overlay-container')?.replaceChildren();
+    });
+
+    it('shows no "more" button while the tabs fit', async () => {
+      const { q } = await createFeatureHost();
+      expect(q('.andes-tabs__more')).toBeNull();
+    });
+
+    it('shows a "more" button outside the tablist once the tabs overflow', async () => {
+      const { moreButton } = await overflowing();
+      const more = moreButton();
+
+      expect(more).toBeTruthy();
+      expect(more.getAttribute('aria-label')).toBe('More tabs');
+      expect(more.getAttribute('aria-haspopup')).toBe('menu');
+      expect(more.getAttribute('aria-expanded')).toBe('false');
+      expect(more.closest('[role="tablist"]')).toBeNull();
+    });
+
+    it('can be turned off with [more]="false"', async () => {
+      const { q } = await overflowing((h) => h.more.set(false));
+      expect(q('.andes-tabs__more')).toBeNull();
+      expect(q('.andes-tabs__scroll')).toBeTruthy();
+    });
+
+    it('lists the tabs scrolled out of view and selects the one picked', async () => {
+      const { fixture, moreButton, menu, tabs, settle } = await overflowing();
+
+      moreButton().click();
+      await settle();
+
+      expect(menu()?.getAttribute('role')).toBe('menu');
+      expect(moreButton().getAttribute('aria-expanded')).toBe('true');
+      const items = Array.from(
+        menu()?.querySelectorAll('[role="menuitem"]') ?? [],
+      ) as HTMLElement[];
+      expect(items.map((item) => item.textContent?.trim())).toEqual([
+        'Tab a',
+        'Tab c',
+      ]);
+
+      items[1].click();
+      await settle();
+
+      expect(fixture.componentInstance.value()).toBe('c');
+      expect(menu()).toBeNull();
+      expect(document.activeElement).toBe(tabs()[2]);
+    });
+
+    it('picks a menu item with Enter', async () => {
+      const { fixture, moreButton, menu, settle } = await overflowing();
+      moreButton().click();
+      await settle();
+
+      const item = menu()?.querySelector('[role="menuitem"]') as HTMLElement;
+      pressKey(item, 'Enter');
+      await settle();
+
+      expect(fixture.componentInstance.value()).toBe('a');
+    });
+
+    it('filters the menu with moreSearch and picks the active option with Enter', async () => {
+      const { fixture, moreButton, menu, settle } = await overflowing((h) =>
+        h.moreSearch.set(true),
+      );
+      expect(moreButton().getAttribute('aria-haspopup')).toBe('dialog');
+      moreButton().click();
+      await settle();
+
+      expect(menu()?.getAttribute('role')).toBe('dialog');
+      const input = menu()?.querySelector(
+        'input[role="combobox"]',
+      ) as HTMLInputElement;
+      expect(menu()?.querySelector('[role="listbox"]')).toBeTruthy();
+
+      input.value = 'zz';
+      input.dispatchEvent(new Event('input'));
+      await settle();
+      expect(menu()?.querySelectorAll('[role="option"]').length).toBe(0);
+      expect(menu()?.textContent).toContain('No matching tabs');
+
+      input.value = 'C';
+      input.dispatchEvent(new Event('input'));
+      await settle();
+      const options = Array.from(
+        menu()?.querySelectorAll('[role="option"]') ?? [],
+      ) as HTMLElement[];
+      expect(options.map((o) => o.textContent?.trim())).toEqual(['Tab c']);
+      expect(input.getAttribute('aria-activedescendant')).toBe(options[0].id);
+
+      pressKey(input, 'Enter');
+      await settle();
+      expect(fixture.componentInstance.value()).toBe('c');
+    });
+
+    it('gives the moreSearch field a single focus indicator, not an outline frame', async () => {
+      const { moreButton, menu, settle } = await overflowing((h) =>
+        h.moreSearch.set(true),
+      );
+      moreButton().click();
+      await settle();
+
+      const input = menu()?.querySelector(
+        '.andes-tabs-more__search',
+      ) as HTMLInputElement;
+      input.focus();
+      const focused = getComputedStyle(input);
+      expect(focused.height).toBe('2rem');
+      // One indicator only: the primary border and its 2px soft ring.
+      expect(
+        focused.outlineStyle === '' || focused.outlineStyle === 'none',
+      ).toBe(true);
+      expect(focused.getPropertyValue('outline')).not.toMatch(/2px/);
+      expect(document.activeElement).toBe(input);
+      expect(focused.boxShadow).toBe(
+        '0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent)',
+      );
+    });
+
+    it('offers remove buttons for removable tabs in an editable-card menu', async () => {
+      const { fixture, moreButton, menu, settle } = await overflowing((h) =>
+        h.type.set('editable-card'),
+      );
+      moreButton().click();
+      await settle();
+
+      const remove = menu()?.querySelector(
+        '.andes-tabs-more__remove',
+      ) as HTMLButtonElement;
+      expect(remove.getAttribute('aria-hidden')).toBe('true');
+      remove.click();
+
+      expect(fixture.componentInstance.edits).toEqual([
+        expect.objectContaining({ action: 'remove', key: 'a' }),
+      ]);
+    });
+
+    it('renders a custom moreTemplate with the hidden tabs and a select function', async () => {
+      const { fixture, moreButton, settle } = await overflowing((h) =>
+        h.customMore.set(true),
+      );
+      moreButton().click();
+      await settle();
+
+      const buttons = Array.from(
+        document.querySelectorAll('.custom-more'),
+      ) as HTMLButtonElement[];
+      expect(buttons.map((b) => b.textContent?.trim())).toEqual([
+        'Tab a',
+        'Tab c',
+      ]);
+      expect(
+        document.querySelector('.andes-tabs__more-panel')?.getAttribute('role'),
+      ).toBe('dialog');
+
+      buttons[0].click();
+      await settle();
+      expect(fixture.componentInstance.value()).toBe('a');
+    });
+
+    it('opens on hover with moreTrigger="hover", without taking focus', async () => {
+      const { moreButton, menu, settle } = await overflowing((h) =>
+        h.moreTrigger.set('hover'),
+      );
+      const more = moreButton();
+      more.dispatchEvent(new MouseEvent('mouseenter'));
+      await settle();
+
+      expect(menu()).toBeTruthy();
+      expect(menu()?.contains(document.activeElement)).toBe(false);
+
+      more.dispatchEvent(new MouseEvent('mouseleave'));
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      await settle();
+      expect(menu()).toBeNull();
+    });
+  });
+
   describe('items', () => {
     async function createItemsHost() {
       const fixture = TestBed.createComponent(ItemsHost);
@@ -1121,5 +1522,65 @@ describe('AndesTabs (extended features)', () => {
         host.querySelector('[role="tabpanel"] .rich-content'),
       ).toBeTruthy();
     });
+  });
+});
+
+describe('tabs motion', () => {
+  // Asserted against the stylesheet source: jsdom runs no animations or transitions.
+  const read = (file: string) =>
+    readFileSync(`packages/ui/src/lib/tabs/${file}`, 'utf8');
+
+  it('cross-fades a new panel in 150ms without sliding it', () => {
+    const css = read('tabs-content.css');
+    expect(css).toContain('animation: andes-tabs-pane-in 0.15s ease-out;');
+    const keyframes =
+      /@keyframes andes-tabs-pane-in\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(keyframes).not.toContain('transform');
+  });
+
+  it('moves the ink bar in 200ms, without the old 300ms trail', () => {
+    const css = read('tabs.css');
+    const rule =
+      /\.andes-tabs__ink-bar--animated\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rule).toContain('0.2s');
+    expect(rule).not.toContain('0.3s');
+  });
+
+  it('opens the more menu with the shared soft entry and none under reduced motion', () => {
+    const css = read('tabs-more-menu.css');
+    expect(css).toContain(
+      'animation: andes-tabs-more-in 0.15s cubic-bezier(0.2, 0, 0, 1);',
+    );
+    expect(css).toContain('transform: scale(0.97);');
+    expect(
+      css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)')),
+    ).toMatch(/animation:\s*none/);
+  });
+
+  it('plays the more menu entry back on close, short and accelerating', () => {
+    for (const [file, selector] of [
+      ['tabs-more-menu.css', ':host([data-andes-closing])'],
+      ['tabs.css', '.andes-tabs__more-panel[data-andes-closing]'],
+    ] as const) {
+      const css = read(file);
+      const rule = css.slice(css.indexOf(`${selector} {`));
+      expect(rule).toMatch(
+        /animation: andes-tabs-more(-panel)?-out var\(--andes-duration-fast, 120ms\)\s+var\(--andes-ease-in, ease-in\) forwards;/,
+      );
+      const reduced = css.slice(
+        css.indexOf('@media (prefers-reduced-motion: reduce)'),
+      );
+      expect(reduced).toContain(selector);
+    }
+  });
+
+  it('lets a container set both card tab surfaces', () => {
+    const css = read('tabs-trigger.css');
+    expect(css).toContain(
+      'var(--andes-tabs-card-background, var(--andes-color-muted))',
+    );
+    expect(css).toMatch(
+      /var\(\s*--andes-tabs-card-selected-background,\s*var\(--andes-color-background\)\s*\)/,
+    );
   });
 });

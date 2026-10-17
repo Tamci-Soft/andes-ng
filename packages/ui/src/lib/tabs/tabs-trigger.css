@@ -15,8 +15,8 @@
   align-items: center;
   justify-content: center;
   gap: var(--andes-space-2);
-  /* Ant Design's tab metrics: 12px 0 (46px-tall line tabs; the list's 32px gap spaces them),
-     14px / 22px labels. */
+  /* 12px above and below the 22px label makes a 46px-tall line tab; the list's 32px gap
+     spaces them. */
   padding: var(--andes-space-3) 0;
   border: none;
   background: none;
@@ -89,12 +89,23 @@
 
 /* ---- Card variants ----------------------------------------------------------------------- */
 
+/* The two card surfaces are custom properties so a container can match them to its own
+   surface: `--andes-tabs-card-selected-background` is the selected card, which opens into
+   the panel below and so should equal whatever the panel sits on (the page background by
+   default), and `--andes-tabs-card-background` is the fill of the others. A surrounding
+   card sets both, so in dark mode the selected tab doesn't read as a hole in the card. */
 :host([data-variant='card']) {
   border: 1px solid var(--andes-color-border);
   border-radius: var(--andes-radius-lg) var(--andes-radius-lg) 0 0;
-  background: var(--andes-color-muted);
-  transition: background-color var(--andes-motion-duration-slow, 0.3s)
-    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+  background: var(--andes-tabs-card-background, var(--andes-color-muted));
+  transition: background-color 150ms ease;
+}
+
+/* An unselected card already shows full-strength text (see below), so the text colour change
+   the line type uses for hover would be invisible here - the fill answers the pointer instead.
+   `accent-hover` keeps the foreground above 4.5:1 in both themes. */
+:host([data-variant='card']:not([data-selected]):not([data-disabled]):hover) {
+  background: var(--andes-color-accent-hover);
 }
 
 /* Full foreground on the muted card fill: muted-foreground only reaches ~4.3:1 there. */
@@ -103,8 +114,14 @@
 }
 
 :host([data-variant='card'][data-selected]) {
-  background: var(--andes-color-background);
-  border-bottom-color: var(--andes-color-background);
+  background: var(
+    --andes-tabs-card-selected-background,
+    var(--andes-color-background)
+  );
+  border-bottom-color: var(
+    --andes-tabs-card-selected-background,
+    var(--andes-color-background)
+  );
 }
 
 :host([data-variant='card'][data-position='bottom']) {
@@ -113,7 +130,10 @@
 
 :host([data-variant='card'][data-position='bottom'][data-selected]) {
   border-bottom-color: var(--andes-color-border);
-  border-top-color: var(--andes-color-background);
+  border-top-color: var(
+    --andes-tabs-card-selected-background,
+    var(--andes-color-background)
+  );
 }
 
 :host([data-variant='card'][data-position='left']) {
@@ -125,7 +145,10 @@
 
 :host([data-variant='card'][data-position='left'][data-selected]) {
   border-bottom-color: var(--andes-color-border);
-  border-inline-end-color: var(--andes-color-background);
+  border-inline-end-color: var(
+    --andes-tabs-card-selected-background,
+    var(--andes-color-background)
+  );
 }
 
 :host([data-variant='card'][data-position='right']) {
@@ -137,7 +160,10 @@
 
 :host([data-variant='card'][data-position='right'][data-selected]) {
   border-bottom-color: var(--andes-color-border);
-  border-inline-start-color: var(--andes-color-background);
+  border-inline-start-color: var(
+    --andes-tabs-card-selected-background,
+    var(--andes-color-background)
+  );
 }
 
 :host([data-closable]) .andes-tabs__trigger {
@@ -171,9 +197,45 @@
   height: 0.875rem;
 }
 
+/* ---- Dragging (draggable Tabs) ------------------------------------------------------------ */
+
+:host([data-draggable]) .andes-tabs__trigger {
+  cursor: grab;
+}
+
+/* While a tab is dragged, its siblings slide out of the way instead of jumping. */
+:host([data-sorting]:not(.cdk-drag-placeholder)) {
+  transition: transform 0.2s ease;
+}
+
+/* The dragged copy follows the pointer under <body>, outside the Tabs: it keeps this
+   component's attributes, so the rules above still style it; this lifts it off the page. */
+:host(.cdk-drag-preview) {
+  box-sizing: border-box;
+  border-radius: var(--andes-radius-md);
+  background: var(
+    --andes-tabs-card-selected-background,
+    var(--andes-color-background)
+  );
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%);
+  cursor: grabbing;
+}
+
+:host(.cdk-drag-placeholder) {
+  opacity: 0.4;
+}
+
+:host(.cdk-drag-animating) {
+  transition: transform 0.2s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .andes-tabs__trigger,
-  .andes-tabs__remove {
+  .andes-tabs__remove,
+  :host([data-sorting]),
+  :host(.cdk-drag-animating) {
     transition: none;
   }
 }

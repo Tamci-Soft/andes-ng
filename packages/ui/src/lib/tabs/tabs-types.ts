@@ -72,6 +72,43 @@ export interface AndesTabsScrollEvent {
   direction: 'left' | 'right' | 'top' | 'bottom';
 }
 
+/**
+ * Emitted by `(reorder)` when a `draggable` Tabs' tab is dropped at a new place, or moved
+ * one step with `Alt`+`Shift`+arrow key. Indices count every tab in the bar, disabled ones
+ * included. Like `(edit)`, it only reports the request: the consumer reorders its own list
+ * of tabs (e.g. with `moveItemInArray` from `@angular/cdk/drag-drop`).
+ */
+export interface AndesTabsReorderEvent {
+  key: string;
+  previousIndex: number;
+  currentIndex: number;
+}
+
+/** How the overflow menu button opens its menu. */
+export type AndesTabsMoreTrigger = 'click' | 'hover';
+
+/** One tab listed in the overflow menu: a tab currently scrolled (partly) out of view. */
+export interface AndesTabsMoreTab {
+  key: string;
+  /** The tab's visible text. */
+  label: string;
+  icon: TemplateRef<unknown> | undefined;
+  disabled: boolean;
+  /** Whether the tab shows a remove button (`editable-card` only). */
+  removable: boolean;
+  selected: boolean;
+}
+
+/** Template context of a custom `moreTemplate`. */
+export interface AndesTabsMoreContext {
+  /** The tabs currently out of view. */
+  $implicit: readonly AndesTabsMoreTab[];
+  /** Selects a tab, closes the menu and focuses the tab. */
+  select: (key: string) => void;
+  /** Closes the menu. */
+  close: () => void;
+}
+
 /** The object form of `tabBarExtraContent`. */
 export interface AndesTabsExtraContent {
   left?: TemplateRef<unknown>;
@@ -129,6 +166,12 @@ export interface AndesTabsTriggerRef {
    * roving-tabindex target in sync with whichever tab is currently selected.
    */
   readonly navigationItem: Signal<AndesListNavigationItemRef | undefined>;
+  /** The icon rendered before the label, if any. */
+  readonly icon: Signal<TemplateRef<unknown> | undefined>;
+  /** Whether the tab currently shows a remove button. */
+  readonly removable: Signal<boolean>;
+  /** The tab button's visible text, read from the DOM. */
+  labelText(): string;
 }
 
 /**
@@ -153,7 +196,18 @@ export interface AndesTabsContext {
   readonly tabPaneAnimated: Signal<boolean>;
   readonly destroyOnHidden: Signal<boolean>;
   readonly removeIcon: Signal<TemplateRef<unknown> | undefined>;
+  readonly draggable: Signal<boolean>;
+  /** Whether a tab is being dragged right now. */
+  readonly sorting: Signal<boolean>;
   select(value: string): void;
+  setSorting(sorting: boolean): void;
+  requestReorder(
+    value: string,
+    previousIndex: number,
+    currentIndex: number,
+  ): void;
+  moveByKeyboard(value: string, step: -1 | 1): void;
+  syncOrder(): void;
   handleTabClick(value: string, event: MouseEvent): void;
   requestRemove(value: string, event: Event, fromKeyboard: boolean): void;
   registerTrigger(trigger: AndesTabsTriggerRef): void;
