@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { AndesButton } from '../button/button';
@@ -14,6 +14,40 @@ import { AndesTooltipTrigger } from './tooltip-trigger';
 })
 class StoryRenderStamp {
   readonly renderedAt = new Date().toLocaleTimeString();
+}
+
+/** A trigger that keeps resizing, to show an open tooltip re-aligning. */
+@Component({
+  selector: 'andes-story-growing-trigger',
+  imports: [AndesTooltip, AndesTooltipTrigger],
+  template: `
+    <div style="padding: 6rem; width: 32rem;">
+      <andes-tooltip
+        content="I stay centered on the box"
+        placement="bottom"
+        [open]="true"
+      >
+        <span
+          andesTooltipTrigger
+          style="display: inline-block; padding: 0.5rem; border: 1px dashed var(--andes-color-border); transition: width 300ms;"
+          [style.width.px]="width()"
+        >
+          Growing trigger
+        </span>
+      </andes-tooltip>
+    </div>
+  `,
+})
+class StoryGrowingTrigger {
+  protected readonly width = signal(140);
+
+  constructor() {
+    const timer = setInterval(
+      () => this.width.update((width) => (width >= 380 ? 140 : width + 80)),
+      1200,
+    );
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
 }
 
 const meta: Meta<AndesTooltip> = {
@@ -37,6 +71,7 @@ const meta: Meta<AndesTooltip> = {
       options: ['hover', 'focus', 'click', 'contextMenu'],
     },
     color: { control: 'text' },
+    variant: { control: 'inline-radio', options: ['default', 'inverse'] },
     maxWidth: { control: 'text' },
     zIndex: { control: 'number' },
     destroyOnHidden: { control: 'boolean' },
@@ -59,6 +94,7 @@ const meta: Meta<AndesTooltip> = {
     autoAdjustOverflow: true,
     trigger: ['hover', 'focus'],
     color: null,
+    variant: 'default',
     maxWidth: null,
     zIndex: null,
     destroyOnHidden: false,
@@ -86,6 +122,7 @@ const meta: Meta<AndesTooltip> = {
           [autoAdjustOverflow]="autoAdjustOverflow"
           [trigger]="trigger"
           [color]="color"
+          [variant]="variant"
           [maxWidth]="maxWidth"
           [zIndex]="zIndex"
           [destroyOnHidden]="destroyOnHidden"
@@ -340,9 +377,81 @@ export const Colors: Story = {
 };
 
 /**
+ * `variant="inverse"`: a dark surface with light text in either theme - switch the
+ * toolbar theme to compare. On a dark page the fill lifts a few steps so the hint
+ * still reads as a layer above the page.
+ */
+export const Inverse: Story = {
+  render: (args) => ({
+    moduleMetadata: { imports: [AndesTooltipTrigger, AndesButton] },
+    props: args,
+    template: `
+      <div style="display: flex; gap: 1.5rem; padding: 5rem 2rem;">
+        <andes-tooltip content="Default: follows the theme's surface" [open]="true">
+          <andes-button andesTooltipTrigger variant="outline">Default</andes-button>
+        </andes-tooltip>
+        <andes-tooltip content="Inverse: dark surface, light text" variant="inverse" [open]="true">
+          <andes-button andesTooltipTrigger variant="outline">Inverse</andes-button>
+        </andes-tooltip>
+        <andes-tooltip content="Without an arrow" variant="inverse" [arrow]="false" side="bottom" [open]="true">
+          <andes-button andesTooltipTrigger variant="outline">Inverse, no arrow</andes-button>
+        </andes-tooltip>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Keyboard access for a hint on a disabled control. A disabled control cannot take
+ * focus, so keyboard and screen-reader users never reach a tooltip attached to it
+ * directly - only the pointer case is covered by the automatic wrapper above.
+ *
+ * - **Wrapper pattern** (left): make a focusable wrapper the trigger -
+ *   `<span tabindex="0" andesTooltipTrigger>` around the disabled control. Focus
+ *   lands on the wrapper, the tooltip opens and the wrapper is described by it.
+ * - **Keep it focusable** (right): where the control may stay in the tab order,
+ *   mark it `aria-disabled="true"` instead of `disabled` and ignore its activation;
+ *   it then works as a normal trigger and announces itself as unavailable.
+ *
+ * Tab through the row to try both.
+ */
+export const DisabledKeyboardAccess: Story = {
+  render: (args) => ({
+    moduleMetadata: { imports: [AndesTooltipTrigger, AndesButton] },
+    props: args,
+    template: `
+      <style>
+        .sb-tooltip-wrapper { display: inline-block; border-radius: var(--andes-radius-md); }
+        .sb-tooltip-wrapper:focus-visible { outline: 2px solid var(--andes-color-focus-ring); outline-offset: 2px; }
+        .sb-aria-disabled {
+          box-sizing: border-box; height: 2rem; padding: 0 0.9375rem;
+          border: 1px solid var(--andes-color-input); border-radius: var(--andes-radius-md);
+          background: var(--andes-color-muted); color: var(--andes-color-muted-foreground);
+          font: inherit; font-size: 0.875rem; line-height: 1.375rem; cursor: not-allowed;
+        }
+        .sb-aria-disabled:focus-visible { outline: 2px solid var(--andes-color-focus-ring); outline-offset: 2px; }
+      </style>
+      <div style="display: flex; gap: 1.5rem; padding: 6rem 2rem; font-family: var(--andes-font-family), sans-serif;">
+        <andes-tooltip content="You need edit rights to save" [openDelay]="0">
+          <span class="sb-tooltip-wrapper" tabindex="0" andesTooltipTrigger>
+            <andes-button disabled>Save (wrapper)</andes-button>
+          </span>
+        </andes-tooltip>
+        <andes-tooltip content="Nothing to publish yet" [openDelay]="0">
+          <button type="button" class="sb-aria-disabled" aria-disabled="true" andesTooltipTrigger>
+            Publish (aria-disabled)
+          </button>
+        </andes-tooltip>
+      </div>
+    `,
+  }),
+};
+
+/**
  * A disabled trigger still shows its tooltip: the `<andes-tooltip>` host
  * becomes an inline-block wrapper that catches the hover the disabled control
- * cannot.
+ * cannot. That covers the pointer only - for keyboard access see
+ * `DisabledKeyboardAccess`.
  */
 export const DisabledTrigger: Story = {
   render: (args) => ({
@@ -425,6 +534,7 @@ export const Sizing: Story = {
       `::ng-deep .story-tooltip-inverse {
         --andes-tooltip-background: var(--andes-color-foreground);
         --andes-tooltip-foreground: var(--andes-color-background);
+        --andes-tooltip-border-color: var(--andes-color-foreground);
         --andes-tooltip-max-width: 12rem;
       }`,
     ],
@@ -519,6 +629,18 @@ export const InstantReopenGroup: Story = {
         one - it opens instantly instead of paying the open delay again.
       </p>
     `,
+  }),
+};
+
+/**
+ * An open tooltip stays aligned when its trigger changes size: the box below
+ * grows and shrinks on a timer and the tooltip follows it.
+ */
+export const FollowsLayoutChanges: Story = {
+  name: 'Follows layout changes',
+  render: () => ({
+    moduleMetadata: { imports: [StoryGrowingTrigger] },
+    template: `<andes-story-growing-trigger />`,
   }),
 };
 
