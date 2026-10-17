@@ -1,21 +1,33 @@
 import { Directive, inject, TemplateRef } from '@angular/core';
 
+import { AndesCheckboxValue } from './checkbox-group-state';
+
 /**
- * One entry of `AndesCheckboxGroup`'s `options` input, in its object form. A bare `string` is
- * shorthand for `{ label: s, value: s }`.
+ * One entry of `AndesCheckboxGroup`'s `options` input, in its object form. A bare string or
+ * number is shorthand for `{ label: String(v), value: v }`.
  */
-export interface AndesCheckboxOption {
+export interface AndesCheckboxOption<T extends AndesCheckboxValue = string> {
   readonly label: string;
-  readonly value: string;
+  readonly value: T;
   readonly disabled?: boolean;
   /** Native tooltip for the option (the rendered checkbox's `title` attribute). */
   readonly title?: string;
+  /** Extra class(es) on the rendered `<andes-checkbox>`, e.g. to style or size one option. */
+  readonly className?: string;
+  /** Inline styles on the rendered `<andes-checkbox>`, in any form `[style]` accepts. */
+  readonly style?: string | Readonly<Record<string, string | number>>;
 }
 
+/** Anything `AndesCheckboxGroup`'s `options` input accepts per entry. */
+export type AndesCheckboxOptionInput<T extends AndesCheckboxValue = string> =
+  T | AndesCheckboxOption<T>;
+
 /** Template context of `AndesCheckboxOptionLabel`. */
-export interface AndesCheckboxOptionLabelContext {
+export interface AndesCheckboxOptionLabelContext<
+  T extends AndesCheckboxValue = AndesCheckboxValue,
+> {
   /** The (normalized) option being rendered. */
-  readonly $implicit: AndesCheckboxOption;
+  readonly $implicit: AndesCheckboxOption<T>;
   readonly index: number;
 }
 

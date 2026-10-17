@@ -637,6 +637,123 @@ describe('AndesCheckboxGroup', () => {
     });
   });
 
+  describe('numeric values', () => {
+    @Component({
+      imports: [AndesCheckboxGroup],
+      template: `<andes-checkbox-group
+        [options]="options"
+        [(value)]="value"
+      />`,
+    })
+    class NumericHost {
+      readonly options = [1, 2, { label: 'Three', value: 3 }];
+      readonly value = signal<readonly number[]>([2]);
+    }
+
+    it('accepts number options and keeps the selection numeric', () => {
+      const fixture = TestBed.createComponent(NumericHost);
+      fixture.detectChanges();
+      const host = fixture.nativeElement as HTMLElement;
+      const inputs = Array.from(host.querySelectorAll('input'));
+
+      expect(
+        Array.from(host.querySelectorAll('.andes-checkbox__label')).map(
+          (label) => label.textContent?.trim(),
+        ),
+      ).toEqual(['1', '2', 'Three']);
+      expect(inputs.map((input) => input.checked)).toEqual([
+        false,
+        true,
+        false,
+      ]);
+
+      inputs[2].click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.value()).toEqual([2, 3]);
+    });
+
+    it('treats 1 and "1" as different values', () => {
+      @Component({
+        imports: [AndesCheckboxGroup, AndesCheckbox],
+        template: `<andes-checkbox-group [(value)]="value">
+          <andes-checkbox [value]="1">Number</andes-checkbox>
+          <andes-checkbox value="1">String</andes-checkbox>
+        </andes-checkbox-group>`,
+      })
+      class MixedHost {
+        readonly value = signal<readonly (string | number)[]>(['1']);
+      }
+
+      const fixture = TestBed.createComponent(MixedHost);
+      fixture.detectChanges();
+      const inputs = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('input'),
+      );
+
+      expect(inputs.map((input) => input.checked)).toEqual([false, true]);
+    });
+  });
+
+  it('applies per-option className and style to the rendered checkbox', () => {
+    @Component({
+      imports: [AndesCheckboxGroup],
+      template: `<andes-checkbox-group [options]="options" />`,
+    })
+    class StyledHost {
+      readonly options: readonly AndesCheckboxOption[] = [
+        { label: 'Plain', value: 'plain' },
+        {
+          label: 'Styled',
+          value: 'styled',
+          className: 'extra-option',
+          style: { 'margin-left': '12px' },
+        },
+      ];
+    }
+
+    const fixture = TestBed.createComponent(StyledHost);
+    fixture.detectChanges();
+    const [plain, styled] = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>(
+        'andes-checkbox',
+      ),
+    );
+
+    expect(plain.classList).not.toContain('extra-option');
+    expect(styled.classList).toContain('extra-option');
+    expect(styled.style.marginLeft).toBe('12px');
+  });
+
+  it('finds items nested inside a custom layout wrapper', () => {
+    @Component({
+      imports: [AndesCheckboxGroup, AndesCheckbox, AndesCheckboxSelectAll],
+      template: `<andes-checkbox-group [(value)]="value">
+        <andes-checkbox andesSelectAll>All</andes-checkbox>
+        <div class="grid">
+          <div><andes-checkbox value="a">A</andes-checkbox></div>
+          <div><andes-checkbox value="b">B</andes-checkbox></div>
+        </div>
+      </andes-checkbox-group>`,
+    })
+    class LayoutHost {
+      readonly value = signal<readonly string[]>(['a']);
+    }
+
+    const fixture = TestBed.createComponent(LayoutHost);
+    fixture.detectChanges();
+    const [all, , b] = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('input'),
+    );
+
+    expect(all.indeterminate).toBe(true);
+    b.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.value()).toEqual(['a', 'b']);
+    expect(all.checked).toBe(true);
+  });
+
   describe('skipGroup', () => {
     @Component({
       imports: [AndesCheckbox, AndesCheckboxGroup, AndesCheckboxSelectAll],

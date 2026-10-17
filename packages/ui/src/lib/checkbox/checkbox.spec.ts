@@ -61,6 +61,17 @@ describe('AndesCheckbox', () => {
     expect(input.type).toBe('checkbox');
   });
 
+  it('fades the check mark in with the box fill instead of snapping it on', () => {
+    const { fixture } = createHost();
+    const icon = fixture.nativeElement.querySelector(
+      '.andes-checkbox__icon',
+    ) as HTMLElement;
+
+    const transition = getComputedStyle(icon).transition;
+    expect(transition).toContain('opacity var(--andes-motion-duration-mid');
+    expect(transition).toContain('transform var(--andes-motion-duration-mid');
+  });
+
   it('projects the label content', () => {
     const { fixture } = createHost();
 
@@ -732,5 +743,65 @@ describe('AndesCheckbox', () => {
       checkbox.blur();
       expect(document.activeElement).not.toBe(input);
     });
+
+    it('exposes the native input as nativeElement', () => {
+      const { fixture, input } = createHost();
+      const checkbox = fixture.debugElement.query(
+        (el) => el.componentInstance instanceof AndesCheckbox,
+      ).componentInstance as AndesCheckbox;
+
+      expect(checkbox.nativeElement).toBe(input);
+    });
+
+    it('emits focused and blurred with the native FocusEvent', () => {
+      @Component({
+        imports: [AndesCheckbox],
+        template: `<andes-checkbox
+          (focused)="events.push('focus:' + $event.type)"
+          (blurred)="events.push('blur:' + $event.type)"
+          >Focus events</andes-checkbox
+        >`,
+      })
+      class FocusHost {
+        readonly events: string[] = [];
+      }
+
+      const fixture = TestBed.createComponent(FocusHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector(
+        'input',
+      ) as HTMLInputElement;
+
+      input.focus();
+      input.blur();
+
+      expect(fixture.componentInstance.events).toEqual([
+        'focus:focus',
+        'blur:blur',
+      ]);
+    });
+  });
+
+  it('carries a numeric value through to the changed payload', () => {
+    @Component({
+      imports: [AndesCheckbox],
+      template: `<andes-checkbox [value]="7" (changed)="last = $event.value"
+        >Seven</andes-checkbox
+      >`,
+    })
+    class NumericHost {
+      last: string | number | undefined;
+    }
+
+    const fixture = TestBed.createComponent(NumericHost);
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector(
+      'input',
+    ) as HTMLInputElement;
+
+    expect(input.value).toBe('7');
+    input.click();
+
+    expect(fixture.componentInstance.last).toBe(7);
   });
 });

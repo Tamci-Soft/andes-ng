@@ -4,6 +4,8 @@
   [value]="option.value"
   [disabled]="option.disabled"
   [attr.title]="option.title ?? null"
+  [class]="option.className ?? ''"
+  [style]="option.style ?? null"
 >
   @if (optionLabel(); as custom) {
   <ng-container

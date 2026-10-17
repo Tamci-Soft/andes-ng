@@ -7,6 +7,12 @@ import {
 } from '@angular/core';
 
 /**
+ * What a checkbox can contribute to its group's selection. Numbers are kept as numbers (and
+ * compared strictly), so a group over numeric ids reports `[1, 3]`, never `['1', '3']`.
+ */
+export type AndesCheckboxValue = string | number;
+
+/**
  * One `AndesCheckbox` participating in an `AndesCheckboxGroup`.
  *
  * Both members are signals rather than plain values because an item's `value` and `disabled`
@@ -18,7 +24,7 @@ export interface AndesCheckboxGroupItem {
   /** `undefined` while the checkbox carries no `value` - such a checkbox is rendered inside
    *  the group but has nothing to contribute to an array of selected values, so it is ignored
    *  by the aggregate and by select-all. */
-  readonly value: Signal<string | undefined>;
+  readonly value: Signal<AndesCheckboxValue | undefined>;
   readonly disabled: Signal<boolean>;
 }
 
@@ -49,7 +55,7 @@ export const ANDES_CHECKBOX_SELECT_ALL = new InjectionToken<unknown>(
  */
 @Injectable()
 export class AndesCheckboxGroupState {
-  private readonly _value = signal<readonly string[]>([]);
+  private readonly _value = signal<readonly AndesCheckboxValue[]>([]);
   private readonly _disabled = signal(false);
   private readonly _name = signal<string | undefined>(undefined);
   private readonly _items = signal<readonly AndesCheckboxGroupItem[]>([]);
@@ -69,7 +75,7 @@ export class AndesCheckboxGroupState {
     this._items()
       .filter((item) => !item.disabled())
       .map((item) => item.value())
-      .filter((value): value is string => value !== undefined),
+      .filter((value): value is AndesCheckboxValue => value !== undefined),
   );
 
   private readonly selectedCount = computed(() => {
@@ -100,9 +106,10 @@ export class AndesCheckboxGroupState {
    * service) is what lets the group expose `value` as a two-way `model()` and a form control
    * at the same time, with one code path feeding both.
    */
-  private onUserChange: (value: readonly string[]) => void = () => undefined;
+  private onUserChange: (value: readonly AndesCheckboxValue[]) => void = () =>
+    undefined;
 
-  isSelected(value: string): boolean {
+  isSelected(value: AndesCheckboxValue): boolean {
     return this._value().includes(value);
   }
 
@@ -115,7 +122,7 @@ export class AndesCheckboxGroupState {
   }
 
   /** Programmatic write - from the group's `value` model or its `writeValue()`. */
-  setValue(value: readonly string[] | null | undefined): void {
+  setValue(value: readonly AndesCheckboxValue[] | null | undefined): void {
     this._value.set(this.order(value ?? []));
   }
 
@@ -130,7 +137,7 @@ export class AndesCheckboxGroupState {
   }
 
   /** A single item was clicked. */
-  toggleItem(value: string, checked: boolean): void {
+  toggleItem(value: AndesCheckboxValue, checked: boolean): void {
     const current = this._value();
     if (checked === current.includes(value)) {
       return;
@@ -155,11 +162,13 @@ export class AndesCheckboxGroupState {
     this.commit(selected ? [...untouched, ...selectable] : untouched);
   }
 
-  registerOnUserChange(fn: (value: readonly string[]) => void): void {
+  registerOnUserChange(
+    fn: (value: readonly AndesCheckboxValue[]) => void,
+  ): void {
     this.onUserChange = fn;
   }
 
-  private commit(next: readonly string[]): void {
+  private commit(next: readonly AndesCheckboxValue[]): void {
     const ordered = this.order(next);
     this._value.set(ordered);
     this.onUserChange(ordered);
@@ -172,11 +181,13 @@ export class AndesCheckboxGroupState {
    * registered item (e.g. written in before the items render) keep their relative order at
    * the end.
    */
-  private order(values: readonly string[]): readonly string[] {
+  private order(
+    values: readonly AndesCheckboxValue[],
+  ): readonly AndesCheckboxValue[] {
     const unique = Array.from(new Set(values));
     const itemOrder = this._items()
       .map((item) => item.value())
-      .filter((value): value is string => value !== undefined);
+      .filter((value): value is AndesCheckboxValue => value !== undefined);
 
     return [
       ...itemOrder.filter((value) => unique.includes(value)),

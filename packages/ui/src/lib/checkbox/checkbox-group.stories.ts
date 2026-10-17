@@ -1,3 +1,4 @@
+import { JsonPipe } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
 
@@ -256,6 +257,77 @@ export const SkipGroup: Story = {
       <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
         Selected: {{ value.length ? value.join(', ') : 'none' }} - notify: {{ notify }}
       </p>
+    `,
+  }),
+};
+
+export const NumericOptions: Story = {
+  name: 'Options (numbers)',
+  render: () => ({
+    moduleMetadata: { imports: [JsonPipe] },
+    props: {
+      options: [1, 2, 3, 4],
+      value: [2, 4] as readonly number[],
+    },
+    // Number values stay numbers: the selection reads `[2, 4]`, not `['2', '4']`.
+    template: `
+      <andes-checkbox-group aria-label="Floors" orientation="horizontal" [options]="options" [(value)]="value" />
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
+        Selected: {{ value | json }}
+      </p>
+    `,
+  }),
+};
+
+export const OptionClassAndStyle: Story = {
+  name: 'Options (per-option class + style)',
+  render: () => ({
+    props: {
+      options: [
+        { label: 'Standard', value: 'standard' },
+        {
+          label: 'Express (+$5)',
+          value: 'express',
+          style: { 'font-weight': 600 },
+        },
+        {
+          label: 'Gift wrap',
+          value: 'gift',
+          className: 'gift-option',
+          style: {
+            padding: '0.25rem 0.5rem',
+            'border-radius': 'var(--andes-radius-sm)',
+            background: 'var(--andes-color-muted)',
+          },
+        },
+      ],
+      value: [] as readonly string[],
+    },
+    template: `
+      <andes-checkbox-group aria-label="Delivery extras" [options]="options" [(value)]="value" />
+      ${selectedText}
+    `,
+  }),
+};
+
+export const CustomLayout: Story = {
+  name: 'Custom layout (grid)',
+  render: () => ({
+    moduleMetadata: { imports: [AndesCheckbox] },
+    props: { value: ['a', 'c'] as readonly string[] },
+    // Items can sit at any depth inside the group, so the group's own flex layout can be
+    // replaced by any wrapper - here a three-column grid.
+    template: `
+      <andes-checkbox-group aria-label="Letters" [(value)]="value">
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 8rem)); gap: var(--andes-space-3);">
+          <andes-checkbox value="a">A</andes-checkbox>
+          <andes-checkbox value="b">B</andes-checkbox>
+          <andes-checkbox value="c">C</andes-checkbox>
+          <andes-checkbox value="d">D</andes-checkbox>
+          <andes-checkbox value="e">E</andes-checkbox>
+        </div>
+      </andes-checkbox-group>
+      ${selectedText}
     `,
   }),
 };

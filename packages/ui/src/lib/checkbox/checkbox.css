@@ -7,7 +7,10 @@
 .andes-checkbox {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  /* Top-aligned, with the box centered on the first line of text (see the control's
+     margin below), so a label that wraps keeps the box beside its first line instead of
+     floating halfway down the paragraph. */
+  align-items: flex-start;
   gap: var(--andes-space-2);
   font-family: var(--andes-font-family), sans-serif;
   /* Body-text scale (14px / 22px), so a row of checkboxes is as dense as the fields around it
@@ -45,6 +48,8 @@
   flex-shrink: 0;
   width: 1rem;
   height: 1rem;
+  /* Centers the 16px box on the label's 22px first line. */
+  margin-block: calc((1.375rem - 1rem) / 2);
 }
 
 /* Visually hidden but still the real, focusable, clickable control - only its paint is
@@ -71,7 +76,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--andes-color-input);
+  /* The bare --andes-color-input border only reaches ~1.5:1 against the page in both
+     themes, and an unchecked box has nothing else to show it is there - mixed toward the
+     foreground it clears the 3:1 non-text contrast minimum in light and dark alike.
+     `--andes-checkbox-border-width` is the styling hook for a heavier (or hairline) box. */
+  border: var(--andes-checkbox-border-width, 1px) solid
+    color-mix(
+      in srgb,
+      var(--andes-color-input),
+      var(--andes-color-foreground) 35%
+    );
   border-radius: var(--andes-radius-sm);
   background-color: var(--andes-color-background);
   transition:
@@ -83,6 +97,12 @@
 
 .andes-checkbox__input:hover:not(:disabled) ~ .andes-checkbox__box {
   border-color: var(--andes-color-primary);
+}
+
+/* A read-only box will not toggle, so an empty one does not light up on hover either. */
+/* prettier-ignore */
+.andes-checkbox--readonly .andes-checkbox__input:hover:not(:checked):not(:indeterminate) ~ .andes-checkbox__box {
+  border-color: color-mix(in srgb, var(--andes-color-input), var(--andes-color-foreground) 35%);
 }
 
 .andes-checkbox__input:focus-visible ~ .andes-checkbox__box {
@@ -104,6 +124,12 @@
   border-color: var(--andes-color-danger);
 }
 
+/* An empty invalid box keeps its danger border on hover instead of turning primary. */
+/* prettier-ignore */
+.andes-checkbox--invalid .andes-checkbox__input:hover:not(:checked):not(:indeterminate) ~ .andes-checkbox__box {
+  border-color: var(--andes-color-danger);
+}
+
 /* Kept on a SINGLE line on purpose - see the note above the `:checked` icon rule below.
    Angular's style encapsulation mis-scopes multi-line descendant/sibling selectors. */
 /* prettier-ignore */
@@ -113,14 +139,17 @@
 
 .andes-checkbox__icon {
   position: absolute;
+  /* 12px inside the 14px content box leaves a whole 1px on each side, so the mark lands on
+     the pixel grid instead of blurring across a half-pixel offset. */
   width: 0.75rem;
   height: 0.75rem;
   color: var(--andes-color-primary-foreground);
   opacity: 0;
   /* The mark grows in from a little under full size as it fades in - a short, subtle settle
-     rather than Ant's overshooting pop. */
+     rather than an overshooting pop. */
   transform: scale(0.6);
   pointer-events: none;
+  /* Fades in just behind the box fill rather than snapping on ahead of it. */
   transition:
     opacity var(--andes-motion-duration-mid, 0.2s)
       var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
