@@ -368,6 +368,47 @@
   user-select: none;
 }
 
+/* Column reordering (CDK drag inside the header row). The preview is a clone of the
+   header cell kept inside the row, so these cell styles still apply; the placeholder
+   holds the column's slot while the neighbours slide aside. */
+.andes-table
+  ::ng-deep
+  .andes-table__head--reorderable:not(.andes-table__head--sortable) {
+  cursor: grab;
+}
+
+.andes-table ::ng-deep .andes-table__head--reorderable:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.andes-table ::ng-deep .andes-table__drag-preview {
+  box-sizing: border-box;
+  background-color: var(--andes-color-muted);
+  box-shadow:
+    0 6px 16px 0 rgb(0 0 0 / 8%),
+    0 3px 6px -4px rgb(0 0 0 / 12%),
+    0 9px 28px 8px rgb(0 0 0 / 5%);
+  cursor: grabbing;
+}
+
+.andes-table ::ng-deep .andes-table__head.cdk-drag-placeholder {
+  background-color: var(--andes-color-accent-hover);
+}
+
+.andes-table ::ng-deep .andes-table__head.cdk-drag-placeholder > * {
+  opacity: 0.4;
+}
+
+.andes-table
+  ::ng-deep
+  .cdk-drop-list-dragging
+  .andes-table__head:not(.cdk-drag-placeholder),
+.andes-table ::ng-deep .andes-table__head.cdk-drag-animating {
+  transition: transform var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
 /* Control columns (selection, expand) shrink to their control instead of taking a
    share of the free width. */
 /* prettier-ignore */
@@ -519,6 +560,8 @@
   .andes-table ::ng-deep .andes-table__row,
   .andes-table ::ng-deep .andes-table__sorter-caret,
   .andes-table ::ng-deep .andes-table__resize-handle::after,
+  .andes-table ::ng-deep .cdk-drop-list-dragging .andes-table__head,
+  .andes-table ::ng-deep .andes-table__head.cdk-drag-animating,
   .andes-table ::ng-deep .andes-table__fixed::before {
     transition: none;
   }

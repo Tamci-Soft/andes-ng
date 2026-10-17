@@ -2,6 +2,7 @@ import { JsonPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   signal,
 } from '@angular/core';
@@ -10,12 +11,14 @@ import { moduleMetadata } from '@storybook/angular';
 
 import {
   AndesTable,
+  type AndesTableColumnReorder,
   type AndesTableColumnResize,
   type AndesTableLayout,
 } from './table';
 import { AndesTableBody } from './table-body';
 import { AndesTableCell } from './table-cell';
 import type { AndesTableFixed } from './table-context';
+import { andesOrderColumns } from './table-data';
 import { AndesTableHead } from './table-head';
 import { AndesTableHeader } from './table-header';
 import { AndesTableRow } from './table-row';
@@ -231,11 +234,136 @@ class ResizeFixedDemo {
   readonly widths = signal<Readonly<Record<string, number>>>({});
 }
 
+interface Contact {
+  readonly key: string;
+  readonly name: string;
+  readonly gender: string;
+  readonly age: number;
+  readonly email: string;
+  readonly address: string;
+}
+
+// The data of Ant Design's "Drag sorting column" example.
+const CONTACTS: readonly Contact[] = [
+  {
+    key: '1',
+    name: 'John Brown',
+    gender: 'male',
+    age: 32,
+    email: 'John Brown@example.com',
+    address: 'London No. 1 Lake Park',
+  },
+  {
+    key: '2',
+    name: 'Jim Green',
+    gender: 'female',
+    age: 42,
+    email: 'jimGreen@example.com',
+    address: 'London No. 1 Lake Park',
+  },
+  {
+    key: '3',
+    name: 'Joe Black',
+    gender: 'female',
+    age: 32,
+    email: 'JoeBlack@example.com',
+    address: 'Sidney No. 1 Lake Park',
+  },
+  {
+    key: '4',
+    name: 'George Hcc',
+    gender: 'male',
+    age: 20,
+    email: 'george@example.com',
+    address: 'Sidney No. 1 Lake Park',
+  },
+];
+
+const CONTACT_COLUMNS: readonly {
+  key: keyof Contact;
+  title: string;
+  width?: number;
+  fixed?: AndesTableFixed;
+}[] = [
+  { key: 'name', title: 'Name', width: 140, fixed: 'start' },
+  { key: 'gender', title: 'Gender', width: 110 },
+  { key: 'age', title: 'Age', width: 90 },
+  { key: 'email', title: 'Email', width: 230 },
+  { key: 'address', title: 'Address' },
+];
+
+/**
+ * Ant Design "Drag sorting column": drag a header sideways to move its column -
+ * the pinned Name column stays first - or focus a header and press Alt+Arrow
+ * Left/Right (the move is announced). The table reports the order through
+ * `[(columnOrder)]`/`(columnReorder)`; the cells are rendered from
+ * `andesOrderColumns`. With `resizable` the edges resize too.
+ */
+@Component({
+  selector: 'andes-reorder-demo',
+  imports: [...TABLE_PARTS, JsonPipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <andes-table
+      reorderable
+      [resizable]="resizable()"
+      [(columnOrder)]="order"
+      (columnReorder)="last.set($event)"
+    >
+      <thead andesTableHeader>
+        <tr andesTableRow>
+          @for (column of columns(); track column.key) {
+            <th
+              andesTableHead
+              [columnKey]="column.key"
+              [width]="column.width"
+              [fixed]="column.fixed"
+            >
+              {{ column.title }}
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody andesTableBody>
+        @for (contact of contacts; track contact.key) {
+          <tr andesTableRow>
+            @for (column of columns(); track column.key) {
+              <td andesTableCell [fixed]="column.fixed">
+                {{ contact[column.key] }}
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </andes-table>
+    <p class="demo-log">
+      columnOrder: <code>{{ order() | json }}</code>
+      @if (last(); as move) {
+        <br />columnReorder:
+        <code
+          >{{ move.columnKey }} {{ move.previousIndex }} →
+          {{ move.currentIndex }}</code
+        >
+      }
+    </p>
+  `,
+  styles: STYLES,
+})
+class ReorderDemo {
+  readonly resizable = input(false);
+  protected readonly contacts = CONTACTS;
+  readonly order = signal<readonly string[]>([]);
+  readonly last = signal<AndesTableColumnReorder | null>(null);
+  protected readonly columns = computed(() =>
+    andesOrderColumns(CONTACT_COLUMNS, this.order(), (column) => column.key),
+  );
+}
+
 const meta: Meta = {
   title: 'Table/Columns',
   decorators: [
     moduleMetadata({
-      imports: [ResizeDemo, ResizeFixedDemo],
+      imports: [ResizeDemo, ResizeFixedDemo, ReorderDemo],
     }),
   ],
 };
@@ -258,4 +386,12 @@ export const ResizableFixedLayout: Story = {
 
 export const ResizableRtl: Story = {
   render: () => ({ template: `<andes-resize-fixed-demo dir="rtl" />` }),
+};
+
+export const ReorderableColumns: Story = {
+  render: () => ({ template: `<andes-reorder-demo />` }),
+};
+
+export const ReorderableAndResizable: Story = {
+  render: () => ({ template: `<andes-reorder-demo [resizable]="true" />` }),
 };

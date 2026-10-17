@@ -82,6 +82,23 @@ export interface AndesTableColumnResize {
   readonly widths: Readonly<Record<string, number>>;
 }
 
+/** A column move, as reported by `(columnReorder)`. */
+export interface AndesTableColumnReorder {
+  readonly columnKey: string;
+  /** Position among the keyed columns before and after the move. */
+  readonly previousIndex: number;
+  readonly currentIndex: number;
+  /** Every keyed column, in its new order - feed it to `andesOrderColumns`. */
+  readonly order: readonly string[];
+}
+
+/** Builds the message announced after a keyboard column move. */
+export type AndesTableColumnMovedText = (
+  column: string,
+  position: number,
+  total: number,
+) => string;
+
 let nextTableId = 0;
 
 /**
@@ -251,6 +268,33 @@ export class AndesTable {
   /** Fires on every width change made by dragging or the keyboard. */
   readonly columnResize = output<AndesTableColumnResize>();
 
+  /**
+   * Let the user move columns: drag a header (or Alt+Arrow Left/Right on a
+   * focused one) to a new position. Only headers with a column key move, and
+   * fixed columns stay put. The table reports the new order through
+   * `columnOrder`/`(columnReorder)`; render the header and body cells in that
+   * order (`andesOrderColumns`) for the move to take effect.
+   */
+  readonly reorderable = input(false, { transform: booleanAttribute });
+
+  /** Column keys in the user's order. Two-way bindable; empty until a move. */
+  readonly columnOrder = model<readonly string[]>([]);
+
+  /** Fires after each column move, by drag or keyboard. */
+  readonly columnReorder = output<AndesTableColumnReorder>();
+
+  /** Announcement after a keyboard move, e.g. "Status moved to position 2 of 4". */
+  readonly columnMovedText = input<AndesTableColumnMovedText>(
+    (column, position, total) =>
+      `${column} moved to position ${position} of ${total}`,
+  );
+
+  /** Live-region text for column moves. */
+  protected readonly announcement = signal('');
+
+  /** Column whose header should get focus back once the moved cells re-render. */
+  private pendingFocusKey: string | null = null;
+
   /** A resize drag is in progress. */
   private readonly resizing = signal(false);
 
@@ -348,7 +392,12 @@ export class AndesTable {
   );
 
   constructor() {
-    afterEveryRender({ write: () => this.syncFixedOffsets() });
+    afterEveryRender({
+      write: () => {
+        this.syncFixedOffsets();
+        this.restoreMovedFocus();
+      },
+    });
 
     afterNextRender(() => {
       this.updateScrollEdges();
@@ -528,6 +577,94 @@ export class AndesTable {
     const widths = { ...(this.columnWidths() ?? {}), [columnKey]: width };
     this.columnWidths.set(widths);
     this.columnResize.emit({ columnKey, width, widths });
+  }
+
+  // Column order
+
+  /**
+   * Whether a header cell may be moved: it has a column key, is not pinned and
+   * has not opted out.
+   */
+  static isMovableCell(cell: Element): boolean {
+    return (
+      cell instanceof HTMLElement &&
+      !!cell.dataset['columnKey'] &&
+      cell.dataset['reorder'] !== 'off' &&
+      !cell.classList.contains('andes-table__fixed')
+    );
+  }
+
+  /**
+   * Moves the header cell at `from` to `to` (cell positions in `row`) and reports
+   * the resulting column order. No-op unless the cell is movable and every cell
+   * it passes over is too - pinned columns are never crossed.
+   */
+  moveColumn(row: HTMLTableRowElement, from: number, to: number): boolean {
+    const cells = Array.from(row.cells);
+    const moved = cells[from];
+    if (!moved || to < 0 || to >= cells.length || from === to) {
+      return false;
+    }
+    const passed = cells.slice(Math.min(from, to), Math.max(from, to) + 1);
+    if (!passed.every((cell) => AndesTable.isMovableCell(cell))) {
+      return false;
+    }
+
+    const reordered = [...cells];
+    reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    const keysOf = (list: HTMLTableCellElement[]) =>
+      list
+        .map((cell) => cell.dataset['columnKey'])
+        .filter((key): key is string => !!key);
+    const before = keysOf(cells);
+    const order = keysOf(reordered);
+    const columnKey = moved.dataset['columnKey'] as string;
+
+    this.columnOrder.set(order);
+    this.columnReorder.emit({
+      columnKey,
+      previousIndex: before.indexOf(columnKey),
+      currentIndex: order.indexOf(columnKey),
+      order,
+    });
+    return true;
+  }
+
+  /**
+   * Keyboard move: shifts `cell` one position toward the end (`step` 1) or the
+   * start (-1) of its row, keeps focus on it and announces where it landed.
+   */
+  moveColumnBy(cell: HTMLTableCellElement, step: 1 | -1): void {
+    const row = cell.parentElement as HTMLTableRowElement | null;
+    if (!row || !this.moveColumn(row, cell.cellIndex, cell.cellIndex + step)) {
+      return;
+    }
+    const key = cell.dataset['columnKey'] as string;
+    const order = this.columnOrder();
+    const title =
+      cell.querySelector('.andes-table__head-title')?.textContent?.trim() ||
+      key;
+    this.pendingFocusKey = key;
+    this.announcement.set(
+      this.columnMovedText()(title, order.indexOf(key) + 1, order.length),
+    );
+  }
+
+  private restoreMovedFocus(): void {
+    const key = this.pendingFocusKey;
+    if (key === null) {
+      return;
+    }
+    this.pendingFocusKey = null;
+    const cell = Array.from(
+      this.container().nativeElement.querySelectorAll<HTMLElement>(
+        'thead th[data-column-key]',
+      ),
+    ).find((th) => th.dataset['columnKey'] === key);
+    if (cell && document.activeElement !== cell) {
+      cell.focus();
+    }
   }
 
   /** Marks a resize drag as in progress, for the table-wide resize cursor. */
