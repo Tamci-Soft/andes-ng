@@ -5,9 +5,13 @@
   font-family: var(--andes-font-family), sans-serif;
 }
 
+/* `color` for the same reason as the wrapper's font-family: a projected `slot="label"` is a
+   sibling of .andes-badge, so without it the label took whatever color the page body had -
+   black on the dark theme's background. */
 .andes-badge-wrapper--standalone {
   align-items: center;
   gap: var(--andes-space-2);
+  color: var(--andes-color-foreground);
 }
 
 .andes-badge {
