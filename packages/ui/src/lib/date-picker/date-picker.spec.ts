@@ -93,6 +93,28 @@ class PlainHost {
   readonly lastOpen = signal<boolean | undefined>(undefined);
 }
 
+/** Static attributes, as a consumer (or a form field) would write them. */
+@Component({
+  imports: [AndesDatePicker],
+  template: `
+    <label for="due">Due date</label>
+    <span id="due-help">Pick a weekday.</span>
+    <andes-date-picker
+      id="due"
+      name="due"
+      aria-describedby="due-help"
+      required
+      aria-required="true"
+      aria-invalid="true"
+      [mode]="mode()"
+      locale="en-US"
+    />
+  `,
+})
+class LabelledHost {
+  readonly mode = signal<'single' | 'range'>('single');
+}
+
 @Component({
   imports: [AndesDatePicker, ReactiveFormsModule],
   template: `<andes-date-picker
@@ -353,6 +375,71 @@ describe('AndesDatePicker', () => {
       fixture.detectChanges();
 
       expect(trigger().disabled).toBe(true);
+    });
+  });
+
+  describe('form association', () => {
+    function createLabelled(mode: 'single' | 'range' = 'single') {
+      const fixture = TestBed.createComponent(LabelledHost);
+      fixture.componentInstance.mode.set(mode);
+      fixture.detectChanges();
+      const view = harness(fixture);
+      const host = view.root.querySelector('andes-date-picker') as HTMLElement;
+      return { ...view, host };
+    }
+
+    it('forwards id, name, describedby and required onto the input, not the host', () => {
+      const { root, host, trigger } = createLabelled();
+      const label = root.querySelector('label') as HTMLLabelElement;
+
+      expect(trigger().id).toBe('due');
+      expect(label.control).toBe(trigger());
+      expect(trigger().name).toBe('due');
+      expect(trigger().getAttribute('aria-describedby')).toBe('due-help');
+      expect(trigger().required).toBe(true);
+      expect(trigger().getAttribute('aria-required')).toBe('true');
+      expect(trigger().getAttribute('aria-invalid')).toBe('true');
+      // Left on the host too, the id would be duplicated and `for` would hit
+      // the non-labelable custom element.
+      for (const attribute of [
+        'id',
+        'name',
+        'aria-describedby',
+        'aria-required',
+        'aria-invalid',
+      ]) {
+        expect(host.hasAttribute(attribute)).toBe(false);
+      }
+      expect(root.querySelectorAll('#due')).toHaveLength(1);
+    });
+
+    it('puts the id on the start input only and describes both range inputs', () => {
+      const { inputs } = createLabelled('range');
+      const [start, end] = inputs();
+
+      expect(start.id).toBe('due');
+      expect(end.hasAttribute('id')).toBe(false);
+      for (const input of [start, end]) {
+        expect(input.name).toBe('due');
+        expect(input.getAttribute('aria-describedby')).toBe('due-help');
+        expect(input.required).toBe(true);
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+      }
+    });
+
+    it('leaves the attributes off while unset', () => {
+      const { trigger } = createPlain();
+
+      for (const attribute of [
+        'id',
+        'name',
+        'aria-describedby',
+        'aria-required',
+        'aria-invalid',
+        'required',
+      ]) {
+        expect(trigger().hasAttribute(attribute)).toBe(false);
+      }
     });
   });
 
