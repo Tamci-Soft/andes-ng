@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
@@ -79,7 +80,7 @@ const COUNTRIES: readonly Country[] = [
 
 /** Muted helper text under a story's control, readable in either theme. */
 const CAPTION =
-  'font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground);';
+  'font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground);';
 
 /** A column of labelled examples, e.g. one per size or variant. */
 const STACK = 'display: flex; flex-direction: column; gap: 1rem; width: 260px;';
@@ -99,6 +100,7 @@ const meta: Meta<AndesCombobox> = {
           AndesComboboxEmpty,
           AndesButton,
           FormsModule,
+          NgTemplateOutlet,
         ],
       },
       ...story(),
@@ -350,11 +352,19 @@ export const AsyncSearch: Story = {
 };
 
 /** A clear button appears while there is text; `(clear)` reports its use. */
+/**
+ * The clear button is the same at every size and on every field: a small muted disc that
+ * appears while the field is hovered or focused (always on touch screens). It is a Tab stop
+ * of its own, named by `clearLabel`.
+ */
 export const AllowClear: Story = {
   render: () => ({
-    props: { options: FRUIT_OPTIONS, value: 'mango' },
+    props: { options: FRUIT_OPTIONS, value: 'mango', localized: 'apple' },
     template: `
-      <andes-combobox [options]="options" [(ngModel)]="value" allowClear placeholder="Search fruit..." aria-label="Fruit" style="width: 260px; display: inline-block;" />
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 260px;">
+        <andes-combobox [options]="options" [(ngModel)]="value" allowClear placeholder="Search fruit..." aria-label="Fruit" />
+        <andes-combobox [options]="options" [(ngModel)]="localized" allowClear clearLabel="Borrar" placeholder="Buscar fruta..." aria-label="Fruta" />
+      </div>
     `,
   }),
 };
@@ -483,4 +493,150 @@ export const AutoFocusAndMaxLength: Story = {
       <andes-combobox [options]="options" autoFocus [maxLength]="6" placeholder="At most 6 characters" aria-label="Fruit" style="width: 260px; display: inline-block;" />
     `,
   }),
+};
+
+/**
+ * `freeText` makes the typed text the value, for fields the suggestions only help write:
+ * here, typing a name offers the usual e-mail domains, and any address typed by hand is
+ * kept as the form value too.
+ */
+export const FreeText: Story = {
+  render: () => {
+    const value = signal<string | null>(null);
+    const options = signal<readonly AndesComboboxOption[]>([]);
+    const DOMAINS = ['gmail.com', 'outlook.com', 'yahoo.com', 'proton.me'];
+    const suggest = (text: string) => {
+      const name = text.split('@')[0];
+      options.set(
+        name ? DOMAINS.map((domain) => ({ value: `${name}@${domain}` })) : [],
+      );
+    };
+    return {
+      props: { value, options, suggest, caption: CAPTION },
+      template: `
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 280px;">
+          <andes-combobox [options]="options()" freeText filterOption="false" [notFoundContent]="null" [ngModel]="value()" (ngModelChange)="value.set($event)" (searchChange)="suggest($event)" placeholder="E-mail address" aria-label="E-mail address" />
+          <span [style]="caption">Value: {{ value() ?? '(none)' }}</span>
+        </div>
+      `,
+    };
+  },
+};
+
+/** A `<textarea>` as the field, in the compound mode, for suggestions on a longer text. */
+export const TextareaInput: Story = {
+  render: () => ({
+    props: { items: FRUITS },
+    template: `
+      <andes-combobox #combobox [items]="items" allowClear style="width: 320px; display: inline-block;">
+        <textarea andesComboboxInput rows="3" placeholder="Describe the order, starting with a fruit..." aria-label="Order note"></textarea>
+        <div andesComboboxContent>
+          @for (item of combobox.filteredItems(); track item) {
+            <div andesComboboxItem [value]="item">{{ item }}</div>
+          } @empty {
+            <div andesComboboxEmpty>No results found.</div>
+          }
+        </div>
+      </andes-combobox>
+    `,
+  }),
+};
+
+interface ProductGroup {
+  readonly label: string;
+  readonly total: number;
+  readonly options: readonly AndesComboboxOption[];
+}
+
+const PRODUCT_GROUPS: readonly ProductGroup[] = [
+  {
+    label: 'Libraries',
+    total: 128,
+    options: [
+      { value: 'andes-ng', label: 'andes-ng' },
+      { value: 'andes-ng-icons', label: 'andes-ng-icons' },
+    ],
+  },
+  {
+    label: 'Solutions',
+    total: 42,
+    options: [
+      { value: 'andes-erp', label: 'Andes ERP' },
+      { value: 'andes-crm', label: 'Andes CRM' },
+    ],
+  },
+  {
+    label: 'Articles',
+    total: 9,
+    options: [{ value: 'andes-guide', label: 'Building admin screens' }],
+  },
+];
+
+/**
+ * `[groupLabelTemplate]` renders each group heading. Its context is the group exactly as
+ * passed (here with an extra `total`), the matching options and the query.
+ */
+export const GroupLabelTemplate: Story = {
+  render: () => ({
+    props: { options: PRODUCT_GROUPS, caption: CAPTION },
+    template: `
+      <andes-combobox [options]="options" [groupLabelTemplate]="heading" placeholder="Search everything..." aria-label="Search" [popupMatchSelectWidth]="320" style="width: 260px; display: inline-block;" />
+      <ng-template #heading let-group let-options="options">
+        <span style="display: flex; justify-content: space-between; gap: 0.5rem;">
+          <span>{{ group.label }}</span>
+          <span>{{ options.length }} of {{ group.total }}</span>
+        </span>
+      </ng-template>
+    `,
+  }),
+};
+
+/**
+ * `[popupTemplate]` adds content around the list - a header, a footer action. Pressing a
+ * button in the popup keeps the input focused, so its click lands with the popup open.
+ */
+export const PopupTemplate: Story = {
+  render: () => {
+    const created = signal<readonly string[]>([]);
+    const create = (text: string) => created.set([...created(), text.trim()]);
+    return {
+      props: { options: FRUIT_OPTIONS, created, create, caption: CAPTION },
+      template: `
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 260px;">
+          <andes-combobox #combobox [options]="options" [popupTemplate]="popup" placeholder="Search fruit..." aria-label="Fruit" />
+          <span [style]="caption">Created: {{ created().join(', ') || '(none)' }}</span>
+        </div>
+        <ng-template #popup let-body let-query="query">
+          <ng-container *ngTemplateOutlet="body" />
+          <div style="border-top: 1px solid var(--andes-color-border); padding-top: 0.25rem;">
+            <andes-button size="sm" variant="ghost" shape="full" [disabled]="!query.trim()" (click)="create(query); combobox.close()">
+              Create "{{ query.trim() || '...' }}"
+            </andes-button>
+          </div>
+        </ng-template>
+      `,
+    };
+  },
+};
+
+/**
+ * `(inputFocus)`, `(inputBlur)` and `(inputKeydown)` relay the input's own events;
+ * `(focused)` / `(blurred)` carry the same focus events under the name every other field uses.
+ */
+export const InputEvents: Story = {
+  render: () => {
+    const log = signal<string[]>([]);
+    const push = (entry: string) => log.set([entry, ...log()].slice(0, 6));
+    return {
+      props: { options: FRUIT_OPTIONS, log, push, caption: CAPTION },
+      template: `
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 260px;">
+          <andes-combobox [options]="options" placeholder="Focus, type, leave..." aria-label="Fruit" (inputFocus)="push('inputFocus')" (focused)="push('focused')" (inputBlur)="push('inputBlur')" (blurred)="push('blurred')" (inputKeydown)="push('keydown: ' + $event.key)" />
+          @for (entry of log(); track $index) {
+            <span [style]="caption">{{ entry }}</span>
+          }
+        </div>
+      `,
+    };
+  },
 };

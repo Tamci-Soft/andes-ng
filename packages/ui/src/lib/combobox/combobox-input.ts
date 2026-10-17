@@ -30,12 +30,18 @@ import { ANDES_COMBOBOX } from './combobox-token';
  * size/variant/status styling hooks, and never moving real focus off this element - lives
  * here. `AndesCombobox` renders one of these itself in its `[options]` mode.
  *
+ * A `<textarea>` works as the field too, for suggestions on a longer, wrapping text. It
+ * behaves exactly like the input: the arrow keys open and move through the suggestions
+ * rather than moving the caret between lines, and Enter chooses the highlighted one
+ * (inserting a line break only while nothing is highlighted).
+ *
  * ```html
  * <input andesComboboxInput placeholder="Search fruit..." />
+ * <textarea andesComboboxInput rows="3"></textarea>
  * ```
  */
 @Directive({
-  selector: 'input[andesComboboxInput]',
+  selector: 'input[andesComboboxInput], textarea[andesComboboxInput]',
   hostDirectives: [AndesOverlayTriggerPrimitive, AndesListNavigationKeys],
   host: {
     class: 'andes-combobox-input',
@@ -56,16 +62,17 @@ import { ANDES_COMBOBOX } from './combobox-token';
     '[readOnly]': 'combobox.readOnly()',
     '(input)': 'onInput($event)',
     '(keydown)': 'onKeydown($event)',
-    '(focus)': 'onFocus()',
-    '(blur)': 'onBlur()',
+    '(focus)': 'onFocus($event)',
+    '(blur)': 'onBlur($event)',
   },
 })
 export class AndesComboboxInput<T = string> {
   protected readonly combobox = inject(ANDES_COMBOBOX) as AndesCombobox<T>;
   private readonly overlay = inject(AndesOverlayPrimitive);
   private readonly renderer = inject(Renderer2);
-  private readonly element: HTMLInputElement =
-    inject<ElementRef<HTMLInputElement>>(ElementRef).nativeElement;
+  private readonly element: HTMLInputElement | HTMLTextAreaElement =
+    inject<ElementRef<HTMLInputElement | HTMLTextAreaElement>>(ElementRef)
+      .nativeElement;
 
   constructor() {
     // Set imperatively, and only once the root's input is actually given, rather than as
@@ -104,17 +111,29 @@ export class AndesComboboxInput<T = string> {
     }
   }
 
-  protected onFocus(): void {
+  // Event, not FocusEvent/KeyboardEvent: with two possible host elements the compiler
+  // types these host listeners' $event as a plain Event.
+  protected onFocus(event: Event): void {
     if (!this.combobox.isDisabled() && !this.combobox.readOnly()) {
       this.combobox.open();
     }
+    this.combobox.inputFocus.emit(event as FocusEvent);
+    this.combobox.focused.emit(event as FocusEvent);
   }
 
-  protected onBlur(): void {
+  protected onBlur(event: Event): void {
     this.combobox.notifyBlur();
+    this.combobox.inputBlur.emit(event as FocusEvent);
+    this.combobox.blurred.emit(event as FocusEvent);
   }
 
-  protected onKeydown(event: KeyboardEvent): void {
+  protected onKeydown(event: Event): void {
+    const keyboardEvent = event as KeyboardEvent;
+    this.handleKey(keyboardEvent);
+    this.combobox.inputKeydown.emit(keyboardEvent);
+  }
+
+  private handleKey(event: KeyboardEvent): void {
     switch (event.key) {
       case 'ArrowDown':
       case 'ArrowUp':

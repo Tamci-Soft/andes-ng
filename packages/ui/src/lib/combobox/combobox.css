@@ -17,9 +17,24 @@
 }
 
 .andes-combobox-input {
-  /* Private to this file: which colour the variant rules below paint the border with, so
-     `status` composes with every `variant` - including underlined's bottom-only border. */
+  /* Private to this file. State colours resolve through these so one `:hover` and one
+     `:focus` rule serve every variant, status and the disabled/read-only states: each of
+     those only re-points the properties - including underlined's bottom-only border. */
   --_combobox-border-color: var(--andes-color-input);
+  --_combobox-border-hover: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+  --_combobox-border-focus: var(--andes-color-primary);
+  --_combobox-bg: var(--andes-color-background);
+  --_combobox-bg-hover: var(--_combobox-bg);
+  --_combobox-bg-focus: var(--_combobox-bg);
+  --_combobox-ring: color-mix(
+    in srgb,
+    var(--andes-color-primary) 20%,
+    transparent
+  );
 
   /* The size's inline padding, which the suffix (clear button, spinner) lines up with. */
   --_combobox-padding-x: var(--andes-control-padding-x-md, 0.6875rem);
@@ -29,21 +44,21 @@
   width: 100%;
   /* The shared control scale: 24/32/40px tall, 14/14/16px text, 4/6/8px corners. */
   height: var(--andes-control-height-md, 2rem);
+  margin: 0;
+  padding-block: 0;
   padding-inline: var(--_combobox-padding-x);
   border-radius: var(--andes-control-radius-md, 0.375rem);
   border: 1px solid var(--_combobox-border-color);
-  background-color: var(--andes-color-background);
+  background-color: var(--_combobox-bg);
+  box-shadow: none;
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   font-size: var(--andes-control-font-size-md, 0.875rem);
   line-height: var(--andes-control-line-height, 1.375rem);
   transition:
-    border-color var(--andes-motion-duration-fast, 0.1s)
-      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
-    box-shadow var(--andes-motion-duration-fast, 0.1s)
-      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
-    background-color var(--andes-motion-duration-fast, 0.1s)
-      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -52,29 +67,26 @@
   }
 }
 
-/* Hover only darkens the border, like the Select (outlined only; the other variants
-   draw no border to darken). */
-.andes-combobox-input[data-variant='outlined']:hover:not(
-    :disabled,
-    :focus-visible,
-    [data-status],
-    [aria-invalid='true']
-  ) {
-  border-color: var(--andes-color-border);
+.andes-combobox-input:hover {
+  border-color: var(--_combobox-border-hover);
+  background-color: var(--_combobox-bg-hover);
 }
 
-.andes-combobox-input:focus-visible {
-  /* Field focus, shared by every text field: the border takes the ring color and a soft
-     3px halo hugs it (Ant Design / shadcn style) instead of a ring floating 2px outside
-     the border. The transparent outline is still there for forced-colors mode, which
-     drops box-shadow but paints outlines in a system color. */
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-  box-shadow: var(
-    --andes-focus-halo,
-    0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent)
-  );
-  border-color: var(--andes-color-focus-ring);
+/* The field is its own box, so it carries the one focus indicator itself: the border takes the
+   focus colour and a soft 2px ring hugs it, on any focus (mouse or keyboard). No `outline` - an
+   outline offset from the border reads as a second, detached frame. */
+.andes-combobox-input:focus {
+  border-color: var(--_combobox-border-focus);
+  background-color: var(--_combobox-bg-focus);
+  box-shadow: 0 0 0 2px var(--_combobox-ring);
+  outline: none;
+}
+
+/* Forced-colors mode drops `box-shadow`; a real outline is the one indicator there. */
+@media (forced-colors: active) {
+  .andes-combobox-input:focus {
+    outline: 2px solid Highlight;
+  }
 }
 
 .andes-combobox-input::placeholder {
@@ -96,100 +108,123 @@
   height: var(--andes-control-height-lg, 2.5rem);
   border-radius: var(--andes-control-radius-lg, 0.5rem);
   font-size: var(--andes-control-font-size-lg, 1rem);
+  line-height: 1.5rem;
+}
+
+/* A textarea as the field: grows with its rows instead of a fixed height, starting from
+   the same height as an input of that size (line-height + padding + 2px of border). */
+textarea.andes-combobox-input {
+  height: auto;
+  min-height: var(--andes-control-height-md, 2rem);
+  padding-block: 0.25rem;
+  resize: vertical;
+}
+
+textarea.andes-combobox-input[data-size='sm'] {
+  height: auto;
+  min-height: var(--andes-control-height-sm, 1.5rem);
+  padding-block: 0;
+}
+
+textarea.andes-combobox-input[data-size='lg'] {
+  height: auto;
+  min-height: var(--andes-control-height-lg, 2.5rem);
+  padding-block: 0.4375rem;
 }
 
 /* Room for the clear button and/or spinner (1rem each, 4px apart, 4px from the text),
    so text never runs underneath them. */
 .andes-combobox-input[data-suffix='1'] {
-  padding-inline-end: calc(var(--_combobox-padding-x) + 1.25rem);
+  padding-inline-end: calc(
+    var(--_combobox-padding-x) + 1em + var(--andes-space-2)
+  );
 }
 
 .andes-combobox-input[data-suffix='2'] {
-  padding-inline-end: calc(var(--_combobox-padding-x) + 2.5rem);
-}
-
-/* Status: `status="error"` reaches here as aria-invalid, set by AndesComboboxInput. */
-.andes-combobox-input[aria-invalid='true'] {
-  --_combobox-border-color: var(--andes-color-danger);
-}
-
-.andes-combobox-input[aria-invalid='true']:focus-visible,
-.andes-combobox-input[aria-invalid='true'][data-variant]:focus-visible {
-  border-color: var(--andes-color-danger);
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
-}
-
-.andes-combobox-input[data-status='warning'] {
-  --_combobox-border-color: var(--andes-color-warning);
-}
-
-.andes-combobox-input[data-status='warning']:focus-visible,
-.andes-combobox-input[data-status='warning'][data-variant]:focus-visible {
-  border-color: var(--andes-color-warning);
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
+  padding-inline-end: calc(
+    var(--_combobox-padding-x) + 2em + var(--andes-space-1) +
+      var(--andes-space-2)
+  );
 }
 
 /* Variants. `outlined` is the base rule above. */
 .andes-combobox-input[data-variant='filled'] {
-  background-color: var(--andes-color-muted);
-  border-color: transparent;
+  --_combobox-border-color: transparent;
+  --_combobox-border-hover: transparent;
+  --_combobox-bg: var(--andes-color-muted);
+  --_combobox-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-muted),
+    var(--andes-color-foreground) 6%
+  );
+  --_combobox-bg-focus: var(--andes-color-background);
 }
 
-.andes-combobox-input[data-variant='filled'][data-status],
-.andes-combobox-input[data-variant='filled'][aria-invalid='true'],
-.andes-combobox-input[data-variant='filled']:focus {
-  border-color: var(--_combobox-border-color);
-}
-
-.andes-combobox-input[data-variant='filled']:focus {
-  background-color: var(--andes-color-background);
-}
-
-/* A focused filled field takes the ring colour like the outlined one - the rule above
-   would otherwise leave the grey input border inside the blue halo. */
-.andes-combobox-input[data-variant='filled']:focus-visible:not(
-    [data-status],
-    [aria-invalid='true']
-  ),
-.andes-combobox-input[data-variant='borderless']:focus-visible:not(
-    [data-status],
-    [aria-invalid='true']
-  ) {
-  border-color: var(--andes-color-focus-ring);
-}
-
+/* No border at all: focus shows only the soft ring. */
 .andes-combobox-input[data-variant='borderless'] {
-  background-color: transparent;
-  border-color: transparent;
+  --_combobox-border-color: transparent;
+  --_combobox-border-hover: transparent;
+  --_combobox-border-focus: transparent;
+  --_combobox-bg: transparent;
 }
 
+/* Only the bottom edge is drawn; that edge is the focus indicator, so no ring. */
 .andes-combobox-input[data-variant='underlined'] {
-  background-color: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--_combobox-border-color);
+  --_combobox-bg: transparent;
+  border-width: 0 0 1px;
   border-radius: 0;
 }
 
-/* Focused, only the underline takes the ring (or status) colour: a halo or a four-sided
-   border would turn the line back into a box. */
-.andes-combobox-input[data-variant='underlined']:focus-visible {
-  border-color: transparent;
-  border-bottom-color: var(--andes-color-focus-ring);
+.andes-combobox-input[data-variant='underlined']:focus {
   box-shadow: none;
 }
 
-.andes-combobox-input[data-variant='underlined'][data-status]:focus-visible,
-.andes-combobox-input[data-variant='underlined'][aria-invalid='true']:focus-visible {
-  border-color: transparent;
-  border-bottom-color: var(--_combobox-border-color);
-  box-shadow: none;
+/* Status: `status="error"` reaches here as aria-invalid, set by AndesComboboxInput. After the
+   variants, so a filled field shows its status border too. Hover and focus keep the status
+   colour; the ring takes it as well. */
+.andes-combobox-input[aria-invalid='true'] {
+  --_combobox-border-color: var(--andes-color-danger);
+  --_combobox-border-hover: var(--andes-color-danger);
+  --_combobox-border-focus: var(--andes-color-danger);
+  --_combobox-ring: color-mix(
+    in srgb,
+    var(--andes-color-danger) 20%,
+    transparent
+  );
 }
 
+.andes-combobox-input[data-status='warning'] {
+  --_combobox-border-color: var(--andes-color-warning-hover);
+  --_combobox-border-hover: var(--andes-color-warning-hover);
+  --_combobox-border-focus: var(--andes-color-warning-hover);
+  --_combobox-ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+/* Read-only: still focusable (so it gets the ring) but nothing else reacts. */
+.andes-combobox-input:read-only {
+  --_combobox-border-hover: var(--_combobox-border-color);
+  --_combobox-border-focus: var(--_combobox-border-color);
+  --_combobox-bg-hover: var(--_combobox-bg);
+  --_combobox-bg-focus: var(--_combobox-bg);
+}
+
+/* Disabled fill, as on AndesInput and AndesSelect; borderless and underlined keep their
+   transparent background. */
 .andes-combobox-input:disabled {
+  --_combobox-bg: var(--andes-color-muted);
+  --_combobox-border-hover: var(--_combobox-border-color);
+  --_combobox-bg-hover: var(--_combobox-bg);
+  color: var(--andes-color-muted-foreground);
   cursor: not-allowed;
-  opacity: 0.6;
+}
+
+.andes-combobox-input[data-variant='borderless']:disabled,
+.andes-combobox-input[data-variant='underlined']:disabled {
+  --_combobox-bg: transparent;
 }
 
 .andes-combobox-content {
@@ -215,40 +250,78 @@
   color: var(--andes-color-popover-foreground);
   font-size: var(--andes-control-font-size-md, 0.875rem);
   line-height: var(--andes-control-line-height, 1.375rem);
-  /* Ant Design's boxShadowSecondary, the same as the Select panel's. */
+  /* The same elevation as the Select panel. */
   box-shadow: var(
     --andes-shadow-popover,
     0 6px 16px 0 rgb(0 0 0 / 8%),
     0 3px 6px -4px rgb(0 0 0 / 12%),
     0 9px 28px 8px rgb(0 0 0 / 5%)
   );
-  animation: andes-combobox-content-in var(--andes-motion-duration-mid, 0.2s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
-}
-
-/* Ant's slide-up: a short fade and a 4px slide out of the input - downwards, or upwards
-   for a top placement (a popup flipped there by collision keeps the downward slide). */
-@keyframes andes-combobox-content-in {
-  from {
-    opacity: 0;
-    transform: translateY(-0.25rem);
-  }
+  /* A short fade, scale and 4px slide out of the input as it opens: downwards, or upwards for a
+     top placement (a popup flipped by collision keeps the configured side's direction). */
+  animation: andes-combobox-enter var(--andes-duration-base, 150ms)
+    var(--andes-ease-out, cubic-bezier(0.2, 0, 0, 1));
 }
 
 .andes-combobox-content[data-side='top'] {
-  animation-name: andes-combobox-content-in-above;
+  animation-name: andes-combobox-enter-above;
 }
 
-@keyframes andes-combobox-content-in-above {
+/* Closing mirrors it, a little faster and accelerating away: the overlay marks the popup
+   `data-andes-closing` and waits for this animation before detaching it. */
+.andes-combobox-content[data-andes-closing] {
+  animation: andes-combobox-exit var(--andes-duration-fast, 120ms)
+    var(--andes-ease-in, ease-in) forwards;
+}
+
+.andes-combobox-content[data-side='top'][data-andes-closing] {
+  animation-name: andes-combobox-exit-above;
+}
+
+@keyframes andes-combobox-enter {
   from {
     opacity: 0;
-    transform: translateY(0.25rem);
+    transform: translateY(-0.25rem) scale(0.97);
   }
 }
 
+@keyframes andes-combobox-enter-above {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem) scale(0.97);
+  }
+}
+
+@keyframes andes-combobox-exit {
+  to {
+    opacity: 0;
+    transform: translateY(-0.25rem) scale(0.97);
+  }
+}
+
+@keyframes andes-combobox-exit-above {
+  to {
+    opacity: 0;
+    transform: translateY(0.25rem) scale(0.97);
+  }
+}
+
+/* Reduced motion: a plain fade in, and no exit animation at all (it closes at once). */
 @media (prefers-reduced-motion: reduce) {
-  .andes-combobox-content {
+  .andes-combobox-content,
+  .andes-combobox-content[data-side='top'] {
+    animation-name: andes-combobox-fade;
+  }
+
+  .andes-combobox-content[data-andes-closing],
+  .andes-combobox-content[data-side='top'][data-andes-closing] {
     animation: none;
+  }
+}
+
+@keyframes andes-combobox-fade {
+  from {
+    opacity: 0;
   }
 }
 
@@ -257,11 +330,13 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--andes-space-2);
-  /* 32px rows: 5px + a 22px line + 5px, 12px from the popup's inner edge (Ant's). */
+  /* 32px rows: 5px + a 22px line + 5px, 12px from the popup's inner edge ). */
   min-height: var(--andes-control-height-md, 2rem);
   box-sizing: border-box;
   padding: 0.3125rem 0.75rem;
   border-radius: var(--andes-radius-sm, 0.25rem);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
   cursor: pointer;
   user-select: none;
   scroll-margin-block: var(--andes-space-1);
@@ -307,7 +382,8 @@
   justify-content: center;
   width: 1em;
   height: 1em;
-  color: var(--andes-color-primary);
+  /* The text tone, not the fill: the fill only reaches 2.8:1 on the dark popover. */
+  color: var(--andes-color-primary-text);
 }
 
 /* The highlighted row paints its own foreground colour; the check has to follow it, or
@@ -327,6 +403,8 @@
   align-items: center;
   gap: var(--andes-space-2);
   padding: var(--andes-space-4) var(--andes-space-3);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
   color: var(--andes-color-muted-foreground);
   text-align: center;
 }
@@ -352,11 +430,12 @@
   flex-direction: column;
 }
 
-/* Ant's group title: a 32px row of 12px muted text. */
+/* A group title: 12px muted text on a 32px row. */
 .andes-combobox-group__label {
   padding: 0.3125rem 0.75rem;
   font-size: 0.75rem;
-  line-height: var(--andes-control-line-height, 1.375rem);
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1.25rem;
   color: var(--andes-color-muted-foreground);
   user-select: none;
 }
@@ -367,6 +446,8 @@
   justify-content: center;
   gap: var(--andes-space-2);
   padding: var(--andes-space-4) var(--andes-space-3);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
   color: var(--andes-color-muted-foreground);
 }
 
@@ -390,34 +471,95 @@
   pointer-events: none;
 }
 
+/* The field's text size, so the 1em glyph follows it. */
+.andes-combobox-input[data-size='lg'] ~ .andes-combobox-suffix {
+  font-size: 1rem;
+}
+
+/* Over a textarea, the clear button and spinner stay level with the first line rather
+   than drifting to the middle of a tall field. */
+textarea.andes-combobox-input ~ .andes-combobox-suffix {
+  align-items: flex-start;
+  padding-block-start: 0.375rem;
+}
+
+textarea.andes-combobox-input[data-size='sm'] ~ .andes-combobox-suffix {
+  padding-block-start: 0.125rem;
+}
+
+textarea.andes-combobox-input[data-size='lg'] ~ .andes-combobox-suffix {
+  padding-block-start: 0.625rem;
+}
+
+/*
+  Clear button - the same design on every field (Input, Textarea, Select, Combobox,
+  DatePicker): a small muted disc with the "x" knocked out of it in the background colour,
+  1em across (14px at sm/md, 16px at lg). It shows while the field holds a value and is
+  hovered or holds focus - so tabbing on from the input lands on it - and always on devices
+  without hover. The padding grows the hit area to 24px and the equal negative margin takes
+  it back out of the layout. `visibility` (not `display`) keeps the reserved room stable and
+  also takes it out of pointer hit-testing while hidden.
+*/
 .andes-combobox-clear {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 1rem;
-  height: 1rem;
-  padding: 0;
-  border: none;
+  padding: calc((1.5rem - 1em) / 2);
+  margin: calc((1em - 1.5rem) / 2);
+  border: 0;
   border-radius: var(--andes-radius-full);
   background: none;
-  color: inherit;
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 60%,
+    transparent
+  );
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1;
   cursor: pointer;
   pointer-events: auto;
-  transition:
-    background-color var(--andes-motion-duration-fast, 0.1s)
-      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
-    color var(--andes-motion-duration-fast, 0.1s)
-      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  visibility: hidden;
+  transition: color var(--andes-duration-base, 150ms) ease;
+}
+
+.andes-combobox-field:hover .andes-combobox-clear,
+.andes-combobox-field:focus-within .andes-combobox-clear {
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .andes-combobox-clear {
+    visibility: visible;
+  }
 }
 
 .andes-combobox-clear:hover {
-  background-color: var(--andes-color-accent-hover);
-  color: var(--andes-color-accent-foreground);
+  color: var(--andes-color-muted-foreground);
 }
 
-.andes-combobox-clear__icon {
-  width: 0.75rem;
-  height: 0.75rem;
+/* Hugs the 1em disc with a 2px gap, inside the 24px hit area. */
+.andes-combobox-clear:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: calc((1em - 1.5rem) / 2 + 2px);
+}
+
+.andes-combobox-clear svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.andes-combobox-clear__icon circle {
+  fill: currentColor;
+}
+
+.andes-combobox-clear__icon path {
+  fill: none;
+  stroke: var(--andes-color-background);
+  stroke-width: 1.5;
+  stroke-linecap: round;
 }
 
 .andes-combobox-spinner {
@@ -429,7 +571,7 @@
   border: 2px solid currentcolor;
   border-right-color: transparent;
   border-radius: var(--andes-radius-full);
-  animation: andes-combobox-spin 0.6s linear infinite;
+  animation: andes-combobox-spin 1s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

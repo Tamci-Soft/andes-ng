@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +7,7 @@ import {
   AndesCombobox,
   type AndesComboboxFilterOption,
   type AndesComboboxOptionEntry,
+  type AndesComboboxOptionGroup,
   type AndesComboboxPlacement,
   type AndesComboboxSelectEvent,
   type AndesComboboxSize,
@@ -158,12 +160,106 @@ class CompoundHost {
   );
 }
 
+interface HintedGroup extends AndesComboboxOptionGroup<string> {
+  readonly hint: string;
+}
+
+const HINTED_GROUPS: readonly HintedGroup[] = [
+  {
+    label: 'Fruit',
+    hint: 'sweet',
+    options: [
+      { value: 'apple', label: 'Apple' },
+      { value: 'apricot', label: 'Apricot' },
+      { value: 'banana', label: 'Banana' },
+    ],
+  },
+  {
+    label: 'Vegetables',
+    hint: 'savoury',
+    options: [{ value: 'carrot', label: 'Carrot' }],
+  },
+];
+
+@Component({
+  imports: [AndesCombobox, FormsModule, NgTemplateOutlet],
+  template: `
+    <andes-combobox
+      [options]="options()"
+      [(ngModel)]="value"
+      [freeText]="freeText()"
+      [notFoundContent]="null"
+      [groupLabelTemplate]="useGroupTemplate() ? groupTpl : undefined"
+      [popupTemplate]="usePopupTemplate() ? popupTpl : undefined"
+      aria-label="Fruit"
+      (inputFocus)="events.push('focus')"
+      (inputBlur)="events.push('blur')"
+      (focused)="events.push('focused')"
+      (blurred)="events.push('blurred')"
+      (inputKeydown)="events.push('key:' + $event.key)"
+    />
+    <ng-template #groupTpl let-group let-options="options" let-query="query">
+      <span class="group-heading"
+        >{{ group.label }}|{{ group.hint }}|{{ options.length }}|{{
+          query
+        }}</span
+      >
+    </ng-template>
+    <ng-template #popupTpl let-body let-query="query">
+      <div class="popup-header">Results for "{{ query }}"</div>
+      <ng-container *ngTemplateOutlet="body" />
+      <button
+        type="button"
+        class="popup-footer"
+        (click)="footerClicks = footerClicks + 1"
+      >
+        Add
+      </button>
+    </ng-template>
+  `,
+})
+class ExtrasHost {
+  readonly combobox = viewChild.required(AndesCombobox<string>);
+  readonly options =
+    signal<readonly AndesComboboxOptionEntry<string>[]>(FRUIT_OPTIONS);
+  readonly value = signal<string | null>(null);
+  readonly freeText = signal(false);
+  readonly useGroupTemplate = signal(false);
+  readonly usePopupTemplate = signal(false);
+  readonly events: string[] = [];
+  footerClicks = 0;
+}
+
+@Component({
+  imports: [
+    AndesCombobox,
+    AndesComboboxInput,
+    AndesComboboxContent,
+    AndesComboboxItem,
+  ],
+  template: `
+    <andes-combobox #comboboxRef [items]="items" [(value)]="value" allowClear>
+      <textarea andesComboboxInput rows="3" aria-label="Note"></textarea>
+      <div andesComboboxContent>
+        @for (item of comboboxRef.filteredItems(); track item) {
+          <div andesComboboxItem [value]="item">{{ item }}</div>
+        }
+      </div>
+    </andes-combobox>
+  `,
+})
+class TextareaHost {
+  readonly combobox = viewChild.required(AndesCombobox<string>);
+  readonly items = ['Apple', 'Apricot', 'Banana', 'Cherry'];
+  readonly value = signal<string | null>(null);
+}
+
 function setup<H>(component: new () => H) {
   const fixture: ComponentFixture<H> = TestBed.createComponent(component);
   fixture.detectChanges();
 
   const input = fixture.nativeElement.querySelector(
-    'input',
+    'input, textarea',
   ) as HTMLInputElement;
   const options = () =>
     Array.from(document.querySelectorAll<HTMLElement>('[role="option"]'));
@@ -510,7 +606,10 @@ describe('AndesCombobox (data-driven options mode)', () => {
 
       expect(clearButton()).toBeTruthy();
       expect(clearButton()?.getAttribute('aria-label')).toBe('Clear');
-      expect(clearButton()?.tabIndex).toBe(-1);
+      // A Tab stop of its own, like the clear button of every other field.
+      expect(clearButton()?.hasAttribute('tabindex')).toBe(false);
+      expect(clearButton()?.tabIndex).toBe(0);
+      expect(clearButton()?.getAttribute('data-slot')).toBe('combobox-clear');
       expect(input.getAttribute('data-suffix')).toBe('1');
     });
 
@@ -844,6 +943,195 @@ describe('AndesCombobox (data-driven options mode)', () => {
 
       host.combobox().blur();
       expect(document.activeElement).not.toBe(input);
+    });
+  });
+});
+
+describe('AndesCombobox (free text, templates, events and textarea)', () => {
+  afterEach(() => {
+    document
+      .querySelectorAll('.cdk-overlay-container')
+      .forEach((el) => el.remove());
+  });
+
+  describe('freeText', () => {
+    it('leaves the value alone while typing when off', async () => {
+      const { type, host, settle } = setup(ExtrasHost);
+
+      type('Pear');
+      await settle();
+
+      expect(host.value()).toBeNull();
+    });
+
+    it('writes the typed text to the form value, and null once emptied', async () => {
+      const { type, host, settle } = setup(ExtrasHost);
+      host.freeText.set(true);
+      await settle();
+
+      type('Pea');
+      await settle();
+      expect(host.value()).toBe('Pea');
+
+      type('');
+      await settle();
+      expect(host.value()).toBeNull();
+    });
+
+    it('writes the chosen suggestion value and shows its label, then follows edits again', async () => {
+      const { type, options, input, host, detect, settle } = setup(ExtrasHost);
+      host.freeText.set(true);
+      await settle();
+
+      type('ch');
+      options()[0].dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
+      );
+      detect();
+      await settle();
+      expect(host.value()).toBe('cherry');
+      expect(input.value).toBe('Cherry');
+
+      type('Cherry pie');
+      await settle();
+      expect(host.value()).toBe('Cherry pie');
+    });
+
+    it('shows a written value that is not among the suggestions', async () => {
+      const { input, host, settle } = setup(ExtrasHost);
+      host.freeText.set(true);
+      host.value.set('Dragon fruit');
+      await settle();
+
+      expect(input.value).toBe('Dragon fruit');
+    });
+  });
+
+  describe('inputFocus, inputBlur, focused, blurred and inputKeydown', () => {
+    it('relays focus, blur (under both names) and every keydown of the input', () => {
+      const { focus, blur, press, host } = setup(ExtrasHost);
+
+      focus();
+      press('ArrowDown');
+      press('a');
+      blur();
+
+      expect(host.events).toEqual([
+        'focus',
+        'focused',
+        'key:ArrowDown',
+        'key:a',
+        'blur',
+        'blurred',
+      ]);
+    });
+  });
+
+  describe('groupLabelTemplate', () => {
+    it('renders each heading with the original group, its matching options and the query', async () => {
+      const { type, host, settle } = setup(ExtrasHost);
+      host.options.set(HINTED_GROUPS);
+      host.useGroupTemplate.set(true);
+      await settle();
+
+      type('ap');
+
+      const headings = Array.from(
+        document.querySelectorAll('.andes-combobox-group__label'),
+      ).map((el) => el.textContent?.trim());
+      expect(headings).toEqual(['Fruit|sweet|2|ap']);
+    });
+
+    it('falls back to the plain label', async () => {
+      const { focus, host, settle } = setup(ExtrasHost);
+      host.options.set(HINTED_GROUPS);
+      await settle();
+
+      focus();
+
+      const headings = Array.from(
+        document.querySelectorAll('.andes-combobox-group__label'),
+      ).map((el) => el.textContent?.trim());
+      expect(headings).toEqual(['Fruit', 'Vegetables']);
+    });
+  });
+
+  describe('popupTemplate', () => {
+    it('wraps the default body with extra content', async () => {
+      const { type, panel, labels, host, settle } = setup(ExtrasHost);
+      host.usePopupTemplate.set(true);
+      await settle();
+
+      type('ap');
+
+      const header = panel()?.querySelector('.popup-header');
+      expect(header?.textContent).toBe('Results for "ap"');
+      expect(labels()).toEqual(['Apple', 'Apricot']);
+      expect(panel()?.querySelector('.popup-footer')).not.toBeNull();
+    });
+
+    it('keeps the popup visible when nothing matches even with notFoundContent null', async () => {
+      const { type, panel, host, settle } = setup(ExtrasHost);
+      host.usePopupTemplate.set(true);
+      await settle();
+
+      type('xyz');
+
+      expect(panel()?.hasAttribute('data-hidden')).toBe(false);
+      expect(panel()?.querySelector('.popup-footer')).not.toBeNull();
+    });
+
+    it('hides the popup when nothing matches and notFoundContent is null without one', () => {
+      const { type, panel } = setup(ExtrasHost);
+
+      type('xyz');
+
+      expect(panel()?.hasAttribute('data-hidden')).toBe(true);
+    });
+
+    it('keeps focus on the input when something in the popup is pressed', async () => {
+      const { focus, panel, host, settle, detect } = setup(ExtrasHost);
+      host.usePopupTemplate.set(true);
+      await settle();
+      focus();
+
+      const footer = panel()?.querySelector<HTMLButtonElement>('.popup-footer');
+      const mousedown = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+      });
+      footer?.dispatchEvent(mousedown);
+      footer?.click();
+      detect();
+
+      expect(mousedown.defaultPrevented).toBe(true);
+      expect(host.footerClicks).toBe(1);
+    });
+  });
+
+  describe('a textarea as the field', () => {
+    it('acts as the combobox: role, filtering and Enter to choose', async () => {
+      const { input, type, labels, press, host, settle } = setup(TextareaHost);
+
+      expect(input.tagName).toBe('TEXTAREA');
+      expect(input.getAttribute('role')).toBe('combobox');
+
+      type('ap');
+      expect(labels()).toEqual(['Apple', 'Apricot']);
+
+      press('Enter');
+      await settle();
+      expect(host.value()).toBe('Apple');
+      expect(input.value).toBe('Apple');
+    });
+
+    it('inserts a line break on Enter while nothing is highlighted', () => {
+      const { press, host } = setup(TextareaHost);
+
+      const event = press('Enter');
+
+      expect(event.defaultPrevented).toBe(false);
+      expect(host.combobox().overlay.isOpen()).toBe(false);
     });
   });
 });
