@@ -90,6 +90,18 @@
   outline-offset: 2px;
 }
 
+/* Invalid (the group's `aria-invalid`): the danger color wins over the checked/hover border. */
+
+/* prettier-ignore */
+:host(.andes-radio--invalid) .andes-radio__control, :host(.andes-radio--invalid) .andes-radio__label:hover .andes-radio__control {
+  border-color: var(--andes-color-danger);
+}
+
+/* prettier-ignore */
+:host(.andes-radio--invalid) .andes-radio__input:focus-visible ~ .andes-radio__control {
+  outline-color: var(--andes-color-danger);
+}
+
 .andes-radio__text:empty {
   display: none;
 }
@@ -233,4 +245,16 @@
 :host(.andes-radio--button.andes-radio--solid.andes-radio--checked:not(.andes-radio--disabled)) .andes-radio__label:hover .andes-radio__text {
   border-color: var(--andes-color-primary-hover);
   background-color: var(--andes-color-primary-hover);
+}
+
+/* Invalid (the group's `aria-invalid`) - kept last so it wins over the checked styles. */
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--invalid) .andes-radio__text, :host(.andes-radio--button.andes-radio--invalid.andes-radio--checked) .andes-radio__text {
+  border-color: var(--andes-color-danger);
+}
+
+/* prettier-ignore */
+:host(.andes-radio--button.andes-radio--invalid) .andes-radio__input:focus-visible ~ .andes-radio__text {
+  outline-color: var(--andes-color-danger);
 }

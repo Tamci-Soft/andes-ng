@@ -92,6 +92,28 @@ export const Required: Story = {
   args: { required: true },
 };
 
+/** `aria-invalid` marks the group as failing validation: the radiogroup gets
+ *  `aria-invalid="true"` and every item is tinted with the danger color. */
+export const Invalid: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesRadio] },
+    template: `
+      <div style="display: flex; gap: 3rem; flex-wrap: wrap; align-items: flex-start;">
+        <andes-radio-group aria-label="Plan" aria-invalid="true" required>
+          <andes-radio value="starter">Starter</andes-radio>
+          <andes-radio value="pro">Pro</andes-radio>
+          <andes-radio value="enterprise">Enterprise</andes-radio>
+        </andes-radio-group>
+        <andes-radio-group aria-label="Plan (buttons)" aria-invalid="true" optionType="button">
+          <andes-radio value="starter">Starter</andes-radio>
+          <andes-radio value="pro">Pro</andes-radio>
+          <andes-radio value="enterprise">Enterprise</andes-radio>
+        </andes-radio-group>
+      </div>
+    `,
+  }),
+};
+
 export const WithReactiveForm: Story = {
   render: () => ({
     moduleMetadata: { imports: [AndesRadio, ReactiveFormsModule] },
