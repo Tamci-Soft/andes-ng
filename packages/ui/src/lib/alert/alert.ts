@@ -248,7 +248,7 @@ export class AndesAlert {
   );
 
   /**
-   * shadcn/ui's docs don't confirm a default ARIA role for its base Alert (see
+   * There is no single standard default ARIA role for an alert (see
    * docs/research/components/alert.md, section 4). The generally-accepted rule is:
    * `role="status"` (polite) for a non-urgent alert that is part of the page's static/initial
    * content, and `role="alert"` (assertive) for one that appears dynamically and needs
