@@ -7,9 +7,20 @@
  *
  * Dark mode: set data-andes-theme="dark" on <html> (or any ancestor).
  * See docs/adr/0003-css-custom-properties-as-the-styling-contract.md.
+ *
+ * Contrast contract, in both themes: a `-foreground` reads at >= 4.5:1 on the fills meant to
+ * carry it - primary, danger, success and info with their -hover/-active, and warning with its
+ * -hover - and a `-text` token reads at >= 4.5:1 on the page background and on the card,
+ * popover and muted surfaces. Each alias below (`-solid`, `--andes-duration-*`,
+ * `--andes-ease-*`) points at its canonical token; it is repeated in the dark rule wherever the
+ * target changes, so it also follows the theme when `data-andes-theme` sits on a descendant.
  */
 
 :root {
+  /* Lets the browser theme what it draws itself (scrollbars, date/time pickers, autofill,
+     native checkboxes, resize handles) to match the tokens below. */
+  color-scheme: light;
+
   --andes-color-background: #ffffff;
   --andes-color-foreground: #0f172a;
 
@@ -26,6 +37,9 @@
   /* For text standing alone on the page background (e.g. the link variant), not as a fill
      color - brightens in dark mode below since #2563eb only hits 3.45:1 on #0f172a. */
   --andes-color-primary-text: #2563eb;
+  /* A light primary tint for selected rows, options and date ranges. Both the normal
+     foreground and --andes-color-primary-text stay >= 4.5:1 on it, in both themes. */
+  --andes-color-primary-subtle: #eaf1fe;
 
   --andes-color-secondary: #e5e7eb;
   --andes-color-secondary-hover: #d1d5db;
@@ -49,19 +63,28 @@
   --andes-color-danger-text: #b91c1c;
 
   /* success/info fills are the 700 shades (not 600) so white text on them clears 4.5:1
-     (#16a34a was 3.3:1, #0284c7 4.1:1) - e.g. the success/info tooltip colors. */
+     (#16a34a was 3.3:1, #0284c7 4.1:1) - e.g. solid buttons, badges and the success/info
+     tooltip and popover colors. Hover and press go darker, not lighter, because every
+     lighter shade costs contrast with white. Same values in both themes. */
   --andes-color-success: #15803d;
   --andes-color-success-hover: #166534;
   --andes-color-success-active: #14532d;
   --andes-color-success-foreground: #ffffff;
   --andes-color-success-text: #15803d;
+  /* `-solid`: the names for success/info FILLS that carry -foreground (solid buttons, badges,
+     tooltip and popover color presets), equal to the base shade and its states. Use them where
+     the intent is "a filled surface" rather than an icon, border or tint. */
+  --andes-color-success-solid: var(--andes-color-success);
+  --andes-color-success-solid-hover: var(--andes-color-success-hover);
+  --andes-color-success-solid-active: var(--andes-color-success-active);
 
   --andes-color-warning: #f59e0b;
   --andes-color-warning-hover: #d97706;
   --andes-color-warning-active: #b45309;
-  /* Amber only reaches AA contrast with a dark foreground, not white - unlike primary/danger/
-     success, which are dark enough to pair with white text. */
-  --andes-color-warning-foreground: #78350f;
+  /* Amber only reaches AA contrast with a dark foreground, not white. The near-black brown
+     reads 7:1 on the base and 4.7:1 on -hover (the previous #78350f managed 4.2 / 2.9:1);
+     -active is too dark for it, so a pressed amber fill should stay on -hover. */
+  --andes-color-warning-foreground: #451a03;
   --andes-color-warning-text: #b45309;
 
   --andes-color-info: #0369a1;
@@ -69,6 +92,9 @@
   --andes-color-info-active: #0c4a6e;
   --andes-color-info-foreground: #ffffff;
   --andes-color-info-text: #0369a1;
+  --andes-color-info-solid: var(--andes-color-info);
+  --andes-color-info-solid-hover: var(--andes-color-info-hover);
+  --andes-color-info-solid-active: var(--andes-color-info-active);
 
   --andes-color-border: #d1d5db;
   --andes-color-input: #d1d5db;
@@ -130,7 +156,7 @@
   --andes-space-5: 1.25rem;
 
   /* Control scale - every form control and button shares one height/padding/type/radius per
-     size, measured from Ant Design 5's rendered controls: 24/32/40px tall, 14px text (16px on
+     size: 24/32/40px tall, 14px text (16px on
      `lg`) on a 22px line, 7px/11px inline padding, 4/6/8px corners. Components read these
      instead of their own literals so a field, a select and a button of the same size line up. */
   --andes-control-height-sm: 1.5rem;
@@ -139,30 +165,51 @@
   --andes-control-padding-x-sm: 0.4375rem;
   --andes-control-padding-x-md: 0.6875rem;
   --andes-control-padding-x-lg: 0.6875rem;
-  --andes-control-font-size-sm: 0.875rem;
-  --andes-control-font-size-md: 0.875rem;
-  --andes-control-font-size-lg: 1rem;
+  --andes-control-font-size-sm: var(--andes-font-size-sm);
+  --andes-control-font-size-md: var(--andes-font-size-sm);
+  --andes-control-font-size-lg: var(--andes-font-size-md);
   --andes-control-line-height: 1.375rem;
   --andes-control-radius-sm: 0.25rem;
   --andes-control-radius-md: 0.375rem;
   --andes-control-radius-lg: 0.5rem;
   /* Body text of components (labels, cells, menu items, descriptions): 14px on a 22px line. */
-  --andes-text-font-size: 0.875rem;
+  --andes-text-font-size: var(--andes-font-size-sm);
   --andes-text-line-height: 1.375rem;
 
-  /* Motion, from Ant Design 5: short and eased-out so UI responds without drawing attention.
-     `fast` for color/hover changes, `mid` for small movements (dropdowns, tooltips, switches),
-     `slow` for larger surfaces (dialogs, drawers, collapses). */
-  --andes-motion-duration-fast: 0.1s;
-  --andes-motion-duration-mid: 0.2s;
-  --andes-motion-duration-slow: 0.3s;
-  --andes-motion-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  /* Motion. Short and settling, never bouncy: nothing should draw attention to itself.
+     fast: hover/press colour and exits; mid: overlay entries and small movements (menus,
+     selects, popovers, tooltips, switches); slow: larger travel (dialogs, drawers, expanding
+     sections). ease-out decelerates into place (entries), ease-in accelerates away (exits),
+     ease-in-out eases both ends of a move. Not themed. Reduced motion is honoured by each
+     component, not here, so a component can still keep an opacity-only fade. */
+  --andes-motion-duration-fast: 120ms;
+  --andes-motion-duration-mid: 150ms;
+  --andes-motion-duration-slow: 200ms;
+  --andes-motion-ease-out: cubic-bezier(0.2, 0, 0, 1);
   --andes-motion-ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
-  --andes-motion-ease-in: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  --andes-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  /* Shorter names for the same values. */
+  --andes-duration-fast: var(--andes-motion-duration-fast);
+  --andes-duration-base: var(--andes-motion-duration-mid);
+  --andes-duration-slow: var(--andes-motion-duration-slow);
+  --andes-ease-out: var(--andes-motion-ease-out);
+  --andes-ease-in: var(--andes-motion-ease-in);
 
-  /* Focus halo for text fields (border takes --andes-color-focus-ring; this hugs it). */
-  --andes-focus-halo: 0 0 0 3px
+  /* Focus halo for text fields (border takes --andes-color-focus-ring; this hugs it): the one
+     2px ring, so a focused field shows a single indicator. */
+  --andes-focus-halo: 0 0 0 2px
     color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+
+  /* Elevation, by how far a surface floats above the page. sm: resting raised surfaces (cards,
+     a lifted control). md: panels anchored to a trigger (menus, selects, popovers, date
+     panels). lg: free-standing raised surfaces (dialogs, drawers, toasts). The shadow ink is
+     fixed dark, never theme-derived - a shadow is cast light, not ink - and only its strength
+     grows in the dark theme, where a soft shadow would vanish against the page. */
+  --andes-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  --andes-shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  --andes-shadow-lg:
+    0 10px 15px -3px rgb(15 23 42 / 18%), 0 4px 6px -4px rgb(15 23 42 / 22%);
 
   /* Stacking order for layered UI. Numeric (unitless) so consumers can use them directly in
      z-index. Not overridden per-theme - layering order doesn't depend on light/dark. */
@@ -193,6 +240,9 @@
   --andes-color-primary-active: #1e40af;
   --andes-color-primary-foreground: #ffffff;
   --andes-color-primary-text: #60a5fa;
+  /* Stronger than a straight tint so it still separates from popover/card surfaces
+     (#1e293b), not just from the page. */
+  --andes-color-primary-subtle: #1d3478;
 
   --andes-color-secondary: #334155;
   --andes-color-secondary-hover: #475569;
@@ -217,11 +267,14 @@
   --andes-color-success-active: #14532d;
   --andes-color-success-foreground: #ffffff;
   --andes-color-success-text: #4ade80;
+  --andes-color-success-solid: var(--andes-color-success);
+  --andes-color-success-solid-hover: var(--andes-color-success-hover);
+  --andes-color-success-solid-active: var(--andes-color-success-active);
 
   --andes-color-warning: #f59e0b;
   --andes-color-warning-hover: #fbbf24;
   --andes-color-warning-active: #fcd34d;
-  --andes-color-warning-foreground: #78350f;
+  --andes-color-warning-foreground: #451a03;
   --andes-color-warning-text: #fbbf24;
 
   --andes-color-info: #0369a1;
@@ -229,10 +282,23 @@
   --andes-color-info-active: #0c4a6e;
   --andes-color-info-foreground: #ffffff;
   --andes-color-info-text: #38bdf8;
+  --andes-color-info-solid: var(--andes-color-info);
+  --andes-color-info-solid-hover: var(--andes-color-info-hover);
+  --andes-color-info-solid-active: var(--andes-color-info-active);
 
   --andes-color-border: #334155;
   --andes-color-input: #334155;
   --andes-color-focus-ring: #3b82f6;
 
   --andes-color-overlay: rgb(2 6 23 / 65%);
+
+  /* Redeclared because the ring colour it is built from changes in this theme. */
+  --andes-focus-halo: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+
+  --andes-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 30%);
+  --andes-shadow-md:
+    0 4px 6px -1px rgb(0 0 0 / 30%), 0 2px 4px -2px rgb(0 0 0 / 24%);
+  --andes-shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 45%), 0 4px 6px -4px rgb(0 0 0 / 40%);
 }
