@@ -457,6 +457,19 @@ describe('AndesDropdownMenu - extended features', () => {
       },
     );
 
+    it('marks the panel with its placement side, which its entry motion keys off', async () => {
+      host.placement.set('topRight');
+      await settle(fixture);
+      byId('trigger').click();
+      await settle(fixture);
+
+      expect(
+        document
+          .querySelector('.andes-dropdown-menu__content')
+          ?.getAttribute('data-side'),
+      ).toBe('top');
+    });
+
     it('turns flip and shift off with autoAdjustOverflow=false', async () => {
       host.autoAdjust.set(false);
       await settle(fixture);

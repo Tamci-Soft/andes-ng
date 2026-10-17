@@ -16,7 +16,7 @@
   max-height: var(--andes-dropdown-menu-max-height, 24rem);
   overflow-y: auto;
   padding: var(--andes-space-1);
-  border-radius: var(--andes-radius-md);
+  border-radius: var(--andes-radius-lg);
   border: 1px solid var(--andes-color-border);
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
@@ -26,29 +26,46 @@
 }
 
 /*
- * A menu appearing is a position change as much as a visibility one, so it gets the
- * same short fade+scale Radix/shadcn use rather than popping in hard. `data-state`
- * comes from `AndesOverlayContentPrimitive`. `center top` is the origin for the
- * `menu` preset's default bottom-anchored placement; a collision-flipped menu grows
- * from the wrong edge, but at 120ms/0.97 that is imperceptible, and picking the
- * origin per resolved side would mean plumbing CDK's position back out to CSS.
+ * A menu appearing is a position change as much as a visibility one, so it fades in
+ * rather than popping in hard, drifting 4px away from the trigger as it does (the
+ * feel of Ant's `slide-up`, without its 0.8 vertical squash). No scale, so item text
+ * never resamples mid-animation. `data-state` comes from
+ * `AndesOverlayContentPrimitive`; `data-side` is the side the menu is placed on
+ * (a submenu always opens to the right). A collision-flipped menu drifts 4px the
+ * wrong way, which is imperceptible at this distance.
  */
+.andes-dropdown-menu__content[data-side='bottom'] {
+  --andes-dropdown-menu-enter-from: 0 -4px;
+}
+
+.andes-dropdown-menu__content[data-side='top'] {
+  --andes-dropdown-menu-enter-from: 0 4px;
+}
+
+.andes-dropdown-menu__content[data-side='left'] {
+  --andes-dropdown-menu-enter-from: 4px 0;
+}
+
+.andes-dropdown-menu__content[data-side='right'] {
+  --andes-dropdown-menu-enter-from: -4px 0;
+}
+
 @keyframes andes-dropdown-menu-enter {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    translate: var(--andes-dropdown-menu-enter-from, 0 -4px);
   }
 
   to {
     opacity: 1;
-    transform: none;
+    translate: 0 0;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .andes-dropdown-menu__content[data-state='open'] {
-    transform-origin: center top;
-    animation: andes-dropdown-menu-enter 120ms ease-out;
+    animation: andes-dropdown-menu-enter var(--andes-motion-duration-mid, 0.2s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
   }
 }
 
@@ -56,11 +73,14 @@
   display: flex;
   align-items: center;
   gap: var(--andes-space-2);
-  padding: var(--andes-space-2) var(--andes-space-3);
+  /* Ant's menu row: 5px 12px around a 14px/22px line, so a single-line item is 32px. */
+  padding: 0.3125rem var(--andes-space-3);
   border-radius: var(--andes-radius-sm);
   font-family: var(--andes-font-family), sans-serif;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  transition: background-color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
   color: inherit;
   cursor: pointer;
   user-select: none;
@@ -172,9 +192,11 @@
 
 .andes-dropdown-menu__label {
   display: block;
-  padding: var(--andes-space-2) var(--andes-space-3);
+  padding: 0.3125rem var(--andes-space-3);
   font-family: var(--andes-font-family), sans-serif;
-  font-size: 0.75rem;
+  /* Same 32px row as an item (Ant's group title), set apart by weight and colour. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   font-weight: var(--andes-font-weight-medium);
   color: var(--andes-color-muted-foreground);
 }

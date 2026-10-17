@@ -40,6 +40,7 @@ import { AndesDropdownMenuRoot } from './dropdown-menu-root';
   encapsulation: ViewEncapsulation.None,
   host: {
     class: 'andes-dropdown-menu__content',
+    '[attr.data-side]': 'root.placementSide()',
     '(pointerenter)': 'root.pointerEntered()',
     '(pointerleave)': 'root.pointerLeft()',
   },
