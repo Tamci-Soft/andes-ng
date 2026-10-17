@@ -48,6 +48,8 @@ import { AndesDropdownMenuLevel } from './dropdown-menu-types';
   host: {
     class: 'andes-dropdown-menu__content andes-dropdown-menu__sub-content',
     '[attr.aria-labelledby]': 'sub.triggerId()',
+    // A submenu always opens beside its trigger item; see the entry motion in the CSS.
+    'data-side': 'right',
     '(pointerenter)': 'onPointerEnter()',
     '(pointerleave)': 'root.pointerLeft()',
   },

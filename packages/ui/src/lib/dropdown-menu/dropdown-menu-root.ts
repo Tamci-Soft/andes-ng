@@ -1,3 +1,4 @@
+import type { AndesOverlaySide } from '@andes-ng/primitives';
 import type { Signal, TemplateRef } from '@angular/core';
 
 import type { AndesDropdownMenuOpenChangeSource } from './dropdown-menu-types';
@@ -27,6 +28,8 @@ export abstract class AndesDropdownMenuRoot {
   abstract readonly isSelectable: Signal<boolean>;
   /** Whether more than one key can be selected at once. */
   abstract readonly isMultiple: Signal<boolean>;
+  /** Side of the trigger the panel is placed on (from `placement`); drives its entry motion. */
+  abstract readonly placementSide: Signal<AndesOverlaySide>;
   /** Custom submenu expand icon, if any. */
   abstract readonly expandIcon: Signal<TemplateRef<unknown> | undefined>;
   /** How submenus open from their trigger item. */

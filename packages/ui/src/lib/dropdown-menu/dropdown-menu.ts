@@ -240,6 +240,9 @@ export class AndesDropdownMenu
   readonly isDisabled: Signal<boolean> = computed(() => this.disabled());
   readonly isSelectable: Signal<boolean> = computed(() => this.selectable());
   readonly isMultiple: Signal<boolean> = computed(() => this.multiple());
+  readonly placementSide: Signal<AndesOverlaySide> = computed(
+    () => PLACEMENTS[this.placement()].side,
+  );
 
   protected readonly arrowEnabled = computed(() => {
     const arrow = this.arrow();
