@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, type TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   type AbstractControl,
@@ -20,7 +20,10 @@ import type {
   AndesFormErrorMessages,
   AndesFormLabelAlign,
   AndesFormLayout,
+  AndesFormFeedbackIconContext,
   AndesFormRequiredMark,
+  AndesFormRequiredMarkContext,
+  AndesFormShowErrorsOn,
   AndesFormValidateStatus,
 } from './form-field-tokens';
 
@@ -355,6 +358,21 @@ describe('AndesFormField - presentation features', () => {
   });
 
   describe('help and extra', () => {
+    it('tints warning help and its icon with the readable amber, not the 2.2:1 fill', () => {
+      const { help, feedback, update } = setup((h) => {
+        h.help.set('This name is unusual.');
+        h.status.set('warning');
+        h.feedback.set(true);
+      });
+      update(() => undefined);
+      expect(getComputedStyle(help() as Element).color).toBe(
+        'var(--andes-color-warning-text, var(--andes-color-warning-active))',
+      );
+      expect(getComputedStyle(feedback() as Element).color).toBe(
+        'var(--andes-color-warning-active)',
+      );
+    });
+
     it('shows help in place of the generated messages, even before interaction', () => {
       const { help, blur, update } = setup((h) =>
         h.help.set('Pick something memorable.'),
@@ -477,6 +495,8 @@ describe('AndesFormField - presentation features', () => {
       expect(trigger.getAttribute('aria-describedby')).toBe(tip.id);
       expect(tip.textContent?.trim()).toBe('Your legal name.');
       expect(tip.hidden).toBe(true);
+      // A native button would otherwise fall back to the UA font.
+      expect(getComputedStyle(trigger).fontFamily).toBe('inherit');
     });
 
     it('opens the tooltip on focus and hover, and closes it on Escape/blur/leave', () => {
@@ -735,6 +755,284 @@ describe('AndesFormField - presentation features', () => {
       expect(el.querySelector('.prefix')?.hasAttribute('aria-invalid')).toBe(
         false,
       );
+    });
+  });
+});
+
+describe('AndesFormField - display timing, warnings and templates', () => {
+  describe('showErrorsOn', () => {
+    @Component({
+      imports: [...IMPORTS, AndesForm],
+      template: `<form andesForm [formGroup]="form" [showErrorsOn]="formGate()">
+        <andes-form-field label="Name" [showErrorsOn]="fieldGate()">
+          <input andesFormControl formControlName="name" />
+        </andes-form-field>
+      </form>`,
+    })
+    class GateHost {
+      readonly form = new FormGroup({
+        name: new FormControl('', [
+          Validators.required,
+          Validators.minLength(3),
+        ]),
+      });
+      readonly formGate = signal<AndesFormShowErrorsOn>('interacted');
+      readonly fieldGate = signal<AndesFormShowErrorsOn | undefined>(undefined);
+    }
+
+    function gateSetup(configure?: (host: GateHost) => void) {
+      const fixture = TestBed.createComponent(GateHost);
+      configure?.(fixture.componentInstance);
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector('input') as HTMLInputElement;
+      const status = () =>
+        el.querySelector('.andes-form-field')?.getAttribute('data-status') ??
+        null;
+      const type = (value: string) => {
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+      };
+      const blur = () => {
+        input.dispatchEvent(new Event('blur'));
+        fixture.detectChanges();
+      };
+      const submit = () => {
+        el.querySelector('form')?.dispatchEvent(new Event('submit'));
+        fixture.detectChanges();
+      };
+      return { fixture, input, status, type, blur, submit };
+    }
+
+    it('"touched" waits for blur even after typing', () => {
+      const { status, type, blur } = gateSetup((h) =>
+        h.formGate.set('touched'),
+      );
+      type('a');
+      expect(status()).toBeNull();
+      blur();
+      expect(status()).toBe('error');
+    });
+
+    it('"dirty" shows the status while typing, before any blur', () => {
+      const { status, type } = gateSetup((h) => h.formGate.set('dirty'));
+      type('a');
+      expect(status()).toBe('error');
+    });
+
+    it('"submitted" ignores interaction until the form is submitted', () => {
+      const { status, type, blur, submit } = gateSetup((h) =>
+        h.formGate.set('submitted'),
+      );
+      type('a');
+      blur();
+      expect(status()).toBeNull();
+      submit();
+      expect(status()).toBe('error');
+    });
+
+    it('"always" shows the status on a pristine control, aria-invalid included', () => {
+      const { status, input } = gateSetup((h) => h.formGate.set('always'));
+      expect(status()).toBe('error');
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('a field-level gate overrides the form`s', () => {
+      const { status } = gateSetup((h) => {
+        h.formGate.set('submitted');
+        h.fieldGate.set('always');
+      });
+      expect(status()).toBe('error');
+    });
+  });
+
+  describe('warningValidators', () => {
+    const lowPrice = (control: AbstractControl): ValidationErrors | null =>
+      Number(control.value) < 10
+        ? { lowPrice: 'Below the usual price.' }
+        : null;
+
+    @Component({
+      imports: IMPORTS,
+      template: `<andes-form-field
+        label="Price"
+        hasFeedback
+        [warningValidators]="warnings"
+        [errorMessages]="{ lowPrice: 'Lower than {label} usually is.' }"
+      >
+        <input andesFormControl [formControl]="price" />
+      </andes-form-field>`,
+    })
+    class WarningHost {
+      readonly price = new FormControl('', Validators.required);
+      readonly warnings = [lowPrice];
+    }
+
+    function warningSetup() {
+      const fixture = TestBed.createComponent(WarningHost);
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector('input') as HTMLInputElement;
+      const type = (value: string) => {
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+      };
+      const root = () => el.querySelector('.andes-form-field') as HTMLElement;
+      const help = () => el.querySelector('.andes-form-field__help');
+      return { fixture, el, input, type, root, help };
+    }
+
+    it('puts the field in warning with a message, without invalidating the control', () => {
+      const { fixture, type, root, help, el } = warningSetup();
+      type('5');
+      expect(fixture.componentInstance.price.valid).toBe(true);
+      expect(root().getAttribute('data-status')).toBe('warning');
+      expect(help()?.textContent?.trim()).toBe('Lower than Price usually is.');
+      expect(help()?.getAttribute('role')).toBe('status');
+      expect(
+        el
+          .querySelector('.andes-form-field__feedback')
+          ?.getAttribute('data-status'),
+      ).toBe('warning');
+      expect(el.querySelector('input')?.hasAttribute('aria-invalid')).toBe(
+        false,
+      );
+    });
+
+    it('lets a real error win, and clears once the value is fine', () => {
+      const { type, root, help } = warningSetup();
+      type('');
+      expect(root().getAttribute('data-status')).toBe('error');
+      expect(help()?.getAttribute('role')).toBe('alert');
+      type('25');
+      expect(root().getAttribute('data-status')).toBe('success');
+      expect(help()).toBeNull();
+    });
+  });
+
+  it('hidden hides the field but keeps its control registered', () => {
+    @Component({
+      imports: IMPORTS,
+      template: `<andes-form-field label="Id" hidden>
+        <input andesFormControl [formControl]="id" />
+      </andes-form-field>`,
+    })
+    class HiddenHost {
+      readonly id = new FormControl('', Validators.required);
+    }
+    const fixture = TestBed.createComponent(HiddenHost);
+    fixture.detectChanges();
+    const host = (fixture.nativeElement as HTMLElement).querySelector(
+      'andes-form-field',
+    ) as HTMLElement;
+    expect(host.hidden).toBe(true);
+    expect(getComputedStyle(host).display).toBe('none');
+    fixture.componentInstance.id.markAsTouched();
+    fixture.detectChanges();
+    expect(
+      host.querySelector('.andes-form-field')?.getAttribute('data-status'),
+    ).toBe('error');
+  });
+
+  it('reflects the control path as data-path', () => {
+    @Component({
+      imports: IMPORTS,
+      template: `<div [formGroup]="form">
+        <div formGroupName="address">
+          <andes-form-field label="City">
+            <input andesFormControl formControlName="city" />
+          </andes-form-field>
+        </div>
+        <andes-form-field label="Loose">
+          <input andesFormControl [formControl]="loose" />
+        </andes-form-field>
+      </div>`,
+    })
+    class PathHost {
+      readonly form = new FormGroup({
+        address: new FormGroup({ city: new FormControl('') }),
+      });
+      readonly loose = new FormControl('');
+    }
+    const fixture = TestBed.createComponent(PathHost);
+    fixture.detectChanges();
+    const [city, loose] = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll(
+        '.andes-form-field',
+      ),
+    );
+    expect(city.getAttribute('data-path')).toBe('address.city');
+    expect(loose.hasAttribute('data-path')).toBe(false);
+  });
+
+  describe('templates', () => {
+    @Component({
+      imports: [...IMPORTS, AndesForm],
+      template: `<ng-template #mark let-required>
+          <span class="custom-mark">{{ required ? 'req' : 'opt' }}</span>
+        </ng-template>
+        <ng-template #icons let-status>
+          <span class="custom-icon">{{ status }}</span>
+        </ng-template>
+        <ng-template #tip
+          ><strong class="rich-tip">Rich</strong> hint</ng-template
+        >
+        <form
+          andesForm
+          [requiredMark]="markTemplate()"
+          [feedbackIcons]="iconTemplate()"
+        >
+          <andes-form-field label="Name" hasFeedback [tooltip]="tipTemplate()">
+            <input class="name" andesFormControl [formControl]="name" />
+          </andes-form-field>
+          <andes-form-field label="Nick">
+            <input class="nick" andesFormControl [formControl]="nick" />
+          </andes-form-field>
+        </form>`,
+    })
+    class TemplateHost {
+      readonly name = new FormControl('', Validators.required);
+      readonly nick = new FormControl('');
+      readonly markTemplate =
+        viewChild.required<TemplateRef<AndesFormRequiredMarkContext>>('mark');
+      readonly iconTemplate =
+        viewChild.required<TemplateRef<AndesFormFeedbackIconContext>>('icons');
+      readonly tipTemplate = viewChild.required<TemplateRef<void>>('tip');
+    }
+
+    function templateSetup() {
+      const fixture = TestBed.createComponent(TemplateHost);
+      fixture.detectChanges();
+      fixture.detectChanges();
+      return { fixture, el: fixture.nativeElement as HTMLElement };
+    }
+
+    it('renders a requiredMark template inside every label, with the required flag', () => {
+      const { el } = templateSetup();
+      const marks = Array.from(el.querySelectorAll('label .custom-mark')).map(
+        (n) => n.textContent?.trim(),
+      );
+      expect(marks).toEqual(['req', 'opt']);
+      expect(el.querySelector('.andes-form-label__required')).toBeNull();
+    });
+
+    it('renders feedbackIcons with the current status instead of the built-in icons', () => {
+      const { fixture, el } = templateSetup();
+      fixture.componentInstance.name.markAsTouched();
+      fixture.detectChanges();
+      const feedback = el.querySelector('.andes-form-field__feedback');
+      expect(feedback?.querySelector('.custom-icon')?.textContent).toBe(
+        'error',
+      );
+      expect(feedback?.querySelector('svg')).toBeNull();
+    });
+
+    it('renders a tooltip template in the bubble', () => {
+      const { el } = templateSetup();
+      const bubble = el.querySelector('[role="tooltip"]');
+      expect(bubble?.querySelector('.rich-tip')?.textContent).toBe('Rich');
     });
   });
 });

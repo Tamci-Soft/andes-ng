@@ -578,6 +578,7 @@ describe('AndesFormField', () => {
       const style = getComputedStyle(renderStyled().label);
 
       expect(style.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(style.lineHeight).toBe('var(--andes-text-line-height, 1.375rem)');
       expect(style.fontWeight).toBe('var(--andes-font-weight-medium)');
       expect(style.color).toBe('var(--andes-color-foreground)');
     });
@@ -585,7 +586,8 @@ describe('AndesFormField', () => {
     it('styles the <p> rendered by AndesFormDescription', () => {
       const style = getComputedStyle(renderStyled().description);
 
-      expect(style.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(style.fontSize).toBe('0.75rem');
+      expect(style.lineHeight).toBe('1.25rem');
       expect(style.color).toBe('var(--andes-color-muted-foreground)');
       // <p>'s UA default margin is 1em 0 - proving it is 0 proves the rule matched.
       expect(style.margin).toBe('0px');
@@ -596,10 +598,11 @@ describe('AndesFormField', () => {
 
       // This is the exact assertion that failed before the fix, with `rgb(0, 0, 0)`.
       expect(style.color).toBe(
-        'var(--andes-color-danger-text, var(--andes-color-danger))',
+        'var(--andes-color-danger-text, var(--andes-color-danger-hover))',
       );
       expect(style.color).not.toBe('rgb(0, 0, 0)');
-      expect(style.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(style.fontSize).toBe('0.75rem');
+      expect(style.lineHeight).toBe('1.25rem');
       expect(style.margin).toBe('0px');
     });
 
@@ -634,6 +637,51 @@ describe('AndesFormField', () => {
       expect(untinted).toBe('');
       expect(tinted).not.toBe('');
       expect(tinted).not.toBe(untinted);
+    });
+
+    // A focused invalid control shows one indicator - the status border plus a soft 2px ring -
+    // never an outline beside it (an offset outline around a bordered box reads as a second
+    // frame).
+    it('rings the focused native control in the status colour, with no outline', () => {
+      const { input } = renderStyled();
+
+      input.focus();
+
+      expect(getComputedStyle(input).boxShadow).toBe(
+        '0 0 0 2px color-mix(in srgb, var(--andes-color-danger) 20%, transparent)',
+      );
+      expect(getComputedStyle(input).outline).toBe('none');
+    });
+
+    // A component's own native input sits deeper than the field's control slot and is bare on
+    // purpose (its wrapper is the box), so the field's tint must not reach it.
+    it('leaves a native input nested inside a wrapper element untouched', () => {
+      @Component({
+        imports: [ReactiveFormsModule, AndesFormField, AndesFormControl],
+        template: `<andes-form-field label="Email">
+          <span class="wrapper"
+            ><input andesFormControl [formControl]="email"
+          /></span>
+        </andes-form-field>`,
+      })
+      class NestedInputHost {
+        readonly email = new FormControl('', Validators.required);
+      }
+
+      const fixture = TestBed.createComponent(NestedInputHost);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector(
+        'input',
+      ) as HTMLInputElement;
+      fixture.componentInstance.email.markAsTouched();
+      fixture.detectChanges();
+      input.focus();
+
+      expect(
+        fixture.nativeElement.querySelector('.andes-form-field').classList,
+      ).toContain('andes-form-field--invalid');
+      expect(getComputedStyle(input).getPropertyValue('border-color')).toBe('');
+      expect(getComputedStyle(input).boxShadow).toBe('');
     });
   });
 

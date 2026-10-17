@@ -19,6 +19,7 @@ import {
 } from '@angular/forms';
 
 import {
+  ANDES_FORM,
   ANDES_FORM_CONTROL,
   ANDES_FORM_FIELD,
   type AndesFormControlApi,
@@ -172,6 +173,7 @@ export class AndesFormControl implements OnInit, AndesFormControlApi {
     self: true,
   });
   private readonly field = inject(ANDES_FORM_FIELD, { optional: true });
+  private readonly form = inject(ANDES_FORM, { optional: true });
   /** The enclosing reactive (`[formGroup]`) or template-driven (`<form>`/`ngForm`) form, if
    *  any - only read for its `submitted` flag, so errors surface after a submit attempt even
    *  on fields the user never reached - a failed submit shows every error at once. */
@@ -190,6 +192,9 @@ export class AndesFormControl implements OnInit, AndesFormControlApi {
   private readonly errorsState = signal<ValidationErrors | null>(null);
   private readonly requiredState = signal(false);
   private readonly requiredAttribute = signal(false);
+  private readonly valueState = signal<unknown>(undefined);
+  private readonly controlState = signal<AbstractControl | null>(null);
+  private readonly pathState = signal<string | null>(null);
 
   /**
    * Whether this directive sits directly on a native, labelable form element rather than on a
@@ -201,11 +206,29 @@ export class AndesFormControl implements OnInit, AndesFormControlApi {
     this.element.tagName,
   );
 
-  /** `touched || dirty`, or the enclosing `<form>` has been submitted - the point from which
-   *  a status (error, success, validating) is worth showing at all. */
-  readonly interacted = computed(
-    () => this.touched() || this.dirty() || this.submitted(),
-  );
+  /**
+   * Whether the status (error, warning, validating, success) is worth showing yet - by default
+   * once the control is touched or dirty, or the enclosing `<form>` has been submitted. The
+   * exact gate is the enclosing field's (else form's) `showErrorsOn`.
+   */
+  readonly interacted = computed(() => {
+    const gate =
+      this.field?.resolvedShowErrorsOn() ??
+      this.form?.showErrorsOn() ??
+      'interacted';
+    switch (gate) {
+      case 'always':
+        return true;
+      case 'submitted':
+        return this.submitted();
+      case 'touched':
+        return this.touched() || this.submitted();
+      case 'dirty':
+        return this.dirty() || this.submitted();
+      default:
+        return this.touched() || this.dirty() || this.submitted();
+    }
+  });
 
   /** `control.invalid && (control.touched || control.dirty)` - Angular's idiomatic
    *  "don't yell at the user before they've interacted with the field" rule - widened to also
@@ -223,6 +246,12 @@ export class AndesFormControl implements OnInit, AndesFormControlApi {
 
   /** The bound control's current `ValidationErrors`, as a signal. */
   readonly errors = this.errorsState.asReadonly();
+
+  readonly value = this.valueState.asReadonly();
+
+  readonly control = this.controlState.asReadonly();
+
+  readonly path = this.pathState.asReadonly();
 
   /**
    * Whether the label should carry a required mark: {@link isRequired}, or - for the
@@ -315,6 +344,9 @@ export class AndesFormControl implements OnInit, AndesFormControlApi {
       return;
     }
 
+    this.controlState.set(control);
+    const path = this.ngControl?.path ?? [];
+    this.pathState.set(path.length > 0 ? path.join('.') : null);
     this.syncFromControl(control);
     control.events
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -332,6 +364,7 @@ export class AndesFormControl implements OnInit, AndesFormControlApi {
     this.dirty.set(control.dirty);
     this.pendingState.set(control.pending);
     this.errorsState.set(control.errors);
+    this.valueState.set(control.value);
     this.submitted.set(this.formDirective?.submitted ?? false);
     this.requiredAttribute.set(
       this.isNativeFormElement && this.element.hasAttribute('required'),

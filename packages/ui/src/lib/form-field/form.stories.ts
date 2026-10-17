@@ -1,21 +1,32 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import {
+  type AbstractControl,
+  FormArray,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
+  type ValidationErrors,
   Validators,
 } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { AndesButton } from '../button/button';
-import { AndesForm, injectAndesFormSize } from './form';
+import {
+  AndesForm,
+  injectAndesFormDisabled,
+  injectAndesFormSize,
+  injectAndesFormVariant,
+} from './form';
 import { AndesFormControl } from './form-control';
 import { AndesFormField } from './form-field';
 import type {
+  AndesFormInvalidSubmit,
   AndesFormLabelAlign,
   AndesFormLayout,
   AndesFormRequiredMark,
+  AndesFormShowErrorsOn,
   AndesFormSize,
+  AndesFormVariant,
 } from './form-field-tokens';
 import { AndesFormLabel } from './form-label';
 import { withDemoControls } from './form-field.stories';
@@ -39,6 +50,21 @@ class DemoSizeReadout {
   );
 }
 
+/** Stand-in for a non-form control (an action button, an uploader) that follows the form's
+ *  `variant` and `disabled` through the DI hooks. */
+@Component({
+  selector: 'andes-demo-hint-readout',
+  template: `<code
+    style="font-size: 0.75rem; color: var(--andes-color-muted-foreground);"
+    >injectAndesFormVariant() → {{ variant() ?? 'undefined' }} ·
+    injectAndesFormDisabled() → {{ disabled() }}</code
+  >`,
+})
+class DemoHintReadout {
+  protected readonly variant = injectAndesFormVariant();
+  protected readonly disabled = injectAndesFormDisabled();
+}
+
 const moduleMetadata = {
   imports: [
     ReactiveFormsModule,
@@ -48,8 +74,13 @@ const moduleMetadata = {
     AndesFormControl,
     AndesButton,
     DemoSizeReadout,
+    DemoHintReadout,
   ],
 };
+
+/** Shared look for the small result panels the stories below print into. */
+const LOG_STYLE =
+  'margin: 0; padding: 0.5rem 0.75rem; border-radius: var(--andes-radius-md); background: var(--andes-color-muted); color: var(--andes-color-foreground); font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; white-space: pre-wrap;';
 
 interface FormArgs {
   layout: AndesFormLayout;
@@ -72,15 +103,20 @@ const meta: Meta<FormArgs> = {
           '`andesForm` is an attribute directive for the `<form>` (or any container) that holds',
           'your `AndesFormField`s. It carries the form’s *presentation* settings -',
           '`layout`, `labelCol` / `wrapperCol`, `labelAlign`, `labelWrap`, `colon`,',
-          '`requiredMark`, `size`, `errorMessages` and',
-          '`scrollToFirstError` - and hands it to every field through DI. Each field has a',
+          '`requiredMark`, `size`, `variant`, `showErrorsOn`, `feedbackIcons`, `errorMessages`',
+          'and `scrollToFirstError` - and hands it to every field through DI. Each field has a',
           'same-named input that overrides it.',
           '',
-          'Form **state** is deliberately *not* here: values, validation, `disabled`, reset and',
-          'submit all stay with Angular’s `FormGroupDirective` / `NgForm`, which `andesForm` sits',
-          'alongside on the same element. The form instance, submit handling, initial values,',
-          'dynamic lists and cross-form coordination map to `FormGroup`, `(ngSubmit)`, the',
-          '`FormControl` constructor, `FormArray` and plain component composition.',
+          'Form **state** is deliberately *not* here: values, validation, reset and submit all',
+          'stay with Angular’s `FormGroupDirective` / `NgForm`, which `andesForm` sits alongside',
+          'on the same element. The form instance, initial values, value watching, dynamic lists',
+          'and cross-form coordination map to `FormGroup`, the `FormControl` constructor,',
+          '`valueChanges` / `toSignal`, `FormArray` and plain component composition.',
+          '',
+          'A few thin conveniences drive or read that same Angular form: `disabled`',
+          '(`disable()` / `enable()` on it), `(validSubmit)` / `(invalidSubmit)` (the submit',
+          'verdict, after async validators settle, with every failing control path) and',
+          '`scrollToField(path)`.',
           '',
           '`size` does not resize anything by itself: controls opt in with',
           '`injectAndesFormSize()` (none of the unmerged andes-ng controls do yet), and it is',
@@ -306,6 +342,277 @@ export const ScrollToFirstError: Story = {
           <input andesFormControl formControlName="second" class="andes-demo-control" />
         </andes-form-field>
         <andes-button type="submit" style="position: sticky; bottom: 1rem; align-self: flex-start;">Submit</andes-button>
+      </form>
+    `,
+  }),
+};
+
+/**
+ * `(validSubmit)` emits the value of a valid submit; `(invalidSubmit)` emits the value plus
+ * every failing control as `{ path, errors }` - both after async validators settle, so the
+ * username check (≈0.6 s, "admin" is taken) is part of the verdict. `scrollToField(path)`
+ * jumps to any field by its control path.
+ */
+export const SubmitOutputs: Story = {
+  args: { layout: 'horizontal' },
+  render: (args) => {
+    const taken = (control: AbstractControl) =>
+      new Promise<ValidationErrors | null>((resolve) =>
+        setTimeout(
+          () => resolve(control.value === 'admin' ? { taken: true } : null),
+          600,
+        ),
+      );
+    const log = signal('Submit the form to see the verdict.');
+    return {
+      moduleMetadata,
+      props: {
+        ...args,
+        log,
+        form: new FormGroup({
+          username: new FormControl('admin', {
+            validators: Validators.required,
+            asyncValidators: taken,
+          }),
+          address: new FormGroup({
+            city: new FormControl('', Validators.required),
+          }),
+        }),
+        onValid: (value: unknown) =>
+          log.set('validSubmit\n' + JSON.stringify(value, null, 2)),
+        onInvalid: (event: AndesFormInvalidSubmit) =>
+          log.set(
+            'invalidSubmit\n' +
+              event.errors
+                .map((e) => e.path.join('.') + ' → ' + Object.keys(e.errors))
+                .join('\n'),
+          ),
+      },
+      template: `
+        <form
+          andesForm
+          #f="andesForm"
+          [formGroup]="form"
+          [layout]="layout"
+          [labelCol]="labelCol"
+          (validSubmit)="onValid($event)"
+          (invalidSubmit)="onInvalid($event)"
+          style="width: 100%; max-width: 560px;"
+        >
+          <andes-form-field label="Username" hasFeedback [errorMessages]="{ taken: 'That username is taken.' }">
+            <input andesFormControl formControlName="username" class="andes-demo-control" />
+          </andes-form-field>
+          <ng-container formGroupName="address">
+            <andes-form-field label="City">
+              <input andesFormControl formControlName="city" class="andes-demo-control" />
+            </andes-form-field>
+          </ng-container>
+          <andes-form-field>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <andes-button type="submit">Submit</andes-button>
+              <andes-button variant="outline" (click)="f.scrollToField('address.city')">Go to city</andes-button>
+            </div>
+          </andes-form-field>
+          <pre style="${LOG_STYLE}">{{ log() }}</pre>
+        </form>
+      `,
+    };
+  },
+};
+
+/**
+ * `disabled` disables the whole Angular form (`disable()`), and re-enables it when switched
+ * off. `variant` is a hint, like `size`: controls read both through
+ * `injectAndesFormVariant()` / `injectAndesFormDisabled()` - the readout below does - and
+ * plain CSS can key off the reflected `data-variant` / `data-disabled`.
+ */
+export const DisabledAndVariant: Story = {
+  args: { layout: 'horizontal' },
+  render: (args) => ({
+    moduleMetadata,
+    props: {
+      ...args,
+      disabled: signal(true),
+      variant: 'filled' satisfies AndesFormVariant,
+      form: signUpForm(),
+    },
+    template: `
+      <label style="display: inline-flex; gap: 0.5rem; align-items: center; margin-block-end: 1rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground);">
+        <input type="checkbox" [checked]="disabled()" (change)="disabled.set(!disabled())" />
+        Disable the form
+      </label>
+      <form
+        andesForm
+        [formGroup]="form"
+        [layout]="layout"
+        [labelCol]="labelCol"
+        [disabled]="disabled()"
+        [variant]="variant"
+        style="width: 100%; max-width: 560px;"
+      >
+        <andes-form-field label="Full name">
+          <input andesFormControl formControlName="name" class="andes-demo-control" />
+        </andes-form-field>
+        <andes-form-field label="Work email">
+          <input andesFormControl formControlName="email" class="andes-demo-control" />
+        </andes-form-field>
+        <andes-form-field label="Plan">
+          <select andesFormControl formControlName="plan" class="andes-demo-control">
+            <option value="free">Free</option>
+            <option value="pro">Pro</option>
+          </select>
+        </andes-form-field>
+        <andes-form-field>
+          <andes-demo-hint-readout />
+        </andes-form-field>
+      </form>
+    `,
+  }),
+};
+
+/**
+ * `showErrorsOn` picks when fields start showing their status - type into each column, tab
+ * out, then submit. When validation *runs* stays Angular's `updateOn`.
+ */
+export const ShowErrorsOn: Story = {
+  args: { layout: 'vertical' },
+  render: (args) => ({
+    moduleMetadata,
+    props: {
+      ...args,
+      gates: [
+        'interacted',
+        'touched',
+        'dirty',
+        'submitted',
+        'always',
+      ] satisfies AndesFormShowErrorsOn[],
+      forms: Array.from(
+        { length: 5 },
+        () =>
+          new FormGroup({
+            code: new FormControl('', [
+              Validators.required,
+              Validators.minLength(4),
+            ]),
+          }),
+      ),
+    },
+    template: `
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 1.5rem; max-width: 960px;">
+        @for (gate of gates; track gate; let i = $index) {
+          <form andesForm [showErrorsOn]="gate" [formGroup]="forms[i]">
+            <andes-form-field [label]="gate" hasFeedback>
+              <input andesFormControl formControlName="code" class="andes-demo-control" />
+            </andes-form-field>
+            <andes-button type="submit" variant="outline" size="sm" style="align-self: flex-start;">Submit</andes-button>
+          </form>
+        }
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Dynamic rows with a plain `FormArray`: every row is its own field (only the first one
+ * labelled, the rest keep the empty label column so they line up), and the array-level
+ * validator's error is shown on the field holding the add button through `validateStatus` +
+ * `help`. Nothing beyond `FormArray` is needed.
+ */
+export const DynamicRows: Story = {
+  args: { layout: 'horizontal' },
+  render: (args) => {
+    const emails = new FormArray(
+      [
+        new FormControl('ada@lovelace.dev', [
+          Validators.required,
+          Validators.email,
+        ]),
+      ],
+      // `required` on an array fails while it is empty.
+      Validators.required,
+    );
+    const form = new FormGroup({ emails });
+    const log = signal('');
+    return {
+      moduleMetadata,
+      props: {
+        ...args,
+        form,
+        emails,
+        log,
+        add: () =>
+          emails.push(
+            new FormControl('', [Validators.required, Validators.email]),
+          ),
+        remove: (index: number) => {
+          emails.removeAt(index);
+          emails.markAsTouched();
+        },
+        onValid: (value: unknown) => log.set(JSON.stringify(value)),
+      },
+      template: `
+        <form
+          andesForm
+          [formGroup]="form"
+          [layout]="layout"
+          [labelCol]="labelCol"
+          (validSubmit)="onValid($event)"
+          style="width: 100%; max-width: 560px;"
+        >
+          <ng-container formArrayName="emails">
+            @for (control of emails.controls; track control; let i = $index) {
+              <andes-form-field [label]="i === 0 ? 'Notify' : undefined">
+                <div style="display: flex; gap: 0.5rem;">
+                  <input andesFormControl [formControlName]="i" type="email" placeholder="name@company.com" class="andes-demo-control" />
+                  <andes-button variant="ghost" size="icon" [aria-label]="'Remove email ' + (i + 1)" (click)="remove(i)">✕</andes-button>
+                </div>
+              </andes-form-field>
+            }
+          </ng-container>
+          <andes-form-field
+            [label]="emails.length === 0 ? 'Notify' : undefined"
+            [validateStatus]="emails.errors && emails.touched ? 'error' : undefined"
+            [help]="emails.errors && emails.touched ? 'Add at least one email.' : undefined"
+          >
+            <div style="display: flex; gap: 0.5rem;">
+              <andes-button variant="dashed" (click)="add()">Add email</andes-button>
+              <andes-button type="submit">Save</andes-button>
+            </div>
+          </andes-form-field>
+          @if (log()) {
+            <pre style="${LOG_STYLE}">validSubmit {{ log() }}</pre>
+          }
+        </form>
+      `,
+    };
+  },
+};
+
+/**
+ * `requiredMark` also takes a template, rendered after every label with `$implicit` = whether
+ * the field is required - here a "Required" / "Optional" tag.
+ */
+export const CustomRequiredMark: Story = {
+  args: { layout: 'vertical' },
+  render: (args) => ({
+    moduleMetadata,
+    props: { ...args, form: signUpForm() },
+    template: `
+      <ng-template #tag let-required>
+        <span
+          [style.color]="required ? 'var(--andes-color-danger-hover)' : 'var(--andes-color-muted-foreground)'"
+          style="margin-inline-start: 0.375rem; padding: 0 0.375rem; border: 1px solid currentColor; border-radius: var(--andes-radius-sm); font-size: 0.75rem; font-weight: normal;"
+          >{{ required ? 'Required' : 'Optional' }}</span
+        >
+      </ng-template>
+      <form andesForm [formGroup]="form" [requiredMark]="tag" style="max-width: 360px;">
+        <andes-form-field label="Full name">
+          <input andesFormControl formControlName="name" class="andes-demo-control" />
+        </andes-form-field>
+        <andes-form-field label="Company">
+          <input andesFormControl formControlName="company" class="andes-demo-control" />
+        </andes-form-field>
       </form>
     `,
   }),

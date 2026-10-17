@@ -1,5 +1,5 @@
-import { InjectionToken, type Signal } from '@angular/core';
-import type { ValidationErrors } from '@angular/forms';
+import { InjectionToken, type Signal, type TemplateRef } from '@angular/core';
+import type { AbstractControl, ValidationErrors } from '@angular/forms';
 
 /**
  * Validation status of a field, as used by `AndesFormField`'s `validateStatus`.
@@ -17,9 +17,69 @@ export type AndesFormLabelAlign = 'left' | 'right';
 /** Same `sm`/`md`/`lg` vocabulary as `AndesButtonSize`. */
 export type AndesFormSize = 'sm' | 'md' | 'lg';
 
+/** Same `outlined`/`filled`/`borderless`/`underlined` vocabulary a control's own `variant`
+ *  would use; read by controls through `injectAndesFormVariant()`. */
+export type AndesFormVariant =
+  'outlined' | 'filled' | 'borderless' | 'underlined';
+
+/** Context of a custom required-mark template. */
+export interface AndesFormRequiredMarkContext {
+  /** Whether the field is required - same as `required`. */
+  readonly $implicit: boolean;
+  readonly required: boolean;
+}
+
 /** `true` marks required fields with an asterisk, `false` marks nothing, `'optional'` marks
- *  the NON-required ones with an "(optional)" suffix instead. */
-export type AndesFormRequiredMark = boolean | 'optional';
+ *  the NON-required ones with an "(optional)" suffix instead. A template replaces both marks
+ *  and is rendered after the label text of every field, required or not, with
+ *  {@link AndesFormRequiredMarkContext}. */
+export type AndesFormRequiredMark =
+  boolean | 'optional' | TemplateRef<AndesFormRequiredMarkContext>;
+
+/**
+ * When a field starts showing its derived status (error, warning, validating, success):
+ * - `interacted` (default) - once the control is touched or dirty, or the form submitted;
+ * - `touched` - once the control is blurred, or the form submitted (no errors while typing
+ *   the first time);
+ * - `dirty` - as soon as the value changes, or the form is submitted;
+ * - `submitted` - only after the enclosing form has been submitted;
+ * - `always` - immediately, even on a pristine control.
+ *
+ * Purely a display gate: *when validation runs* is Angular's `updateOn` (`'change'`,
+ * `'blur'`, `'submit'`) on the control or group.
+ */
+export type AndesFormShowErrorsOn =
+  'interacted' | 'touched' | 'dirty' | 'submitted' | 'always';
+
+/** Context of a custom `feedbackIcons` template. */
+export interface AndesFormFeedbackIconContext {
+  /** The status to draw an icon for - same as `status`. */
+  readonly $implicit: AndesFormValidateStatus;
+  readonly status: AndesFormValidateStatus;
+}
+
+/** Options for `scrollToFirstError` / `scrollToField`: where to scroll (standard
+ *  `scrollIntoView` options, default `block: 'center'`, `behavior: 'smooth'`) and whether to
+ *  move focus into the field's control (default `true`). */
+export interface AndesFormScrollOptions extends ScrollIntoViewOptions {
+  readonly focus?: boolean;
+}
+
+/** One failing control, as reported by `invalidSubmit` and `collectAndesFormErrors()`. */
+export interface AndesFormFieldError {
+  /** Path from the form root - the same segments `FormGroup.get()` accepts. `[]` is the root
+   *  group itself (a cross-field validator on the form). */
+  readonly path: readonly (string | number)[];
+  readonly errors: ValidationErrors;
+}
+
+/** Payload of `AndesForm`'s `invalidSubmit` output. */
+export interface AndesFormInvalidSubmit {
+  /** The form's `value` at submit time. */
+  readonly value: unknown;
+  /** Every enabled control with errors, in document order of the form model. */
+  readonly errors: readonly AndesFormFieldError[];
+}
 
 /**
  * Width of the label or control column in `horizontal` layout. A number is a span out of 24
@@ -84,9 +144,15 @@ export interface AndesFormFieldApi {
   readonly showOptionalMark: () => boolean;
   readonly optionalText: () => string;
   readonly showColon: () => boolean;
-  readonly tooltip: () => string | undefined;
+  /** A custom required-mark template, when the resolved `requiredMark` is one. */
+  readonly requiredMarkTemplate: () => TemplateRef<AndesFormRequiredMarkContext> | null;
+  /** Whether the field counts as required (the `required` input, else the control). */
+  readonly isRequired: () => boolean;
+  readonly tooltip: () => string | TemplateRef<void> | undefined;
   readonly tooltipId: () => string;
   readonly tooltipLabel: () => string;
+  /** The resolved display gate - read by `AndesFormControl` for its `interacted` signal. */
+  readonly resolvedShowErrorsOn: () => AndesFormShowErrorsOn;
   /** Called by `AndesFormControl` from its constructor; returns the unregister callback. */
   registerControl(control: AndesFormControlApi): () => void;
   /** Called by a nested `noStyle` field so its status/messages surface on this one. */
@@ -102,17 +168,26 @@ export interface AndesFormFieldChildApi {
   readonly noStyle: () => boolean;
   readonly status: () => AndesFormValidateStatus | null;
   readonly errorMessages: () => readonly string[];
+  readonly warningMessages: () => readonly string[];
 }
 
 /** Surface `AndesFormField` reads back from the `AndesFormControl` directive nested inside
  *  it, via the same token-indirection technique. */
 export interface AndesFormControlApi {
   readonly showError: () => boolean;
-  /** `touched || dirty || parent form submitted` - the gate every status waits for. */
+  /** Whether the field's `showErrorsOn` gate is open (by default `touched || dirty || parent
+   *  form submitted`) - the gate every status waits for. */
   readonly interacted: () => boolean;
   readonly pending: () => boolean;
   readonly valid: () => boolean;
   readonly errors: () => ValidationErrors | null;
+  /** The control's current value, as a signal - re-read on every control event. */
+  readonly value: () => unknown;
+  /** The bound `AbstractControl`, once the host directive has created it. */
+  readonly control: () => AbstractControl | null;
+  /** The control's path from its form root, joined with `.` (`'address.city'`), or `null`
+   *  for a standalone control. */
+  readonly path: () => string | null;
   /** `Validators.required`/`requiredTrue`, or a native `required` attribute on the element -
    *  i.e. anything that should earn a required mark on the label. */
   readonly markedRequired: () => boolean;
@@ -147,6 +222,12 @@ export interface AndesFormApi {
   readonly requiredMark: Signal<AndesFormRequiredMark>;
   readonly optionalText: Signal<string>;
   readonly size: Signal<AndesFormSize | undefined>;
+  readonly variant: Signal<AndesFormVariant | undefined>;
+  readonly disabled: Signal<boolean>;
+  readonly showErrorsOn: Signal<AndesFormShowErrorsOn>;
+  readonly feedbackIcons: Signal<
+    TemplateRef<AndesFormFeedbackIconContext> | undefined
+  >;
   readonly errorMessages: Signal<AndesFormErrorMessages | undefined>;
 }
 
