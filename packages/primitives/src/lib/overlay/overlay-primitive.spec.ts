@@ -1173,13 +1173,105 @@ describe('AndesOverlayPrimitive', () => {
       expect(inertBodyChildren()).toHaveLength(0);
     });
 
-    it('does not inert the pane of an outer overlay that is still open', () => {
+    /** Whether a pane is cut off from AT and the keyboard by an inert ancestor. */
+    function isInert(pane: Element | null | undefined): boolean {
+      return !!pane?.closest('[inert]');
+    }
+
+    it('inerts the outer dialog while an inner dialog is open, and restores it on close', () => {
       const { outer, inner } = openTwoDialogs();
 
-      // Both dialogs portal into the same CDK overlay container, so neither is
-      // ever inside the other's inert background.
-      expect(outer.pane()?.closest('[inert]')).toBeNull();
-      expect(inner.pane()?.closest('[inert]')).toBeNull();
+      // Both dialogs portal into the same CDK overlay container, so exempting the
+      // container alone would leave the outer dialog reachable behind the inner.
+      expect(isInert(outer.pane())).toBe(true);
+      expect(isInert(outer.backdrop())).toBe(true);
+      expect(isInert(inner.pane())).toBe(false);
+      expect(isInert(inner.backdrop())).toBe(false);
+
+      inner.overlay.close();
+      inner.fixture.detectChanges();
+
+      expect(isInert(outer.pane())).toBe(false);
+      expect(outer.hostWrapper()?.hasAttribute('aria-hidden')).toBe(false);
+      expect(background().hasAttribute('inert')).toBe(true);
+    });
+
+    it('keeps the lower dialogs inert until every dialog above them closes', () => {
+      const { outer, inner } = openTwoDialogs();
+      const top = createHost(andesOverlayPreset('dialog'));
+      top.host.open();
+      top.fixture.detectChanges();
+
+      expect(isInert(outer.pane())).toBe(true);
+      expect(isInert(inner.pane())).toBe(true);
+      expect(isInert(top.pane())).toBe(false);
+
+      // Closing the middle dialog first must not hand the outer one back while
+      // the top dialog still holds it.
+      inner.overlay.close();
+      inner.fixture.detectChanges();
+      expect(isInert(outer.pane())).toBe(true);
+
+      top.overlay.close();
+      top.fixture.detectChanges();
+      expect(isInert(outer.pane())).toBe(false);
+
+      outer.overlay.close();
+      outer.fixture.detectChanges();
+      expect(inertBodyChildren()).toHaveLength(0);
+      expect(
+        TestBed.inject(AndesOverlayInertRegistry).inertElements,
+      ).toHaveLength(0);
+    });
+
+    it('restores the inner dialog when the outer one is closed first', () => {
+      const { outer, inner } = openTwoDialogs();
+
+      outer.overlay.close();
+      outer.fixture.detectChanges();
+      expect(isInert(inner.pane())).toBe(false);
+      expect(background().hasAttribute('inert')).toBe(true);
+
+      inner.overlay.close();
+      inner.fixture.detectChanges();
+      expect(inertBodyChildren()).toHaveLength(0);
+      expect(
+        TestBed.inject(AndesOverlayInertRegistry).inertElements,
+      ).toHaveLength(0);
+    });
+
+    it('leaves a non-modal overlay opened inside a dialog interactive', () => {
+      const dialog = createHost(andesOverlayPreset('dialog'));
+      const popover = createHost(andesOverlayPreset('popover'));
+      dialog.host.open();
+      dialog.fixture.detectChanges();
+      popover.host.open();
+      popover.fixture.detectChanges();
+
+      // Opened later, so it is above the dialog, not beneath it — and being
+      // non-modal it inerts nothing itself, the dialog included.
+      expect(isInert(popover.pane())).toBe(false);
+      expect(isInert(dialog.pane())).toBe(false);
+
+      popover.overlay.close();
+      popover.fixture.detectChanges();
+      expect(isInert(dialog.pane())).toBe(false);
+    });
+
+    it('inerts a non-modal overlay that was already open beneath a new dialog', () => {
+      const popover = createHost(andesOverlayPreset('popover'));
+      const dialog = createHost(andesOverlayPreset('dialog'));
+      popover.host.open();
+      popover.fixture.detectChanges();
+      dialog.host.open();
+      dialog.fixture.detectChanges();
+
+      expect(isInert(popover.pane())).toBe(true);
+      expect(isInert(dialog.pane())).toBe(false);
+
+      dialog.overlay.close();
+      dialog.fixture.detectChanges();
+      expect(isInert(popover.pane())).toBe(false);
     });
 
     it('a non-modal overlay opened over a dialog does not release its inert background', () => {

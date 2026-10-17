@@ -517,8 +517,10 @@ export class AndesOverlayPrimitive {
 
   /**
    * Makes the page outside the overlay inert, so AT browsing the document — not
-   * just tabbing through it — cannot reach content behind a modal. The pane and
-   * backdrop are exempt, and the registry reference-counts across nested overlays.
+   * just tabbing through it — cannot reach content behind a modal. That includes
+   * overlays already open beneath it in the same CDK container (an outer dialog).
+   * The pane and backdrop are exempt, and the registry reference-counts across
+   * nested overlays.
    */
   private applyInertBackground(
     ref: OverlayRef,

@@ -44,6 +44,9 @@ const NON_RENDERED_SELECTORS: readonly string[] = [
   '.cdk-describedby-message-container',
 ];
 
+/** The CDK overlay container every andes-ng overlay portals into. */
+const OVERLAY_CONTAINER_SELECTOR = '.cdk-overlay-container';
+
 /** Attribute we always apply: the standard, browser-enforced one. */
 const INERT_ATTRIBUTE = 'inert';
 
@@ -93,6 +96,15 @@ interface InertEntry {
  * the outer dialog's background inert, and only the outermost close restores the
  * page.
  *
+ * Exempting the shared container is not enough on its own, though: it would leave
+ * the outer dialog — a sibling of the inner one inside that container — reachable
+ * behind it. So a modal also claims every *other* child of the overlay container
+ * (each earlier overlay's host wrapper and backdrop). Only what exists at open
+ * time is claimed, which is exactly what lies beneath the new modal: a popover or
+ * select opened later, from inside it, stays interactive. Those claims go through
+ * the same reference count, so closing the inner dialog hands the outer one back
+ * only once no other modal above it still holds it, in any closing order.
+ *
  * ## What it refuses to touch
  *
  * An element that is *already* inert when we first see it is left alone entirely
@@ -121,8 +133,9 @@ export class AndesOverlayInertRegistry {
 
   /**
    * Marks every direct child of `<body>` inert, except the subtrees the given
-   * elements live in (the overlay's own pane and backdrop). Returns the handle
-   * that undoes exactly this claim.
+   * elements live in (the overlay's own pane and backdrop), plus every other
+   * overlay already open in the CDK overlay container — the layers beneath this
+   * one. Returns the handle that undoes exactly this claim.
    */
   inertBackgroundExcept(
     exemptElements: readonly (Element | null | undefined)[],
@@ -136,7 +149,11 @@ export class AndesOverlayInertRegistry {
     }
 
     const claimed: Element[] = [];
-    for (const target of this.backgroundChildren(exempt)) {
+    const targets = [
+      ...this.backgroundChildren(exempt),
+      ...this.lowerOverlayLayers(exemptElements),
+    ];
+    for (const target of targets) {
       if (this.claim(target)) {
         claimed.push(target);
       }
@@ -204,6 +221,31 @@ export class AndesOverlayInertRegistry {
     return [...this.document.body.children].filter(
       (child) =>
         !exempt.has(child) &&
+        !NON_RENDERED_TAGS.has(child.tagName) &&
+        !this.isAccessibilityInfrastructure(child),
+    );
+  }
+
+  /**
+   * The children of the CDK overlay container holding the exempt elements, other
+   * than the ones containing them: the host wrappers and backdrops of overlays
+   * opened earlier, and so stacked beneath this one.
+   */
+  private lowerOverlayLayers(
+    exemptElements: readonly (Element | null | undefined)[],
+  ): Element[] {
+    const own = exemptElements.filter(
+      (element): element is Element => !!element,
+    );
+    const container = own
+      .map((element) => element.closest(OVERLAY_CONTAINER_SELECTOR))
+      .find((element): element is Element => !!element);
+    if (!container) {
+      return [];
+    }
+    return [...container.children].filter(
+      (child) =>
+        !own.some((element) => child.contains(element)) &&
         !NON_RENDERED_TAGS.has(child.tagName) &&
         !this.isAccessibilityInfrastructure(child),
     );
