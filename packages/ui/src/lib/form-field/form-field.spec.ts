@@ -588,7 +588,9 @@ describe('AndesFormField', () => {
       const style = getComputedStyle(renderStyled().error);
 
       // This is the exact assertion that failed before the fix, with `rgb(0, 0, 0)`.
-      expect(style.color).toBe('var(--andes-color-danger)');
+      expect(style.color).toBe(
+        'var(--andes-color-danger-text, var(--andes-color-danger))',
+      );
       expect(style.color).not.toBe('rgb(0, 0, 0)');
       expect(style.fontSize).toBe('0.8125rem');
       expect(style.margin).toBe('0px');
