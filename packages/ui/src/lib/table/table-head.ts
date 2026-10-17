@@ -9,6 +9,7 @@ import {
   ElementRef,
   inject,
   input,
+  Renderer2,
   signal,
 } from '@angular/core';
 import clsx from 'clsx';
@@ -17,6 +18,8 @@ import { AndesTable, type AndesTableAlign } from './table';
 import {
   andesCellModifiers,
   andesCssLength,
+  andesSyncEllipsisTitle,
+  type AndesTableBreakpoint,
   type AndesTableFixed,
 } from './table-context';
 import type { AndesSortDirection } from './table-sort';
@@ -50,7 +53,11 @@ function optionalBoolean(value: unknown): boolean | undefined {
  * (unless the table has `multiSort`). The directions cycled through come from
  * `sortDirections` here or on the table.
  *
- * `fixed`/`fixedOffset`/`ellipsis` work as on `AndesTableCell`.
+ * `fixed`/`fixedOffset`/`ellipsis`/`hideBelow` work as on `AndesTableCell`; a truncated
+ * `ellipsis` title shows in full as a native tooltip.
+ *
+ * Exported as `andesTableHead`, so a header can draw its own sort indicator from
+ * `direction()` after turning the built-in one off with `[sortIcon]="false"`.
  *
  * The content is laid out like Ant Design's header: the projected title takes the
  * free width, followed by the sort indicator and then any `andes-table-filter`,
@@ -73,13 +80,14 @@ function optionalBoolean(value: unknown): boolean | undefined {
   // A component on the native <th> (not a wrapper element) so the table keeps its
   // real cell semantics; the template only arranges the cell's own content.
   selector: 'th[andesTableHead]',
+  exportAs: 'andesTableHead',
   changeDetection: ChangeDetectionStrategy.OnPush,
   hostDirectives: [CdkDrag],
   template: `<div class="andes-table__head-content">
       <span class="andes-table__head-title" [id]="id + '-title'"
         ><ng-content
       /></span>
-      @if (sortKey()) {
+      @if (sortKey() && sortIcon()) {
         <span class="andes-table__sorter" aria-hidden="true">
           <span
             class="andes-table__sorter-caret andes-table__sorter-caret--up"
@@ -126,19 +134,21 @@ function optionalBoolean(value: unknown): boolean | undefined {
       "canReorder() ? 'Alt+ArrowLeft Alt+ArrowRight' : null",
     '[attr.data-sort]': 'direction()',
     '[attr.data-sort-priority]': 'sortPriority()',
+    '[attr.title]': 'tooltip()',
     '[style.inset-inline-start]': "fixed() === 'start' ? offset() : null",
     '[style.inset-inline-end]': "fixed() === 'end' ? offset() : null",
-    '[style.width]': 'resolvedWidth()',
     '(click)': 'toggleSort()',
     '(keydown.enter)': 'onActivateKey($event)',
     '(keydown.space)': 'onActivateKey($event)',
     '(keydown)': 'onMoveKey($event)',
+    '(mouseenter)': 'onPointerEnter()',
   },
 })
 export class AndesTableHead {
   private readonly table = inject(AndesTable);
   private readonly host = inject<ElementRef<HTMLTableCellElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly renderer = inject(Renderer2);
   private readonly drag = inject(CdkDrag, { self: true });
 
   /** Set by a finished drag so the click that ends it does not also sort. */
@@ -183,6 +193,18 @@ export class AndesTableHead {
    * a header that is not sortable.
    */
   readonly columnKey = input<string | undefined>(undefined);
+
+  /** Hide this header on viewports narrower than the breakpoint. */
+  readonly hideBelow = input<AndesTableBreakpoint | undefined>(undefined);
+
+  /**
+   * Native tooltip naming the next sort step. Defaults to the table's
+   * `sortTooltip`; only used with a `sortKey`.
+   */
+  readonly sortTooltip = input<boolean | undefined>(undefined);
+
+  /** Draw the built-in sort indicator. Turn off to render your own. */
+  readonly sortIcon = input(true, { transform: booleanAttribute });
 
   /** Starting width: pixels or a CSS length. A resized width replaces it. */
   readonly width = input<string | number | undefined>(undefined);
@@ -279,6 +301,14 @@ export class AndesTableHead {
     }
   });
 
+  protected readonly tooltip = computed(() => {
+    const key = this.sortKey();
+    if (!key || !(this.sortTooltip() ?? this.table.sortTooltip())) {
+      return null;
+    }
+    return this.table.sortTooltipFor(key, this.sortDirections());
+  });
+
   protected readonly classes = computed(() =>
     clsx(
       'andes-table__head',
@@ -287,7 +317,7 @@ export class AndesTableHead {
       this.direction() && 'andes-table__head--sorted',
       this.isResizable() && 'andes-table__head--resizable',
       this.canReorder() && 'andes-table__head--reorderable',
-      andesCellModifiers(this.fixed(), this.ellipsis()),
+      andesCellModifiers(this.fixed(), this.ellipsis(), this.hideBelow()),
     ),
   );
 
@@ -299,6 +329,20 @@ export class AndesTableHead {
     drag.previewClass = 'andes-table__drag-preview';
     effect(() => {
       drag.disabled = !this.canReorder();
+    });
+    // Written imperatively and only once set: a host style binding would clear a
+    // `style="width: ..."` the consumer put on the `<th>`.
+    let ownsWidth = false;
+    effect(() => {
+      const width = this.resolvedWidth();
+      const host = this.host.nativeElement;
+      if (width !== null) {
+        this.renderer.setStyle(host, 'width', width);
+        ownsWidth = true;
+      } else if (ownsWidth) {
+        this.renderer.removeStyle(host, 'width');
+        ownsWidth = false;
+      }
     });
     const ended = drag.ended.subscribe(() => {
       this.suppressClick = true;
@@ -327,6 +371,18 @@ export class AndesTableHead {
     // Space would scroll the page otherwise, and Enter can submit an enclosing form.
     event.preventDefault();
     this.toggleSort();
+  }
+
+  protected onPointerEnter(): void {
+    if (!this.ellipsis()) {
+      return;
+    }
+    const title = this.host.nativeElement.querySelector<HTMLElement>(
+      '.andes-table__head-title',
+    );
+    if (title) {
+      andesSyncEllipsisTitle(title);
+    }
   }
 
   // Reordering

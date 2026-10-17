@@ -17,25 +17,34 @@
     [ngTemplateOutletContext]="iconContext()"
   />
   } @else {
-  <span class="andes-table-filter__icon" aria-hidden="true"></span>
+  <ng-content
+    ><span class="andes-table-filter__icon" aria-hidden="true"></span
+  ></ng-content>
   }
 </button>
 @if (open()) {
 <div
   #panelEl
   class="andes-table-filter__panel"
+  animate.enter="andes-table-filter__panel--enter"
+  animate.leave="andes-table-filter__panel--leave"
   popover="manual"
   role="dialog"
   tabindex="-1"
   [id]="id"
   [attr.aria-label]="label()"
+  [attr.data-side]="side()"
 >
   @if (panel(); as panelTemplate) {
   <ng-container
     [ngTemplateOutlet]="panelTemplate"
     [ngTemplateOutletContext]="panelContext()"
   />
-  } @else { @if (searchEnabled()) {
+  } @else {
+  <ng-content
+    select="andes-table-text-filter, andes-table-range-filter, andes-table-date-range-filter, [andesTableFilterPanel]"
+  />
+  @if (!projectedPanel()) { @if (searchEnabled()) {
   <div class="andes-table-filter__search">
     <label class="andes-table-filter__search-field">
       <span class="andes-table-filter__search-icon" aria-hidden="true"></span>
@@ -76,6 +85,7 @@
     <p class="andes-table-filter__no-match">{{ noMatchText() }}</p>
     }
   </div>
+  }
   <div class="andes-table-filter__actions">
     <andes-button
       variant="link"
@@ -84,7 +94,7 @@
       (click)="reset()"
       >{{ resetText() }}</andes-button
     >
-    <andes-button size="sm" (click)="confirm()"
+    <andes-button size="sm" [disabled]="invalid()" (click)="confirm()"
       >{{ confirmText() }}</andes-button
     >
   </div>

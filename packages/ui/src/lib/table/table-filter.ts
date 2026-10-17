@@ -5,14 +5,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  contentChild,
+  Directive,
   effect,
   ElementRef,
   inject,
+  InjectionToken,
   Injector,
   input,
   type OnInit,
   output,
   signal,
+  type Signal,
   type TemplateRef,
   untracked,
   viewChild,
@@ -22,9 +26,15 @@ import { AndesButton } from '../button/button';
 import { AndesTable } from './table';
 import {
   ANDES_TABLE_FILTERABLE,
+  andesPlacePanel,
+  type AndesPanelSide,
   type AndesTableFilterable,
 } from './table-context';
-import type { AndesFilterPredicate, AndesFilterValue } from './table-data';
+import type {
+  AndesColumnFilterMatcher,
+  AndesFilterPredicate,
+  AndesFilterValue,
+} from './table-data';
 
 /**
  * One choice in a column filter menu. `children` nests further choices: shown as a
@@ -47,6 +57,39 @@ export type AndesTableFilterSearchFn = (
   query: string,
   option: AndesTableFilterOption,
 ) => boolean;
+
+/**
+ * A filter body projected into `andes-table-filter` in place of its option
+ * list - the ready-made text, range and date panels, or any element marked
+ * `andesTableFilterPanel`. It reads and writes the filter's draft through the
+ * injected `AndesTableFilter`; the filter keeps the Reset / OK footer.
+ */
+export interface AndesTableFilterPanelHost {
+  /** While true, OK is disabled - e.g. a range whose minimum exceeds its maximum. */
+  readonly invalid?: Signal<boolean>;
+}
+
+export const ANDES_TABLE_FILTER_PANEL =
+  new InjectionToken<AndesTableFilterPanelHost>('ANDES_TABLE_FILTER_PANEL');
+
+/**
+ * Marks projected content as the body of an `andes-table-filter` panel. Inside,
+ * inject `AndesTableFilter` to read `draft()` and call `setDraft`, `confirm`,
+ * `reset` or `close`.
+ *
+ * ```html
+ * <andes-table-filter column="tags" label="Filter tags">
+ *   <my-tag-picker andesTableFilterPanel />
+ * </andes-table-filter>
+ * ```
+ */
+@Directive({
+  selector: '[andesTableFilterPanel]',
+  providers: [
+    { provide: ANDES_TABLE_FILTER_PANEL, useExisting: AndesTableFilterPanel },
+  ],
+})
+export class AndesTableFilterPanel implements AndesTableFilterPanelHost {}
 
 /** Options for `confirm` in a custom panel. */
 export interface AndesTableFilterConfirmOptions {
@@ -76,6 +119,8 @@ export interface AndesTableFilterPanelContext {
   readonly confirm: (options?: AndesTableFilterConfirmOptions) => void;
   /** Empty the draft and, unless told otherwise, apply that and close. */
   readonly clear: (options?: AndesTableFilterClearOptions) => void;
+  /** Put the draft back to what Reset restores, without applying or closing. */
+  readonly reset: () => void;
   /** Close; applies the draft only when `applyOnClose` is on. */
   readonly close: () => void;
   /** The filter's `options`, for panels that render them their own way. */
@@ -88,9 +133,6 @@ export interface AndesTableFilterIconContext {
   readonly $implicit: boolean;
   readonly filtered: boolean;
 }
-
-const VIEWPORT_MARGIN = 8;
-const PANEL_GAP = 4;
 
 let nextFilterId = 0;
 
@@ -148,10 +190,22 @@ function sameValues(
  * closes it; focus moves into it on open and back to the button on Escape/OK.
  * Enter on an option or the search box applies; Arrow Up/Down move between
  * checkbox options and Arrow Right/Left expand/collapse a tree node.
+ *
+ * Other kinds of filter:
+ * - project a ready-made panel - `andes-table-text-filter`,
+ *   `andes-table-range-filter`, `andes-table-date-range-filter` - or your own
+ *   element marked `andesTableFilterPanel`; it replaces the option list and
+ *   keeps the Reset / OK footer;
+ * - pass a `panel` template for a fully custom panel, footer included.
+ *
+ * Any other projected content replaces the default funnel icon of the button.
+ * The filter is exported as `andesTableFilter`, so a custom icon can follow
+ * `active()`.
  */
 @Component({
   selector: 'andes-table-filter',
   imports: [AndesButton, NgTemplateOutlet],
+  exportAs: 'andesTableFilter',
   templateUrl: './table-filter.html',
   styleUrl: './table-filter.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -161,6 +215,9 @@ function sameValues(
   host: {
     class: 'andes-table-filter',
     '(click)': '$event.stopPropagation()',
+    // A header that can be dragged to reorder must not start dragging from here.
+    '(mousedown)': '$event.stopPropagation()',
+    '(touchstart)': '$event.stopPropagation()',
     '(keydown)': 'onKeydown($event)',
     '(focusout)': 'onFocusOut($event)',
     '(document:pointerdown)': 'onDocumentPointerDown($event)',
@@ -219,12 +276,14 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
   readonly resetToDefault = input(false, { transform: booleanAttribute });
 
   /**
-   * Whether a row matches one selected value of this column (Ant Design's
-   * `onFilter`). Collected by `AndesTable.filterRows`.
+   * How a row is tested against this column's filter (Ant Design's `onFilter`):
+   * a per-value predicate (values OR-ed), or a matcher that sees all of the
+   * column's values at once - `andesTextFilter`, `andesRangeFilter`,
+   * `andesDateRangeFilter`. Collected by `AndesTable.filterRows`.
    */
-  readonly predicate = input<AndesFilterPredicate<never> | undefined>(
-    undefined,
-  );
+  readonly predicate = input<
+    AndesFilterPredicate<never> | AndesColumnFilterMatcher<never> | undefined
+  >(undefined);
 
   /** Custom panel content replacing the default one. */
   readonly panel = input<TemplateRef<AndesTableFilterPanelContext> | undefined>(
@@ -254,7 +313,27 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
   protected readonly id = `andes-table-filter-${nextFilterId++}`;
 
   protected readonly open = signal(false);
-  protected readonly draft = signal<readonly AndesFilterValue[]>([]);
+  private readonly draftState = signal<readonly AndesFilterValue[]>([]);
+
+  /** Whether the panel is showing. */
+  readonly isOpen = this.open.asReadonly();
+
+  /**
+   * Values picked in the open panel and not applied yet. `confirm()` writes them
+   * to `AndesTable.filters`.
+   */
+  readonly draft = this.draftState.asReadonly();
+
+  /** Projected filter body replacing the option list, if any. */
+  protected readonly projectedPanel = contentChild(ANDES_TABLE_FILTER_PANEL);
+
+  /** OK is unavailable while a projected panel reports invalid input. */
+  protected readonly invalid = computed(
+    () => this.projectedPanel()?.invalid?.() ?? false,
+  );
+
+  /** Which side of the button the panel opened on, for its entry motion. */
+  protected readonly side = signal<AndesPanelSide>('below');
   protected readonly query = signal('');
   /** Tree nodes the user collapsed; every node starts expanded. */
   private readonly collapsed = signal<ReadonlySet<AndesFilterValue>>(new Set());
@@ -345,18 +424,19 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
     () => ({
       $implicit: this.draft(),
       selected: this.draft(),
-      setSelected: (values) => this.draft.set([...values]),
+      setSelected: (values) => this.setDraft(values),
       confirm: (options) => this.confirm(options?.closeDropdown ?? true),
       clear: (options) => {
-        this.draft.set([]);
+        this.draftState.set([]);
         if (options?.confirm ?? true) {
           this.apply([]);
         }
         if (options?.closeDropdown ?? true) {
-          this.close(false, true);
+          this.dismiss(false, true);
         }
       },
-      close: () => this.close(this.applyOnClose(), true),
+      reset: () => this.reset(),
+      close: () => this.close(),
       options: this.options(),
     }),
   );
@@ -432,13 +512,13 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
 
   protected toggleOption(option: AndesTableFilterOption): void {
     if (!this.multiple()) {
-      this.draft.set([option.value]);
+      this.draftState.set([option.value]);
       return;
     }
 
     if (!this.isTree()) {
       const draft = this.draft();
-      this.draft.set(
+      this.draftState.set(
         draft.includes(option.value)
           ? draft.filter((item) => item !== option.value)
           : [...draft, option.value],
@@ -458,11 +538,13 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
         draft.delete(value);
       }
     }
-    this.draft.set(this.conduct(draft));
+    this.draftState.set(this.conduct(draft));
   }
 
   protected toggleAll(): void {
-    this.draft.set(this.selectAllState() === 'all' ? [] : this.allValues());
+    this.draftState.set(
+      this.selectAllState() === 'all' ? [] : this.allValues(),
+    );
   }
 
   protected isExpanded(option: AndesTableFilterOption): boolean {
@@ -512,21 +594,56 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
 
   protected toggle(): void {
     if (this.open()) {
-      this.close(this.applyOnClose(), false);
+      this.dismiss(this.applyOnClose() && !this.invalid(), false);
     } else {
       this.openPanel();
     }
   }
 
-  protected reset(): void {
-    this.draft.set([...this.resetValues()]);
+  /** Replaces the draft; nothing reaches the table until `confirm()`. */
+  setDraft(values: readonly AndesFilterValue[]): void {
+    this.draftState.set([...values]);
   }
 
-  protected confirm(closeDropdown = true): void {
+  /**
+   * Puts the draft back to what Reset restores - empty, or `defaultFilteredValue`
+   * with `resetToDefault` - without applying or closing.
+   */
+  reset(): void {
+    this.draftState.set([...this.resetValues()]);
+  }
+
+  /**
+   * Applies the draft to the table and, unless `closeDropdown` is false, closes
+   * and returns focus to the button. Does nothing while the projected panel
+   * reports invalid input.
+   */
+  confirm(closeDropdown = true): void {
+    if (this.invalid()) {
+      return;
+    }
     if (closeDropdown) {
-      this.close(true, true);
+      this.dismiss(true, true);
     } else {
       this.apply(this.draft());
+    }
+  }
+
+  /** Resets the draft, applies it and closes. */
+  clear(): void {
+    this.reset();
+    this.dismiss(true, true);
+  }
+
+  /** Closes the panel, applying the draft only when `applyOnClose` is on. */
+  close(): void {
+    this.dismiss(this.applyOnClose() && !this.invalid(), true);
+  }
+
+  /** Opens the panel, starting the draft from the applied values. */
+  show(): void {
+    if (!this.open()) {
+      this.openPanel();
     }
   }
 
@@ -539,7 +656,7 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
     }
     if (event.key === 'Escape') {
       event.preventDefault();
-      this.close(this.applyOnClose(), true);
+      this.close();
     } else if (
       event.key === 'Enter' &&
       this.isDefaultPanelField(event.target)
@@ -563,7 +680,7 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
       next instanceof Node &&
       !this.host.nativeElement.contains(next)
     ) {
-      this.close(this.applyOnClose(), false);
+      this.dismiss(this.applyOnClose() && !this.invalid(), false);
     }
   }
 
@@ -573,7 +690,7 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
       event.target instanceof Node &&
       !this.host.nativeElement.contains(event.target)
     ) {
-      this.close(this.applyOnClose(), false);
+      this.dismiss(this.applyOnClose() && !this.invalid(), false);
     }
   }
 
@@ -635,13 +752,14 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
   private isDefaultPanelField(target: EventTarget | null): boolean {
     return (
       !this.panel() &&
+      !this.projectedPanel() &&
       target instanceof HTMLInputElement &&
       !!this.panelElement()?.nativeElement.contains(target)
     );
   }
 
   private openPanel(): void {
-    this.draft.set([...this.applied()]);
+    this.draftState.set([...this.applied()]);
     this.query.set('');
     this.open.set(true);
     this.openChange.emit(true);
@@ -681,7 +799,7 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
     }
   }
 
-  private close(apply: boolean, restoreFocus: boolean): void {
+  private dismiss(apply: boolean, restoreFocus: boolean): void {
     if (!this.open()) {
       return;
     }
@@ -697,40 +815,8 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
 
   private updatePosition(): void {
     const panel = this.panelElement()?.nativeElement;
-    if (!panel) {
-      return;
+    if (panel) {
+      this.side.set(andesPlacePanel(panel, this.trigger().nativeElement));
     }
-
-    const trigger = this.trigger().nativeElement;
-    const anchor = trigger.getBoundingClientRect();
-    const viewportWidth = document.documentElement.clientWidth;
-    const viewportHeight = document.documentElement.clientHeight;
-    const width = panel.offsetWidth;
-    const height = panel.offsetHeight;
-    const rtl = getComputedStyle(trigger).direction === 'rtl';
-
-    // Align the panel's end edge with the button's, so it opens toward the column
-    // it filters, then keep it on screen.
-    const preferredLeft = rtl ? anchor.left : anchor.right - width;
-    const left = Math.min(
-      Math.max(VIEWPORT_MARGIN, preferredLeft),
-      Math.max(VIEWPORT_MARGIN, viewportWidth - width - VIEWPORT_MARGIN),
-    );
-
-    // Below the button unless it would run off the bottom and there is more room
-    // above - a fixed panel cannot be scrolled into view.
-    const spaceBelow = viewportHeight - anchor.bottom - PANEL_GAP;
-    const spaceAbove = anchor.top - PANEL_GAP;
-    const above =
-      height > spaceBelow - VIEWPORT_MARGIN && spaceAbove > spaceBelow;
-    const top = above
-      ? Math.max(VIEWPORT_MARGIN, anchor.top - PANEL_GAP - height)
-      : anchor.bottom + PANEL_GAP;
-
-    // Written straight to the element: it is pure layout, and it must be in place
-    // before focus moves into the panel in the same frame.
-    panel.style.top = `${top}px`;
-    panel.style.left = `${left}px`;
-    panel.setAttribute('data-placement', above ? 'top' : 'bottom');
   }
 }

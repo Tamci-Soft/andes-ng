@@ -1,4 +1,10 @@
-import { computed, Directive, inject, input } from '@angular/core';
+import {
+  computed,
+  Directive,
+  inject,
+  input,
+  numberAttribute,
+} from '@angular/core';
 
 import { AndesTable } from './table';
 import type { AndesTableRowKey } from './table-context';
@@ -15,6 +21,8 @@ const INTERACTIVE =
  * controls inside it read the key from here, and the row reflects the table's
  * selection/expansion state as `andes-table__row--selected` /
  * `andes-table__row--expanded` classes and a `data-row-key` attribute.
+ *
+ * In tree data, `level` is the row's depth; cells marked `indent` shift by it.
  */
 @Directive({
   selector: 'tr[andesTableRow]',
@@ -24,6 +32,8 @@ const INTERACTIVE =
     '[class.andes-table__row--expanded]': 'expanded()',
     '[class.andes-table__row--clickable]': 'expandByClick()',
     '[attr.data-row-key]': 'rowKey() ?? null',
+    '[attr.data-level]': 'level() || null',
+    '[style.--andes-table-level]': 'level() || null',
     '(click)': 'onClick($event)',
   },
 })
@@ -32,6 +42,9 @@ export class AndesTableRow {
 
   /** Unique key of the record this row renders. */
   readonly rowKey = input<AndesTableRowKey | undefined>(undefined);
+
+  /** Depth of this row in tree data; 0 for a top-level row. */
+  readonly level = input(0, { transform: numberAttribute });
 
   /** Whether this row is in the table's `selectedKeys`. */
   readonly selected = computed(() => {

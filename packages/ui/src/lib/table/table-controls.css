@@ -15,6 +15,12 @@
   cursor: pointer;
 }
 
+/* Native checkboxes and radios paint from the page's `color-scheme`, not from the tokens - left
+   alone, an unchecked box stays a bright white square on the dark theme. */
+:host-context([data-andes-theme='dark']) .andes-table-control__input {
+  color-scheme: dark;
+}
+
 .andes-table-control__input:disabled {
   cursor: not-allowed;
   opacity: 0.6;
@@ -94,19 +100,24 @@
   flex-direction: column;
   align-items: center;
   gap: var(--andes-space-2);
-  padding-block: var(--andes-space-5);
+  /* 32px above and below: the state reads as a calm block, not a cramped row. */
+  padding-block: calc(var(--andes-space-4) * 2);
   color: var(--andes-color-muted-foreground);
   font-family: var(--andes-font-family), sans-serif;
   font-size: 0.875rem;
+  font-weight: normal;
+  line-height: 1.375rem;
   text-align: center;
+  white-space: normal;
 }
 
+/* Lighter than the message, so the text stays the first thing read. */
 .andes-table-empty__icon {
   display: block;
   width: 2.5rem;
   height: 2.5rem;
   background-color: currentcolor;
-  opacity: 0.7;
+  opacity: 0.5;
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M22 12h-6l-2 3h-4l-2-3H2'/><path d='M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/></svg>");
   mask-position: center;
   mask-repeat: no-repeat;
@@ -121,5 +132,144 @@
   .andes-table-control__expand,
   .andes-table-control__chevron {
     transition: none;
+  }
+}
+
+/* Leaf rows of tree data: keeps their content in line with expandable siblings. */
+.andes-table-control__expand-spacer {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Selection menu next to "select all" */
+
+.andes-table-control__menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1.5rem;
+  margin-inline-start: var(--andes-space-1);
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-table-control__menu-trigger:hover,
+.andes-table-control__menu-trigger[aria-expanded='true'] {
+  background-color: var(--andes-color-accent-hover);
+  color: var(--andes-color-foreground);
+}
+
+.andes-table-control__menu-trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-table-control__menu-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-table-control__caret {
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: currentcolor;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+/* The menu lives in the top layer, so it inherits nothing from the header cell -
+   every text property is set here. */
+.andes-table-control__menu {
+  position: fixed;
+  inset: auto;
+  z-index: var(--andes-z-index-dropdown);
+  min-width: 10rem;
+  margin: 0;
+  padding: var(--andes-space-1);
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  font-weight: normal;
+  line-height: 1.25rem;
+  text-align: start;
+  white-space: nowrap;
+}
+
+/* Entry and exit: a short fade with a slight scale; the exit ignores the pointer. */
+.andes-table-control__menu {
+  transform-origin: top left;
+}
+
+.andes-table-control__menu--enter {
+  animation: andes-table-control-menu-in 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-table-control__menu--leave {
+  pointer-events: none;
+  animation: andes-table-control-menu-out var(--andes-duration-fast, 120ms)
+    var(--andes-ease-in, ease-in) forwards;
+}
+
+@keyframes andes-table-control-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes andes-table-control-menu-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.andes-table-control__menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2rem;
+  padding-inline: var(--andes-space-2);
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.andes-table-control__menu-item:hover,
+.andes-table-control__menu-item:focus-visible {
+  background-color: var(--andes-color-accent);
+  outline: none;
+}
+
+.andes-table-control__menu-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--andes-color-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-table-control__menu--enter,
+  .andes-table-control__menu--leave {
+    animation: none;
   }
 }

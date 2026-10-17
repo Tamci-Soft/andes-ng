@@ -25,6 +25,13 @@
   overflow-y: auto;
 }
 
+/* `sticky` without `scrollY`: any overflow value other than visible would make the
+   container the header's sticky reference, so it stops scrolling and lets the header
+   stick to the page instead. */
+.andes-table__container--sticky {
+  overflow: visible;
+}
+
 /* Also reachable from projected content, e.g. to name an otherwise empty header cell. */
 .andes-table__sr-only,
 .andes-table ::ng-deep .andes-table__sr-only {
@@ -53,6 +60,18 @@
     transparent
   );
   cursor: progress;
+  /* Fades in rather than flashing over the rows for a quick reload. */
+  animation: andes-table-loading-in 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-table__loading--bordered {
+  border-radius: var(--andes-radius-md);
+}
+
+@keyframes andes-table-loading-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .andes-table__spinner {
@@ -61,7 +80,8 @@
   border: 2px solid var(--andes-color-border);
   border-top-color: var(--andes-color-primary);
   border-radius: var(--andes-radius-full);
-  animation: andes-table-spin 0.8s linear infinite;
+  /* A calm turn: one revolution a second, on a light track. */
+  animation: andes-table-spin 1s linear infinite;
 }
 
 @keyframes andes-table-spin {
@@ -80,6 +100,8 @@
   /* Body text scale shared by every component: 14px on a 22px line (Ant Design). */
   font-size: var(--andes-text-font-size, 0.875rem);
   line-height: var(--andes-text-line-height, 1.375rem);
+  /* Equal-width digits keep amounts in an end-aligned column lined up place by place. */
+  font-variant-numeric: tabular-nums;
   text-align: start;
 }
 
@@ -91,9 +113,25 @@
   table-layout: fixed;
 }
 
-.andes-table--bordered {
+/* Bordered: a collapsed-border table ignores `border-radius`, so the rounded outer frame
+   is drawn by the container instead, which also clips the header fill and row tints to
+   the rounded corners. A `hidden` table border wins every collapsed-border conflict on
+   the table's edge, so the outermost cell borders give way to that frame - whatever the
+   row and column spans - and only the inner grid lines remain. */
+.andes-table__container--bordered {
+  box-sizing: border-box;
   border: 1px solid var(--andes-color-border);
   border-radius: var(--andes-radius-md);
+}
+
+/* A page-sticky header needs the container not to scroll, yet the rounded corners still
+   need clipping: `clip` does both, since it never creates a scroll container. */
+.andes-table__container--bordered.andes-table__container--sticky {
+  overflow: clip;
+}
+
+.andes-table--bordered {
+  border: 1px hidden;
 }
 
 /* Caption */
@@ -165,8 +203,9 @@
   border-bottom: none;
 }
 
+/* The row holding the empty state is not data, so it does not answer the pointer. */
 /* prettier-ignore */
-.andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row:not(.andes-table__expanded-row):hover {
+.andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row:not(.andes-table__expanded-row, :has(> td > andes-table-empty)):hover {
   background-color: var(--andes-color-accent);
 }
 
@@ -224,6 +263,15 @@
 /* Density. `compact` is Ant Design's small table (8px all round, 39px rows) and
    `default` its default/large one (16px all round, 55px rows); `comfortable` adds
    breathing room above that for sparse, reading-heavy tables. */
+
+.andes-table--compact {
+  --andes-table-cell-padding-inline: var(--andes-space-2);
+}
+
+.andes-table--default,
+.andes-table--comfortable {
+  --andes-table-cell-padding-inline: var(--andes-space-4);
+}
 
 .andes-table--compact ::ng-deep .andes-table__head,
 .andes-table--compact ::ng-deep .andes-table__cell {
@@ -314,6 +362,16 @@
    fixed-column rules, whose `position: sticky` already anchors the handle. */
 .andes-table ::ng-deep :where(.andes-table__head--resizable) {
   position: relative;
+}
+
+/* In an end-aligned (numeric) column the indicator leads the title, so the title's end
+   edge lines up with the figures below it instead of stopping a glyph's width short. */
+.andes-table ::ng-deep .andes-table__align--end .andes-table__head-title {
+  text-align: end;
+}
+
+.andes-table ::ng-deep .andes-table__align--end .andes-table__sorter {
+  order: -1;
 }
 
 .andes-table ::ng-deep .andes-table__resize-handle {
@@ -409,6 +467,23 @@
     var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
+/* Tree data: the cell marked `indent` shifts by its row's level. */
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__cell.andes-table__cell--indent {
+  padding-inline-start: calc(
+    var(--andes-table-cell-padding-inline, var(--andes-space-4)) +
+      var(--andes-table-level, 0) * var(--andes-table-indent-size, 1rem)
+  );
+  white-space: nowrap;
+}
+
+/* Virtual rows: the spacers stand in for the rows scrolled out of the DOM. */
+.andes-table ::ng-deep .andes-table__virtual-spacer,
+.andes-table ::ng-deep .andes-table__virtual-spacer > td {
+  padding: 0;
+  border: 0;
+}
+
 /* Control columns (selection, expand) shrink to their control instead of taking a
    share of the free width. */
 /* prettier-ignore */
@@ -436,7 +511,11 @@
    with sticky cells. */
 .andes-table--sticky-header ::ng-deep thead th {
   position: sticky;
-  top: 0;
+  /* The page offset (`sticky` + `stickyOffset`) plus the height of the header rows
+     above this one, so the rows of a grouped header stack instead of overlapping. */
+  top: calc(
+    var(--andes-table-sticky-offset, 0px) + var(--andes-table-header-top, 0px)
+  );
   z-index: 2;
   background-color: var(--andes-color-muted);
   box-shadow: inset 0 -1px 0 var(--andes-color-border);
@@ -444,19 +523,30 @@
 
 /* Chrome paints scrolled-away rows past the top of the scroll container when sticky
    header cells carry collapsed borders. With a sticky header, a bordered table
-   therefore switches to separate borders drawn once per cell (end + bottom edges),
-   with the table itself supplying the top and start edges - the same lines as before. */
+   therefore switches to separate borders drawn once per cell (end + bottom edges); the
+   container's rounded frame supplies the outer edges, so the last column and the last
+   row drop the edge they would otherwise double. */
 .andes-table--sticky-header.andes-table--bordered {
   border-collapse: separate;
   border-spacing: 0;
-  border-width: 1px 0 0;
-  border-inline-start-width: 1px;
+  border: 0;
 }
 
 .andes-table--sticky-header.andes-table--bordered ::ng-deep .andes-table__cell,
 .andes-table--sticky-header.andes-table--bordered ::ng-deep .andes-table__head {
   border-width: 0 0 1px;
   border-inline-end-width: 1px;
+}
+
+/* prettier-ignore */
+.andes-table--sticky-header.andes-table--bordered ::ng-deep tr > :is(.andes-table__cell, .andes-table__head):last-child {
+  border-inline-end-width: 0;
+}
+
+/* The last row of the last row group (a trailing virtual spacer does not count). */
+/* prettier-ignore */
+.andes-table--sticky-header.andes-table--bordered ::ng-deep :is(thead, tbody, tfoot):not(:has(~ :is(thead, tbody, tfoot))) > tr:is(:last-child, :has(+ .andes-table__virtual-spacer:last-child)) > * {
+  border-bottom-width: 0;
 }
 
 /* The header's own bottom border now travels with it; drop the stand-in shadow. */
@@ -527,8 +617,15 @@
 }
 
 /* Edge shadow once content scrolls under a pinned column: on the last start-pinned
-   cell of a row and the first end-pinned one. */
+   cell of a row and the first end-pinned one. The shade is mixed from the overlay scrim
+   token, which darkens in dark mode, so the edge stays visible on a dark page too. */
 .andes-table ::ng-deep .andes-table__fixed::before {
+  --andes-table-edge-shadow: color-mix(
+    in srgb,
+    var(--andes-color-overlay) 33%,
+    transparent
+  );
+
   content: '';
   position: absolute;
   inset-block: 0;
@@ -548,15 +645,44 @@
 
 /* prettier-ignore */
 .andes-table--ping-start ::ng-deep .andes-table__fixed-start:not(:has(+ .andes-table__fixed-start))::before {
-  box-shadow: inset 0.625rem 0 0.5rem -0.5rem rgb(0 0 0 / 15%);
+  box-shadow: inset 0.625rem 0 0.5rem -0.5rem var(--andes-table-edge-shadow);
 }
 
 /* prettier-ignore */
 .andes-table--ping-end ::ng-deep .andes-table__fixed-end:not(.andes-table__fixed-end + .andes-table__fixed-end)::before {
-  box-shadow: inset -0.625rem 0 0.5rem -0.5rem rgb(0 0 0 / 15%);
+  box-shadow: inset -0.625rem 0 0.5rem -0.5rem var(--andes-table-edge-shadow);
+}
+
+/* Responsive columns (`hideBelow`). */
+@media (width < 576px) {
+  .andes-table ::ng-deep .andes-table__hide-below-sm {
+    display: none;
+  }
+}
+
+@media (width < 768px) {
+  .andes-table ::ng-deep .andes-table__hide-below-md {
+    display: none;
+  }
+}
+
+@media (width < 992px) {
+  .andes-table ::ng-deep .andes-table__hide-below-lg {
+    display: none;
+  }
+}
+
+@media (width < 1200px) {
+  .andes-table ::ng-deep .andes-table__hide-below-xl {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* prettier-ignore */
+  .andes-table ::ng-deep .cdk-drop-list-dragging > .andes-table__head--reorderable:not(.cdk-drag-placeholder),
+  .andes-table ::ng-deep .andes-table__head--reorderable.cdk-drag-animating,
+  .andes-table ::ng-deep .andes-table__resize-handle::after,
   .andes-table ::ng-deep .andes-table__row,
   .andes-table ::ng-deep .andes-table__sorter-caret,
   .andes-table ::ng-deep .andes-table__resize-handle::after,
@@ -568,5 +694,9 @@
 
   .andes-table__spinner {
     animation-duration: 2.4s;
+  }
+
+  .andes-table__loading {
+    animation: none;
   }
 }

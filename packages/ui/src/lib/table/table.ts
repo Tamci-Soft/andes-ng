@@ -24,8 +24,10 @@ import {
   type AndesTableRowKey,
 } from './table-context';
 import {
+  type AndesColumnFilterMatcher,
   type AndesFilterPredicates,
   andesFilterRows,
+  andesMoveColumn,
   type AndesFilterValue,
   type AndesTableFilters,
 } from './table-data';
@@ -34,6 +36,7 @@ import {
   type AndesSortDirection,
   type AndesSortState,
 } from './table-sort';
+import { andesTreeDescendants, type AndesTableTree } from './table-tree';
 
 /** Cell padding scale, named for what it does rather than as a size. */
 export type AndesTableDensity = 'compact' | 'default' | 'comfortable';
@@ -53,19 +56,25 @@ export type AndesTableLayout = 'auto' | 'fixed';
 /** Aggregate state of the rendered, enabled row checkboxes, for "select all". */
 export type AndesTableSelectAllState = 'all' | 'some' | 'none';
 
-/** What a user interaction changed, as reported by `(tableChange)`. */
-export type AndesTableChangeAction = 'sort' | 'filter';
+/**
+ * What a user interaction changed, as reported by `(tableChange)`: a column sort,
+ * a column filter, or both cleared at once through `resetState()`.
+ */
+export type AndesTableChangeAction = 'sort' | 'filter' | 'reset';
 
 /**
- * The table's sort and filter state after a user interaction - Ant Design's
- * `onChange(pagination, filters, sorter, extra)`, minus pagination, which this
- * table does not own. For a controlled column filter (`filteredValue`) `filters`
- * holds the *proposed* state, not yet applied.
+ * The table's sort and filter state after a user interaction - the whole query
+ * state a server-side data source needs to refetch (pagination is not owned by
+ * the table). For a controlled column filter (`filteredValue`) `filters` holds
+ * the *proposed* state, not yet applied.
  */
 export interface AndesTableChange {
   readonly action: AndesTableChangeAction;
-  /** Column whose header or filter the user operated. */
-  readonly columnId: string;
+  /**
+   * Column whose header or filter the user operated. Absent for changes that are
+   * not tied to one column: `resetState()`, `clearFilters()` and `clearSort()`.
+   */
+  readonly columnId?: string;
   readonly filters: AndesTableFilters;
   /** The single sort (`multiSort` off). */
   readonly sort: AndesSortState | null;
@@ -98,6 +107,50 @@ export type AndesTableColumnMovedText = (
   position: number,
   total: number,
 ) => string;
+
+/** Emitted by `rowSelect` when the user toggles one row's selection control. */
+export interface AndesTableRowSelectEvent {
+  readonly key: AndesTableRowKey;
+  readonly selected: boolean;
+  /** The whole selection after the change. */
+  readonly selectedKeys: readonly AndesTableRowKey[];
+}
+
+/** Emitted by `expandChange` when a row is expanded or collapsed. */
+export interface AndesTableExpandEvent {
+  readonly key: AndesTableRowKey;
+  readonly expanded: boolean;
+}
+
+/** Native tooltip texts of sortable headers, one per next step of the cycle. */
+export interface AndesTableSortTooltipLabels {
+  readonly asc: string;
+  readonly desc: string;
+  readonly cancel: string;
+}
+
+/** Where `scrollTo` should bring the table's scroll container. */
+export interface AndesTableScrollTarget {
+  /** Absolute vertical scroll offset in pixels. */
+  readonly top?: number;
+  /** Key of a rendered row (its `rowKey`) to bring to the top. */
+  readonly key?: AndesTableRowKey;
+  /**
+   * 0-based index of a body row to bring to the top. With
+   * `*andesTableVirtualRows` it reaches rows that are not rendered yet.
+   */
+  readonly index?: number;
+  readonly behavior?: ScrollBehavior;
+}
+
+/**
+ * Handle a virtual row list registers so `scrollTo({ index })` can reach rows
+ * that are not in the DOM.
+ */
+export interface AndesTableVirtualRowsHandle {
+  /** Scroll offset of row `index` within the scroll container. */
+  offsetOf(index: number): number;
+}
 
 let nextTableId = 0;
 
@@ -246,6 +299,14 @@ export class AndesTable {
    */
   readonly selectedKeys = model<readonly AndesTableRowKey[]>([]);
 
+  /**
+   * Keys "select all", Shift-click ranges and the selection menu act on, in
+   * display order. Defaults to the rows that are rendered; set it when they are
+   * not all in the DOM - a virtual list, or "select all" across every page.
+   * Rendered rows whose control is disabled are still skipped.
+   */
+  readonly selectableKeys = input<readonly AndesTableRowKey[] | null>(null);
+
   /** Keys of the expanded rows. Two-way bindable. */
   readonly expandedKeys = model<readonly AndesTableRowKey[]>([]);
 
@@ -298,6 +359,64 @@ export class AndesTable {
   /** A resize drag is in progress. */
   private readonly resizing = signal(false);
 
+  /**
+   * Indentation per tree level for cells marked `indent` in rows with a `level`:
+   * pixels or a CSS length. Defaults to 1rem.
+   */
+  readonly indentSize = input<string | number | undefined>(undefined);
+
+  /**
+   * Parent/child structure of tree data (from `andesTreeIndex`). When set,
+   * selection cascades: toggling a row toggles all its descendants, a parent is
+   * selected exactly when all its children are, and a partly selected parent
+   * shows an indeterminate checkbox. Leave unset to select rows independently.
+   */
+  readonly selectionTree = input<AndesTableTree | null>(null);
+
+  /**
+   * Keep the header row stuck to the top of the page (plus `stickyOffset`) while
+   * the page scrolls past a tall table. Without `scrollY` the table then stops
+   * being its own horizontal scroller, so use it for tables that fit their
+   * width; with `scrollY` the header already sticks inside the table.
+   */
+  readonly sticky = input(false, { transform: booleanAttribute });
+
+  /**
+   * Distance from the top of the viewport where a `sticky` header stops, e.g.
+   * the height of a fixed app bar. Pixels or a CSS length.
+   */
+  readonly stickyOffset = input<string | number>(0);
+
+  /**
+   * Give sortable headers a native tooltip naming what activating them does
+   * next ("Click to sort ascending" ...). A header's own `sortTooltip` wins.
+   */
+  readonly sortTooltip = input(false, { transform: booleanAttribute });
+
+  /** Texts of the sort tooltip. */
+  readonly sortTooltipLabels = input<AndesTableSortTooltipLabels>({
+    asc: 'Click to sort ascending',
+    desc: 'Click to sort descending',
+    cancel: 'Click to cancel sorting',
+  });
+
+  /**
+   * Scroll back to the first row when the user changes the sort or a filter, so
+   * the new first results are what they see.
+   */
+  readonly scrollToFirstRowOnChange = input(false, {
+    transform: booleanAttribute,
+  });
+
+  /** The user toggled one row's selection control. */
+  readonly rowSelect = output<AndesTableRowSelectEvent>();
+
+  /** A row was expanded or collapsed through the table. */
+  readonly expandChange = output<AndesTableExpandEvent>();
+
+  /** The table's own scroll container scrolled (with `scrollX`/`scrollY`). */
+  readonly bodyScroll = output<Event>();
+
   /** Shared `name` for this table's radio buttons, so they form one group. */
   readonly radioGroupName = `andes-table-${nextTableId++}-selection`;
 
@@ -313,7 +432,8 @@ export class AndesTable {
   readonly filterPredicates = computed(() => {
     const predicates: Record<
       string,
-      (value: AndesFilterValue, row: never) => boolean
+      | ((value: AndesFilterValue, row: never) => boolean)
+      | AndesColumnFilterMatcher<never>
     > = {};
     for (const filterable of this.filterables()) {
       const predicate = filterable.predicate();
@@ -326,6 +446,17 @@ export class AndesTable {
 
   private readonly container =
     viewChild.required<ElementRef<HTMLElement>>('container');
+
+  private readonly scrollTopState = signal(0);
+  private readonly viewportHeightState = signal(0);
+
+  /** Vertical scroll offset of the table's scroll container, in pixels. */
+  readonly scrollTop = this.scrollTopState.asReadonly();
+
+  /** Visible height of the table's scroll container, in pixels. */
+  readonly viewportHeight = this.viewportHeightState.asReadonly();
+
+  private virtualRows: AndesTableVirtualRowsHandle | undefined;
 
   /** The table is scrolled away from its inline-start edge. */
   private readonly pingStart = signal(false);
@@ -346,13 +477,25 @@ export class AndesTable {
     return sort ? [sort] : [];
   });
 
-  /** Keys of the rendered, enabled selection controls, in document order. */
-  private readonly enabledKeys = computed(() =>
-    this.selectables()
+  private readonly ownSelectables = computed(() =>
+    this.selectables().filter((item) => item.owner === this),
+  );
+
+  /**
+   * Keys whose selection the bulk actions may change: `selectableKeys`, or the
+   * rendered, enabled selection controls in document order.
+   */
+  readonly enabledKeys = computed(() => {
+    const explicit = this.selectableKeys();
+    if (explicit) {
+      const locked = this.disabledKeys();
+      return explicit.filter((key) => !locked.has(key));
+    }
+    return this.ownSelectables()
       .filter((item) => !item.isDisabled())
       .map((item) => item.resolvedKey())
-      .filter((key): key is AndesTableRowKey => key !== undefined),
-  );
+      .filter((key): key is AndesTableRowKey => key !== undefined);
+  });
 
   /** Whether the rendered, enabled rows are all, some or none selected. */
   readonly selectAllState = computed<AndesTableSelectAllState>(() => {
@@ -369,6 +512,50 @@ export class AndesTable {
   /** Whether any rendered row can be selected at all. */
   readonly hasSelectableRows = computed(() => this.enabledKeys().length > 0);
 
+  /** Keys of rendered rows whose selection control is disabled. */
+  private readonly disabledKeys = computed(
+    () =>
+      new Set(
+        this.ownSelectables()
+          .filter((item) => item.isDisabled())
+          .map((item) => item.resolvedKey())
+          .filter((key): key is AndesTableRowKey => key !== undefined),
+      ),
+  );
+
+  /**
+   * With a `selectionTree`, the unselected rows that have a selected
+   * descendant - drawn as indeterminate.
+   */
+  private readonly partialSet = computed(() => {
+    const tree = this.selectionTree();
+    const partial = new Set<AndesTableRowKey>();
+    if (!tree) {
+      return partial;
+    }
+
+    const selected = this.selectedSet();
+    for (const key of selected) {
+      let parent = tree.parentOf.get(key);
+      while (parent !== undefined && !partial.has(parent)) {
+        if (!selected.has(parent)) {
+          partial.add(parent);
+        }
+        parent = tree.parentOf.get(parent);
+      }
+    }
+    return partial;
+  });
+
+  protected readonly indentLength = computed(() =>
+    andesCssLength(this.indentSize()),
+  );
+
+  protected readonly stickyOffsetLength = computed(() =>
+    this.sticky() && !this.scrollYLength()
+      ? (andesCssLength(this.stickyOffset()) ?? '0px')
+      : null,
+  );
   protected readonly scrollYLength = computed(() =>
     andesCssLength(this.scrollY()),
   );
@@ -384,7 +571,7 @@ export class AndesTable {
       this.tableLayout() === 'fixed' && 'andes-table--layout-fixed',
       this.bordered() && 'andes-table--bordered',
       this.rowHover() && 'andes-table--hoverable',
-      this.scrollYLength() && 'andes-table--sticky-header',
+      (this.scrollYLength() || this.sticky()) && 'andes-table--sticky-header',
       this.pingStart() && 'andes-table--ping-start',
       this.pingEnd() && 'andes-table--ping-end',
       this.resizing() && 'andes-table--resizing',
@@ -396,6 +583,7 @@ export class AndesTable {
       write: () => {
         this.syncFixedOffsets();
         this.restoreMovedFocus();
+        this.syncHeaderOffsets();
       },
     });
 
@@ -477,6 +665,32 @@ export class AndesTable {
     this.emitChange('sort', columnId);
   }
 
+  /** Native tooltip for a sortable header: what activating it does next. */
+  sortTooltipFor(
+    columnId: string,
+    directions: readonly AndesSortDirection[] = this.sortDirections(),
+  ): string {
+    const next = andesNextSortDirection(
+      this.directionFor(columnId),
+      directions,
+    );
+    const labels = this.sortTooltipLabels();
+    return next === null ? labels.cancel : labels[next];
+  }
+
+  /**
+   * Removes every column's sort without touching the filters. Emits
+   * `(tableChange)` when something was sorted.
+   */
+  clearSort(): void {
+    if (this.activeSorts().length === 0) {
+      return;
+    }
+    this.sort.set(null);
+    this.sorts.set([]);
+    this.emitChange('sort');
+  }
+
   // Filtering
 
   /** Values currently filtering `columnId` (empty when it is not filtered). */
@@ -519,7 +733,12 @@ export class AndesTable {
     columnId: string,
     values: readonly AndesFilterValue[],
   ): void {
-    this.emitChange('filter', columnId, this.withFilter(columnId, values));
+    this.emitChange(
+      'filter',
+      columnId,
+      this.withFilter(columnId, values),
+      false,
+    );
   }
 
   /**
@@ -550,16 +769,54 @@ export class AndesTable {
 
   private emitChange(
     action: AndesTableChangeAction,
-    columnId: string,
+    columnId?: string,
     filters: AndesTableFilters = this.filters() ?? {},
+    scroll = true,
   ): void {
     this.tableChange.emit({
       action,
-      columnId,
+      ...(columnId === undefined ? {} : { columnId }),
       filters,
       sort: this.sort(),
       sorts: this.activeSorts(),
     });
+    if (scroll && this.scrollToFirstRowOnChange()) {
+      this.scrollTo({ top: 0 });
+    }
+  }
+
+  /**
+   * Removes the filters of `columns`, or of every column when left out. Reports
+   * `(tableChange)` when a filter was active.
+   */
+  clearFilters(columns?: readonly string[]): void {
+    const current = this.filters() ?? {};
+    const next = columns
+      ? Object.fromEntries(
+          Object.entries(current).filter(([key]) => !columns.includes(key)),
+        )
+      : {};
+    if (Object.keys(next).length === Object.keys(current).length) {
+      return;
+    }
+    this.filters.set(next);
+    this.emitChange('filter');
+  }
+
+  /**
+   * Clears every filter and sort in one step, with a single `(tableChange)`
+   * (`action: 'reset'`) - one refetch for a server-side table.
+   */
+  resetState(): void {
+    const filtered = Object.keys(this.filters() ?? {}).length > 0;
+    const sorted = this.activeSorts().length > 0;
+    if (!filtered && !sorted) {
+      return;
+    }
+    this.filters.set({});
+    this.sort.set(null);
+    this.sorts.set([]);
+    this.emitChange('reset');
   }
 
   // Column widths
@@ -618,16 +875,24 @@ export class AndesTable {
         .map((cell) => cell.dataset['columnKey'])
         .filter((key): key is string => !!key);
     const before = keysOf(cells);
-    const order = keysOf(reordered);
+    const rendered = keysOf(reordered);
     const columnKey = moved.dataset['columnKey'] as string;
+    const previousIndex = before.indexOf(columnKey);
+    const currentIndex = rendered.indexOf(columnKey);
+
+    // A stored order that also lists columns that are not rendered (hidden ones,
+    // see `andes-table-column-settings`) keeps them where they were: the moved
+    // column lands next to the one it took the place of.
+    const stored = this.columnOrder() ?? [];
+    const keepsHidden =
+      stored.length > rendered.length &&
+      before.every((key) => stored.includes(key));
+    const order = keepsHidden
+      ? andesMoveColumn(stored, columnKey, before[currentIndex])
+      : rendered;
 
     this.columnOrder.set(order);
-    this.columnReorder.emit({
-      columnKey,
-      previousIndex: before.indexOf(columnKey),
-      currentIndex: order.indexOf(columnKey),
-      order,
-    });
+    this.columnReorder.emit({ columnKey, previousIndex, currentIndex, order });
     return true;
   }
 
@@ -641,13 +906,15 @@ export class AndesTable {
       return;
     }
     const key = cell.dataset['columnKey'] as string;
-    const order = this.columnOrder();
+    const keys = Array.from(row.cells)
+      .map((item) => item.dataset['columnKey'])
+      .filter((item): item is string => !!item);
     const title =
       cell.querySelector('.andes-table__head-title')?.textContent?.trim() ||
       key;
     this.pendingFocusKey = key;
     this.announcement.set(
-      this.columnMovedText()(title, order.indexOf(key) + 1, order.length),
+      this.columnMovedText()(title, keys.indexOf(key) + 1 + step, keys.length),
     );
   }
 
@@ -679,6 +946,14 @@ export class AndesTable {
   }
 
   /**
+   * Whether `key` is unselected but has a selected descendant. Only ever true
+   * with a `selectionTree`.
+   */
+  isPartiallySelected(key: AndesTableRowKey): boolean {
+    return this.partialSet().has(key);
+  }
+
+  /**
    * Selects or deselects one row. For radios this makes it the only selection.
    * With `extendRange` (a Shift-click on a checkbox) every enabled row between the
    * previous anchor and `key` takes the new state too.
@@ -687,6 +962,11 @@ export class AndesTable {
     if (this.selectionType() === 'radio') {
       this.selectedKeys.set([key]);
       this.rangeAnchor = key;
+      this.rowSelect.emit({
+        key,
+        selected: true,
+        selectedKeys: this.selectedKeys(),
+      });
       return;
     }
 
@@ -703,6 +983,11 @@ export class AndesTable {
 
     this.applySelection(affected, select);
     this.rangeAnchor = key;
+    this.rowSelect.emit({
+      key,
+      selected: select,
+      selectedKeys: this.selectedKeys(),
+    });
   }
 
   /**
@@ -714,23 +999,108 @@ export class AndesTable {
     this.applySelection(this.enabledKeys(), this.selectAllState() !== 'all');
   }
 
+  /** Selects every rendered, enabled row, keeping the rest of the selection. */
+  selectAll(): void {
+    this.applySelection(this.enabledKeys(), true);
+  }
+
+  /**
+   * Flips the selection of every rendered, enabled row. Rows that are not
+   * rendered keep their state.
+   */
+  invertSelection(): void {
+    const keys = this.enabledKeys();
+    const selected = keys.filter((key) => this.isSelected(key));
+    const unselected = keys.filter((key) => !this.isSelected(key));
+    const removed = new Set(selected);
+    const current = this.selectedKeys().filter((key) => !removed.has(key));
+    this.selectedKeys.set(current);
+    this.applySelection(unselected, true);
+  }
+
+  /**
+   * Clears the selection, except rendered rows whose control is disabled -
+   * those keep whatever state they had.
+   */
+  clearSelection(): void {
+    const locked = this.disabledKeys();
+    this.selectedKeys.set(this.selectedKeys().filter((key) => locked.has(key)));
+  }
+
   private applySelection(
     keys: readonly AndesTableRowKey[],
     select: boolean,
   ): void {
+    const tree = this.selectionTree();
+    const affected = tree ? this.withDescendants(tree, keys) : keys;
     const current = this.selectedKeys();
+    let next: AndesTableRowKey[];
 
     if (select) {
       const set = new Set(current);
-      this.selectedKeys.set([
-        ...current,
-        ...keys.filter((key) => !set.has(key)),
-      ]);
-      return;
+      next = [...current, ...affected.filter((key) => !set.has(key))];
+    } else {
+      const removed = new Set(affected);
+      next = current.filter((key) => !removed.has(key));
     }
 
-    const removed = new Set(keys);
-    this.selectedKeys.set(current.filter((key) => !removed.has(key)));
+    this.selectedKeys.set(tree ? this.reconcileAncestors(tree, next) : next);
+  }
+
+  /** `keys` plus all their descendants, minus rendered rows that are disabled. */
+  private withDescendants(
+    tree: AndesTableTree,
+    keys: readonly AndesTableRowKey[],
+  ): AndesTableRowKey[] {
+    const locked = this.disabledKeys();
+    const result = new Set<AndesTableRowKey>(keys);
+    for (const key of keys) {
+      for (const descendant of andesTreeDescendants(tree, key)) {
+        if (!locked.has(descendant)) {
+          result.add(descendant);
+        }
+      }
+    }
+    return [...result];
+  }
+
+  /**
+   * Makes every parent selected exactly when all of its children are, bottom
+   * up, so a change deep in the tree is reflected all the way to the top.
+   */
+  private reconcileAncestors(
+    tree: AndesTableTree,
+    keys: readonly AndesTableRowKey[],
+  ): AndesTableRowKey[] {
+    const selected = new Set(keys);
+    const depth = (key: AndesTableRowKey): number => {
+      let level = 0;
+      for (
+        let p = tree.parentOf.get(key);
+        p !== undefined;
+        p = tree.parentOf.get(p)
+      ) {
+        level++;
+      }
+      return level;
+    };
+    const parents = [...tree.childrenOf.keys()].sort(
+      (a, b) => depth(b) - depth(a),
+    );
+
+    for (const parent of parents) {
+      const children = tree.childrenOf.get(parent) ?? [];
+      const all = children.every((child) => selected.has(child));
+      if (all) {
+        selected.add(parent);
+      } else {
+        selected.delete(parent);
+      }
+    }
+
+    const ordered = keys.filter((key) => selected.has(key));
+    const known = new Set(ordered);
+    return [...ordered, ...[...selected].filter((key) => !known.has(key))];
   }
 
   // Expansion
@@ -741,9 +1111,75 @@ export class AndesTable {
 
   toggleExpanded(key: AndesTableRowKey): void {
     const keys = this.expandedKeys();
+    const expanded = !this.isExpanded(key);
     this.expandedKeys.set(
-      this.isExpanded(key) ? keys.filter((k) => k !== key) : [...keys, key],
+      expanded ? [...keys, key] : keys.filter((k) => k !== key),
     );
+    this.expandChange.emit({ key, expanded });
+  }
+
+  // Scrolling
+
+  /** Lets `*andesTableVirtualRows` resolve `scrollTo({ index })`. */
+  registerVirtualRows(handle: AndesTableVirtualRowsHandle | undefined): void {
+    this.virtualRows = handle;
+  }
+
+  /**
+   * Scrolls the table to an absolute offset, a row key or a row index. When the
+   * table has no `scrollY` of its own, the row is scrolled into view on the page
+   * instead.
+   */
+  scrollTo(target: AndesTableScrollTarget): void {
+    const container = this.container().nativeElement;
+    const behavior = target.behavior ?? 'auto';
+    const header = container.querySelector('thead');
+    const headerHeight = this.scrollYLength()
+      ? (header?.getBoundingClientRect().height ?? 0)
+      : 0;
+
+    let top = target.top;
+    let row: HTMLElement | null = null;
+
+    if (top === undefined && target.key !== undefined) {
+      row = container.querySelector<HTMLElement>(
+        `tbody tr[data-row-key="${cssEscape(String(target.key))}"]`,
+      );
+    } else if (top === undefined && target.index !== undefined) {
+      if (this.virtualRows) {
+        top = this.virtualRows.offsetOf(target.index) - headerHeight;
+      } else {
+        row =
+          container.querySelectorAll<HTMLElement>(
+            'tbody tr.andes-table__row:not(.andes-table__expanded-row)',
+          )[target.index] ?? null;
+      }
+    }
+
+    if (row) {
+      if (!this.scrollYLength()) {
+        row.scrollIntoView?.({ block: 'start', behavior });
+        return;
+      }
+      top =
+        row.getBoundingClientRect().top -
+        container.getBoundingClientRect().top +
+        container.scrollTop -
+        headerHeight;
+    }
+
+    if (top !== undefined) {
+      if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ top: Math.max(0, top), behavior });
+      } else {
+        container.scrollTop = Math.max(0, top);
+      }
+    }
+  }
+
+  protected onContainerScroll(event: Event): void {
+    this.updateScrollEdges();
+    this.bodyScroll.emit(event);
   }
 
   // Fixed columns
@@ -782,13 +1218,46 @@ export class AndesTable {
     }
   }
 
+  /**
+   * With a sticky header of several rows (grouped columns), stacks each header
+   * row under the ones above it instead of letting them all stick at the top.
+   */
+  private syncHeaderOffsets(): void {
+    if (!this.scrollYLength() && !this.sticky()) {
+      return;
+    }
+    const header = this.container().nativeElement.querySelector('thead');
+    if (!header || header.rows.length < 2) {
+      return;
+    }
+
+    const heights = Array.from(header.rows).map(
+      (row) => row.getBoundingClientRect().height,
+    );
+    let top = 0;
+    Array.from(header.rows).forEach((row, index) => {
+      for (const cell of Array.from(row.cells)) {
+        cell.style.setProperty('--andes-table-header-top', `${top}px`);
+      }
+      top += heights[index];
+    });
+  }
+
   // Fixed-column scroll shadows
 
   protected updateScrollEdges(): void {
     const element = this.container().nativeElement;
+    this.scrollTopState.set(element.scrollTop);
+    this.viewportHeightState.set(element.clientHeight);
     // `scrollLeft` is negative when scrolled in a right-to-left container.
     const scrolled = Math.abs(element.scrollLeft);
     this.pingStart.set(scrolled > 0);
     this.pingEnd.set(scrolled + element.clientWidth < element.scrollWidth - 1);
   }
+}
+
+function cssEscape(value: string): string {
+  return typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+    ? CSS.escape(value)
+    : value.replace(/["\\]/g, '\\$&');
 }

@@ -245,6 +245,21 @@ describe('AndesTable', () => {
       expect(table.classList).not.toContain('andes-table--hoverable');
     });
 
+    it('draws the rounded bordered frame on the container, not the collapsed table', () => {
+      const { fixture, table } = createHost();
+      const container = table.closest('.andes-table__container') as HTMLElement;
+
+      expect(container.classList).not.toContain(
+        'andes-table__container--bordered',
+      );
+
+      fixture.componentInstance.bordered.set(true);
+      fixture.detectChanges();
+
+      expect(container.classList).toContain('andes-table__container--bordered');
+      expect(table.classList).toContain('andes-table--bordered');
+    });
+
     it('applies the alignment class to matching headers and cells', () => {
       const { table, heads } = createHost();
       const firstRowCells = Array.from(
