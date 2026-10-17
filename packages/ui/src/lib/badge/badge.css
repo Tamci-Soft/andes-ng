@@ -133,22 +133,13 @@
   color: var(--andes-color-danger-foreground);
 }
 
-/* success/info/warning's base tokens are too light for white text to clear WCAG AA (3.30:1,
-   4.10:1 and 4.22:1 respectively against --andes-color-*-foreground - all below the 4.5:1
-   normal-text minimum; found via the Storybook a11y addon and confirmed by recomputing the
-   WCAG relative-luminance formula directly). Their -active shades pass comfortably in light
-   mode (>5:1) - but -active tokens get *lighter*, not darker, in dark mode (by design, for
-   hover feedback against a dark page), so pairing -active with the fixed white -foreground
-   token fails even worse there (as low as 1.44:1 for warning). --andes-color-background flips
-   to exactly the opposite lightness in each theme (white in light mode, dark navy in dark
-   mode) - using it as the text color, instead of the -foreground token, tracks -active's own
-   flip and passes in both themes (5.02-12.38:1). Verified against the same WCAG formula
-   axe-core's a11y addon uses; primary/secondary/danger need no such workaround since their
-   base color's own light/dark values already pair safely with their fixed -foreground
-   token. */
+/* success/info fills are dark enough for white text (5.02:1 / 5.93:1), so they pair with
+   their -foreground like primary/danger. Amber only reaches AA with dark text, so warning
+   uses its -active shade (darker in light mode, lighter in dark mode) under
+   --andes-color-background, which flips the opposite way (5.02-12.38:1). */
 .andes-badge--success {
-  background-color: var(--andes-color-success-active);
-  color: var(--andes-color-background);
+  background-color: var(--andes-color-success);
+  color: var(--andes-color-success-foreground);
 }
 
 .andes-badge--warning {
@@ -157,8 +148,8 @@
 }
 
 .andes-badge--info {
-  background-color: var(--andes-color-info-active);
-  color: var(--andes-color-background);
+  background-color: var(--andes-color-info);
+  color: var(--andes-color-info-foreground);
 }
 
 /* status="default" - a neutral gray status dot. Internal only (not an AndesBadgeVariant):
