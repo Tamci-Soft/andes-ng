@@ -167,6 +167,15 @@
 .andes-combobox-item[data-active] {
   background-color: var(--andes-color-accent-hover);
   color: var(--andes-color-accent-foreground);
+  /* Muted secondary text in an option template (a description, a code) drops below 4.5:1
+     on the accent-hover fill (3.8:1 light, 4:1 dark). Re-scoping the token for this row
+     reaches consumer markup too; it's derived from the row's own foreground (~5.8:1 in
+     both themes) because a custom property can't reference its own inherited value. */
+  --andes-color-muted-foreground: color-mix(
+    in srgb,
+    var(--andes-color-accent-foreground) 70%,
+    transparent
+  );
 }
 
 .andes-combobox-item[aria-selected='true'] {
