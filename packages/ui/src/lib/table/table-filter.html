@@ -28,14 +28,19 @@
     [ngTemplateOutletContext]="panelContext()"
   />
   } @else { @if (searchable()) {
-  <input
-    type="search"
-    class="andes-table-filter__search"
-    [placeholder]="searchPlaceholder()"
-    [attr.aria-label]="searchPlaceholder()"
-    [value]="query()"
-    (input)="onSearch($event)"
-  />
+  <div class="andes-table-filter__search">
+    <label class="andes-table-filter__search-field">
+      <span class="andes-table-filter__search-icon" aria-hidden="true"></span>
+      <input
+        type="search"
+        class="andes-table-filter__search-input"
+        [placeholder]="searchPlaceholder()"
+        [attr.aria-label]="searchPlaceholder()"
+        [value]="query()"
+        (input)="onSearch($event)"
+      />
+    </label>
+  </div>
   }
   <div
     class="andes-table-filter__options"
