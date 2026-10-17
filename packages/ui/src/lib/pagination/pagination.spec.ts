@@ -728,6 +728,99 @@ describe('AndesPagination', () => {
     });
   });
 
+  describe('focus management', () => {
+    // A keyboard user whose control disables itself or leaves the DOM would
+    // otherwise be dropped to <body> and have to tab back in from the top.
+    function activate(fixture: { detectChanges(): void }, button: HTMLElement) {
+      button.focus();
+      button.click();
+      fixture.detectChanges();
+    }
+
+    it('moves focus to the current page when Next becomes disabled', () => {
+      const { fixture, next, pageButton } = createHost((h) => h.current.set(9));
+      activate(fixture, next());
+      expect(next().disabled).toBe(true);
+      expect(document.activeElement).toBe(pageButton(10));
+      expect(pageButton(10)?.getAttribute('aria-current')).toBe('page');
+    });
+
+    it('moves focus to the current page when Previous becomes disabled', () => {
+      const { fixture, prev, pageButton } = createHost((h) => h.current.set(2));
+      activate(fixture, prev());
+      expect(prev().disabled).toBe(true);
+      expect(document.activeElement).toBe(pageButton(1));
+    });
+
+    it('moves focus to the current page when the activated jumper disappears', () => {
+      const { fixture, jumpers, pageButton } = createHost((h) => {
+        h.totalPages.set(20);
+        h.current.set(6);
+      });
+      // From page 6, jumping back 5 lands on page 1, where there is no start ellipsis.
+      const jumpPrev = jumpers()[0];
+      activate(fixture, jumpPrev);
+      expect(jumpPrev.isConnected).toBe(false);
+      expect(document.activeElement).toBe(pageButton(1));
+    });
+
+    it('keeps focus on an activated page button while the window shifts around it', () => {
+      const { fixture, pageButton, pageLabels } = createHost((h) => {
+        h.totalPages.set(20);
+        h.current.set(4);
+      });
+      // The page that becomes current is always rendered under the same
+      // `@for` key, so its button survives the shift (pages 2-3 drop out).
+      const target = required(pageButton(5));
+      activate(fixture, target);
+      expect(pageLabels()).not.toContain('2');
+      expect(target.isConnected).toBe(true);
+      expect(document.activeElement).toBe(target);
+    });
+
+    it('moves focus to the current page when the activated jump-next disappears', () => {
+      const { fixture, jumpers, pageButton } = createHost((h) => {
+        h.totalPages.set(20);
+        h.current.set(12);
+      });
+      // 12 + 5 = 17, which renders 16-20 directly with no end ellipsis.
+      const jumpNext = jumpers()[1];
+      activate(fixture, jumpNext);
+      expect(jumpNext.isConnected).toBe(false);
+      expect(document.activeElement).toBe(pageButton(17));
+    });
+
+    it('keeps focus on the activated control when it is still usable', () => {
+      const { fixture, next } = createHost((h) => h.current.set(3));
+      activate(fixture, next());
+      expect(document.activeElement).toBe(next());
+    });
+
+    it('moves focus to the simple-mode input when an arrow becomes disabled', () => {
+      const { fixture, q, prev } = createHost((h) => {
+        h.simple.set(true);
+        h.current.set(2);
+      });
+      activate(fixture, prev());
+      expect(document.activeElement).toBe(
+        q<HTMLInputElement>('.andes-pagination__simple-input'),
+      );
+    });
+
+    it('does not take focus when the page changes from outside', () => {
+      const outside = document.createElement('button');
+      document.body.append(outside);
+      try {
+        const { update } = createHost((h) => h.current.set(9));
+        outside.focus();
+        update((h) => h.current.set(10));
+        expect(document.activeElement).toBe(outside);
+      } finally {
+        outside.remove();
+      }
+    });
+  });
+
   describe('labels', () => {
     it('lets every label be replaced', () => {
       const fixture = TestBed.createComponent(AndesPagination);
