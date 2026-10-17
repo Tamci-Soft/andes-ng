@@ -1,9 +1,8 @@
 /* Shared by every Breadcrumb part - each one attaches to a different native element (nav, ol,
    li, a, span) via an attribute selector, so there's no single root to hang one stylesheet off
-   of. `packages/tokens/src/theme.css` has no font-size scale yet (only --andes-font-family and
-   --andes-font-weight-medium - see docs/research/components/breadcrumb.md #6), so sizes below
-   are hardcoded rem values consistent with AndesButton's own xs size (button.css) rather than a
-   token that doesn't exist.
+   of. Text follows the shared body-text scale (14px / 22px, Ant Design's Breadcrumb) through the
+   `--andes-text-*` tokens, each written with its literal fallback so the component renders the
+   same before those tokens ship.
 
    Plain class selectors, not `:host(...)`: most of these classes live on `@Directive` hosts
    (`AndesBreadcrumbList`/`Item`/`Link`/`Page`/`Separator`) applied to elements the CONSUMER
@@ -27,7 +26,8 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.875rem;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-muted-foreground);
 }
 
@@ -40,7 +40,8 @@
 .andes-breadcrumb-link {
   color: inherit;
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-breadcrumb-link:hover {
@@ -70,12 +71,15 @@
   height: 0.875rem;
 }
 
+/* One text line tall (22px), so a collapsed trail is exactly as tall as an uncollapsed one, and
+   the dots - drawn on the middle of their viewBox - sit on the line's centre, level with the
+   separator chevrons. */
 .andes-breadcrumb-ellipsis {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 1.5rem;
-  height: 1.5rem;
+  height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-muted-foreground);
 }
 
@@ -84,7 +88,7 @@
   height: 1rem;
 }
 
-/* The interactive (dropdown) mode of AndesBreadcrumbEllipsis. The host keeps its own 1.5rem box
+/* The interactive (dropdown) mode of AndesBreadcrumbEllipsis. The host keeps its own box
    from `.andes-breadcrumb-ellipsis` above; the trigger just fills it and resets the browser's
    default button chrome so the "..." looks identical to the static glyph until hovered/focused. */
 .andes-breadcrumb-ellipsis__trigger {
@@ -100,7 +104,8 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-breadcrumb-ellipsis__trigger:hover {
@@ -116,6 +121,16 @@
    trigger lays out exactly as if it were a direct child of its `<li>`/ellipsis host. */
 .andes-breadcrumb-dropdown {
   display: contents;
+}
+
+/* The `<andes-dropdown-menu>` host inside that wrapper is a block by default, which wraps the
+   inline-flex trigger in a line box: the trigger then sits on that line's baseline at the top of
+   a taller box, and the ellipsis dots ended up 1.5px above the crumbs' centre. As a flex
+   container it hugs the trigger, so the host's own `align-items: center` really centres it. */
+.andes-breadcrumb-dropdown > andes-dropdown-menu {
+  display: inline-flex;
+  align-self: stretch;
+  align-items: center;
 }
 
 /* The inner `<a>`/`<span>` of a dropdown entry. Fills its `role="menuitem"` parent so the whole
@@ -149,7 +164,8 @@
   font-size: inherit;
   line-height: inherit;
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-breadcrumb-menu-trigger:hover {
