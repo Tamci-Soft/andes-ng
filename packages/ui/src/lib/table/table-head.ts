@@ -41,6 +41,8 @@ export type AndesTableHeadScope = 'col' | 'row' | 'colgroup' | 'rowgroup';
  * which sits at the cell's inline end.
  */
 @Component({
+  // A component on the native <th> (not a wrapper element) so the table keeps its
+  // real cell semantics; the template only arranges the cell's own content.
   selector: 'th[andesTableHead]',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div class="andes-table__head-content">

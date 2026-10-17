@@ -5,6 +5,8 @@ export { AndesTable } from './lib/table/table';
 export type {
   AndesTableAlign,
   AndesTableCaptionSide,
+  AndesTableChange,
+  AndesTableChangeAction,
   AndesTableDensity,
   AndesTableLayout,
   AndesTableSelectAllState,
@@ -35,8 +37,13 @@ export {
 } from './lib/table/table-expand';
 export { AndesTableFilter } from './lib/table/table-filter';
 export type {
+  AndesTableFilterClearOptions,
+  AndesTableFilterConfirmOptions,
+  AndesTableFilterIconContext,
+  AndesTableFilterMode,
   AndesTableFilterOption,
   AndesTableFilterPanelContext,
+  AndesTableFilterSearchFn,
 } from './lib/table/table-filter';
 export { AndesTableFooter } from './lib/table/table-footer';
 export { AndesTableHead } from './lib/table/table-head';

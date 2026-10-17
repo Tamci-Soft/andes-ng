@@ -1,5 +1,7 @@
 import { InjectionToken, type Signal } from '@angular/core';
 
+import type { AndesFilterPredicate } from './table-data';
+
 /** Identifies a row for selection and expansion. */
 export type AndesTableRowKey = string | number;
 
@@ -18,6 +20,20 @@ export interface AndesTableSelectable {
 
 export const ANDES_TABLE_SELECTABLE = new InjectionToken<AndesTableSelectable>(
   'ANDES_TABLE_SELECTABLE',
+);
+
+/**
+ * What `AndesTable` reads from each `andes-table-filter` to filter rows itself
+ * (`AndesTable.filterRows`): the column it filters and its row predicate.
+ * A token for the same no-circular-import reason as `ANDES_TABLE_SELECTABLE`.
+ */
+export interface AndesTableFilterable {
+  readonly column: Signal<string>;
+  readonly predicate: Signal<AndesFilterPredicate<never> | undefined>;
+}
+
+export const ANDES_TABLE_FILTERABLE = new InjectionToken<AndesTableFilterable>(
+  'ANDES_TABLE_FILTERABLE',
 );
 
 /**

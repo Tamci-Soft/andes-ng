@@ -801,6 +801,13 @@ describe('AndesTable column filters', () => {
     expect(panel()).toBeNull();
     expect(host.filters()).toEqual({ status: ['paid'] });
 
+    // A pointer press on the panel's padding or a label must land focus on the
+    // panel itself, not on the sortable <th> around it (its nearest focusable
+    // ancestor otherwise), which would read as focus leaving the filter.
+    act(trigger());
+    expect(panel()?.getAttribute('tabindex')).toBe('-1');
+    act(trigger());
+
     // Focus moving between controls inside the panel keeps it open.
     act(trigger());
     options()[0].dispatchEvent(
