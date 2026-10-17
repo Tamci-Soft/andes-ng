@@ -59,12 +59,19 @@ const NOTE_STYLE =
       >
         Info
       </button>
+      <button type="button" (click)="showWithDescription()">
+        With description
+      </button>
+      <button type="button" (click)="toastService.loading('Loading data')">
+        Loading
+      </button>
+      <button type="button" (click)="showPromise()">Promise</button>
       <button type="button" (click)="showWithAction()">With action</button>
       <button type="button" (click)="showPersistent()">
         Persistent (no auto-dismiss)
       </button>
       <button type="button" (click)="fireMany()">
-        Fire 8 toasts (max 3 visible)
+        Fire 8 toasts (max 3 open, rest queued)
       </button>
       <button type="button" (click)="toastService.dismissAll()">
         Dismiss all
@@ -80,6 +87,26 @@ class ToastStoryHost {
   protected readonly noteStyle = NOTE_STYLE;
 
   readonly position = input<AndesToastPosition>('bottom-right');
+
+  protected showWithDescription(): void {
+    this.toastService.show({
+      title: 'Event has been created',
+      message: 'Sunday, December 03, 2023 at 9:00 AM',
+    });
+  }
+
+  protected showPromise(): void {
+    this.toastService.promise(
+      new Promise<{ name: string }>((resolve) =>
+        setTimeout(() => resolve({ name: 'Andes' }), 2000),
+      ),
+      {
+        loading: 'Loading...',
+        success: (data) => `${data.name} toast has been added`,
+        error: 'Error',
+      },
+    );
+  }
 
   protected showWithAction(): void {
     this.toastService.show({
@@ -123,6 +150,7 @@ class ToastStoryHost {
       <button type="button" (click)="loadThenSucceed()">
         Loading, then success (key update)
       </button>
+      <button type="button" (click)="promiseMessage()">Promise</button>
       <button type="button" (click)="messages.destroy()">Destroy all</button>
     </div>
     <p [style]="noteStyle">{{ status() }}</p>
@@ -134,6 +162,14 @@ class MessageStoryHost {
   protected readonly barStyle = BAR_STYLE;
   protected readonly noteStyle = NOTE_STYLE;
   protected readonly status = signal('');
+
+  protected promiseMessage(): void {
+    this.messages.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
+      loading: 'Publishing...',
+      success: 'Published',
+      error: 'Failed',
+    });
+  }
 
   protected loadThenSucceed(): void {
     this.messages.loading('Uploading report.pdf...', {
@@ -312,7 +348,7 @@ class NotificationStoryHost {
       <button type="button" (click)="toasts.destroy()">Destroy all</button>
     </div>
     <p [style]="noteStyle">
-      More than 3 open notifications collapse into a stack; hover or Tab into it
+      More than 3 open notifications collapse into a deck; hover or Tab into it
       to expand.
     </p>
     <andes-toast-viewport />
@@ -332,6 +368,38 @@ class StackStoryHost {
         duration: false,
       });
     }
+  }
+}
+
+/**
+ * Opens a fixed set of persistent toasts on load - a still frame of the deck (collapsed until
+ * hovered) for visual review, in whichever theme/placement the story picks.
+ */
+@Component({
+  selector: 'andes-toast-gallery-story',
+  imports: [AndesToastViewport],
+  template: `
+    <p [style]="noteStyle">
+      Hover the deck to expand it; drag a toast sideways to swipe it away.
+    </p>
+    <andes-toast-viewport [position]="position()" />
+  `,
+})
+class ToastGalleryStoryHost {
+  private readonly toasts = inject(AndesToastService);
+  protected readonly noteStyle = NOTE_STYLE;
+  readonly position = input<AndesToastPosition>('bottom-right');
+
+  constructor() {
+    this.toasts.destroy();
+    this.toasts.success('Event has been created', { duration: false });
+    this.toasts.error('Event has not been created', { duration: false });
+    this.toasts.show({
+      title: 'Event has been created',
+      message: 'Sunday, December 03, 2023 at 9:00 AM',
+      action: { label: 'Undo', onClick: () => undefined },
+      duration: false,
+    });
   }
 }
 
@@ -395,7 +463,10 @@ export const Notifications: Story = {
   }),
 };
 
-/** `stack: true` via `provideAndesToastConfig()` - the app-wide config entry point. */
+/**
+ * `stack: true` (Ant's threshold of 3) via `provideAndesToastConfig()` - the app-wide config
+ * entry point. Notifications already stack by default from the second toast on.
+ */
 export const Stacked: Story = {
   decorators: [
     applicationConfig({
@@ -408,4 +479,22 @@ export const Stacked: Story = {
     moduleMetadata: { imports: [StackStoryHost] },
     template: `<andes-stack-story />`,
   }),
+};
+
+/** A still deck of three persistent toasts - collapsed until hovered or focused. */
+export const Deck: Story = {
+  render: (args) => ({
+    props: args,
+    moduleMetadata: { imports: [ToastGalleryStoryHost] },
+    template: `<andes-toast-gallery-story [position]="position" />`,
+  }),
+};
+
+/** `richColors: true` - the whole card takes a soft tint of its status color. */
+export const RichColors: Story = {
+  decorators: [
+    applicationConfig({
+      providers: [provideAndesToastConfig({ richColors: true })],
+    }),
+  ],
 };

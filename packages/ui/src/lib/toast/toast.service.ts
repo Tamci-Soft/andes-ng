@@ -5,7 +5,11 @@ import {
   ANDES_TOAST_CONFIG,
 } from './toast.config';
 import { AndesToastQueue } from './toast-queue';
-import type { AndesToastConfig, AndesToastRef } from './toast.types';
+import type {
+  AndesToastConfig,
+  AndesToastPromiseMessages,
+  AndesToastRef,
+} from './toast.types';
 
 type AndesToastShortcutConfig = Omit<AndesToastConfig, 'message' | 'severity'>;
 
@@ -83,6 +87,47 @@ export class AndesToastService extends AndesToastQueue<AndesToastConfig> {
     config: AndesToastShortcutConfig = {},
   ): AndesToastRef {
     return this.show({ ...config, message, severity: 'loading' });
+  }
+
+  /**
+   * Shows a `loading` toast that flips to `success`/`error` in place once `promise` settles.
+   * `config` applies to all three phases; the loading phase is always persistent, and the
+   * settled one gets `config.duration` (or the default). Closing the toast early just stops
+   * it from being updated - the promise itself is untouched.
+   *
+   * ```ts
+   * this.toasts.promise(save(), {
+   *   loading: 'Saving...',
+   *   success: (doc) => `${doc.name} saved.`,
+   *   error: 'Could not save.',
+   * });
+   * ```
+   */
+  promise<T>(
+    promise: Promise<T> | (() => Promise<T>),
+    messages: AndesToastPromiseMessages<T>,
+    config: AndesToastShortcutConfig = {},
+  ): AndesToastRef {
+    const ref = this.loading(messages.loading, { ...config, duration: false });
+    const settle = (severity: 'success' | 'error', message: string) =>
+      ref.update({ severity, message, duration: config.duration });
+    (typeof promise === 'function' ? promise() : promise).then(
+      (value) =>
+        settle(
+          'success',
+          typeof messages.success === 'function'
+            ? messages.success(value)
+            : messages.success,
+        ),
+      (error: unknown) =>
+        settle(
+          'error',
+          typeof messages.error === 'function'
+            ? messages.error(error)
+            : messages.error,
+        ),
+    );
+    return ref;
   }
 
   protected toToastConfig(config: AndesToastConfig): AndesToastConfig {

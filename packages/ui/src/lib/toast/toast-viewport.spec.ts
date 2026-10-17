@@ -446,7 +446,29 @@ describe('AndesToastViewport', () => {
         'bottom-right',
       ]);
       expect(rendered[0].querySelectorAll('andes-toast-item')).toHaveLength(2);
-      expect(rendered[0].hasAttribute('data-stack-enabled')).toBe(false);
+      // Notifications stack by default (Sonner-style deck from the second toast on).
+      expect(rendered[0].hasAttribute('data-stack-enabled')).toBe(true);
+      expect(rendered[0].hasAttribute('data-stacked')).toBe(true);
+    });
+
+    it('keeps a used region mounted (empty) after its last toast closes, so that toast can animate out', () => {
+      const { fixture, toasts, messages } = createTemplateHost();
+
+      toasts.info('only one');
+      messages.info('msg');
+      fixture.detectChanges();
+      toasts.destroy();
+      messages.destroy();
+      fixture.detectChanges();
+
+      const rendered = regions(fixture.nativeElement);
+      expect(rendered.map((r) => r.getAttribute('data-flavor'))).toEqual([
+        'notification',
+        'message',
+      ]);
+      expect(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      ).toHaveLength(0);
     });
 
     it('falls back to the global placement when the viewport has no position input', () => {
@@ -459,7 +481,7 @@ describe('AndesToastViewport', () => {
 
       const [region] = regions(fixture.nativeElement);
       expect(region.getAttribute('data-placement')).toBe('top-right');
-      expect(region.style.paddingTop).toBe('64px');
+      expect(region.style.top).toBe('64px');
       expect(
         fixture.nativeElement
           .querySelector('andes-toast-viewport')
@@ -544,6 +566,253 @@ describe('AndesToastViewport', () => {
       region.dispatchEvent(new FocusEvent('focusin'));
       fixture.detectChanges();
       expect(region.hasAttribute('data-stacked')).toBe(false);
+    });
+
+    it('lays out slots from the anchoring edge: newest first with stacking, oldest first without', () => {
+      const { fixture, toasts } = createTemplateHost();
+
+      toasts.info('1');
+      toasts.info('2');
+      toasts.info('3');
+      fixture.detectChanges();
+      let indexes = Array.from(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      ).map((i) => (i as HTMLElement).style.getPropertyValue('--_toast-index'));
+      expect(indexes).toEqual(['2', '1', '0']);
+      expect(
+        Array.from(
+          fixture.nativeElement.querySelectorAll('andes-toast-item'),
+        ).map((i) => (i as HTMLElement).hasAttribute('data-front')),
+      ).toEqual([false, false, true]);
+
+      toasts.config({ stack: false });
+      fixture.detectChanges();
+      indexes = Array.from(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      ).map((i) => (i as HTMLElement).style.getPropertyValue('--_toast-index'));
+      expect(indexes).toEqual(['0', '1', '2']);
+    });
+
+    it('hovering a stacked deck holds every toast in it, and leaving resumes them all', () => {
+      vi.useFakeTimers();
+      const { fixture, toasts } = createTemplateHost();
+
+      toasts.info('a', { duration: 1000 });
+      toasts.info('b', { duration: 1000 });
+      toasts.info('no hover pause', { duration: 1000, pauseOnHover: false });
+      fixture.detectChanges();
+      const [region] = regions(fixture.nativeElement);
+
+      region.dispatchEvent(new MouseEvent('mouseenter'));
+      fixture.detectChanges();
+      vi.advanceTimersByTime(5000);
+      expect(toasts.toasts().map((t) => t.message)).toEqual(['a', 'b']);
+
+      // A toast that arrives while the deck is hovered is held too.
+      toasts.info('late', { duration: 1000 });
+      fixture.detectChanges();
+      vi.advanceTimersByTime(5000);
+      expect(toasts.toasts()).toHaveLength(3);
+
+      region.dispatchEvent(new MouseEvent('mouseleave'));
+      fixture.detectChanges();
+      vi.advanceTimersByTime(1000);
+      expect(toasts.toasts()).toHaveLength(0);
+    });
+
+    it('without stacking, hovering one toast pauses only that toast', () => {
+      vi.useFakeTimers();
+      const { fixture, toasts } = createTemplateHost();
+      toasts.config({ stack: false });
+
+      toasts.info('hovered', { duration: 1000 });
+      toasts.info('other', { duration: 1000 });
+      fixture.detectChanges();
+      const [first] = Array.from<HTMLElement>(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      );
+      first.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      fixture.detectChanges();
+
+      vi.advanceTimersByTime(1000);
+      expect(toasts.toasts().map((t) => t.message)).toEqual(['hovered']);
+    });
+
+    it('turns measured heights into slot offsets and pins cards behind the front to its height', async () => {
+      // jsdom has no layout: give each toast body a height its item can report.
+      const offsetHeight = vi
+        .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+        .mockImplementation(function (this: HTMLElement) {
+          return this.classList.contains('andes-toast__body') ? 40 : 0;
+        });
+      try {
+        const { fixture, toasts } = createTemplateHost();
+        toasts.info('older');
+        toasts.info('newer');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const [region] = regions(fixture.nativeElement);
+        const [older, newer] = Array.from(
+          region.querySelectorAll<HTMLElement>('andes-toast-item'),
+        );
+        const height = parseFloat(
+          newer.style.getPropertyValue('--_toast-height'),
+        );
+        expect(height).toBeGreaterThanOrEqual(40);
+        expect(newer.style.getPropertyValue('--_toast-offset')).toBe('0px');
+        expect(older.style.getPropertyValue('--_toast-offset')).toBe(
+          `${height + 14}px`,
+        );
+        expect(region.style.getPropertyValue('--_toast-front-height')).toBe(
+          `${height}px`,
+        );
+      } finally {
+        offsetHeight.mockRestore();
+      }
+    });
+
+    it('rich colors are off by default and can be turned on per toast or globally', () => {
+      const { fixture, toasts } = createTemplateHost();
+
+      toasts.success('plain');
+      toasts.success('rich', { richColors: true });
+      fixture.detectChanges();
+      let rendered = Array.from<HTMLElement>(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      );
+      expect(rendered.map((i) => i.hasAttribute('data-rich-colors'))).toEqual([
+        false,
+        true,
+      ]);
+
+      toasts.config({ richColors: true });
+      toasts.error('global');
+      fixture.detectChanges();
+      rendered = Array.from<HTMLElement>(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      );
+      expect(rendered[2].hasAttribute('data-rich-colors')).toBe(true);
+    });
+
+    describe('swipe to dismiss', () => {
+      function pointer(
+        el: HTMLElement,
+        type: string,
+        clientX: number,
+        clientY = 0,
+      ): void {
+        const event = new MouseEvent(type, {
+          bubbles: true,
+          clientX,
+          clientY,
+          button: 0,
+        });
+        Object.defineProperty(event, 'pointerId', { value: 1 });
+        el.dispatchEvent(event);
+      }
+
+      function setup(placement: AndesToastPosition = 'bottom-right') {
+        const { fixture, toasts } = createTemplateHost();
+        const ref = toasts.info('Swipe me', { placement });
+        fixture.detectChanges();
+        const item = fixture.nativeElement.querySelector(
+          'andes-toast-item',
+        ) as HTMLElement;
+        return { fixture, toasts, ref, item };
+      }
+
+      it('a drag past the threshold toward the placement edge closes with reason swipe', async () => {
+        const { item, ref } = setup('bottom-right');
+
+        pointer(item, 'pointerdown', 100);
+        pointer(item, 'pointermove', 130);
+        expect(item.hasAttribute('data-swiping')).toBe(true);
+        expect(item.style.getPropertyValue('--_toast-swipe-x')).toBe('30px');
+        pointer(item, 'pointermove', 160);
+        pointer(item, 'pointerup', 160);
+
+        expect(item.getAttribute('data-swipe-out')).toBe('right');
+        await expect(ref.afterClosed).resolves.toBe('swipe');
+      });
+
+      it('a short, slow drag snaps back; a drag away from the edge is dampened and never dismisses', () => {
+        vi.useFakeTimers();
+        const { item, toasts } = setup('bottom-right');
+
+        pointer(item, 'pointerdown', 100);
+        pointer(item, 'pointermove', 110);
+        vi.advanceTimersByTime(500);
+        pointer(item, 'pointerup', 110);
+        expect(toasts.toasts()).toHaveLength(1);
+        expect(item.hasAttribute('data-swiping')).toBe(false);
+        expect(item.style.getPropertyValue('--_toast-swipe-x')).toBe('');
+
+        pointer(item, 'pointerdown', 100);
+        pointer(item, 'pointermove', 0);
+        const dampened = parseFloat(
+          item.style.getPropertyValue('--_toast-swipe-x'),
+        );
+        expect(dampened).toBeLessThan(0);
+        expect(dampened).toBeGreaterThan(-45);
+        pointer(item, 'pointerup', 0);
+        expect(toasts.toasts()).toHaveLength(1);
+      });
+
+      it('does not start from a button, and is off for non-dismissible toasts and messages', () => {
+        const { fixture, item, toasts } = setup();
+
+        const close = item.querySelector('.andes-toast__close') as HTMLElement;
+        pointer(close, 'pointerdown', 100);
+        pointer(close, 'pointermove', 200);
+        pointer(close, 'pointerup', 200);
+        expect(item.hasAttribute('data-swiping')).toBe(false);
+        expect(toasts.toasts()).toHaveLength(1);
+
+        toasts.destroy();
+        toasts.info('sticky', { dismissible: false });
+        fixture.detectChanges();
+        const sticky = fixture.nativeElement.querySelector(
+          'andes-toast-item',
+        ) as HTMLElement;
+        expect(sticky.hasAttribute('data-swipeable')).toBe(false);
+        pointer(sticky, 'pointerdown', 100);
+        pointer(sticky, 'pointermove', 200);
+        pointer(sticky, 'pointerup', 200);
+        expect(toasts.toasts()).toHaveLength(1);
+
+        const messages = TestBed.inject(AndesMessageService);
+        messages.info('m', { dismissible: true });
+        fixture.detectChanges();
+        const message = fixture.nativeElement.querySelector(
+          'andes-toast-item[data-flavor="message"]',
+        ) as HTMLElement;
+        expect(message.hasAttribute('data-swipeable')).toBe(false);
+      });
+
+      it('a drag does not also count as a body click', () => {
+        vi.useFakeTimers();
+        const { fixture, toasts } = createTemplateHost();
+        const onClick = vi.fn();
+        toasts.info('clickable', { onClick });
+        fixture.detectChanges();
+        const item = fixture.nativeElement.querySelector(
+          'andes-toast-item',
+        ) as HTMLElement;
+
+        pointer(item, 'pointerdown', 100);
+        pointer(item, 'pointermove', 110);
+        // Released slowly, so it snaps back instead of counting as a flick.
+        vi.advanceTimersByTime(500);
+        pointer(item, 'pointerup', 110);
+        expect(toasts.toasts()).toHaveLength(1);
+        item.querySelector<HTMLElement>('.andes-toast__message')?.click();
+        expect(onClick).not.toHaveBeenCalled();
+
+        item.querySelector<HTMLElement>('.andes-toast__message')?.click();
+        expect(onClick).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('applies className to the toast root', () => {

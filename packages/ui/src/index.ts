@@ -20,6 +20,7 @@ export type {
   AndesToastGlobalConfig,
   AndesToastOverflow,
   AndesToastPosition,
+  AndesToastPromiseMessages,
   AndesToastRef,
   AndesToastRole,
   AndesToastSeverity,

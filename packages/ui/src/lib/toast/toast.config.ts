@@ -19,8 +19,10 @@ export const ANDES_TOAST_BUILTIN_DEFAULTS: AndesToastGlobalConfig = {
   overflow: 'queue',
   pauseOnHover: true,
   showProgress: false,
+  richColors: false,
+  swipeToDismiss: true,
   dismissible: true,
-  stack: false,
+  stack: { threshold: 1 },
 };
 
 /** Built-in message defaults, before any `provideAndesMessageConfig()` override. */
@@ -31,6 +33,8 @@ export const ANDES_MESSAGE_BUILTIN_DEFAULTS: AndesToastGlobalConfig = {
   overflow: 'queue',
   pauseOnHover: true,
   showProgress: false,
+  richColors: false,
+  swipeToDismiss: false,
   dismissible: false,
   stack: false,
 };

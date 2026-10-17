@@ -256,6 +256,76 @@ describe('AndesToastService', () => {
       expect(service.toasts()[0].id).toBe(ref.id);
     });
 
+    it('defaults to a Sonner-style deck: stacking from the second toast, swipe on, rich colors off', () => {
+      const service = createService();
+
+      expect(service.defaults().stack).toEqual({ threshold: 1 });
+      service.show({ message: 'x' });
+      expect(service.toasts()[0]).toEqual(
+        expect.objectContaining({ swipeToDismiss: true, richColors: false }),
+      );
+    });
+
+    it('promise() shows a persistent loading toast, then flips it to success in place', async () => {
+      const service = createService();
+      let resolve!: (value: { name: string }) => void;
+      const pending = new Promise<{ name: string }>((r) => (resolve = r));
+
+      const ref = service.promise(
+        pending,
+        {
+          loading: 'Saving...',
+          success: (doc) => `${doc.name} saved`,
+          error: 'Failed',
+        },
+        { title: 'Document', duration: 3000 },
+      );
+      expect(service.toasts()[0]).toEqual(
+        expect.objectContaining({
+          id: ref.id,
+          severity: 'loading',
+          message: 'Saving...',
+          title: 'Document',
+          duration: false,
+        }),
+      );
+
+      resolve({ name: 'Report' });
+      await pending;
+      await Promise.resolve();
+
+      expect(service.toasts()).toHaveLength(1);
+      expect(service.toasts()[0]).toEqual(
+        expect.objectContaining({
+          id: ref.id,
+          severity: 'success',
+          message: 'Report saved',
+          title: 'Document',
+          duration: 3000,
+        }),
+      );
+    });
+
+    it('promise() flips to error on rejection, accepts a factory, and falls back to the default duration', async () => {
+      const service = createService();
+      const failure = new Error('boom');
+
+      service.promise(() => Promise.reject(failure), {
+        loading: 'Saving...',
+        success: 'Saved',
+        error: (error) => `Failed: ${(error as Error).message}`,
+      });
+      await new Promise((r) => setTimeout(r));
+
+      expect(service.toasts()[0]).toEqual(
+        expect.objectContaining({
+          severity: 'error',
+          message: 'Failed: boom',
+          duration: 5000,
+        }),
+      );
+    });
+
     it('open() is an alias of show()', () => {
       const service = createService();
 
