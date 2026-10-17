@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { Component, signal, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -6,6 +10,8 @@ import {
   AndesTextarea,
   AndesTextareaAutoSize,
   AndesTextareaCountInfo,
+  AndesTextareaCountStrategy,
+  AndesTextareaExceedFormatter,
   AndesTextareaResize,
   AndesTextareaSize,
   AndesTextareaStatus,
@@ -111,6 +117,21 @@ describe('AndesTextarea', () => {
 
     expect(wrapper.classList).toContain(`andes-textarea-wrapper--${size}`);
   });
+
+  it.each([
+    ['sm', 'var(--andes-control-font-size-sm, 0.875rem)'],
+    ['md', 'var(--andes-control-font-size-md, 0.875rem)'],
+    ['lg', 'var(--andes-control-font-size-lg, 1rem)'],
+  ] as const)(
+    'reads the %s text size from the control scale: %s',
+    (size, fontSize) => {
+      const { fixture, wrapper } = createHost();
+      fixture.componentInstance.size.set(size);
+      fixture.detectChanges();
+
+      expect(getComputedStyle(wrapper).fontSize).toBe(fontSize);
+    },
+  );
 
   it.each(['none', 'horizontal', 'both'] as const)(
     'supports the %s resize mode',
@@ -299,6 +320,45 @@ describe('AndesTextarea', () => {
     },
   );
 
+  describe('focus indicator', () => {
+    // One indicator on the wrapper - focus-colour border plus a soft 2px ring, on any focus -
+    // instead of a 2px outline offset from the border, which painted as a second frame.
+    // jsdom resolves `:focus-within` in getComputedStyle but leaves var() unresolved.
+    it('rings the wrapper on focus, with no outline on it or on the native textarea', () => {
+      const { textarea, wrapper } = createHost();
+
+      expect(wrapper.matches(':focus-within')).toBe(false);
+      textarea.focus();
+
+      expect(getComputedStyle(wrapper).boxShadow).toBe(
+        '0 0 0 2px var(--_andes-textarea-ring)',
+      );
+      expect(getComputedStyle(wrapper).outline).toBe('none');
+      expect(getComputedStyle(textarea).outline).toBe('0');
+      expect(getComputedStyle(textarea).boxShadow).toBe('none');
+    });
+
+    it('tints the ring with the status colour', () => {
+      const { fixture, textarea, wrapper } = createHost();
+      fixture.componentInstance.status.set('warning');
+      fixture.detectChanges();
+      textarea.focus();
+
+      expect(
+        getComputedStyle(wrapper).getPropertyValue('--_andes-textarea-ring'),
+      ).toContain('var(--andes-color-warning-hover) 20%');
+    });
+
+    it('drops the ring on the underlined variant, whose bottom edge marks focus', () => {
+      const { fixture, textarea, wrapper } = createHost();
+      fixture.componentInstance.variant.set('underlined');
+      fixture.detectChanges();
+      textarea.focus();
+
+      expect(getComputedStyle(wrapper).boxShadow).toBe('none');
+    });
+  });
+
   describe('status', () => {
     it('marks the wrapper invalid and sets aria-invalid for status="error"', () => {
       const { fixture, textarea, wrapper } = createHost();
@@ -472,21 +532,222 @@ describe('AndesTextarea', () => {
     });
   });
 
+  describe('count config', () => {
+    const graphemes = (value: string) =>
+      [...new Intl.Segmenter().segment(value)].length;
+
+    @Component({
+      imports: [AndesTextarea],
+      template: `<andes-textarea
+          showCount
+          aria-label="Message"
+          [maxLength]="maxLength()"
+          [countMax]="countMax()"
+          [countStrategy]="strategy()"
+          [countExceedFormatter]="exceedFormatter()"
+          [countTemplate]="useTemplate() ? countTpl : undefined"
+          [(value)]="text"
+        />
+        <ng-template #countTpl let-info
+          ><b class="custom-count"
+            >{{ info.count }} of {{ info.maxLength }}</b
+          ></ng-template
+        >`,
+    })
+    class CountConfigHost {
+      readonly text = signal('hello');
+      readonly maxLength = signal<number | undefined>(undefined);
+      readonly countMax = signal<number | undefined>(undefined);
+      readonly strategy = signal<AndesTextareaCountStrategy | undefined>(
+        undefined,
+      );
+      readonly exceedFormatter = signal<
+        AndesTextareaExceedFormatter | undefined
+      >(undefined);
+      readonly useTemplate = signal(false);
+    }
+
+    function createCountConfigHost() {
+      const fixture = TestBed.createComponent(CountConfigHost);
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      return {
+        fixture,
+        textarea: el.querySelector('textarea') as HTMLTextAreaElement,
+        wrapper: el.querySelector('.andes-textarea-wrapper') as HTMLElement,
+        count: () => el.querySelector('.andes-textarea__count') as HTMLElement,
+      };
+    }
+
+    function type(
+      fixture: { detectChanges(): void },
+      textarea: HTMLTextAreaElement,
+      value: string,
+    ) {
+      textarea.value = value;
+      textarea.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    }
+
+    it('treats countMax as a soft limit: shown and flagged, but typing is not blocked', () => {
+      const { fixture, textarea, wrapper, count } = createCountConfigHost();
+      fixture.componentInstance.countMax.set(8);
+      fixture.detectChanges();
+
+      expect(textarea.hasAttribute('maxlength')).toBe(false);
+      expect(count().textContent).toBe('5/8');
+
+      type(fixture, textarea, 'hello world');
+
+      expect(fixture.componentInstance.text()).toBe('hello world');
+      expect(count().textContent).toBe('11/8');
+      expect(count().classList).toContain('andes-textarea__count--exceeded');
+      expect(wrapper.classList).toContain('andes-textarea-wrapper--invalid');
+      expect(textarea.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('prefers countMax over maxLength as the counter limit', () => {
+      const { fixture, textarea, count } = createCountConfigHost();
+      fixture.componentInstance.maxLength.set(100);
+      fixture.componentInstance.countMax.set(20);
+      fixture.detectChanges();
+
+      expect(count().textContent).toBe('5/20');
+      expect(textarea.getAttribute('maxlength')).toBe('100');
+    });
+
+    it('measures the value with countStrategy', () => {
+      const { fixture, textarea, count } = createCountConfigHost();
+      fixture.componentInstance.strategy.set(graphemes);
+      fixture.componentInstance.countMax.set(3);
+      fixture.detectChanges();
+
+      type(fixture, textarea, '👨‍👩‍👧👍🏽a');
+
+      expect(count().textContent).toBe('3/3');
+      expect(count().classList).not.toContain(
+        'andes-textarea__count--exceeded',
+      );
+    });
+
+    it('trims typed input past the limit with countExceedFormatter', () => {
+      const { fixture, textarea, count } = createCountConfigHost();
+      const formatter = vi.fn((value: string, { max }: { max: number }) =>
+        [...new Intl.Segmenter().segment(value)]
+          .slice(0, max)
+          .map((s) => s.segment)
+          .join(''),
+      );
+      fixture.componentInstance.strategy.set(graphemes);
+      fixture.componentInstance.countMax.set(3);
+      fixture.componentInstance.exceedFormatter.set(formatter);
+      fixture.componentInstance.text.set('');
+      fixture.detectChanges();
+
+      type(fixture, textarea, 'ab');
+      expect(formatter).not.toHaveBeenCalled();
+
+      type(fixture, textarea, 'ab👍🏽cd');
+
+      expect(formatter).toHaveBeenCalledWith('ab👍🏽cd', { max: 3 });
+      expect(textarea.value).toBe('ab👍🏽');
+      expect(fixture.componentInstance.text()).toBe('ab👍🏽');
+      expect(count().textContent).toBe('3/3');
+    });
+
+    it('repaints the trimmed value even when it equals the previous one', () => {
+      const { fixture, textarea } = createCountConfigHost();
+      fixture.componentInstance.countMax.set(5);
+      fixture.componentInstance.exceedFormatter.set((value, { max }) =>
+        value.slice(0, max),
+      );
+      fixture.detectChanges();
+
+      type(fixture, textarea, 'hellox');
+
+      expect(textarea.value).toBe('hello');
+      expect(fixture.componentInstance.text()).toBe('hello');
+    });
+
+    it('falls back to maxLength as the exceed formatter limit', () => {
+      const { fixture, textarea } = createCountConfigHost();
+      const formatter = vi.fn((value: string, { max }: { max: number }) =>
+        value.slice(0, max),
+      );
+      fixture.componentInstance.maxLength.set(4);
+      fixture.componentInstance.exceedFormatter.set(formatter);
+      fixture.detectChanges();
+
+      type(fixture, textarea, 'abcdef');
+
+      expect(formatter).toHaveBeenCalledWith('abcdef', { max: 4 });
+      expect(textarea.value).toBe('abcd');
+    });
+
+    it('waits for the IME composition to end before trimming', () => {
+      const { fixture, textarea } = createCountConfigHost();
+      fixture.componentInstance.countMax.set(5);
+      fixture.componentInstance.exceedFormatter.set((value, { max }) =>
+        value.slice(0, max),
+      );
+      fixture.detectChanges();
+
+      textarea.dispatchEvent(new CompositionEvent('compositionstart'));
+      type(fixture, textarea, 'hellowo');
+      expect(textarea.value).toBe('hellowo');
+
+      textarea.dispatchEvent(new CompositionEvent('compositionend'));
+      fixture.detectChanges();
+
+      expect(textarea.value).toBe('hello');
+      expect(fixture.componentInstance.text()).toBe('hello');
+    });
+
+    it('leaves programmatic values untrimmed and flags them instead', () => {
+      const { fixture, textarea, count } = createCountConfigHost();
+      fixture.componentInstance.countMax.set(3);
+      fixture.componentInstance.exceedFormatter.set((value, { max }) =>
+        value.slice(0, max),
+      );
+      fixture.componentInstance.text.set('too long');
+      fixture.detectChanges();
+
+      expect(textarea.value).toBe('too long');
+      expect(count().classList).toContain('andes-textarea__count--exceeded');
+    });
+
+    it('renders countTemplate with the count info as implicit context', () => {
+      const { fixture, count } = createCountConfigHost();
+      fixture.componentInstance.countMax.set(10);
+      fixture.componentInstance.useTemplate.set(true);
+      fixture.detectChanges();
+
+      expect(count().querySelector('.custom-count')?.textContent).toBe(
+        '5 of 10',
+      );
+    });
+  });
+
   describe('clearable', () => {
     const control = () => new FormControl('some text');
 
     @Component({
       imports: [AndesTextarea, ReactiveFormsModule],
       template: `<andes-textarea
-        clearable
-        [formControl]="control"
-        [readonly]="readonly()"
-        (cleared)="clearedCount = clearedCount + 1"
-      />`,
+          clearable
+          [formControl]="control"
+          [readonly]="readonly()"
+          [clearIcon]="customIcon() ? iconTpl : undefined"
+          (cleared)="clearedCount = clearedCount + 1"
+        />
+        <ng-template #iconTpl
+          ><span class="custom-clear-icon">✕</span></ng-template
+        >`,
     })
     class ClearHost {
       readonly control = control();
       readonly readonly = signal(false);
+      readonly customIcon = signal(false);
       clearedCount = 0;
     }
 
@@ -535,6 +796,19 @@ describe('AndesTextarea', () => {
       expect(button()).toBeNull();
     });
 
+    it('renders a custom clearIcon in place of the default glyph', () => {
+      const { fixture, button } = createClearHost();
+
+      expect(button()?.querySelector('svg')).not.toBeNull();
+
+      fixture.componentInstance.customIcon.set(true);
+      fixture.detectChanges();
+
+      expect(button()?.querySelector('svg')).toBeNull();
+      expect(button()?.querySelector('.custom-clear-icon')).not.toBeNull();
+      expect(button()?.getAttribute('aria-label')).toBe('Clear');
+    });
+
     it('hides the clear button when empty, disabled or readonly', () => {
       const { fixture, button } = createClearHost();
 
@@ -551,6 +825,107 @@ describe('AndesTextarea', () => {
       fixture.componentInstance.control.setValue('');
       fixture.detectChanges();
       expect(button()).toBeNull();
+    });
+  });
+
+  describe('clear button design', () => {
+    const css = () =>
+      readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'textarea.css'),
+        'utf-8',
+      ).replace(/\/\*[\s\S]*?\*\//g, '');
+
+    @Component({
+      imports: [AndesTextarea],
+      template: `<andes-textarea
+        aria-label="Notes"
+        clearable
+        value="Some text"
+        [clearLabel]="label()"
+      />`,
+    })
+    class LabelHost {
+      readonly label = signal('Clear');
+    }
+
+    function createLabelHost() {
+      const fixture = TestBed.createComponent(LabelHost);
+      fixture.detectChanges();
+      const button = () =>
+        fixture.nativeElement.querySelector(
+          '[data-slot="textarea-clear"]',
+        ) as HTMLButtonElement;
+      return { fixture, button };
+    }
+
+    it('names the button from clearLabel, "Clear" by default', () => {
+      const { fixture, button } = createLabelHost();
+      expect(button().getAttribute('aria-label')).toBe('Clear');
+
+      fixture.componentInstance.label.set('Borrar');
+      fixture.detectChanges();
+      expect(button().getAttribute('aria-label')).toBe('Borrar');
+    });
+
+    it('is a keyboard stop of its own that keeps a mouse press from stealing focus', () => {
+      const { button } = createLabelHost();
+      expect(button().tabIndex).toBe(0);
+
+      const press = new MouseEvent('mousedown', { cancelable: true });
+      button().dispatchEvent(press);
+      expect(press.defaultPrevented).toBe(true);
+    });
+
+    it('draws the shared glyph: a filled disc with the "x" knocked out of it', () => {
+      const { button } = createLabelHost();
+      const glyph = button().querySelector('svg.andes-textarea__clear-glyph');
+      expect(glyph?.querySelector('circle')).toBeTruthy();
+      expect(css()).toMatch(
+        /\.andes-textarea__clear-glyph path\s*{[^}]*stroke: var\(--andes-color-background\);/,
+      );
+    });
+
+    it('has a 24px hit area, shows on hover/focus-within and always without hover', () => {
+      const rule = css().match(/\.andes-textarea__clear\s*{[^}]*}/)?.[0] ?? '';
+      expect(rule).toContain('padding: calc((1.5rem - 1em) / 2);');
+      expect(rule).toContain('margin: calc((1em - 1.5rem) / 2);');
+      expect(rule).toContain('visibility: hidden;');
+      expect(css()).toMatch(
+        /\.andes-textarea-wrapper:focus-within \.andes-textarea__clear\s*{\s*visibility: visible;/,
+      );
+      expect(css()).toMatch(
+        /@media \(hover: none\)\s*{\s*\.andes-textarea__clear\s*{\s*visibility: visible;/,
+      );
+    });
+  });
+
+  describe('focused / blurred', () => {
+    @Component({
+      imports: [AndesTextarea],
+      template: `<andes-textarea
+        aria-label="Notes"
+        (focused)="events.push('focused:' + $event.type)"
+        (blurred)="events.push('blurred:' + $event.type)"
+      />`,
+    })
+    class FocusHost {
+      readonly events: string[] = [];
+    }
+
+    it('re-emits the native FocusEvent of the textarea', () => {
+      const fixture = TestBed.createComponent(FocusHost);
+      fixture.detectChanges();
+      const textarea = fixture.nativeElement.querySelector(
+        'textarea',
+      ) as HTMLTextAreaElement;
+
+      textarea.dispatchEvent(new FocusEvent('focus'));
+      textarea.dispatchEvent(new FocusEvent('blur'));
+
+      expect(fixture.componentInstance.events).toEqual([
+        'focused:focus',
+        'blurred:blur',
+      ]);
     });
   });
 

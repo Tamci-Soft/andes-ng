@@ -1,7 +1,22 @@
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
 
-import { AndesTextarea, AndesTextareaCountInfo } from './textarea';
+import {
+  AndesTextarea,
+  AndesTextareaCountInfo,
+  AndesTextareaExceedFormatter,
+  AndesTextareaResizeEvent,
+} from './textarea';
+
+// Counts grapheme clusters, so a family emoji or a skin-toned thumbs-up counts as one.
+const countGraphemes = (value: string) =>
+  [...new Intl.Segmenter().segment(value)].length;
+
+const keepGraphemes: AndesTextareaExceedFormatter = (value, { max }) =>
+  [...new Intl.Segmenter().segment(value)]
+    .slice(0, max)
+    .map(({ segment }) => segment)
+    .join('');
 
 const meta: Meta<AndesTextarea> = {
   title: 'Textarea',
@@ -22,6 +37,7 @@ const meta: Meta<AndesTextarea> = {
     placeholder: { control: 'text' },
     rows: { control: 'number' },
     maxLength: { control: 'number' },
+    countMax: { control: 'number' },
     showCount: { control: 'boolean' },
     resize: {
       control: 'select',
@@ -58,6 +74,7 @@ const meta: Meta<AndesTextarea> = {
         [placeholder]="placeholder"
         [rows]="rows"
         [maxLength]="maxLength"
+        [countMax]="countMax"
         [showCount]="showCount"
         [resize]="resize"
         [autoSize]="autoSize"
@@ -132,7 +149,7 @@ export const Invalid: Story = {
     props: args,
     template: `<div style="width: 320px;">
       <andes-textarea [size]="size" aria-label="Message" aria-invalid="true" aria-describedby="textarea-error" />
-      <p id="textarea-error" style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-danger-text, var(--andes-color-danger)); font-size: 0.875rem; margin: 0.25rem 0 0;">This field is required.</p>
+      <p id="textarea-error" style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-danger-text, var(--andes-color-danger)); font-size: 0.75rem; line-height: 1.25rem; margin: 0.25rem 0 0;">This field is required.</p>
     </div>`,
   }),
 };
@@ -159,6 +176,50 @@ export const CountFormatter: Story = {
   }),
 };
 
+export const SoftCountLimit: Story = {
+  render: () => ({
+    props: {
+      text: 'A soft limit lets you keep typing past it, but flags the overflow.',
+    },
+    template: `<div style="width: 320px;">
+      <andes-textarea showCount [countMax]="50" [(value)]="text" aria-label="Soft limit" />
+    </div>`,
+  }),
+};
+
+export const CustomCountStrategy: Story = {
+  render: () => ({
+    props: {
+      countGraphemes,
+      keepGraphemes,
+      text: '👨‍👩‍👧 👍🏽',
+    },
+    template: `<div style="display: flex; flex-direction: column; gap: 0.5rem; width: 320px;">
+      <andes-textarea
+        showCount
+        [countMax]="10"
+        [countStrategy]="countGraphemes"
+        [countExceedFormatter]="keepGraphemes"
+        [(value)]="text"
+        aria-label="Emoji-aware count"
+      />
+      <p style="font-size: 0.75rem; line-height: 1.25rem; margin: 0;">Each emoji counts as one; input past 10 is trimmed.</p>
+    </div>`,
+  }),
+};
+
+export const CountTemplate: Story = {
+  render: () => ({
+    props: { text: 'Rendered with a template' },
+    template: `<div style="width: 320px;">
+      <andes-textarea showCount [countMax]="60" [countTemplate]="countTpl" [(value)]="text" aria-label="Templated count" />
+      <ng-template #countTpl let-info>
+        <strong>{{ info.count }}</strong> of {{ info.maxLength }} used
+      </ng-template>
+    </div>`,
+  }),
+};
+
 export const Clearable: Story = {
   render: () => ({
     moduleMetadata: { imports: [ReactiveFormsModule] },
@@ -168,7 +229,43 @@ export const Clearable: Story = {
     },
     template: `<div style="width: 320px;">
       <andes-textarea clearable [formControl]="control" aria-label="Message" (cleared)="clearedCount = clearedCount + 1" />
-      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Form value: "{{ control.value }}" - cleared {{ clearedCount }}×</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Form value: "{{ control.value }}" - cleared {{ clearedCount }}×</p>
+    </div>`,
+  }),
+};
+
+/**
+ * The clear button is the same at every size and on every field: a small muted disc on the
+ * first line's inline end, shown while the field is hovered or focused (always on touch
+ * screens). It is a Tab stop of its own, named by `clearLabel`.
+ */
+export const ClearButtonSizes: Story = {
+  render: () => ({
+    props: {
+      small: 'Small',
+      medium: 'Medium',
+      large: 'Large',
+      localized: 'Texto',
+    },
+    template: `<div style="display: flex; flex-direction: column; gap: 1rem; width: 320px;">
+      <andes-textarea size="sm" clearable [rows]="1" [(value)]="small" aria-label="Small" />
+      <andes-textarea clearable [rows]="1" [(value)]="medium" aria-label="Medium" />
+      <andes-textarea size="lg" clearable [rows]="1" [(value)]="large" aria-label="Large" />
+      <andes-textarea clearable clearLabel="Borrar" [(value)]="localized" aria-label="Localized" />
+    </div>`,
+  }),
+};
+
+export const CustomClearIcon: Story = {
+  render: () => ({
+    props: { text: 'Cleared with a custom icon' },
+    template: `<div style="width: 320px;">
+      <andes-textarea clearable [clearIcon]="clearIcon" [(value)]="text" aria-label="Message" />
+      <ng-template #clearIcon>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm3.7 12.3-1.4 1.4L12 13.4l-2.3 2.3-1.4-1.4 2.3-2.3-2.3-2.3 1.4-1.4 2.3 2.3 2.3-2.3 1.4 1.4-2.3 2.3 2.3 2.3Z" />
+        </svg>
+      </ng-template>
     </div>`,
   }),
 };
@@ -178,7 +275,7 @@ export const PressEnter: Story = {
     props: { log: [] as string[] },
     template: `<div style="width: 320px;">
       <andes-textarea #ta aria-label="Message" placeholder="Press Enter…" (pressEnter)="log = [ta.value(), ...log].slice(0, 3)" />
-      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">pressEnter fired with: {{ log.length ? log.join(' | ') : '—' }}</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">pressEnter fired with: {{ log.length ? log.join(' | ') : '—' }}</p>
     </div>`,
   }),
 };
@@ -193,6 +290,19 @@ export const FocusMethods: Story = {
         <button type="button" (click)="ta.focus({ cursor: 'all' })">Select all</button>
         <button type="button" (click)="ta.blur()">Blur</button>
       </div>
+    </div>`,
+  }),
+};
+
+/** `(focused)` / `(blurred)` re-emit the textarea's native FocusEvent. */
+export const FocusEvents: Story = {
+  render: () => ({
+    props: { focusLog: [] as string[] },
+    template: `<div style="width: 320px;">
+      <andes-textarea aria-label="Message" placeholder="Focus me, then tab away"
+        (focused)="focusLog = [...focusLog, 'focused']"
+        (blurred)="focusLog = [...focusLog, 'blurred']" />
+      <p style="font-size: 0.75rem; line-height: 1.25rem; margin-top: 0.5rem;">{{ focusLog.length ? focusLog.join(' → ') : 'No events yet' }}</p>
     </div>`,
   }),
 };
@@ -243,7 +353,7 @@ export const WithNgModel: Story = {
     props: { ...args, value: 'Bound with [(ngModel)]' },
     template: `<div style="width: 320px;">
       <andes-textarea [(ngModel)]="value" aria-label="Message" />
-      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Value: {{ value }}</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Value: {{ value }}</p>
     </div>`,
   }),
 };
@@ -253,7 +363,22 @@ export const TwoWayValue: Story = {
     props: { text: 'Bound with [(value)]' },
     template: `<div style="width: 320px;">
       <andes-textarea [(value)]="text" aria-label="Message" />
-      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Value: {{ text }}</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Value: {{ text }}</p>
+    </div>`,
+  }),
+};
+
+export const ResizeEvents: Story = {
+  render: () => ({
+    props: { last: undefined as AndesTextareaResizeEvent | undefined },
+    template: `<div style="width: 320px;">
+      <andes-textarea
+        [autoSize]="{ minRows: 2, maxRows: 5 }"
+        aria-label="Message"
+        placeholder="Type a few lines - the height change is reported below"
+        (resized)="last = $event"
+      />
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">resized: {{ last ? last.width + ' × ' + last.height + 'px' : '—' }}</p>
     </div>`,
   }),
 };
