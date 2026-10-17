@@ -525,6 +525,81 @@ describe('AndesAlert', () => {
     });
   });
 
+  describe('focus after dismissal', () => {
+    @Component({
+      imports: [AndesAlert],
+      template: `<div class="container" [attr.tabindex]="containerTabindex()">
+        @if (before()) {
+          <button type="button" class="before">Before</button>
+        }
+        <andes-alert closable>Saved.</andes-alert>
+        @if (after()) {
+          <button type="button" disabled>Disabled</button>
+          <span tabindex="-1">Programmatic only</span>
+          <a href="#" hidden>Hidden</a>
+          <a href="#" class="after">After</a>
+        }
+      </div>`,
+    })
+    class FocusHost {
+      readonly before = signal(true);
+      readonly after = signal(true);
+      readonly containerTabindex = signal<string | null>(null);
+    }
+
+    function dismissFromCloseButton(
+      configure: (host: FocusHost) => void = () => undefined,
+    ) {
+      const fixture = TestBed.createComponent(FocusHost);
+      configure(fixture.componentInstance);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const close = root.querySelector(
+        '.andes-alert__close',
+      ) as HTMLButtonElement;
+      close.focus();
+      expect(document.activeElement).toBe(close);
+      close.click();
+      fixture.detectChanges();
+      return { fixture, root };
+    }
+
+    it('moves focus to the next tabbable element after the alert', () => {
+      const { root } = dismissFromCloseButton();
+
+      expect(document.activeElement).toBe(root.querySelector('.after'));
+    });
+
+    it('falls back to the previous tabbable element when nothing follows', () => {
+      const { root } = dismissFromCloseButton((h) => h.after.set(false));
+
+      expect(document.activeElement).toBe(root.querySelector('.before'));
+    });
+
+    it('falls back to a focusable ancestor when no tabbable element is left', () => {
+      const { root } = dismissFromCloseButton((h) => {
+        h.before.set(false);
+        h.after.set(false);
+        h.containerTabindex.set('-1');
+      });
+
+      expect(document.activeElement).toBe(root.querySelector('.container'));
+    });
+
+    it('leaves focus alone when it was not inside the alert', () => {
+      const fixture = TestBed.createComponent(FocusHost);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const before = root.querySelector('.before') as HTMLButtonElement;
+      before.focus();
+
+      (root.querySelector('.andes-alert__close') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(before);
+    });
+  });
+
   describe('banner', () => {
     @Component({
       imports: [AndesAlert],
