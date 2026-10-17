@@ -6,45 +6,62 @@
   The trigger box. `--_select-status-border` is a private hook set by the status rules
   below, so each variant decides *where* the status colour goes (all four sides, or only
   the bottom border for `underlined`) without every status/variant pair needing a rule.
+  `--_select-halo` is the matching focus halo. `--_select-padding-x` is the size's inline
+  padding (set per size below), which the multiple-mode rules offset their content by.
 */
 .andes-select__trigger {
+  --_select-padding-x: var(--andes-control-padding-x-md, 0.6875rem);
+
   position: relative;
   display: flex;
   width: 100%;
   align-items: center;
-  gap: var(--andes-space-2);
+  gap: var(--andes-space-1);
   box-sizing: border-box;
+  padding-inline: var(--_select-padding-x);
   border: 1px solid var(--_select-status-border, var(--andes-color-input));
-  border-radius: var(--andes-radius-md);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
+  line-height: var(--andes-control-line-height, 1.375rem);
   text-align: start;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease;
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    box-shadow var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .andes-select__trigger {
+    transition: none;
+  }
+}
+
+/* Hover only darkens the border, like the Input: a tinted box on hover read as a
+   different control from the fields around it. */
 .andes-select__trigger:hover:not([data-disabled]) {
   border-color: var(--_select-status-border, var(--andes-color-border));
-  background-color: var(--andes-color-accent);
 }
 
+/*
+  Field focus, shared by every text field: the border takes the ring color and a soft
+  3px halo hugs it (Ant Design / shadcn style) instead of a ring floating 2px outside the
+  border. The transparent outline is still there for forced-colors mode, which drops
+  box-shadow but paints outlines in a system color. An open panel keeps the same look
+  (Ant's "active" select), so a mouse-opened select reads as focused too.
+*/
 /* prettier-ignore */
-.andes-select__trigger:has(.andes-select__combobox:focus-visible) {
-  /* Field focus, shared by every text field: the border takes the ring color and a soft
-     3px halo hugs it (Ant Design / shadcn style) instead of a ring floating 2px outside
-     the border. The transparent outline is still there for forced-colors mode, which
-     drops box-shadow but paints outlines in a system color. */
+.andes-select__trigger:has(.andes-select__combobox:focus-visible),
+.andes-select__trigger[data-state='open'] {
   outline: 2px solid transparent;
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
-  border-color: var(--andes-color-focus-ring);
-}
-
-.andes-select__trigger[data-state='open'] {
-  border-color: var(--_select-status-border, var(--andes-color-primary));
+  box-shadow: var(--_select-halo, var(--andes-focus-halo, 0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent)));
+  border-color: var(--_select-status-border, var(--andes-color-focus-ring));
 }
 
 .andes-select__trigger[data-placeholder] {
@@ -52,10 +69,9 @@
 }
 
 /*
-  On the tinted backgrounds (hover, the filled variant) plain muted-foreground drops just
-  under 4.5:1, so the placeholder is nudged a fifth of the way towards the foreground.
+  On the filled variant's tinted background plain muted-foreground drops just under
+  4.5:1, so the placeholder is nudged a fifth of the way towards the foreground.
 */
-.andes-select__trigger[data-placeholder]:hover:not([data-disabled]),
 .andes-select__trigger[data-placeholder][data-variant='filled'] {
   color: color-mix(
     in srgb,
@@ -70,21 +86,19 @@
   background-color: var(--andes-color-muted);
 }
 
-/* Status: `error` (also `aria-invalid`) and `warning`. */
+/* Status: `error` (also `aria-invalid`) and `warning`, the focus halo included. */
 
 .andes-select__trigger--invalid,
 .andes-select__trigger[data-status='error'] {
   --_select-status-border: var(--andes-color-danger);
+  --_select-halo: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
 .andes-select__trigger[data-status='warning'] {
   --_select-status-border: var(--andes-color-warning);
-}
-
-/* prettier-ignore */
-.andes-select__trigger--invalid:has(.andes-select__combobox:focus-visible) {
-  border-color: var(--andes-color-danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+  --_select-halo: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
 }
 
 /* Variants. `outlined` is the base rule above. */
@@ -94,8 +108,9 @@
   background-color: var(--andes-color-muted);
 }
 
-.andes-select__trigger[data-variant='filled'][data-state='open'] {
-  border-color: var(--_select-status-border, var(--andes-color-primary));
+/* prettier-ignore */
+.andes-select__trigger[data-variant='filled']:is([data-state='open'], :has(.andes-select__combobox:focus-visible)) {
+  border-color: var(--_select-status-border, var(--andes-color-focus-ring));
   background-color: var(--andes-color-background);
 }
 
@@ -106,6 +121,13 @@
 
 .andes-select__trigger[data-variant='borderless']:hover:not([data-disabled]) {
   border-color: transparent;
+}
+
+/* An open borderless select shows no box at all, like Ant's; keyboard focus on a
+   closed one still gets the ring above. */
+.andes-select__trigger[data-variant='borderless'][data-state='open'] {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .andes-select__trigger[data-variant='underlined'] {
@@ -120,35 +142,51 @@
   border-bottom-color: var(--_select-status-border, var(--andes-color-border));
 }
 
-.andes-select__trigger[data-variant='underlined'][data-state='open'] {
+/* Focused or open, the underline alone takes the ring color - a halo or a four-sided
+   border would turn the line back into a box. */
+/* prettier-ignore */
+.andes-select__trigger[data-variant='underlined']:is([data-state='open'], :has(.andes-select__combobox:focus-visible)) {
   border-color: transparent;
-  border-bottom-color: var(--_select-status-border, var(--andes-color-primary));
+  border-bottom-color: var(--_select-status-border, var(--andes-color-focus-ring));
+  box-shadow: none;
 }
 
-/* Sizes, matching the Button's own sm/md/lg steps. `min-height`, so tags can wrap. */
+/*
+  Sizes: the shared control scale (24/32/40px tall, 14/14/16px text, 4/6/8px corners).
+  `min-height`, so tags can wrap onto more rows.
+*/
 
 .andes-select__trigger--sm {
-  min-height: 2rem;
-  padding-inline: var(--andes-space-2);
-  font-size: 0.875rem;
+  --_select-padding-x: var(--andes-control-padding-x-sm, 0.4375rem);
+
+  min-height: var(--andes-control-height-sm, 1.5rem);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
 }
 
 .andes-select__trigger--md {
-  min-height: 2.5rem;
-  padding-inline: var(--andes-space-3);
-  font-size: 1rem;
+  min-height: var(--andes-control-height-md, 2rem);
+  font-size: var(--andes-control-font-size-md, 0.875rem);
 }
 
 .andes-select__trigger--lg {
-  min-height: 3rem;
-  padding-inline: var(--andes-space-4);
-  font-size: 1.125rem;
+  --_select-padding-x: var(--andes-control-padding-x-lg, 0.6875rem);
+
+  min-height: var(--andes-control-height-lg, 2.5rem);
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
 }
 
+/*
+  Multiple/tags (Ant's layout): the tags sit 3px inside the border, top, bottom and
+  start, so a tag is the control height minus 8px (16/24/32px) and one row of tags keeps
+  the box at its single-line height. Wrapped rows are 4px apart. The placeholder and an
+  empty search input stay at the size's own inline padding, level with a single select.
+*/
 .andes-select__trigger[data-mode='multiple'],
 .andes-select__trigger[data-mode='tags'] {
-  padding-block: var(--andes-space-1);
-  padding-inline-start: var(--andes-space-1);
+  padding-block: 0.1875rem;
+  padding-inline-start: 0.1875rem;
 }
 
 /* Selection area: the value, or the tags and the combobox. */
@@ -165,6 +203,12 @@
 .andes-select__trigger[data-mode='multiple'] .andes-select__selection,
 .andes-select__trigger[data-mode='tags'] .andes-select__selection {
   flex-wrap: wrap;
+}
+
+/* With no tags the placeholder (or the empty input) starts at the size's padding. */
+/* prettier-ignore */
+.andes-select__trigger:is([data-mode='multiple'], [data-mode='tags'])[data-placeholder] .andes-select__selection {
+  padding-inline-start: calc(var(--_select-padding-x) - 0.1875rem);
 }
 
 /* The combobox, button or input, carries no chrome of its own: the box draws it. */
@@ -229,17 +273,6 @@
   max-width: 100%;
 }
 
-.andes-select__trigger[data-mode='multiple'] .andes-select__search,
-.andes-select__trigger[data-mode='tags'] .andes-select__search {
-  padding-inline-start: var(--andes-space-1);
-}
-
-.andes-select__trigger[data-mode='multiple'] .andes-select__input,
-.andes-select__trigger[data-mode='tags'] .andes-select__input {
-  inset-inline-start: var(--andes-space-1);
-  width: calc(100% - var(--andes-space-1));
-}
-
 .andes-select__search-ghost {
   display: flex;
   min-width: 0;
@@ -259,34 +292,50 @@
   color: var(--andes-color-muted-foreground);
 }
 
-/* Tags. */
+/*
+  Tags: the control height minus 8px (see the multiple-mode padding above), the box's
+  own font size, 8px before the label and 4px after the remove icon.
+*/
 
 .andes-select__tag {
   display: inline-flex;
   max-width: 100%;
   box-sizing: border-box;
-  height: 1.75rem;
+  height: calc(var(--andes-control-height-md, 2rem) - 0.5rem);
   align-items: center;
   gap: var(--andes-space-1);
-  padding-inline: var(--andes-space-2);
-  /* The border keeps the tag legible on the hovered and filled boxes, whose tints are
-     the same family as the tag's own background. */
-  border: 1px solid var(--andes-color-border);
-  border-radius: var(--andes-radius-sm);
+  padding-inline: var(--andes-space-2) var(--andes-space-1);
+  border: 1px solid transparent;
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
   background-color: var(--andes-color-muted);
   color: var(--andes-color-foreground);
-  font-size: 0.875em;
-  line-height: 1;
+  font-size: inherit;
+  line-height: calc(var(--andes-control-height-md, 2rem) - 0.625rem);
   cursor: default;
 }
 
+/* No remove button (a disabled option's tag, the "+ N" tag): even padding. */
+.andes-select__tag:not(:has(.andes-select__tag-remove)) {
+  padding-inline-end: var(--andes-space-2);
+}
+
 .andes-select__trigger--sm .andes-select__tag {
-  height: 1.25rem;
-  padding-inline: var(--andes-space-1);
+  height: calc(var(--andes-control-height-sm, 1.5rem) - 0.5rem);
+  border-radius: 0.125rem;
+  line-height: calc(var(--andes-control-height-sm, 1.5rem) - 0.625rem);
 }
 
 .andes-select__trigger--lg .andes-select__tag {
-  height: 2.25rem;
+  height: calc(var(--andes-control-height-lg, 2.5rem) - 0.5rem);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  line-height: calc(var(--andes-control-height-lg, 2.5rem) - 0.625rem);
+}
+
+/* The filled box is tinted with the tag's own colour, so its tags take the plain
+   background and a border instead. */
+.andes-select__trigger[data-variant='filled'] .andes-select__tag {
+  border-color: var(--andes-color-border);
+  background-color: var(--andes-color-background);
 }
 
 .andes-select__tag[data-disabled] {
@@ -321,8 +370,8 @@
 }
 
 .andes-select__tag-remove svg {
-  width: 0.875em;
-  height: 0.875em;
+  width: 0.75em;
+  height: 0.75em;
 }
 
 /* Prefix and suffix icons. */
@@ -345,12 +394,19 @@
 .andes-select__chevron {
   display: inline-flex;
   flex: 0 0 auto;
-  transition: transform 0.15s ease;
+  transition: transform var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-select__chevron {
+    transition: none;
+  }
 }
 
 .andes-select__chevron svg {
-  width: 1em;
-  height: 1em;
+  width: 0.875em;
+  height: 0.875em;
 }
 
 .andes-select__trigger[data-state='open'] .andes-select__chevron {
@@ -379,8 +435,8 @@
 }
 
 .andes-select__clear svg {
-  width: 1em;
-  height: 1em;
+  width: 0.875em;
+  height: 0.875em;
 }
 
 .andes-select__trigger[data-clearable]:hover .andes-select__clear,
@@ -401,8 +457,8 @@
 
 .andes-select__spinner {
   display: inline-block;
-  width: 1em;
-  height: 1em;
+  width: 0.875em;
+  height: 0.875em;
   box-sizing: border-box;
   border: 2px solid currentColor;
   border-right-color: transparent;
