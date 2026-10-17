@@ -157,6 +157,31 @@ function afterAnimation(
 }
 
 /**
+ * Times the backdrop's fade to the panel's current slide, so the scrim and the
+ * panel arrive (and leave) together. CDK's own stylesheet fades every backdrop
+ * over 400ms, which kept the scrim darkening well after the 0.3s slide-in had
+ * landed. Read from the computed animation rather than hard-coded, so it follows
+ * the stylesheet - including `prefers-reduced-motion`, where the panel has no
+ * animation and the scrim then switches instantly too.
+ */
+function syncBackdropToPanel(
+  panel: HTMLElement | null,
+  backdrop: HTMLElement | null,
+): void {
+  const view = panel?.ownerDocument.defaultView;
+  if (!panel || !backdrop || !view) {
+    return;
+  }
+  const style = view.getComputedStyle(panel);
+  const animated = !!style.animationName && style.animationName !== 'none';
+  const duration = animated ? parseTimeMs(style.animationDuration || '0s') : 0;
+  backdrop.style.transitionDuration = `${duration}ms`;
+  if (animated && style.animationTimingFunction) {
+    backdrop.style.transitionTimingFunction = style.animationTimingFunction;
+  }
+}
+
+/**
  * Shared behavior of `AndesSheet` and `AndesDrawer`: both are the same modal
  * edge panel on the overlay primitive, differing only in which edges they allow
  * and in their styling. Not part of the public API - use the two components.
@@ -474,6 +499,10 @@ export abstract class AndesEdgePanel {
       this.countedInParent = true;
     }
     this.applyZIndex();
+    syncBackdropToPanel(
+      this.overlay.contentElement(),
+      this.overlay.backdropElement(),
+    );
     this.cancelAnimationWait = afterAnimation(
       this.overlay.contentElement(),
       () => {
@@ -496,7 +525,7 @@ export abstract class AndesEdgePanel {
     content?.setAttribute('data-closing', '');
     const backdrop = this.overlay.backdropElement();
     if (backdrop) {
-      backdrop.style.transitionDuration = '200ms';
+      syncBackdropToPanel(content, backdrop);
       backdrop.style.opacity = '0';
     }
 
@@ -511,11 +540,13 @@ export abstract class AndesEdgePanel {
     this.closing = false;
     this.cancelAnimationWait?.();
     this.cancelAnimationWait = null;
-    this.overlay.contentElement()?.removeAttribute('data-closing');
+    const content = this.overlay.contentElement();
+    content?.removeAttribute('data-closing');
     const backdrop = this.overlay.backdropElement();
     if (backdrop) {
       backdrop.style.removeProperty('opacity');
-      backdrop.style.removeProperty('transition-duration');
+      // Back to the slide-in's timing, which the panel restarts now.
+      syncBackdropToPanel(content, backdrop);
     }
   }
 
