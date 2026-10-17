@@ -141,7 +141,7 @@ export interface AndesDialogFooterActions {
  * The footer a root renders under the consumer's content.
  *
  * - `null` (default): nothing - compose your own `andesDialogFooter` part, the
- *   shadcn way.
+ *   composable way.
  * - `'default'`: the built-in Cancel/OK pair, driven by `okText`, `okType`,
  *   `confirmLoading` and friends.
  * - a `TemplateRef`: custom footer content, laid out in the standard footer box and
@@ -331,7 +331,7 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
   private readonly injector = inject(Injector);
   private readonly appRef = inject(ApplicationRef);
 
-  /** Two-way open state, the equivalent of shadcn's `open`/`onOpenChange`. */
+  /** Two-way open state (`[(open)]`). */
   readonly open = model(false);
   /** Escape closes the dialog. */
   readonly closeOnEscape = input(true, { transform: booleanAttribute });
@@ -345,8 +345,7 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
    */
   readonly width = input<AndesDialogWidth | null>(null);
   /**
-   * Centre the surface vertically. On by default - the shadcn placement this
-   * component shipped with; set it off to park the surface near the top of the
+   * Centre the surface vertically. On by default; set it off to park the surface near the top of the
    * viewport, where it does not jump as its content grows.
    */
   readonly centered = input(true, { transform: booleanAttribute });
@@ -389,8 +388,7 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
    */
   readonly forceRender = input(false, { transform: booleanAttribute });
   /**
-   * Element focus returns to on close, overriding the trigger. The equivalent of
-   * Base UI's `finalFocus`.
+   * Element focus returns to on close, overriding the trigger.
    */
   readonly restoreFocusTo = input<HTMLElement | null>(null);
   /**
