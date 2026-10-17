@@ -1,14 +1,18 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import {
+  afterEveryRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
+  inject,
   input,
   model,
   output,
   signal,
   TemplateRef,
+  viewChild,
 } from '@angular/core';
 import clsx from 'clsx';
 
@@ -43,6 +47,19 @@ const TAG_PRESETS: readonly string[] = [
   'info',
 ];
 
+/** Natively keyboard-focusable elements, plus anything opted in with a tabindex. */
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'area[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'iframe',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]',
+].join(',');
+
 /**
  * Emitted by `closed`. Calling `preventDefault()` synchronously inside the handler vetoes the
  * close - it only has an effect with `hideOnClose`, since without it the tag never removes
@@ -70,6 +87,9 @@ export class AndesTagCloseEvent {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AndesTag {
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly document = inject(DOCUMENT);
+
   readonly color = input<AndesTagColor>('default');
   readonly variant = input<AndesTagVariant>('outlined');
   /** `false` drops the border, keeping the tag's size unchanged. */
@@ -87,7 +107,12 @@ export class AndesTag {
    * `preventDefault()` on the event.
    */
   readonly hideOnClose = input(false, { transform: booleanAttribute });
-  readonly closeAriaLabel = input('Remove');
+  /**
+   * Accessible name of the close button. Left unset it is "Remove {label}", built from the
+   * tag's projected label text, so a row of tags doesn't read as a list of identical "Remove"
+   * buttons. Setting it replaces the whole name.
+   */
+  readonly closeAriaLabel = input<string | undefined>(undefined);
   /** Renders the tag as an anchor. Ignored when closable - see tag.html. */
   readonly href = input<string | undefined>(undefined);
   readonly target = input<string | undefined>(undefined);
@@ -112,6 +137,26 @@ export class AndesTag {
   );
 
   protected readonly dismissed = signal(false);
+
+  private readonly closableTag =
+    viewChild<ElementRef<HTMLElement>>('closableTag');
+  /** The closable tag's label as rendered - see the constructor. */
+  private readonly labelText = signal('');
+
+  protected readonly closeLabel = computed(() => {
+    const label = this.labelText();
+    return this.closeAriaLabel() ?? (label ? `Remove ${label}` : 'Remove');
+  });
+
+  constructor() {
+    // Projected content isn't a signal, so the label is read back from the DOM after each
+    // render. Re-setting an unchanged string is a no-op, so this only costs an extra pass when
+    // the label text actually changes.
+    afterEveryRender(() => {
+      const tag = this.closableTag()?.nativeElement;
+      this.labelText.set(tag ? labelTextOf(tag) : '');
+    });
+  }
 
   protected readonly isClosable = computed(
     () => this.closable() || !!this.closeIcon(),
@@ -179,7 +224,55 @@ export class AndesTag {
     const closeEvent = new AndesTagCloseEvent(event);
     this.closed.emit(closeEvent);
     if (this.hideOnClose() && !closeEvent.defaultPrevented) {
+      this.moveFocusOffTag();
       this.dismissed.set(true);
     }
   }
+
+  /**
+   * Removing the tag removes its focused close button, which would drop focus to <body>. Move
+   * it to the next tabbable element after the tag in DOM order - in a row of closable tags,
+   * the next tag's close button - else the previous one.
+   */
+  private moveFocusOffTag(): void {
+    const host = this.host.nativeElement;
+    if (!host.contains(this.document.activeElement)) return;
+
+    const candidates = Array.from(
+      this.document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    ).filter((el) => !host.contains(el) && isTabbable(el));
+    const next = candidates.find(
+      (el) =>
+        host.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    const previous = candidates
+      .filter(
+        (el) =>
+          host.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING,
+      )
+      .at(-1);
+    (next ?? previous)?.focus();
+  }
+}
+
+function isTabbable(el: HTMLElement): boolean {
+  if (el.tabIndex < 0 || el.closest('[hidden], [inert]')) return false;
+  // Catches `display: none` / `visibility: hidden` where layout exists (not in SSR or jsdom).
+  return typeof el.checkVisibility !== 'function' || el.checkVisibility();
+}
+
+/** The tag's label text, leaving out the close button, the icon slot and hidden decoration. */
+function labelTextOf(tag: HTMLElement): string {
+  // Non-element nodes are kept only if they are text - not the comment anchors Angular leaves
+  // around projected content.
+  return Array.from(tag.childNodes)
+    .filter((node) =>
+      node instanceof Element
+        ? !node.matches('.andes-tag__close, [slot=icon], [aria-hidden="true"]')
+        : node.nodeType === Node.TEXT_NODE,
+    )
+    .map((node) => node.textContent ?? '')
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
