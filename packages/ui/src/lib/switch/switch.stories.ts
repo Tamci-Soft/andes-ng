@@ -78,7 +78,7 @@ export const WithLabel: Story = {
   render: (args) => ({
     props: args,
     template: `
-      <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-family: system-ui, sans-serif;">
+      <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">
         <andes-switch [checked]="checked" [size]="size" />
         Enable notifications
       </label>
@@ -103,7 +103,7 @@ export const ReactiveWithNgModel: Story = {
     moduleMetadata: { imports: [FormsModule] },
     props: { value: false },
     template: `
-      <div style="display: flex; flex-direction: column; gap: 0.5rem; font-family: system-ui, sans-serif;">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">
         <andes-switch [(ngModel)]="value" aria-label="Toggle setting" />
         <span>Value: {{ value }}</span>
       </div>
@@ -183,7 +183,7 @@ export const AsyncToggle: Story = {
         },
       },
       template: `
-      <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-family: system-ui, sans-serif;">
+      <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">
         <andes-switch [(checked)]="value" [loading]="busy()" (changed)="save()" />
         Sync to cloud ({{ busy() ? 'saving...' : value ? 'on' : 'off' }})
       </label>
@@ -243,7 +243,7 @@ export const Events: Story = {
   render: () => ({
     props: { value: false, log: [] as string[] },
     template: `
-      <div style="display: flex; flex-direction: column; gap: 0.5rem; font-family: system-ui, sans-serif;">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">
         <andes-switch
           [(checked)]="value"
           (changed)="log = ['changed: ' + $event.checked + ' (' + $event.event.type + ')'].concat(log)"
