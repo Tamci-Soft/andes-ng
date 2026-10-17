@@ -14,7 +14,9 @@ import {
 } from './accordion-item-state';
 import {
   type AndesAccordionCollapsible,
+  type AndesAccordionHeadingLevel,
   AndesAccordionState,
+  coerceAccordionHeadingLevel,
 } from './accordion-state';
 
 /**
@@ -54,6 +56,20 @@ export class AndesAccordionItem {
   /** Renders a lazy (`ng-template[andesAccordionLazy]`) panel body up front, before the first
    *  open. Has no effect on eagerly projected content, which is always rendered. */
   readonly forceRender = input(false, { transform: booleanAttribute });
+  /** Overrides the root's `headingLevel` for this item only. Unset (or empty) inherits it. */
+  readonly headingLevel = input<
+    AndesAccordionHeadingLevel | undefined,
+    unknown
+  >(undefined, {
+    transform: (value: unknown) =>
+      value == null || value === ''
+        ? undefined
+        : coerceAccordionHeadingLevel(value),
+  });
+
+  protected readonly resolvedHeadingLevel = computed(
+    () => this.headingLevel() ?? this.rootState.headingLevel(),
+  );
 
   protected readonly mode = computed<AndesAccordionTriggerMode>(() => {
     const collapsible = this.collapsible() ?? this.rootState.collapsible();
@@ -90,6 +106,7 @@ export class AndesAccordionItem {
       mode: this.mode,
       showArrow: this.showArrow,
       forceRender: this.forceRender,
+      headingLevel: this.resolvedHeadingLevel,
     });
   }
 }

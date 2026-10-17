@@ -58,6 +58,7 @@ const meta: Meta<AndesAccordion> = {
     expandIconPosition: { control: 'select', options: ['start', 'end'] },
     destroyOnHidden: { control: 'boolean' },
     arrowNavigation: { control: 'boolean' },
+    headingLevel: { control: 'select', options: [2, 3, 4, 5, 6] },
   },
   args: {
     type: 'single',
@@ -68,6 +69,7 @@ const meta: Meta<AndesAccordion> = {
     expandIconPosition: 'end',
     destroyOnHidden: false,
     arrowNavigation: false,
+    headingLevel: 3,
   },
   render: (args) => ({
     moduleMetadata: { imports: PARTS },
@@ -83,6 +85,7 @@ const meta: Meta<AndesAccordion> = {
         [expandIconPosition]="expandIconPosition"
         [destroyOnHidden]="destroyOnHidden"
         [arrowNavigation]="arrowNavigation"
+        [headingLevel]="headingLevel"
         style="${WIDTH}"
       >${FAQ_ITEMS}</andes-accordion>
     `,

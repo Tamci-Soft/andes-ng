@@ -1,6 +1,7 @@
 import {
   computed,
   Injectable,
+  numberAttribute,
   type Signal,
   signal,
   type TemplateRef,
@@ -14,6 +15,9 @@ export type AndesAccordionSize = 'sm' | 'md' | 'lg';
  *  `disabled` means the panel can't be toggled by the user at all. */
 export type AndesAccordionCollapsible = 'header' | 'icon' | 'disabled';
 export type AndesAccordionExpandIconPosition = 'start' | 'end';
+/** Level of the `<h2>`-`<h6>` element wrapping each trigger (`h1` is left to the page
+ *  title). */
+export type AndesAccordionHeadingLevel = 2 | 3 | 4 | 5 | 6;
 /** Visual treatment resolved from the root's `bordered`/`ghost` flags. */
 export type AndesAccordionVariant = 'default' | 'bordered' | 'ghost';
 
@@ -49,6 +53,22 @@ export interface AndesAccordionHost {
   >;
   readonly expandIconPosition: Signal<AndesAccordionExpandIconPosition>;
   readonly destroyOnHidden: Signal<boolean>;
+  readonly headingLevel: Signal<AndesAccordionHeadingLevel>;
+}
+
+/**
+ * Coerces a `headingLevel` input: `numberAttribute` turns a bare
+ * `headingLevel="2"` (a string) into a number, anything non-numeric falls back to `3`, and an
+ * out-of-range number is clamped to the nearest bound (`2` or `6`).
+ */
+export function coerceAccordionHeadingLevel(
+  value: unknown,
+): AndesAccordionHeadingLevel {
+  const level = numberAttribute(value, 3);
+  if (!Number.isInteger(level)) {
+    return 3;
+  }
+  return Math.min(Math.max(level, 2), 6) as AndesAccordionHeadingLevel;
 }
 
 /**
@@ -88,6 +108,9 @@ export class AndesAccordionState {
   );
   readonly destroyOnHidden = computed(
     () => this.host()?.destroyOnHidden() ?? false,
+  );
+  readonly headingLevel = computed<AndesAccordionHeadingLevel>(
+    () => this.host()?.headingLevel() ?? 3,
   );
 
   /** The open item values. In `single` mode only the first key of `activeKey` is honored, so a

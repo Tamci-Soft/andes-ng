@@ -47,6 +47,54 @@
   </button>
 </ng-template>
 
+<!-- The heading's content, outlet into whichever heading level is active below - its projection
+     slots can each appear only once, the same reason as `#label`. -->
+<ng-template #headingContent>
+  @if (mode() === 'icon') { @if (showArrow() && iconPosition() === 'start') {
+  <ng-container [ngTemplateOutlet]="iconButton" />
+  }
+  <span class="andes-accordion-trigger__text" [id]="labelId">
+    <ng-container [ngTemplateOutlet]="label" />
+  </span>
+  @if (showArrow() && iconPosition() === 'end') {
+  <ng-container [ngTemplateOutlet]="iconButton" />
+  } } @else {
+  <button
+    type="button"
+    class="andes-accordion-trigger__button"
+    [id]="triggerId"
+    [attr.data-collapsible]="mode()"
+    [attr.data-variant]="variant()"
+    [attr.aria-expanded]="isOpen()"
+    [attr.aria-controls]="contentId"
+    [disabled]="isDisabled()"
+    (click)="onClick()"
+  >
+    @if (showArrow() && iconPosition() === 'start') {
+    <ng-container [ngTemplateOutlet]="icon" />
+    }
+    <span class="andes-accordion-trigger__text">
+      <ng-container [ngTemplateOutlet]="label" />
+    </span>
+    @if (showArrow() && iconPosition() === 'end' && mode() !== 'header') {
+    <ng-container [ngTemplateOutlet]="icon" />
+    }
+  </button>
+  <!-- collapsible="header" with the icon at the end: the text button shrinks to its content,
+       so the icon sits outside it. It stays a pointer shortcut (clicking the
+       arrow still toggles in header mode) but is hidden from AT and the tab order - the text
+       button right before it is the one accessible control. -->
+  @if (showArrow() && iconPosition() === 'end' && mode() === 'header') {
+  <span
+    class="andes-accordion-trigger__icon-toggle"
+    aria-hidden="true"
+    (click)="onClick()"
+  >
+    <ng-container [ngTemplateOutlet]="icon" />
+  </span>
+  } }
+</ng-template>
+
 <div
   class="andes-accordion-trigger__header"
   [attr.data-size]="size()"
@@ -54,51 +102,27 @@
   [attr.data-collapsible]="mode()"
   [attr.data-icon-position]="iconPosition()"
 >
+  @switch (headingLevel()) { @case (2) {
+  <h2 class="andes-accordion-trigger__heading">
+    <ng-container [ngTemplateOutlet]="headingContent" />
+  </h2>
+  } @case (4) {
+  <h4 class="andes-accordion-trigger__heading">
+    <ng-container [ngTemplateOutlet]="headingContent" />
+  </h4>
+  } @case (5) {
+  <h5 class="andes-accordion-trigger__heading">
+    <ng-container [ngTemplateOutlet]="headingContent" />
+  </h5>
+  } @case (6) {
+  <h6 class="andes-accordion-trigger__heading">
+    <ng-container [ngTemplateOutlet]="headingContent" />
+  </h6>
+  } @default {
   <h3 class="andes-accordion-trigger__heading">
-    @if (mode() === 'icon') { @if (showArrow() && iconPosition() === 'start') {
-    <ng-container [ngTemplateOutlet]="iconButton" />
-    }
-    <span class="andes-accordion-trigger__text" [id]="labelId">
-      <ng-container [ngTemplateOutlet]="label" />
-    </span>
-    @if (showArrow() && iconPosition() === 'end') {
-    <ng-container [ngTemplateOutlet]="iconButton" />
-    } } @else {
-    <button
-      type="button"
-      class="andes-accordion-trigger__button"
-      [id]="triggerId"
-      [attr.data-collapsible]="mode()"
-      [attr.data-variant]="variant()"
-      [attr.aria-expanded]="isOpen()"
-      [attr.aria-controls]="contentId"
-      [disabled]="isDisabled()"
-      (click)="onClick()"
-    >
-      @if (showArrow() && iconPosition() === 'start') {
-      <ng-container [ngTemplateOutlet]="icon" />
-      }
-      <span class="andes-accordion-trigger__text">
-        <ng-container [ngTemplateOutlet]="label" />
-      </span>
-      @if (showArrow() && iconPosition() === 'end' && mode() !== 'header') {
-      <ng-container [ngTemplateOutlet]="icon" />
-      }
-    </button>
-    <!-- collapsible="header" with the icon at the end: the text button shrinks to its content,
-           so the icon sits outside it. It stays a pointer shortcut (clicking the
-           arrow still toggles in header mode) but is hidden from AT and the tab order - the text
-           button right before it is the one accessible control. -->
-    @if (showArrow() && iconPosition() === 'end' && mode() === 'header') {
-    <span
-      class="andes-accordion-trigger__icon-toggle"
-      aria-hidden="true"
-      (click)="onClick()"
-    >
-      <ng-container [ngTemplateOutlet]="icon" />
-    </span>
-    } }
+    <ng-container [ngTemplateOutlet]="headingContent" />
   </h3>
+  } }
   <!-- Outside the heading (so it doesn't become part of the heading's name) and outside the
        button (so interactive extras are valid markup and never toggle the panel). -->
   <span class="andes-accordion-trigger__extra">

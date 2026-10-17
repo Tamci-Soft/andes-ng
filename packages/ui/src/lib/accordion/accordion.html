@@ -5,6 +5,7 @@
   [collapsible]="item.collapsible"
   [showArrow]="item.showArrow ?? true"
   [forceRender]="item.forceRender ?? false"
+  [headingLevel]="item.headingLevel"
 >
   <andes-accordion-trigger [extra]="item.extra">
     @if (isTemplate(item.label)) {

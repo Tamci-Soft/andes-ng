@@ -5,6 +5,7 @@ export type {
   AndesAccordionCollapsible,
   AndesAccordionExpandIconContext,
   AndesAccordionExpandIconPosition,
+  AndesAccordionHeadingLevel,
   AndesAccordionItemConfig,
   AndesAccordionSize,
   AndesAccordionType,
