@@ -257,3 +257,56 @@ export const Events: Story = {
     `,
   }),
 };
+
+/** Disabling and re-enabling at runtime, e.g. while a permission check is pending. */
+export const ToggleDisabled: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesButton] },
+    props: { off: true },
+    template: `
+      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+        <andes-switch [checked]="true" [disabled]="off" aria-label="Toggle setting" />
+        <andes-button variant="outline" size="sm" (click)="off = !off">Toggle disabled</andes-button>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Restyling through the CSS custom property hooks set on the host: geometry
+ * (`--andes-switch-track-height`, `--andes-switch-track-width`, `--andes-switch-thumb-size`,
+ * `--andes-switch-track-padding`, `--andes-switch-inner-margin`) and color
+ * (`--andes-switch-track-color`, `--andes-switch-track-hover-color`,
+ * `--andes-switch-track-checked-color`, `--andes-switch-track-checked-hover-color`,
+ * `--andes-switch-thumb-color`, `--andes-switch-thumb-shadow`).
+ */
+export const CustomProperties: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <andes-switch
+          [checked]="true"
+          aria-label="Large success switch"
+          style="
+            --andes-switch-track-height: 2rem;
+            --andes-switch-track-width: 3.5rem;
+            --andes-switch-thumb-size: 1.5rem;
+            --andes-switch-track-padding: 0.25rem;
+            --andes-switch-track-checked-color: var(--andes-color-success);
+            --andes-switch-track-checked-hover-color: var(--andes-color-success-hover);
+          "
+        />
+        <andes-switch
+          checkedChildren="ON"
+          unCheckedChildren="OFF"
+          aria-label="Danger switch"
+          style="
+            --andes-switch-track-checked-color: var(--andes-color-danger);
+            --andes-switch-thumb-shadow: none;
+            --andes-switch-inner-margin: 0.5rem;
+          "
+        />
+      </div>
+    `,
+  }),
+};

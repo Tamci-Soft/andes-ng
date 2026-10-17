@@ -22,6 +22,9 @@ class HostComponent {
   readonly size = signal<AndesSwitchSize>('md');
 }
 
+/** Drops the whitespace a multi-line `var()` declaration keeps in computed style. */
+const squash = (value: string) => value.replace(/\s+/g, '');
+
 describe('AndesSwitch', () => {
   function createHost() {
     const fixture = TestBed.createComponent(HostComponent);
@@ -123,6 +126,73 @@ describe('AndesSwitch', () => {
     expect(button.getAttribute('aria-checked')).toBe('true');
     expect(button.hasAttribute('data-checked')).toBe(true);
     expect(button.hasAttribute('data-unchecked')).toBe(false);
+  });
+
+  it('paints the thumb with the token that stays light in the dark theme', () => {
+    const { button } = createHost();
+    const thumb = button.querySelector('.andes-switch__thumb') as HTMLElement;
+
+    // --andes-color-background turns near-black in the dark theme, which made the thumb
+    // vanish into the dark track.
+    expect(squash(getComputedStyle(thumb).backgroundColor)).toBe(
+      'var(--andes-switch-thumb-color,var(--andes-color-primary-foreground))',
+    );
+  });
+
+  it('glides the thumb with an eased slide and keeps small-track text at 12px', () => {
+    const { fixture, button } = createHost();
+    const thumb = button.querySelector('.andes-switch__thumb') as HTMLElement;
+
+    const transition = getComputedStyle(thumb).transition;
+    expect(transition).toContain('inset-inline-start');
+    expect(transition).toContain('--andes-motion-ease-in-out');
+
+    fixture.componentInstance.size.set('sm');
+    fixture.detectChanges();
+    const inner = button.querySelector('.andes-switch__inner') as HTMLElement;
+
+    expect(getComputedStyle(inner).fontSize).toBe('0.75rem');
+  });
+
+  describe('CSS custom property hooks', () => {
+    it('reads every color from a public hook that falls back to the design token', () => {
+      const { fixture, button } = createHost();
+      const thumb = button.querySelector('.andes-switch__thumb') as HTMLElement;
+
+      expect(squash(getComputedStyle(button).backgroundColor)).toBe(
+        'var(--andes-switch-track-color,var(--andes-color-input))',
+      );
+      expect(getComputedStyle(thumb).boxShadow).toContain(
+        'var(--andes-switch-thumb-shadow,',
+      );
+
+      fixture.componentInstance.checked.set(true);
+      fixture.detectChanges();
+
+      expect(squash(getComputedStyle(button).backgroundColor)).toBe(
+        'var(--andes-switch-track-checked-color,var(--andes-color-primary))',
+      );
+    });
+
+    it('never declares the public geometry hooks on the track, so a host value inherits through', () => {
+      const { button } = createHost();
+      const style = getComputedStyle(button);
+
+      for (const hook of [
+        'track-height',
+        'track-width',
+        'thumb-size',
+        'track-padding',
+        'inner-margin',
+      ]) {
+        // A declaration on the track itself would shadow the value a consumer sets on the host.
+        expect(style.getPropertyValue(`--andes-switch-${hook}`)).toBe('');
+        expect(
+          style.getPropertyValue(`--andes-switch-resolved-${hook}`),
+        ).toContain(`--andes-switch-${hook}`);
+      }
+      expect(style.height).toBe('var(--andes-switch-resolved-track-height)');
+    });
   });
 
   it('applies the requested size', () => {

@@ -26,6 +26,18 @@ export interface AndesSwitchChangeEvent {
   readonly event: MouseEvent;
 }
 
+/**
+ * An on/off toggle rendered as a native `<button role="switch">`.
+ *
+ * Styling hooks - CSS custom properties read from the `<andes-switch>` host (or any ancestor),
+ * each falling back to the design-token default for the current `size`:
+ * - geometry: `--andes-switch-track-height`, `--andes-switch-track-width` (a minimum - the track
+ *   still grows to fit its content), `--andes-switch-thumb-size`, `--andes-switch-track-padding`,
+ *   `--andes-switch-inner-margin` (gap between track content and the far edge);
+ * - color: `--andes-switch-track-color`, `--andes-switch-track-hover-color`,
+ *   `--andes-switch-track-checked-color`, `--andes-switch-track-checked-hover-color`,
+ *   `--andes-switch-thumb-color`, `--andes-switch-thumb-shadow`.
+ */
 @Component({
   selector: 'andes-switch',
   imports: [],
