@@ -45,6 +45,8 @@ const meta: Meta<AndesTooltip> = {
     openDelay: { control: 'number' },
     closeDelay: { control: 'number' },
     instantReopenWindow: { control: 'number' },
+    disableHoverablePopup: { control: 'boolean' },
+    closeOnClick: { control: 'boolean' },
   },
   args: {
     content: 'Helpful hint',
@@ -65,6 +67,8 @@ const meta: Meta<AndesTooltip> = {
     openDelay: 600,
     closeDelay: 0,
     instantReopenWindow: 400,
+    disableHoverablePopup: false,
+    closeOnClick: true,
   },
   render: (args) => ({
     moduleMetadata: { imports: [AndesTooltipTrigger] },
@@ -90,6 +94,8 @@ const meta: Meta<AndesTooltip> = {
           [openDelay]="openDelay"
           [closeDelay]="closeDelay"
           [instantReopenWindow]="instantReopenWindow"
+          [disableHoverablePopup]="disableHoverablePopup"
+          [closeOnClick]="closeOnClick"
         >
           <button type="button" andesTooltipTrigger>Hover or focus me</button>
         </andes-tooltip>

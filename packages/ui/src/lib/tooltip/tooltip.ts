@@ -56,9 +56,9 @@ export const ANDES_TOOLTIP_DEFAULT_OPEN_DELAY = 600;
 
 /**
  * Default close delay, in ms. Base UI defaults this to `0`: a tooltip is a
- * passive hint with no interactive content, unlike a Popover, so there is no
- * pointer-travel gap between trigger and content worth protecting - closing
- * promptly is correct, not just convenient.
+ * passive hint, so blur closes it promptly. Leaving with the pointer still
+ * waits at least `ANDES_TOOLTIP_HOVERABLE_GRACE` while the tooltip is
+ * hoverable (the default), so the pointer can cross onto it.
  */
 export const ANDES_TOOLTIP_DEFAULT_CLOSE_DELAY = 0;
 
@@ -233,6 +233,25 @@ export class AndesTooltip {
   readonly instantReopenWindow = input(
     ANDES_TOOLTIP_DEFAULT_INSTANT_REOPEN_WINDOW,
   );
+
+  /**
+   * By default the pointer can move from the trigger onto the tooltip - to
+   * read it, select its text or magnify it - without it closing, per WCAG
+   * 2.1 SC 1.4.13 "Content on Hover or Focus". With `true`, the tooltip lets
+   * the pointer pass straight through and closes as soon as it leaves the
+   * trigger. Same name and default as Base UI's `disableHoverablePopup`.
+   */
+  readonly disableHoverablePopup = input(false, {
+    transform: booleanAttribute,
+  });
+
+  /**
+   * Close a hover/focus tooltip when its trigger is pressed (mouse or pen),
+   * and keep it closed until the pointer leaves the trigger. Ignored with a
+   * `click` trigger, which toggles instead. Same name and default as Base
+   * UI's `closeOnClick`. Default `true`.
+   */
+  readonly closeOnClick = input(true, { transform: booleanAttribute });
 
   /**
    * Whether the tooltip is open. Two-way bindable (`[(open)]`); `openChange`
@@ -416,6 +435,8 @@ export class AndesTooltip {
         instantReopenWindow: this.instantReopenWindow(),
         disabled: this.disabled(),
         triggers: this.triggers(),
+        hoverable: !this.disableHoverablePopup(),
+        closeOnClick: this.closeOnClick(),
       });
     });
 
@@ -448,6 +469,7 @@ export class AndesTooltip {
 
     effect(() => {
       this.zIndex();
+      this.disableHoverablePopup();
       if (this.overlay.isOpen()) {
         untracked(() => this.configureOverlay({}));
       }
@@ -517,13 +539,21 @@ export class AndesTooltip {
    * explicit `zIndex` has to be re-applied after it. The primitive has no
    * z-index override of its own; this writes the same inline style on the
    * same CDK host element it does.
+   *
+   * The CDK pane around the tooltip catches the pointer on its own, so with
+   * `disableHoverablePopup` it is made `pointer-events: none` too - otherwise
+   * the tooltip would still swallow clicks meant for whatever is beneath it.
    */
   private configureOverlay(patch: Partial<AndesOverlayConfig>): void {
     this.overlay.configure(patch);
     const zIndex = this.zIndex();
-    const host = this.overlay.panelElement()?.parentElement;
+    const pane = this.overlay.panelElement();
+    const host = pane?.parentElement;
     if (host && zIndex != null) {
       host.style.setProperty('z-index', String(zIndex));
+    }
+    if (pane) {
+      pane.style.pointerEvents = this.disableHoverablePopup() ? 'none' : '';
     }
   }
 

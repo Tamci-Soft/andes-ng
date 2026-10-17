@@ -38,12 +38,18 @@
   /* A drop-shadow rather than a box-shadow so the arrow is outlined too -
      otherwise a white arrow on a white page would simply vanish. */
   filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.15));
-  /* A tooltip never receives pointer input - letting events pass through
-     avoids it ever intercepting the mouse-leave that would otherwise close
-     it, even for the rare case where sideOffset is small enough to overlap
-     the trigger. */
+  /* With `disableHoverablePopup` the tooltip lets the pointer pass
+     straight through to whatever is beneath it. */
   pointer-events: none;
   animation: andes-tooltip-in 0.1s ease-out;
+}
+
+/*
+ * Hoverable (the default): the tooltip takes the pointer, so moving from the
+ * trigger onto it keeps it open (WCAG 2.1 SC 1.4.13).
+ */
+.andes-tooltip[data-hoverable] {
+  pointer-events: auto;
 }
 
 .andes-tooltip[data-side='top'] {
