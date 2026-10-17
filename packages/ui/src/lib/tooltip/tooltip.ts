@@ -48,14 +48,13 @@ import {
 } from './tooltip-placement';
 
 /**
- * Default open delay, in ms. Base UI's `Tooltip.Trigger` documents `600` as
- * its own default `delay` - andes-ng follows that number rather than
- * inventing a new one.
+ * Default open delay, in ms: long enough that a pointer sweeping across the page
+ * does not flash hints.
  */
 export const ANDES_TOOLTIP_DEFAULT_OPEN_DELAY = 600;
 
 /**
- * Default close delay, in ms. Base UI defaults this to `0`: a tooltip is a
+ * Default close delay, in ms. `0`: a tooltip is a
  * passive hint, so blur closes it promptly. Leaving with the pointer still
  * waits at least `ANDES_TOOLTIP_HOVERABLE_GRACE` while the tooltip is
  * hoverable (the default), so the pointer can cross onto it.
@@ -65,8 +64,7 @@ export const ANDES_TOOLTIP_DEFAULT_CLOSE_DELAY = 0;
 /**
  * Default "instant reopen" grouping window, in ms: if another `<andes-tooltip>`
  * anywhere on the page closed within this window, the next one to open skips
- * `openDelay` entirely. Mirrors Base UI `Tooltip.Provider`'s `timeout` default
- * of `400`, which exists for exactly this case - e.g. sweeping across a
+ * `openDelay` entirely. The window exists for exactly this case - e.g. sweeping across a
  * toolbar of icon buttons should feel instant after the first tooltip opens.
  */
 export const ANDES_TOOLTIP_DEFAULT_INSTANT_REOPEN_WINDOW = 400;
@@ -110,8 +108,8 @@ function isPresetColor(value: string): value is AndesTooltipPresetColor {
 /**
  * A hover/focus-triggered hint attached to a trigger element.
  *
- * Compound API, mirroring shadcn/Base UI's `Tooltip` / `TooltipTrigger` /
- * `TooltipContent` split:
+ * Compound API, split into `Tooltip` / `TooltipTrigger` /
+ * `TooltipContent`:
  *
  * ```html
  * <andes-tooltip content="Delete this project">
@@ -247,7 +245,7 @@ export class AndesTooltip {
    * read it, select its text or magnify it - without it closing, per WCAG
    * 2.1 SC 1.4.13 "Content on Hover or Focus". With `true`, the tooltip lets
    * the pointer pass straight through and closes as soon as it leaves the
-   * trigger. Same name and default as Base UI's `disableHoverablePopup`.
+   * trigger.
    */
   readonly disableHoverablePopup = input(false, {
     transform: booleanAttribute,

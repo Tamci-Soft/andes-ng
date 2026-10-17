@@ -7,8 +7,7 @@ import { Injectable } from '@angular/core';
  * own `<andes-tooltip>`, should feel like one continuous interaction once the
  * first tooltip has opened rather than re-paying the open delay for each one.
  *
- * Mirrors Base UI's `Tooltip.Provider` `timeout` option, but without
- * requiring every app to wrap itself in a provider component: a single
+ * Needs no provider component wrapped around the app: a single
  * `providedIn: 'root'` service gives every tooltip the same shared clock for
  * free.
  */
