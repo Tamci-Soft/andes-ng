@@ -11,6 +11,12 @@ import type {
 } from './popover-types';
 
 import { AndesPopoverContent } from './popover-content';
+import {
+  AndesPopoverClose,
+  AndesPopoverDescription,
+  AndesPopoverHeader,
+  AndesPopoverTitle,
+} from './popover-parts';
 import { AndesPopoverTrigger } from './popover-trigger';
 import { AndesPopover } from './popover';
 import type { AndesOverlayAlign, AndesOverlaySide } from '@andes-ng/primitives';
@@ -919,5 +925,200 @@ describe('AndesPopover - extended features', () => {
 
     expect(panel()).toBeNull();
     expect(document.activeElement).toBe(other);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Composed content: header/title/description parts and the close directive.
+// ---------------------------------------------------------------------------
+
+@Component({
+  imports: [
+    AndesPopover,
+    AndesPopoverTrigger,
+    AndesPopoverContent,
+    AndesPopoverHeader,
+    AndesPopoverTitle,
+    AndesPopoverDescription,
+    AndesPopoverClose,
+  ],
+  template: `
+    <andes-popover [title]="title()" [trigger]="trigger()">
+      <button type="button" id="trigger" andesPopoverTrigger>Open</button>
+      <andes-popover-content>
+        <div andesPopoverHeader id="header">
+          @if (showTitle()) {
+            <h3 andesPopoverTitle>Dimensions</h3>
+          }
+          <p andesPopoverDescription id="custom-description">
+            Set the dimensions for the layer.
+          </p>
+        </div>
+        <input id="width" />
+        <button type="button" id="close" andesPopoverClose>Done</button>
+      </andes-popover-content>
+    </andes-popover>
+  `,
+})
+class ComposedHost {
+  readonly title = signal<AndesPopoverRenderable | undefined>(undefined);
+  readonly trigger = signal<AndesPopoverTriggerAction>('click');
+  readonly showTitle = signal(true);
+}
+
+describe('AndesPopover - composed content', () => {
+  withElementGeometry();
+
+  function setup() {
+    const fixture = TestBed.createComponent(ComposedHost);
+    fixture.detectChanges();
+    const byId = (id: string) => document.getElementById(id) as HTMLElement;
+    const panel = () =>
+      document.querySelector('.andes-popover-content') as HTMLElement | null;
+    const update = () => fixture.detectChanges();
+    return {
+      fixture,
+      host: fixture.componentInstance,
+      byId,
+      panel,
+      update,
+      trigger: () => byId('trigger'),
+    };
+  }
+
+  // The description carries an author-supplied static id, which is kept.
+  it('labels the panel with the title part and describes it with the description part', () => {
+    const { trigger, panel, update } = setup();
+    trigger().click();
+    update();
+
+    const title = panel()?.querySelector('[andesPopoverTitle]');
+    expect(title?.id).toMatch(/^andes-popover-title-\d+$/);
+    expect(panel()?.getAttribute('aria-labelledby')).toBe(title?.id);
+    expect(panel()?.getAttribute('aria-describedby')).toBe(
+      'custom-description',
+    );
+  });
+
+  it('drops aria-labelledby when the title part is removed', () => {
+    const { host, trigger, panel, update } = setup();
+    host.showTitle.set(false);
+    update();
+    trigger().click();
+    update();
+
+    expect(panel()?.hasAttribute('aria-labelledby')).toBe(false);
+  });
+
+  it('applies the part classes and data-slot hooks', () => {
+    const { byId, trigger, panel, update } = setup();
+    trigger().click();
+    update();
+
+    expect(byId('header').classList).toContain('andes-popover-header');
+    expect(panel()?.querySelector('[andesPopoverTitle]')?.classList).toContain(
+      'andes-popover-title',
+    );
+    expect(byId('custom-description').classList).toContain(
+      'andes-popover-description',
+    );
+    expect(byId('close').getAttribute('data-slot')).toBe('popover-close');
+  });
+
+  it('combines the title input with a title part in aria-labelledby', () => {
+    const { host, trigger, panel, update } = setup();
+    host.title.set('From input');
+    update();
+    trigger().click();
+    update();
+
+    const [inputTitle, partTitle] = Array.from(
+      panel()?.querySelectorAll('.andes-popover-title') ?? [],
+    );
+    expect(inputTitle?.textContent?.trim()).toBe('From input');
+    expect(panel()?.getAttribute('aria-labelledby')).toBe(
+      `${inputTitle?.id} ${partTitle?.id}`,
+    );
+  });
+
+  it('andesPopoverClose closes the panel and restores focus to the trigger', async () => {
+    const { fixture, byId, trigger, panel, update } = setup();
+    trigger().focus();
+    trigger().click();
+    update();
+    await fixture.whenStable();
+    expect(panel()?.contains(document.activeElement)).toBe(true);
+
+    byId('close').click();
+    update();
+
+    expect(panel()).toBeNull();
+    expect(document.activeElement).toBe(trigger());
+  });
+
+  it('andesPopoverClose leaves focus alone for a hover-opened panel', async () => {
+    const { fixture, host, byId, trigger, panel, update } = setup();
+    host.trigger.set('hover');
+    update();
+    vi.useFakeTimers();
+    try {
+      trigger().dispatchEvent(new MouseEvent('mouseenter'));
+      vi.advanceTimersByTime(100);
+      update();
+      expect(panel()).toBeTruthy();
+
+      byId('width').focus();
+      byId('close').click();
+      update();
+    } finally {
+      vi.useRealTimers();
+    }
+    await fixture.whenStable();
+
+    expect(panel()).toBeNull();
+    expect(document.activeElement).not.toBe(trigger());
+  });
+
+  it('reports the close through the open model', () => {
+    const { fixture, byId, trigger, update } = setup();
+    const popover = fixture.debugElement
+      .query(By.directive(AndesPopover))
+      .injector.get(AndesPopover);
+    trigger().click();
+    update();
+    expect(popover.open()).toBe(true);
+
+    byId('close').click();
+    update();
+
+    expect(popover.open()).toBe(false);
+  });
+});
+
+@Component({
+  imports: [AndesPopover, AndesPopoverTrigger],
+  template: `
+    <andes-popover title="Legacy title" content="Legacy body">
+      <button type="button" id="trigger" andesPopoverTrigger>Open</button>
+    </andes-popover>
+  `,
+})
+class LegacyHost {}
+
+describe('AndesPopover - legacy title/content inputs', () => {
+  it('still renders and labels the panel from the inputs alone', () => {
+    const fixture = TestBed.createComponent(LegacyHost);
+    fixture.detectChanges();
+    (document.getElementById('trigger') as HTMLElement).click();
+    fixture.detectChanges();
+
+    const panel = document.querySelector('.andes-popover-content');
+    const title = panel?.querySelector('.andes-popover-title');
+    expect(title?.textContent?.trim()).toBe('Legacy title');
+    expect(
+      panel?.querySelector('.andes-popover-body')?.textContent?.trim(),
+    ).toBe('Legacy body');
+    expect(panel?.getAttribute('aria-labelledby')).toBe(title?.id);
+    expect(panel?.hasAttribute('aria-describedby')).toBe(false);
   });
 });

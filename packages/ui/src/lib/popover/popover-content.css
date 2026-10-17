@@ -39,9 +39,36 @@
   }
 }
 
-/* Structured parts rendered from the `title` / `content` inputs. */
+/* Structured parts: rendered from the `title` / `content` inputs, or composed by
+   the consumer with `[andesPopoverHeader]` / `[andesPopoverTitle]` /
+   `[andesPopoverDescription]`. The title class is shared by both paths so they
+   look the same; `margin: 0` and the inherited size undo the user-agent styles
+   of the heading and paragraph elements the parts are usually put on. */
+.andes-popover-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+}
+
+.andes-popover-header:not(:last-child) {
+  margin-bottom: var(--andes-space-3);
+}
+
 .andes-popover-title {
+  margin: 0;
+  font-size: inherit;
   font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-popover-description {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-popover-description:not(:last-child) {
+  margin-bottom: var(--andes-space-2);
 }
 
 .andes-popover-title:not(:last-child) {
@@ -50,6 +77,12 @@
 
 .andes-popover-body:not(:last-child) {
   margin-bottom: var(--andes-space-2);
+}
+
+/* Inside the header its gap does the spacing. */
+.andes-popover-header > .andes-popover-title,
+.andes-popover-header > .andes-popover-description {
+  margin-bottom: 0;
 }
 
 /* Host for template content moved in by `AndesPopoverOutlet`. */

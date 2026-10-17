@@ -23,12 +23,29 @@ import type { AndesPopoverRenderable } from './popover-types';
  * - `[andesPopoverTrigger]` — put on whatever element should open it.
  * - `<andes-popover-content>` — wraps a free-form panel body. Optional: with only
  *   the `title`/`content` inputs, a panel is rendered for you.
+ * - `[andesPopoverHeader]`, `[andesPopoverTitle]`, `[andesPopoverDescription]` —
+ *   composable parts for a panel's copy. Title and description register their
+ *   ids, so the panel gets `aria-labelledby`/`aria-describedby` automatically.
+ * - `[andesPopoverClose]` — closes the panel from inside it.
  *
  * ```html
  * <andes-popover placement="rightTop" title="Details" [content]="body" trigger="hover">
  *   <button andes-button andesPopoverTrigger>Open</button>
  * </andes-popover>
  * <ng-template #body>Rich <strong>content</strong></ng-template>
+ * ```
+ *
+ * ```html
+ * <andes-popover>
+ *   <button andes-button andesPopoverTrigger>Dimensions</button>
+ *   <andes-popover-content>
+ *     <div andesPopoverHeader>
+ *       <h3 andesPopoverTitle>Dimensions</h3>
+ *       <p andesPopoverDescription>Set the dimensions for the layer.</p>
+ *     </div>
+ *     <button type="button" andesPopoverClose>Done</button>
+ *   </andes-popover-content>
+ * </andes-popover>
  * ```
  *
  * `open` is a `model()`, so it works both uncontrolled (default `false`, driven by
@@ -70,7 +87,13 @@ export class AndesPopover extends AndesPopoverBase {
 
   override readonly panelTitle = computed(() => this.title());
   override readonly panelBody = computed(() => this.content());
-  override readonly panelLabelledBy = computed(() =>
-    this.title() ? this.titleId : null,
+  // The `title` input and a composed `[andesPopoverTitle]` can coexist; both
+  // then name the panel, input first.
+  override readonly panelLabelledBy = computed(
+    () =>
+      [this.title() ? this.titleId : null, this.titlePartId()]
+        .filter(Boolean)
+        .join(' ') || null,
   );
+  override readonly panelDescribedBy = computed(() => this.descriptionPartId());
 }
