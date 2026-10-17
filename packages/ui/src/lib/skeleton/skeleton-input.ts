@@ -7,11 +7,16 @@ import {
 } from '@angular/core';
 import clsx from 'clsx';
 
-import { AndesSkeletonSize } from './skeleton-utils';
+import { AndesSkeletonSize, toCssSize } from './skeleton-utils';
 
 @Component({
   selector: 'andes-skeleton-input',
-  template: `<span data-slot="skeleton-input" [class]="classes()"></span>`,
+  template: `<span
+    data-slot="skeleton-input"
+    [class]="classes()"
+    [style.width]="widthStyle()"
+    [style.min-width]="widthStyle()"
+  ></span>`,
   styleUrls: ['./skeleton-fill.css', './skeleton-element.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -24,6 +29,15 @@ export class AndesSkeletonInput {
   /** Stretches the placeholder to its parent's width. */
   readonly block = input(false, { transform: booleanAttribute });
   readonly active = input(false, { transform: booleanAttribute });
+  /**
+   * A custom width (numbers are pixels) for a placeholder that stands in for a control wider or
+   * narrower than the default. Ignored while `block` is set - the full-width stretch wins.
+   */
+  readonly width = input<string | number | undefined>(undefined);
+
+  protected readonly widthStyle = computed(() =>
+    this.block() ? undefined : toCssSize(this.width()),
+  );
 
   protected readonly classes = computed(() =>
     clsx(

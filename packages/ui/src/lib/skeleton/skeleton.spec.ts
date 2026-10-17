@@ -359,6 +359,44 @@ describe('AndesSkeleton (composite)', () => {
     ).toContain('andes-skeleton-fill--active');
   });
 
+  it('sweeps the shimmer slowly, within the calm 1.6-2s range', () => {
+    const { fixture, q } = createComposite();
+    fixture.componentInstance.active.set(true);
+    fixture.detectChanges();
+    const title = q('skeleton-title') as HTMLElement;
+
+    expect(getComputedStyle(title).animation).toContain(
+      'andes-skeleton-shimmer 1.8s ease-in-out infinite',
+    );
+  });
+
+  it('lays its bars on the same lines as 16/24 title and 14/22 body text', () => {
+    const { q, rows } = createComposite();
+    const title = getComputedStyle(q('skeleton-title') as HTMLElement);
+    const paragraph = getComputedStyle(q('skeleton-paragraph') as HTMLElement);
+    const row = getComputedStyle(rows()[0]);
+
+    // 16px bar + 4px half-leading either side = one 24px title line.
+    expect(title.height).toBe('1rem');
+    expect(title.marginTop).toBe('0.25rem');
+    expect(title.marginBottom).toBe('0.25rem');
+    // 14px bars on a 22px pitch, with the first and last line's half-leading as padding.
+    expect(row.height).toBe('0.875rem');
+    expect(paragraph.getPropertyValue('gap')).toBe('var(--andes-space-2)');
+    expect(paragraph.getPropertyValue('padding-block')).toBe(
+      'var(--andes-space-1)',
+    );
+    expect(paragraph.marginTop).toBe('var(--andes-space-1)');
+  });
+
+  it('centres the title line on the default avatar', () => {
+    const { q } = createComposite((h) => h.avatar.set(true));
+
+    expect(getComputedStyle(q('skeleton-title') as HTMLElement).marginTop).toBe(
+      'var(--andes-space-2)',
+    );
+  });
+
   it('rounds the bars', () => {
     const { q } = createComposite((h) => h.round.set(true));
 
