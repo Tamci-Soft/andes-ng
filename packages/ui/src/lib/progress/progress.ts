@@ -21,8 +21,9 @@ export type AndesProgressType = 'line' | 'circle' | 'dashboard';
  */
 export type AndesProgressStatus = 'normal' | 'success' | 'exception' | 'active';
 
-/** Named presets. `small`/`default` are aliases for `sm`/`md`. */
-export type AndesProgressSizePreset = 'sm' | 'md' | 'lg' | 'small' | 'default';
+/** Named presets. `small` is an alias for `sm`; `medium` and `default` are aliases for `md`. */
+export type AndesProgressSizePreset =
+  'sm' | 'md' | 'lg' | 'small' | 'medium' | 'default';
 
 /**
  * A preset, or an explicit size:
@@ -127,6 +128,7 @@ function presetOf(size: AndesProgressSize): 'sm' | 'md' | 'lg' | null {
     case 'small':
       return 'sm';
     case 'md':
+    case 'medium':
     case 'default':
       return 'md';
     case 'lg':
@@ -230,6 +232,9 @@ export class AndesProgress {
    */
   readonly format = input<AndesProgressFormat | undefined>(undefined);
   readonly strokeColor = input<AndesProgressStrokeColor | undefined>(undefined);
+  /** Color of the unfilled rail (line track, inactive steps, circle trail). */
+  readonly railColor = input<string | undefined>(undefined);
+  /** @deprecated Use `railColor`, which wins when both are set. */
   readonly trailColor = input<string | undefined>(undefined);
   readonly strokeLinecap = input<AndesProgressLinecap>('round');
   /** Line: bar thickness in px. Circle/dashboard: stroke width as a % of the diameter. */
@@ -260,6 +265,11 @@ export class AndesProgress {
   readonly ariaLabelledby = input<string | undefined>(undefined, {
     alias: 'aria-labelledby',
   });
+
+  /** `railColor`, falling back to the older `trailColor` name. */
+  protected readonly mergedRailColor = computed(
+    () => this.railColor() ?? this.trailColor(),
+  );
 
   /** Unique per instance so several rings on one page don't share one `<linearGradient>`. */
   protected readonly gradientId = `andes-progress-gradient-${nextId++}`;
@@ -355,10 +365,31 @@ export class AndesProgress {
     if (this.isIndeterminate()) {
       return false;
     }
-    if (this.isCircle() && this.circleSize() <= CIRCLE_TINY_SIZE) {
+    if (this.isTiny()) {
       return false;
     }
     return this.showInfo() ?? this.isCircle();
+  });
+
+  protected readonly isTiny = computed(
+    () => this.isCircle() && this.circleSize() <= CIRCLE_TINY_SIZE,
+  );
+
+  /**
+   * A ring at or below 20px has no room for its info text, so the value moves to a native
+   * hover tooltip instead. Only text can go there: a `format` template has no string form, so
+   * a tiny ring with one shows no tooltip. `showInfo: false` turns the tooltip off as well.
+   */
+  protected readonly tinyTooltip = computed(() => {
+    if (
+      !this.isTiny() ||
+      this.isIndeterminate() ||
+      this.showInfo() === false ||
+      this.format() instanceof TemplateRef
+    ) {
+      return null;
+    }
+    return this.infoText();
   });
 
   protected readonly infoKind = computed<InfoKind>(() => {
@@ -503,7 +534,9 @@ export class AndesProgress {
       width,
       height,
       color:
-        index < active ? this.stepColor(index) : (this.trailColor() ?? null),
+        index < active
+          ? this.stepColor(index)
+          : (this.mergedRailColor() ?? null),
     }));
   });
 
@@ -625,7 +658,9 @@ export class AndesProgress {
       // the segments symmetric inside a dashboard's opening.
       dashoffset: -(index * slot + gap / 2),
       color:
-        index < active ? this.stepColor(index) : (this.trailColor() ?? null),
+        index < active
+          ? this.stepColor(index)
+          : (this.mergedRailColor() ?? null),
     }));
   });
 
@@ -648,9 +683,7 @@ export class AndesProgress {
         this.infoVisible() &&
         `andes-progress--align-${this.infoAlign()}`,
       this.infoInner() && 'andes-progress--inner',
-      this.isCircle() &&
-        this.circleSize() <= CIRCLE_TINY_SIZE &&
-        'andes-progress--tiny',
+      this.isTiny() && 'andes-progress--tiny',
     );
   });
 }

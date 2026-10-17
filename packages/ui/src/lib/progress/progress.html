@@ -17,6 +17,7 @@
   @if (isCircle()) {
   <div
     class="andes-progress__circle"
+    [attr.title]="tinyTooltip()"
     [style.width.px]="circleSize()"
     [style.height.px]="circleSize()"
     [style.font-size.px]="circleFontSize()"
@@ -68,7 +69,7 @@
         [attr.stroke-linecap]="strokeLinecap()"
         [attr.transform]="circleTransform()"
         [style.stroke-dasharray]="railDasharray()"
-        [style.stroke]="trailColor() ?? null"
+        [style.stroke]="mergedRailColor() ?? null"
       />
       <circle
         class="andes-progress__circle-indicator"
@@ -130,7 +131,7 @@
     <div
       class="andes-progress__track"
       [style.height.px]="lineHeight()"
-      [style.background-color]="trailColor() ?? null"
+      [style.background-color]="mergedRailColor() ?? null"
     >
       <div
         class="andes-progress__indicator"

@@ -2,6 +2,14 @@
   /* Private per-instance fill color, set by the variant/status class below and read by every
      shape (bar, steps, ring). Underscore-prefixed: not a public token. */
   --_andes-progress-color: var(--andes-color-primary);
+  /* The unfilled rail (line track, inactive steps, circle trail). `secondary`, not `muted`:
+     muted is near-white on the light page (1.1:1) and is the exact card color in the dark
+     theme, so the rail disappeared - most visibly inside a card. Same fill AndesSkeleton uses
+     for the same reason. */
+  --_andes-progress-rail: var(--andes-color-secondary);
+  /* Sign for the physical `translate` the sweep animations use, so they travel in reading
+     direction. Flipped under RTL below. */
+  --_andes-progress-dir: 1;
 
   display: block;
   width: 100%;
@@ -9,6 +17,10 @@
   font-size: var(--andes-text-font-size, 0.875rem);
   line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-foreground);
+}
+
+.andes-progress:dir(rtl) {
+  --_andes-progress-dir: -1;
 }
 
 .andes-progress--type-circle,
@@ -20,6 +32,7 @@
 
 .andes-progress--sm {
   font-size: 0.75rem;
+  line-height: 1.25rem;
 }
 
 /* ---------------------------------------------------------------- Line */
@@ -40,7 +53,7 @@
   min-width: 0;
   width: 100%;
   border-radius: var(--andes-radius-full);
-  background-color: var(--andes-color-muted);
+  background-color: var(--_andes-progress-rail);
 }
 
 .andes-progress__indicator {
@@ -95,8 +108,10 @@
   --_andes-progress-color: var(--andes-color-success);
 }
 
+/* Warning fills with its `-hover` shade, the same accent AndesAlert uses: the base amber is
+   only ~2:1 against the light page, under the 3:1 a bar has to reach to read as a graphic. */
 .andes-progress--warning {
-  --_andes-progress-color: var(--andes-color-warning);
+  --_andes-progress-color: var(--andes-color-warning-hover);
 }
 
 .andes-progress--danger {
@@ -182,16 +197,29 @@
   color: var(--andes-color-danger-foreground);
 }
 
-/* The success fill is dark enough for its white -foreground (5.02:1). The warning token's own
-   brown on amber is 4.2:1 - short of AA for 12px text - so text on that fill uses a near-black
-   shade of the fill itself (>= 5.6:1 in both themes, since the fill doesn't change with the
-   theme). */
+/* The success fill is dark enough for its white -foreground (5.02:1). The warning amber is not:
+   its own brown on amber is 4.2:1 - short of AA for 12px text - so text on that fill is the
+   theme's dark ink (the foreground on a light page, the page itself on a dark one, the same
+   navy either way) with a hint of the fill's own hue: >= 5:1 on the warning -hover fill in
+   both themes. */
+.andes-progress {
+  --_andes-progress-ink: var(--andes-color-foreground);
+}
+
+:host-context([data-andes-theme='dark']) .andes-progress {
+  --_andes-progress-ink: var(--andes-color-background);
+}
+
 .andes-progress--inner.andes-progress--success .andes-progress__info {
   color: var(--andes-color-success-foreground);
 }
 
 .andes-progress--inner.andes-progress--warning .andes-progress__info {
-  color: color-mix(in srgb, var(--andes-color-warning) 15%, black);
+  color: color-mix(
+    in srgb,
+    var(--andes-color-warning) 8%,
+    var(--_andes-progress-ink)
+  );
 }
 
 /* Status icons. Only non-text graphics are status-colored (>= 3:1 on both theme backgrounds);
@@ -248,7 +276,7 @@
 
 .andes-progress__step {
   flex: none;
-  background-color: var(--andes-color-muted);
+  background-color: var(--_andes-progress-rail);
   transition: background-color var(--andes-motion-duration-slow, 0.3s)
     var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
@@ -258,25 +286,31 @@
 }
 
 /* Indeterminate: unknown-length highlight sweeping across the track, since
-   there is no known percentage to render as a static width. */
+   there is no known percentage to render as a static width. Anchored at the inline-start edge
+   and moved with `transform` (from one bar-width before the track to past its end - the bar
+   is 40% of the track, so 250% of itself), rather than animating `left`: compositor-only, and
+   the direction sign makes it sweep right-to-left under RTL. */
 
 .andes-progress__indicator[data-indeterminate] {
   position: absolute;
   inset-block: 0;
+  inset-inline-start: 0;
   width: 40%;
-  animation: andes-progress-indeterminate 1.5s ease-in-out infinite;
+  /* An unhurried sweep: it only has to say "still working". */
+  animation: andes-progress-indeterminate 2s ease-in-out infinite;
 }
 
 @keyframes andes-progress-indeterminate {
   from {
-    left: -40%;
+    transform: translateX(calc(-100% * var(--_andes-progress-dir)));
   }
   to {
-    left: 100%;
+    transform: translateX(calc(250% * var(--_andes-progress-dir)));
   }
 }
 
-/* status="active": a highlight that grows across the filled part. */
+/* status="active": a faint highlight that grows across the filled part - a glint, not a
+   flash, so a page of active bars stays calm. */
 
 .andes-progress__indicator--active::after {
   content: '';
@@ -290,12 +324,12 @@
 
 @keyframes andes-progress-active {
   0% {
-    transform: translateX(-100%) scaleX(0);
+    transform: translateX(calc(-100% * var(--_andes-progress-dir))) scaleX(0);
     opacity: 0.1;
   }
   20% {
-    transform: translateX(-100%) scaleX(0);
-    opacity: 0.5;
+    transform: translateX(calc(-100% * var(--_andes-progress-dir))) scaleX(0);
+    opacity: 0.3;
   }
   100% {
     transform: translateX(0) scaleX(1);
@@ -326,7 +360,7 @@
 
 .andes-progress__circle-rail,
 .andes-progress__circle-step {
-  stroke: var(--andes-color-muted);
+  stroke: var(--_andes-progress-rail);
 }
 
 .andes-progress__circle-indicator {
@@ -363,6 +397,9 @@
   inset: 0;
   justify-content: center;
   margin: 0;
+  /* The ring's percentage is a large display number: a medium weight keeps it from looking
+     thin at 24px while staying calmer than a bold figure. */
+  font-weight: var(--andes-font-weight-medium, 500);
   /* Keeps a longer custom format inside the ring, wrapping instead of crossing the stroke. */
   padding-inline: 15%;
   white-space: normal;
@@ -377,7 +414,7 @@
 /* Indeterminate ring: an arc that grows and shrinks while travelling along the drawn arc, so
    it never crosses a dashboard's opening. */
 .andes-progress__circle-indicator[data-indeterminate] {
-  animation: andes-progress-circle-indeterminate 1.5s ease-in-out infinite;
+  animation: andes-progress-circle-indeterminate 2s ease-in-out infinite;
 }
 
 @keyframes andes-progress-circle-indeterminate {
@@ -396,13 +433,31 @@
   }
 }
 
+/* Without motion nothing travels: the bar fills the track and the ring holds a quarter arc,
+   and both only breathe in opacity, so the meter still reads as busy. */
 @media (prefers-reduced-motion: reduce) {
-  .andes-progress__indicator[data-indeterminate],
+  .andes-progress__indicator[data-indeterminate] {
+    width: 100%;
+    animation: andes-progress-breathe 2s ease-in-out infinite;
+  }
+
   .andes-progress__circle-indicator[data-indeterminate] {
-    animation-duration: 3s;
+    stroke-dasharray: calc(var(--_andes-progress-arc) * 0.25)
+      var(--_andes-progress-perimeter);
+    animation: andes-progress-breathe 2s ease-in-out infinite;
   }
 
   .andes-progress__indicator--active::after {
     animation: none;
+  }
+}
+
+@keyframes andes-progress-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
   }
 }

@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/angular';
+import { moduleMetadata, type Meta, type StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesProgress } from './progress';
 
 const meta: Meta<AndesProgress> = {
@@ -16,7 +17,7 @@ const meta: Meta<AndesProgress> = {
     },
     size: {
       control: 'select',
-      options: ['sm', 'md', 'lg', 'small', 'default'],
+      options: ['sm', 'md', 'lg', 'small', 'medium', 'default'],
     },
     type: { control: 'select', options: ['line', 'circle', 'dashboard'] },
     status: {
@@ -244,12 +245,12 @@ export const GradientStroke: Story = {
   }),
 };
 
-export const StrokeAndTrail: Story = {
+export const StrokeAndRail: Story = {
   render: () => ({
     template: `
       <div style="display: flex; gap: 1.5rem; align-items: center;">
         <div style="display: flex; flex-direction: column; gap: 1rem; width: 320px;">
-          <andes-progress [percent]="60" strokeColor="#7c3aed" trailColor="#ede9fe" [showInfo]="true" aria-label="Custom colors" />
+          <andes-progress [percent]="60" strokeColor="#7c3aed" railColor="#ede9fe" [showInfo]="true" aria-label="Custom colors" />
           <andes-progress [percent]="60" strokeLinecap="butt" [strokeWidth]="12" [showInfo]="true" aria-label="Butt linecap" />
         </div>
         <andes-progress type="circle" [percent]="75" strokeLinecap="butt" aria-label="Butt ring" />
@@ -302,6 +303,43 @@ export const PercentPosition: Story = {
         <andes-progress [percent]="60" [showInfo]="true" [percentPosition]="{ align: 'center', type: 'inner' }" [size]="[360, 20]" variant="success" aria-label="Inner center" />
         <andes-progress [percent]="60" [showInfo]="true" [percentPosition]="{ align: 'end', type: 'inner' }" [size]="[360, 20]" variant="warning" aria-label="Inner end" />
         <andes-progress [percent]="60" [showInfo]="true" [percentPosition]="{ type: 'inner' }" [size]="[360, 20]" variant="danger" aria-label="Inner danger" />
+      </div>
+    `,
+  }),
+};
+
+/** Rings at or below 20px have no room for text, so their value shows as a hover tooltip. */
+export const TinyCircles: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground);">
+        <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          <andes-progress type="circle" [size]="14" [percent]="60" aria-label="Upload" /> Uploading 60%
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          <andes-progress type="circle" [size]="16" [percent]="100" status="success" aria-label="Sync" /> Synced
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          <andes-progress type="circle" [size]="20" [percent]="35" status="exception" aria-label="Import" /> Import failed at 35%
+        </span>
+      </div>
+    `,
+  }),
+};
+
+/** The fill animates between values - step the percentage up and down. */
+export const Dynamic: Story = {
+  decorators: [moduleMetadata({ imports: [AndesButton] })],
+  render: () => ({
+    props: { percent: 30 },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 320px; font-family: var(--andes-font-family), sans-serif;">
+        <andes-progress [percent]="percent" [showInfo]="true" aria-label="Dynamic bar" />
+        <andes-progress type="circle" [percent]="percent" aria-label="Dynamic ring" />
+        <div style="display: flex; gap: 0.5rem;">
+          <andes-button variant="secondary" size="sm" aria-label="Decrease" (click)="percent = percent > 10 ? percent - 10 : 0">-10</andes-button>
+          <andes-button variant="secondary" size="sm" aria-label="Increase" (click)="percent = percent < 90 ? percent + 10 : 100">+10</andes-button>
+        </div>
       </div>
     `,
   }),

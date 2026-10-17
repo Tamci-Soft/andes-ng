@@ -61,6 +61,14 @@ describe('AndesProgress', () => {
     expect(indicator.getAttribute('data-indeterminate')).toBe('');
   });
 
+  it('sweeps the indeterminate bar at an unhurried 2s pace', () => {
+    const { indicator } = createHost();
+
+    expect(getComputedStyle(indicator).animation).toContain(
+      'andes-progress-indeterminate 2s ease-in-out infinite',
+    );
+  });
+
   it('sets aria-valuenow and the indicator width for a determinate value', () => {
     const { fixture, root, indicator } = createHost();
     fixture.componentInstance.value.set(42);
@@ -178,6 +186,82 @@ describe('AndesProgress (extended options)', () => {
         Array.from(el.querySelectorAll(selector)) as T[],
     };
   }
+
+  it('sets small-size text as a 12px caption on a 20px line', () => {
+    const { el } = create({ size: 'small', percent: 40, showInfo: true });
+    const meter = el.querySelector('.andes-progress--sm') as HTMLElement;
+
+    expect(getComputedStyle(meter).fontSize).toBe('0.75rem');
+    expect(getComputedStyle(meter).lineHeight).toBe('1.25rem');
+  });
+
+  it('sets the ring percentage in a medium weight', () => {
+    const { q } = create({ type: 'circle', percent: 40, showInfo: true });
+
+    expect(
+      getComputedStyle(q('.andes-progress__circle .andes-progress__info')!)
+        .fontWeight,
+    ).toBe('var(--andes-font-weight-medium, 500)');
+  });
+
+  it('keeps the line percentage in the regular body weight', () => {
+    const { q } = create({ percent: 40, showInfo: true });
+
+    expect(
+      getComputedStyle(q('.andes-progress__info')!).fontWeight,
+    ).not.toContain('medium');
+  });
+
+  describe('inner label ink', () => {
+    afterEach(() =>
+      document.documentElement.removeAttribute('data-andes-theme'),
+    );
+
+    it('inks a warning label from theme tokens, never a fixed black', () => {
+      const { root, q } = create({
+        percent: 50,
+        variant: 'warning',
+        showInfo: true,
+        percentPosition: { type: 'inner', align: 'end' },
+      });
+      const label = q('.andes-progress__indicator .andes-progress__info')!;
+      const color = getComputedStyle(label).color.replace(/\s+/g, ' ');
+
+      expect(color).not.toContain('black');
+      expect(color).toContain('var(--andes-color-warning) 8%');
+      expect(color).toContain('var(--_andes-progress-ink)');
+      expect(
+        getComputedStyle(root).getPropertyValue('--_andes-progress-ink'),
+      ).toBe('var(--andes-color-foreground)');
+    });
+
+    it('keeps a success label on the white foreground of its fill', () => {
+      const { q } = create({
+        percent: 50,
+        variant: 'success',
+        showInfo: true,
+        percentPosition: { type: 'inner', align: 'end' },
+      });
+      const label = q('.andes-progress__indicator .andes-progress__info')!;
+
+      expect(getComputedStyle(label).color).toBe(
+        'var(--andes-color-success-foreground)',
+      );
+    });
+
+    it('switches the ink to the dark page colour in the dark theme', () => {
+      document.documentElement.setAttribute('data-andes-theme', 'dark');
+      const { root } = create({
+        percent: 50,
+        variant: 'success',
+        percentPosition: { type: 'inner', align: 'end' },
+      });
+
+      expect(
+        getComputedStyle(root).getPropertyValue('--_andes-progress-ink'),
+      ).toBe('var(--andes-color-background)');
+    });
+  });
 
   function set(
     fixture: ComponentFixture<AndesProgress>,
@@ -409,6 +493,42 @@ describe('AndesProgress (extended options)', () => {
   });
 
   describe('line styling', () => {
+    it('paints the rail with railColor, preferred over trailColor', () => {
+      const { fixture, q } = create({
+        percent: 50,
+        railColor: 'rgb(1, 2, 3)',
+      });
+      expect(q('.andes-progress__track')?.style.backgroundColor).toBe(
+        'rgb(1, 2, 3)',
+      );
+
+      set(fixture, { trailColor: 'rgb(9, 9, 9)' });
+      expect(q('.andes-progress__track')?.style.backgroundColor).toBe(
+        'rgb(1, 2, 3)',
+      );
+
+      set(fixture, { railColor: undefined });
+      expect(q('.andes-progress__track')?.style.backgroundColor).toBe(
+        'rgb(9, 9, 9)',
+      );
+    });
+
+    it('paints inactive steps and the circle rail with railColor', () => {
+      const { fixture, q, qa } = create({
+        percent: 50,
+        steps: 4,
+        railColor: 'rgb(1, 2, 3)',
+      });
+      const steps = qa('.andes-progress__step');
+      expect(steps[3].style.backgroundColor).toBe('rgb(1, 2, 3)');
+      expect(steps[0].style.backgroundColor).toBe('');
+
+      set(fixture, { type: 'circle', steps: undefined });
+      expect(q<SVGElement>('.andes-progress__circle-rail')?.style.stroke).toBe(
+        'rgb(1, 2, 3)',
+      );
+    });
+
     it('applies a solid strokeColor and trailColor', () => {
       const { q } = create({
         percent: 50,
@@ -518,6 +638,38 @@ describe('AndesProgress (extended options)', () => {
 
       expect(root.classList).toContain('andes-progress--tiny');
       expect(q('.andes-progress__info')).toBeNull();
+    });
+
+    it("moves a tiny circle's value into a hover tooltip", () => {
+      const { fixture, q } = create({ type: 'circle', percent: 42, size: 16 });
+      expect(q('.andes-progress__circle')?.getAttribute('title')).toBe('42%');
+
+      set(fixture, { format: (percent: number) => `${percent} of 100` });
+      expect(q('.andes-progress__circle')?.getAttribute('title')).toBe(
+        '42 of 100',
+      );
+
+      set(fixture, { showInfo: false });
+      expect(q('.andes-progress__circle')?.hasAttribute('title')).toBe(false);
+    });
+
+    it('keeps the tooltip off rings big enough to show their info', () => {
+      const { q } = create({ type: 'circle', percent: 42, size: 80 });
+
+      expect(q('.andes-progress__circle')?.hasAttribute('title')).toBe(false);
+      expect(q('.andes-progress__info')?.textContent?.trim()).toBe('42%');
+    });
+
+    it('accepts medium as an alias of the default size', () => {
+      const { fixture, root, q } = create({
+        type: 'circle',
+        percent: 50,
+        size: 'medium',
+      });
+      expect(q('.andes-progress__circle')?.style.width).toBe('120px');
+
+      set(fixture, { type: 'line' });
+      expect(root.classList).toContain('andes-progress--md');
     });
   });
 
