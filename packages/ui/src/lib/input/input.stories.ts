@@ -2,7 +2,9 @@ import { signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesInput } from './input';
+import { AndesInputGroup } from './input-group';
 import { AndesInputOtp } from './input-otp';
 import { AndesInputPassword } from './input-password';
 import { AndesInputSearch } from './input-search';
@@ -96,7 +98,7 @@ export const Invalid: Story = {
       <div style="display: flex; flex-direction: column; gap: 0.375rem; width: 20rem;">
         <label for="invalid-email" style="font-size: 0.875rem; font-weight: 500;">Email address</label>
         <andes-input id="invalid-email" type="email" aria-invalid="true" aria-describedby="email-error" placeholder="you@example.com" />
-        <span id="email-error" style="color: var(--andes-color-danger); font-size: 0.875rem;">
+        <span id="email-error" style="color: var(--andes-color-danger); font-size: 0.75rem; line-height: 1.25rem;">
           Please enter a valid email address.
         </span>
       </div>
@@ -112,6 +114,30 @@ export const Clearable: Story = {
     // property of a `meta.component` instance it finds in the rendered tree.
     props: { clearableValue: 'Clear me' },
     template: `<andes-input clearable [(ngModel)]="clearableValue" placeholder="Clearable" />`,
+  }),
+};
+
+/**
+ * The clear button is the same at every size and on every field: a small muted disc that
+ * appears while the field is hovered or focused (always on touch screens). It is a Tab stop of
+ * its own, named by `clearLabel`.
+ */
+export const ClearButtonSizes: Story = {
+  render: () => ({
+    props: {
+      smallText: signal('Small'),
+      mediumText: signal('Medium'),
+      largeText: signal('Large'),
+      localizedText: signal('Texto'),
+    },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 20rem;">
+        <andes-input aria-label="Small" size="sm" clearable [(value)]="smallText" />
+        <andes-input aria-label="Medium" clearable [(value)]="mediumText" />
+        <andes-input aria-label="Large" size="lg" clearable [(value)]="largeText" />
+        <andes-input aria-label="Localized" clearable clearLabel="Borrar" [(value)]="localizedText" />
+      </div>
+    `,
   }),
 };
 
@@ -325,6 +351,202 @@ export const OTP: Story = {
         <andes-input-otp aria-label="Code with separator" [length]="6" separator="-" variant="filled" size="sm" />
         <andes-input-otp aria-label="Invalid code" [length]="4" status="error" variant="underlined" size="lg" />
         <andes-input-otp aria-label="Disabled code" [length]="4" disabled />
+      </div>
+    `,
+  }),
+};
+
+const caption =
+  'font-size: 0.875rem; color: var(--andes-color-foreground); font-family: var(--andes-font-family), sans-serif;';
+
+// Grapheme-aware helpers for the count stories: an emoji or a flag counts as one character.
+function graphemes(value: string): string[] {
+  return Array.from(
+    new Intl.Segmenter().segment(value),
+    (part) => part.segment,
+  );
+}
+
+export const CountLimits: Story = {
+  render: () => ({
+    props: {
+      countGraphemes: (value: string) => graphemes(value).length,
+      cutGraphemes: (value: string, { max }: { max: number }) =>
+        graphemes(value).slice(0, max).join(''),
+      softText: signal('A note that runs long'),
+      emojiText: signal('🇵🇪👍🏽'),
+      caption,
+    },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 22rem;">
+        <andes-input aria-label="Soft limit" showCount [countMax]="12" [(value)]="softText"
+          placeholder="countMax = 12, not enforced" />
+        <span [style]="caption">countMax flags the field (red counter, error border, aria-invalid) instead of blocking input.</span>
+        <andes-input aria-label="Emoji-aware limit" showCount [countMax]="6"
+          [countStrategy]="countGraphemes" [countExceedFormatter]="cutGraphemes" [(value)]="emojiText"
+          placeholder="6 characters, emoji count as one" />
+        <span [style]="caption">countStrategy counts emoji as one; countExceedFormatter trims past 6.</span>
+      </div>
+    `,
+  }),
+};
+
+export const CustomClearIcon: Story = {
+  render: () => ({
+    props: { customClearText: signal('Clear me') },
+    template: `
+      <div style="width: 20rem;">
+        <andes-input aria-label="Custom clear icon" clearable [clearIcon]="clearIconTpl" [(value)]="customClearText" />
+      </div>
+      <ng-template #clearIconTpl>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6"></path><path d="m9 9 6 6"></path>
+        </svg>
+      </ng-template>
+    `,
+  }),
+};
+
+export const TextAlign: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 16rem;">
+        <andes-input aria-label="Amount" value="1,250.00" style="--andes-input-text-align: end;">
+          <span slot="prefix">S/</span>
+        </andes-input>
+        <andes-input aria-label="Code" value="A-104" style="--andes-input-text-align: center;" />
+      </div>
+    `,
+  }),
+};
+
+export const Focus: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesButton] },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; width: 24rem;">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+          <andes-button size="sm" variant="outline" (click)="focusTarget.focus({ cursor: 'start' })">Focus at start</andes-button>
+          <andes-button size="sm" variant="outline" (click)="focusTarget.focus({ cursor: 'end' })">Focus at end</andes-button>
+          <andes-button size="sm" variant="outline" (click)="focusTarget.focus({ cursor: 'all' })">Select all</andes-button>
+          <andes-button size="sm" variant="outline" (click)="focusTarget.blur()">Blur</andes-button>
+        </div>
+        <andes-input #focusTarget aria-label="Focus target" value="Focus moves the caret here" />
+      </div>
+    `,
+  }),
+};
+
+/** `(focused)` / `(blurred)` re-emit the inner input's native FocusEvent. */
+export const FocusEvents: Story = {
+  render: () => ({
+    props: { focusLog: signal<string[]>([]) },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 20rem;">
+        <andes-input aria-label="Focus events" placeholder="Focus me, then tab away"
+          (focused)="focusLog.set(focusLog().concat('focused'))"
+          (blurred)="focusLog.set(focusLog().concat('blurred'))" />
+        <span style="font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground);">
+          {{ focusLog().join(' → ') || 'No events yet' }}
+        </span>
+      </div>
+    `,
+  }),
+};
+
+export const PasswordCustomToggle: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesInputPassword] },
+    props: { toggleLog: signal<boolean[]>([]), caption },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 20rem;">
+        <andes-input-password aria-label="Password, text toggle" placeholder="Custom toggle content"
+          [visibilityIcon]="toggleText" (visibleChange)="toggleLog.set(toggleLog().concat($event))" />
+        <andes-input-password aria-label="Password, toggle out of Tab order" placeholder="Toggle skipped by Tab"
+          [visibilityToggleTabIndex]="-1" />
+        <span [style]="caption">visibleChange: {{ toggleLog().join(', ') }}</span>
+      </div>
+      <ng-template #toggleText let-visible>
+        <span style="font-size: 0.75rem; font-weight: 500;">{{ visible ? 'Hide' : 'Show' }}</span>
+      </ng-template>
+    `,
+  }),
+};
+
+export const SearchCustomButton: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesInputSearch] },
+    props: { customSearches: signal<string[]>([]), caption },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 24rem;">
+        <andes-input-search aria-label="Search, custom button" placeholder="enterButton as a template" [enterButton]="goButton"
+          (searched)="customSearches.set(customSearches().concat($event.value))" />
+        <andes-input-search aria-label="Search, custom icon" placeholder="searchIcon" [searchIcon]="filterIcon" />
+        @for (entry of customSearches(); track $index) {
+          <span [style]="caption">{{ entry }}</span>
+        }
+      </div>
+      <ng-template #goButton>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path>
+        </svg>
+        Go
+      </ng-template>
+      <ng-template #filterIcon>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path>
+        </svg>
+      </ng-template>
+    `,
+  }),
+};
+
+export const OTPSeparators: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesInputOtp] },
+    props: {
+      middleDash: (index: number) => (index === 2 ? '–' : ''),
+      otpCells: signal<string[]>([]),
+      caption,
+    },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <andes-input-otp aria-label="Code, grouped in threes" [separator]="middleDash"
+          (cellsChange)="otpCells.set($event)" />
+        <span [style]="caption">cellsChange: [{{ otpCells().map(c => c || '·').join(' ') }}]</span>
+        <andes-input-otp aria-label="Code, dotted" [length]="4" [separator]="dotSeparator" mask="✱" />
+      </div>
+      <ng-template #dotSeparator>
+        <span style="display: block; width: 0.375rem; height: 0.375rem; border-radius: 999px; background: var(--andes-color-muted-foreground);"></span>
+      </ng-template>
+    `,
+  }),
+};
+
+export const Compact: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [AndesInputGroup, AndesButton, AndesInputSearch],
+    },
+    template: `
+      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; width: 28rem;">
+        <andes-input-group aria-label="Name">
+          <andes-input aria-label="First name" placeholder="First name" />
+          <andes-input aria-label="Last name" placeholder="Last name" />
+        </andes-input-group>
+        <andes-input-group block aria-label="Convert amount">
+          <andes-input aria-label="Amount" placeholder="0.00" addonBefore="USD" />
+          <andes-button>Convert</andes-button>
+        </andes-input-group>
+        <andes-input-group block aria-label="Search orders">
+          <andes-input aria-label="Order field" value="Order #" style="flex: 0 0 7rem;" />
+          <andes-input-search aria-label="Search orders" placeholder="Search…" enterButton />
+        </andes-input-group>
+        <andes-input-group block aria-label="Small row">
+          <andes-input size="sm" aria-label="From" placeholder="From" />
+          <andes-input size="sm" aria-label="To" placeholder="To" />
+          <andes-button size="sm" variant="outline">Apply</andes-button>
+        </andes-input-group>
       </div>
     `,
   }),

@@ -24,9 +24,11 @@
     (keydown)="onCellKeydown(index, $event)"
     (paste)="onPaste(index, $event)"
   />
-  @if (separator() && !last) {
+  @if (!last) { @if (separatorTemplate(); as template) {
   <span class="andes-input-otp__separator" aria-hidden="true"
-    >{{ separator() }}</span
-  >
-  } }
+    ><ng-container *ngTemplateOutlet="template; context: { $implicit: index }"
+  /></span>
+  } @else if (separatorText(index); as text) {
+  <span class="andes-input-otp__separator" aria-hidden="true">{{ text }}</span>
+  } } }
 </div>

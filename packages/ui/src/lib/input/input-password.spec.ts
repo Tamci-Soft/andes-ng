@@ -131,3 +131,59 @@ describe('AndesInputPassword', () => {
     expect(fixture.componentInstance.control.value).toBe('hunter2');
   });
 });
+
+describe('AndesInputPassword custom toggle', () => {
+  @Component({
+    imports: [AndesInputPassword],
+    template: `<andes-input-password
+        aria-label="Password"
+        [visibilityIcon]="icon"
+        [visibilityToggleTabIndex]="tabIndex()"
+        (visibleChange)="changes.push($event)"
+      />
+      <ng-template #icon let-visible>
+        <span class="custom-eye">{{ visible ? 'Hide' : 'Show' }}</span>
+      </ng-template>`,
+  })
+  class CustomToggleHost {
+    readonly tabIndex = signal(0);
+    readonly changes: boolean[] = [];
+  }
+
+  function createCustomHost() {
+    const fixture = TestBed.createComponent(CustomToggleHost);
+    fixture.detectChanges();
+    const toggle = fixture.nativeElement.querySelector(
+      '.andes-input__password-toggle',
+    ) as HTMLButtonElement;
+    return { fixture, toggle };
+  }
+
+  it('draws visibilityIcon with the current visibility in place of the eye icons', () => {
+    const { fixture, toggle } = createCustomHost();
+
+    expect(toggle.querySelector('svg')).toBeNull();
+    expect(toggle.querySelector('.custom-eye')?.textContent?.trim()).toBe(
+      'Show',
+    );
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(toggle.querySelector('.custom-eye')?.textContent?.trim()).toBe(
+      'Hide',
+    );
+    expect(fixture.componentInstance.changes).toEqual([true]);
+  });
+
+  it('forwards visibilityToggleTabIndex to the toggle (0 by default)', () => {
+    const { fixture, toggle } = createCustomHost();
+
+    expect(toggle.getAttribute('tabindex')).toBe('0');
+
+    fixture.componentInstance.tabIndex.set(-1);
+    fixture.detectChanges();
+
+    expect(toggle.getAttribute('tabindex')).toBe('-1');
+  });
+});

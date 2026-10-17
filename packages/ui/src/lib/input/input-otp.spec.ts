@@ -74,6 +74,18 @@ describe('AndesInputOtp', () => {
     ).toHaveLength(6);
   });
 
+  it('renders md cells as 2rem squares (control-scale token) with 0.875rem text by default', () => {
+    const { fixture, cells } = createHost();
+    const root = fixture.nativeElement.querySelector('.andes-input-otp');
+    const cell = getComputedStyle(cells()[0]);
+
+    expect(cell.width).toBe('var(--andes-control-height-md, 2rem)');
+    expect(cell.height).toBe('var(--andes-control-height-md, 2rem)');
+    expect(getComputedStyle(root).fontSize).toBe(
+      'var(--andes-control-font-size-md, 0.875rem)',
+    );
+  });
+
   it('writes a typed character and advances focus to the next cell', () => {
     const { fixture, cells, typeInto } = createHost();
 
@@ -292,16 +304,17 @@ describe('AndesInputOtp', () => {
 
     cells()[0].focus();
 
-    // Transparent outline for forced-colors mode; the visible ring is border + halo.
-    expect(getComputedStyle(cells()[0]).outline).toBe('2px solid transparent');
-    expect(getComputedStyle(cells()[0]).boxShadow).toContain(
-      'var(--andes-color-focus-ring)',
+    // Border colour plus a soft 2px ring; no outline (an offset outline reads as a second frame).
+    expect(getComputedStyle(cells()[0]).boxShadow).toBe(
+      '0 0 0 2px var(--_andes-input-ring)',
     );
+    expect(getComputedStyle(cells()[0]).outline).toBe('none');
+    expect(getComputedStyle(cells()[1]).boxShadow).toBe('none');
     expect(getComputedStyle(root).outline).not.toContain('solid');
     expect(getComputedStyle(root).fontFamily).toBe(
       'var(--andes-font-family), sans-serif',
     );
-    expect(getComputedStyle(cells()[0]).fontFamily).toBe('inherit');
+    expect(getComputedStyle(cells()[0]).font).toBe('inherit');
   });
 
   it('focus() focuses the first empty cell', () => {
@@ -315,5 +328,91 @@ describe('AndesInputOtp', () => {
     fixture.componentInstance.focus();
 
     expect(document.activeElement).toBe(cells[2]);
+  });
+});
+
+describe('AndesInputOtp separators, cellsChange and blur', () => {
+  @Component({
+    imports: [AndesInputOtp],
+    template: `<andes-input-otp
+        aria-label="Function separator"
+        [length]="6"
+        [separator]="everyThird"
+        (cellsChange)="edits.push($event)"
+      />
+      <andes-input-otp
+        aria-label="Template separator"
+        [length]="3"
+        [separator]="dot"
+      />
+      <ng-template #dot let-index
+        ><i class="dot">{{ index }}</i></ng-template
+      >`,
+  })
+  class SeparatorHost {
+    readonly everyThird = (index: number) => (index === 2 ? '-' : '');
+    readonly edits: string[][] = [];
+  }
+
+  function createSeparatorHost() {
+    const fixture = TestBed.createComponent(SeparatorHost);
+    fixture.detectChanges();
+    const [first, second] = Array.from(
+      fixture.nativeElement.querySelectorAll('andes-input-otp'),
+    ) as HTMLElement[];
+    return { fixture, first, second };
+  }
+
+  it('asks a separator function per gap and leaves out the empty ones', () => {
+    const { first } = createSeparatorHost();
+    const separators = first.querySelectorAll('.andes-input-otp__separator');
+
+    expect(separators).toHaveLength(1);
+    expect(separators[0].textContent).toBe('-');
+    // The single separator sits after the third cell.
+    expect(separators[0].previousElementSibling).toBe(
+      first.querySelectorAll('.andes-input-otp__cell')[2],
+    );
+  });
+
+  it('renders a separator template with the index of the cell it follows', () => {
+    const { second } = createSeparatorHost();
+    const dots = Array.from(second.querySelectorAll('.dot')).map(
+      (dot) => dot.textContent,
+    );
+
+    expect(dots).toEqual(['0', '1']);
+    expect(
+      second
+        .querySelector('.andes-input-otp__separator')
+        ?.getAttribute('aria-hidden'),
+    ).toBe('true');
+  });
+
+  it('emits every cell, holes included, on each edit', () => {
+    const { fixture, first } = createSeparatorHost();
+    const cell = first.querySelectorAll(
+      '.andes-input-otp__cell',
+    )[1] as HTMLInputElement;
+
+    cell.value = '7';
+    cell.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.edits).toEqual([
+      ['', '7', '', '', '', ''],
+    ]);
+  });
+
+  it('blur() moves focus out of the focused cell', () => {
+    const fixture = TestBed.createComponent(AndesInputOtp);
+    fixture.detectChanges();
+    const otp = fixture.componentInstance;
+
+    otp.focus();
+    expect(fixture.nativeElement.contains(document.activeElement)).toBe(true);
+
+    otp.blur();
+    expect(fixture.nativeElement.contains(document.activeElement)).toBe(false);
   });
 });

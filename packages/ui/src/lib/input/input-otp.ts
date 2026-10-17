@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -11,6 +12,7 @@ import {
   numberAttribute,
   output,
   signal,
+  TemplateRef,
   viewChildren,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -23,6 +25,20 @@ import type {
 } from './input-base';
 
 export type AndesInputOtpFormatter = (value: string) => string;
+
+/** Template context of a separator template: `let-index` is the cell the separator follows. */
+export interface AndesInputOtpSeparatorContext {
+  $implicit: number;
+}
+
+/**
+ * What goes between two cells: the same text everywhere, a function of the index of the cell
+ * it follows (return '' to leave a gap out), or a template.
+ */
+export type AndesInputOtpSeparator =
+  | string
+  | ((index: number) => string)
+  | TemplateRef<AndesInputOtpSeparatorContext>;
 
 const DEFAULT_MASK_CHARACTER = '•';
 
@@ -54,6 +70,7 @@ function splitIntoCells(value: string, length: number): string[] {
  */
 @Component({
   selector: 'andes-input-otp',
+  imports: [NgTemplateOutlet],
   templateUrl: './input-otp.html',
   styleUrl: './input-otp.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -87,8 +104,11 @@ export class AndesInputOtp implements ControlValueAccessor {
   });
   /** Applied to typed/pasted text before it lands in the cells - may also filter characters out. */
   readonly formatter = input<AndesInputOtpFormatter | undefined>(undefined);
-  /** Drawn between every pair of cells (decorative, hidden from assistive technology). */
-  readonly separator = input<string | undefined>(undefined);
+  /**
+   * Drawn between every pair of cells (decorative, hidden from assistive technology). A function
+   * or a template receives the index of the cell the separator follows.
+   */
+  readonly separator = input<AndesInputOtpSeparator | undefined>(undefined);
   readonly size = input<AndesInputSize>('md');
   readonly variant = input<AndesInputVariant>('outlined');
   readonly status = input<AndesInputStatus | undefined>(undefined);
@@ -112,6 +132,11 @@ export class AndesInputOtp implements ControlValueAccessor {
 
   /** Emits the full code whenever an edit leaves every cell filled. */
   readonly complete = output<string>();
+  /**
+   * Emits every cell's character (`''` for an empty one) on each user edit. Unlike the value,
+   * it keeps holes in place, so it tells which cells a partial code fills.
+   */
+  readonly cellsChange = output<string[]>();
 
   private readonly disabledByForm = signal(false);
 
@@ -187,6 +212,28 @@ export class AndesInputOtp implements ControlValueAccessor {
   focus(options?: FocusOptions): void {
     const firstEmpty = this.cells().findIndex((cell) => !cell);
     this.focusCell(firstEmpty === -1 ? this.length() - 1 : firstEmpty, options);
+  }
+
+  /** Moves focus out of whichever cell has it. */
+  blur(): void {
+    const active = this.cellInputs().find(
+      ({ nativeElement }) =>
+        nativeElement === nativeElement.ownerDocument.activeElement,
+    );
+    active?.nativeElement.blur();
+  }
+
+  protected separatorTemplate(): TemplateRef<AndesInputOtpSeparatorContext> | null {
+    const separator = this.separator();
+    return separator instanceof TemplateRef ? separator : null;
+  }
+
+  protected separatorText(index: number): string {
+    const separator = this.separator();
+    if (typeof separator === 'function') {
+      return separator(index);
+    }
+    return typeof separator === 'string' ? separator : '';
   }
 
   protected display(index: number): string {
@@ -296,6 +343,7 @@ export class AndesInputOtp implements ControlValueAccessor {
     const value = next.join('');
     this.value.set(value);
     this.onChange(value);
+    this.cellsChange.emit(next);
     if (next.every(Boolean)) {
       this.complete.emit(value);
     }

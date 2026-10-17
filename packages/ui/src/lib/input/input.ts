@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,8 +12,10 @@ import { AndesButton } from '../button/button';
 import { ANDES_INPUT_HOST, AndesInputBase } from './input-base';
 
 export type {
+  AndesInputCountExceedFormatter,
   AndesInputCountFormatter,
   AndesInputCountInfo,
+  AndesInputCountStrategy,
   AndesInputFocusOptions,
   AndesInputSize,
   AndesInputStatus,
@@ -26,7 +29,7 @@ export type AndesInputType =
   selector: 'andes-input',
   // AndesButton is only drawn by the Search variant, but all three variants compile the same
   // template, so each one has to be able to resolve it.
-  imports: [AndesButton],
+  imports: [AndesButton, NgTemplateOutlet],
   templateUrl: './input.html',
   styleUrl: './input.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
