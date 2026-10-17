@@ -214,10 +214,11 @@ describe('AndesSkeleton (composite)', () => {
     expect(root.querySelectorAll('.real-content')).toHaveLength(1);
   });
 
-  it('marks the host busy with one status text and hides every bar from assistive tech', () => {
+  it('gives the host one status text, not aria-busy, and hides every bar from assistive tech', () => {
     const { host, q } = createComposite((h) => h.avatar.set(true));
 
-    expect(host.getAttribute('aria-busy')).toBe('true');
+    // aria-busy would let screen readers hold back the status announcement inside it.
+    expect(host.hasAttribute('aria-busy')).toBe(false);
     expect(host.hasAttribute('aria-hidden')).toBe(false);
     const statuses = host.querySelectorAll('[role="status"]');
     expect(statuses).toHaveLength(1);
@@ -228,7 +229,7 @@ describe('AndesSkeleton (composite)', () => {
     expect(body?.querySelector('andes-skeleton-avatar')).not.toBeNull();
   });
 
-  it('drops the busy state once loaded', () => {
+  it('drops the status text once loaded', () => {
     const { host } = createComposite((h) => h.loading.set(false));
 
     expect(host.hasAttribute('aria-busy')).toBe(false);
