@@ -48,6 +48,21 @@
   cursor: pointer;
 }
 
+/* The control is only a thumb (16px) thick; this stretches its pointer target to 24px across
+   the track without changing the layout. A press on it lands on the control itself, which the
+   pointer math already treats as a press on the track. */
+.andes-slider__control::before {
+  content: '';
+  position: absolute;
+  inset-block: calc((1.5rem - var(--andes-slider-thumb-size)) / -2);
+  inset-inline: 0;
+}
+
+:host([data-orientation='vertical']) .andes-slider__control::before {
+  inset-block: 0;
+  inset-inline: calc((1.5rem - var(--andes-slider-thumb-size)) / -2);
+}
+
 :host([data-disabled]) .andes-slider__control {
   cursor: not-allowed;
 }
@@ -70,7 +85,12 @@
 .andes-slider__track {
   position: relative;
   border-radius: var(--andes-radius-full);
-  background-color: var(--andes-slider-rail-color, var(--andes-color-muted));
+  /* --andes-color-secondary rather than --andes-color-muted: muted sits at ~1.1:1 on the page
+     in both themes, which left the unfilled part of the range all but invisible. */
+  background-color: var(
+    --andes-slider-rail-color,
+    var(--andes-color-secondary)
+  );
 }
 
 :host([data-orientation='horizontal']) .andes-slider__track {
@@ -128,8 +148,10 @@
     0;
 }
 
-:host([data-draggable-track][data-orientation='vertical'])
-  .andes-slider__indicator::before {
+/* Not keyed on [data-draggable-track] again: the pseudo-element only exists (has `content`)
+   when the rule above applies, and the shorter selector stays on one line - Angular's style
+   shim mis-scopes a selector whose combinator starts a continuation line. */
+:host([data-orientation='vertical']) .andes-slider__indicator::before {
   inset: 0
     calc((var(--andes-slider-thumb-size) - var(--andes-slider-rail-size)) / -2);
 }
@@ -223,6 +245,14 @@
   margin-block-end: calc(var(--andes-slider-thumb-size) / -2);
 }
 
+.andes-slider__thumb:hover,
+.andes-slider__thumb:focus-visible,
+.andes-slider__thumb[data-dragging] {
+  /* The thumb being used rises above its neighbours, so close or crossed handles never cover
+     its focus ring or value tooltip. */
+  z-index: 1;
+}
+
 .andes-slider__thumb:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
   /* Clears the grown 17px ring (1.5px past the box) with a visible gap. */
@@ -261,8 +291,9 @@
   display: flex;
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--andes-motion-duration-mid, 0.2s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  /* Leaves a little faster than it arrives, so it never lingers after the pointer moves on. */
+  transition: opacity var(--andes-motion-duration-fast, 0.12s)
+    var(--andes-motion-ease-in, ease-in);
 }
 
 .andes-slider__tooltip[data-placement='top'] {
@@ -299,12 +330,10 @@
   border: 1px solid var(--andes-color-border);
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
-  /* Ant's tooltip metrics: 14px / 22px text, 34px tall (6px 8px padding, less the 1px border
-     kept so the bubble stays visible against a same-colored page), 6px corners. */
-  padding: 0.3125rem var(--andes-space-2);
+  padding: 0 var(--andes-space-2);
   border-radius: var(--andes-radius-md);
-  font-size: var(--andes-text-font-size, 0.875rem);
-  line-height: var(--andes-text-line-height, 1.375rem);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
   white-space: nowrap;
 }
 
@@ -313,6 +342,7 @@
 .andes-slider__thumb:focus-visible .andes-slider__tooltip,
 .andes-slider__thumb[data-dragging] .andes-slider__tooltip {
   opacity: 1;
+  transition: opacity 0.15s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .andes-slider__thumb[data-removing] .andes-slider__tooltip {
@@ -323,6 +353,9 @@
 
 .andes-slider__marks {
   position: relative;
+  /* Only the labels themselves take clicks (see .andes-slider__mark-label), so the strip
+     between them never swallows a press aimed at the control's stretched hit area above. */
+  pointer-events: none;
 }
 
 :host([data-orientation='horizontal']) .andes-slider__marks {

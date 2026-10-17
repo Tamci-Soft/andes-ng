@@ -1414,6 +1414,34 @@ describe('AndesSlider', () => {
       expect(view.tooltips[0].getAttribute('data-placement')).toBe('left');
     });
 
+    it('fades the value bubble in gently and sets it as a 12px caption', () => {
+      const view = mount((host) => host.value.set(30));
+      const tooltip = view.tooltips[0];
+      const bubble = tooltip.querySelector(
+        '.andes-slider__tooltip-bubble',
+      ) as HTMLElement;
+
+      expect(getComputedStyle(tooltip).opacity).toBe('1');
+      expect(getComputedStyle(tooltip).transition).toBe(
+        'opacity 0.15s cubic-bezier(0.2, 0, 0, 1)',
+      );
+      expect(getComputedStyle(bubble).fontSize).toBe('0.75rem');
+      expect(getComputedStyle(bubble).lineHeight).toBe('1.25rem');
+    });
+
+    it('fades a hover bubble out with the quick exit timing', () => {
+      const view = mount((host) => {
+        host.value.set(30);
+        host.tooltip.set('hover');
+      });
+      const tooltip = view.tooltips[0];
+
+      expect(getComputedStyle(tooltip).opacity).toBe('0');
+      const transition = getComputedStyle(tooltip).transition;
+      expect(transition).toContain('--andes-motion-duration-fast, 0.12s');
+      expect(transition).toContain('--andes-motion-ease-in, ease-in');
+    });
+
     it('formats tooltip text separately from aria-valuetext', () => {
       const view = mount((host) => {
         host.value.set(30);
