@@ -859,7 +859,7 @@ describe('AndesTable column filters', () => {
       expect(panel()?.style.top).toBe('356px');
       // End edge aligned with the button's end edge: 724 - 160.
       expect(panel()?.style.left).toBe('564px');
-      expect(panel()?.getAttribute('data-placement')).toBe('top');
+      expect(panel()?.getAttribute('data-side')).toBe('above');
     } finally {
       Object.defineProperty(
         HTMLElement.prototype,
@@ -911,6 +911,7 @@ describe('AndesTable layout and states', () => {
     ],
     template: `<andes-table
       [loading]="loading()"
+      [bordered]="bordered()"
       loadingLabel="Fetching invoices"
       [scrollX]="scrollX()"
       [scrollY]="scrollY()"
@@ -950,6 +951,7 @@ describe('AndesTable layout and states', () => {
   class LayoutHost {
     readonly rows = signal<readonly Row[]>(ROWS);
     readonly loading = signal(false);
+    readonly bordered = signal(false);
     readonly scrollX = signal<string | number | undefined>(undefined);
     readonly scrollY = signal<string | number | undefined>(undefined);
     readonly layout = signal<'auto' | 'fixed'>('auto');
@@ -982,6 +984,21 @@ describe('AndesTable layout and states', () => {
     expect(table.getAttribute('aria-busy')).toBe('true');
     expect(root.querySelector('.andes-table__loading')).not.toBeNull();
     expect(status.textContent?.trim()).toBe('Fetching invoices');
+  });
+
+  it('rounds the loading overlay with the frame of a bordered table', () => {
+    const { fixture, host, root } = setup();
+    host.loading.set(true);
+    fixture.detectChanges();
+    const overlay = () =>
+      root.querySelector('.andes-table__loading') as HTMLElement;
+
+    expect(overlay().classList).not.toContain('andes-table__loading--bordered');
+
+    host.bordered.set(true);
+    fixture.detectChanges();
+
+    expect(overlay().classList).toContain('andes-table__loading--bordered');
   });
 
   it('renders the default empty state, or projected text', () => {

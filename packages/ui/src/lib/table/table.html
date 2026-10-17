@@ -4,28 +4,33 @@
     #container
     class="andes-table__container"
     [class.andes-table__container--scroll-y]="scrollYLength()"
+    [class.andes-table__container--sticky]="stickyOffsetLength()"
+    [class.andes-table__container--bordered]="bordered()"
     [style.max-height]="scrollYLength()"
-    (scroll)="updateScrollEdges()"
+    (scroll)="onContainerScroll($event)"
   >
     <table
       [class]="tableClasses()"
       [style.min-width]="scrollXLength()"
+      [style.--andes-table-indent-size]="indentLength()"
+      [style.--andes-table-sticky-offset]="stickyOffsetLength()"
       [attr.aria-busy]="loading() ? 'true' : null"
     >
       <ng-content />
     </table>
   </div>
   @if (loading()) {
-  <div class="andes-table__loading" aria-hidden="true">
+  <div
+    class="andes-table__loading"
+    [class.andes-table__loading--bordered]="bordered()"
+    aria-hidden="true"
+  >
     <span class="andes-table__spinner"></span>
   </div>
   }
   <!-- Always present so the change of text is announced as a live-region update. -->
-  <div class="andes-table__sr-only" role="status">
-    @if (loading()) { {{ loadingLabel() }} }
-  </div>
-  <div class="andes-table__sr-only" aria-live="polite">
-    {{ announcement() }}
+  <div class="andes-table__sr-only" role="status" aria-live="polite">
+    @if (loading()) { {{ loadingLabel() }} } @else { {{ announcement() }} }
   </div>
 </div>
 <ng-content select="[andesTableBottom]" />

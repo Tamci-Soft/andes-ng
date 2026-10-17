@@ -91,27 +91,64 @@
   line-height: var(--andes-text-line-height, 1.375rem);
   text-align: start;
   white-space: normal;
-  animation: andes-table-filter-in var(--andes-motion-duration-mid, 0.2s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  transform-origin: top right;
 }
 
-/* Subtle entrance: a fade with a 4px slide away from the button. */
+.andes-table-filter__panel[data-side='above'] {
+  transform-origin: bottom right;
+}
+
+/* Entry and exit: a short fade with a slight scale toward the button. The exit keeps the
+   panel in place until it has faded, and ignores the pointer meanwhile. */
+.andes-table-filter__panel--enter {
+  animation: andes-table-filter-in 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-table-filter__panel--leave {
+  pointer-events: none;
+  animation: andes-table-filter-out var(--andes-duration-fast, 120ms)
+    var(--andes-ease-in, ease-in) forwards;
+}
+
 @keyframes andes-table-filter-in {
   from {
     opacity: 0;
-    transform: translateY(-0.25rem);
+    transform: scale(0.97) translateY(-4px);
   }
 }
 
-.andes-table-filter__panel[data-placement='top'] {
-  animation-name: andes-table-filter-in-up;
+@keyframes andes-table-filter-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
 }
 
-@keyframes andes-table-filter-in-up {
+.andes-table-filter__panel[data-side='above'].andes-table-filter__panel--enter {
+  animation-name: andes-table-filter-in-above;
+}
+
+.andes-table-filter__panel[data-side='above'].andes-table-filter__panel--leave {
+  animation-name: andes-table-filter-out-above;
+}
+
+@keyframes andes-table-filter-in-above {
   from {
     opacity: 0;
-    transform: translateY(0.25rem);
+    transform: scale(0.97) translateY(4px);
   }
+}
+
+@keyframes andes-table-filter-out-above {
+  to {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+}
+
+/* See table-controls.css: native inputs follow `color-scheme`, not the tokens. */
+:host-context([data-andes-theme='dark']) .andes-table-filter__panel {
+  color-scheme: dark;
 }
 
 /* Search box: an Ant Design default-size input (32px, 11px inline padding) with a
@@ -357,7 +394,18 @@
     transition: none;
   }
 
-  .andes-table-filter__panel {
+  .andes-table-filter__panel.andes-table-filter__panel--enter[data-side] {
+    animation-name: andes-table-filter-fade-in;
+  }
+
+  /* Closing is instant: the panel simply goes. */
+  .andes-table-filter__panel.andes-table-filter__panel--leave[data-side] {
     animation: none;
+  }
+}
+
+@keyframes andes-table-filter-fade-in {
+  from {
+    opacity: 0;
   }
 }

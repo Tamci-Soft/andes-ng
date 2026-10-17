@@ -1,4 +1,5 @@
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -21,23 +22,37 @@ import { AndesTableRow } from './table-row';
  * it reveals; it toggles that row's `rowKey` in
  * `AndesTable.expandedKeys` and exposes the state through `aria-expanded`.
  *
- * Only render it for rows that can expand.
+ * Only render it for rows that can expand. In tree data, give leaf rows a
+ * `spacer` instead, so their content lines up with their expandable siblings.
+ *
+ * Projected content replaces the default chevron, e.g. a plus/minus icon; read
+ * the state through `#toggle="andesTableExpandToggle"` and `toggle.expanded()`.
  */
 @Component({
   selector: 'andes-table-expand-toggle',
+  exportAs: 'andesTableExpandToggle',
   styleUrl: './table-controls.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'andes-table-control' },
-  template: `<button
-    type="button"
-    class="andes-table-control__expand"
-    [attr.aria-expanded]="expanded()"
-    [attr.aria-label]="label()"
-    [disabled]="resolvedKey() === undefined"
-    (click)="toggle()"
-  >
-    <span class="andes-table-control__chevron" aria-hidden="true"></span>
-  </button>`,
+  template: `@if (spacer()) {
+      <span
+        class="andes-table-control__expand-spacer"
+        aria-hidden="true"
+      ></span>
+    } @else {
+      <button
+        type="button"
+        class="andes-table-control__expand"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-label]="label()"
+        [disabled]="resolvedKey() === undefined"
+        (click)="toggle()"
+      >
+        <ng-content
+          ><span class="andes-table-control__chevron" aria-hidden="true"></span
+        ></ng-content>
+      </button>
+    }`,
 })
 export class AndesTableExpandToggle {
   private readonly table = inject(AndesTable);
@@ -52,16 +67,24 @@ export class AndesTableExpandToggle {
    */
   readonly label = input('Row details');
 
+  /**
+   * Render an empty box of the toggle's size instead of a button - for leaf rows
+   * of tree data.
+   */
+  readonly spacer = input(false, { transform: booleanAttribute });
+
   protected readonly resolvedKey = computed(
     () => this.rowKey() ?? this.row?.rowKey(),
   );
 
-  protected readonly expanded = computed(() => {
+  /** Whether the row this toggle controls is expanded. */
+  readonly expanded = computed(() => {
     const key = this.resolvedKey();
     return key !== undefined && this.table.isExpanded(key);
   });
 
-  protected toggle(): void {
+  /** Expands or collapses the row. */
+  toggle(): void {
     const key = this.resolvedKey();
     if (key !== undefined) {
       this.table.toggleExpanded(key);
@@ -73,7 +96,9 @@ export class AndesTableExpandToggle {
  * Structural directive for a row's expanded content.
  * Renders its template - normally a full-width `<tr>` right after the row it
  * belongs to - only while that key is in `AndesTable.expandedKeys`, so collapsed
- * details cost nothing.
+ * details cost nothing. With `forceRender` the content is rendered up front and
+ * only hidden while collapsed, so its state (form inputs, a nested table's
+ * scroll position) survives collapsing.
  *
  * ```html
  * @for (row of rows(); track row.id) {
@@ -96,13 +121,23 @@ export class AndesTableExpandedRow {
     alias: 'andesTableExpandedRow',
   });
 
+  /**
+   * Render the content before the row is first expanded and keep it while
+   * collapsed, hidden. Microsyntax: `*andesTableExpandedRow="row.id; forceRender: true"`.
+   */
+  readonly forceRender = input(false, {
+    alias: 'andesTableExpandedRowForceRender',
+    transform: booleanAttribute,
+  });
+
   private view: EmbeddedViewRef<unknown> | undefined;
 
   constructor() {
     effect(() => {
       const expanded = this.table.isExpanded(this.rowKey());
+      const keep = this.forceRender();
 
-      if (expanded && !this.view) {
+      if ((expanded || keep) && !this.view) {
         this.view = this.viewContainer.createEmbeddedView(this.template);
         for (const node of this.view.rootNodes) {
           if (node instanceof Element) {
@@ -110,9 +145,19 @@ export class AndesTableExpandedRow {
             this.renderer.addClass(node, 'andes-table__expanded-row');
           }
         }
-      } else if (!expanded && this.view) {
+      } else if (!expanded && !keep && this.view) {
         this.viewContainer.clear();
         this.view = undefined;
+      }
+
+      for (const node of this.view?.rootNodes ?? []) {
+        if (node instanceof Element) {
+          if (expanded) {
+            this.renderer.removeAttribute(node, 'hidden');
+          } else {
+            this.renderer.setAttribute(node, 'hidden', '');
+          }
+        }
       }
     });
   }
