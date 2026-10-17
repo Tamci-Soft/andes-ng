@@ -132,6 +132,10 @@ a.andes-tag:focus-visible {
  * substitute. `default`/`secondary` reuse their own `-foreground`/`-active` tokens instead,
  * since they're neutrals rather than saturated brand hues.
  *
+ * On `filled`'s 10% tint the text token alone lands just under 4.5:1 in light mode
+ * (primary 4.49:1, success 4.38:1), so filled mixes 15% of the foreground into it - darker
+ * in light mode, lighter in dark mode - for >= 5.38:1 in both themes.
+ *
  * `solid` is the base fill with its `-foreground` for every color except warning: success/
  * info fills are dark enough for white text (5.02:1 / 5.93:1), while amber only reaches AA
  * with dark text, so warning keeps its `-active` fill (darker in light mode, lighter in dark
@@ -184,7 +188,11 @@ a.andes-tag:focus-visible {
     var(--andes-color-primary) 10%,
     var(--andes-color-background)
   );
-  color: var(--andes-color-primary-text);
+  color: color-mix(
+    in srgb,
+    var(--andes-color-primary-text) 85%,
+    var(--andes-color-foreground)
+  );
 }
 
 .andes-tag--color-primary.andes-tag--solid {
@@ -208,7 +216,11 @@ a.andes-tag:focus-visible {
     var(--andes-color-success) 10%,
     var(--andes-color-background)
   );
-  color: var(--andes-color-success-text, var(--andes-color-success-active));
+  color: color-mix(
+    in srgb,
+    var(--andes-color-success-text, var(--andes-color-success-active)) 85%,
+    var(--andes-color-foreground)
+  );
 }
 
 .andes-tag--color-success.andes-tag--solid {
@@ -232,7 +244,11 @@ a.andes-tag:focus-visible {
     var(--andes-color-warning) 10%,
     var(--andes-color-background)
   );
-  color: var(--andes-color-warning-text, var(--andes-color-warning-active));
+  color: color-mix(
+    in srgb,
+    var(--andes-color-warning-text, var(--andes-color-warning-active)) 85%,
+    var(--andes-color-foreground)
+  );
 }
 
 .andes-tag--color-warning.andes-tag--solid {
@@ -256,7 +272,11 @@ a.andes-tag:focus-visible {
     var(--andes-color-danger) 10%,
     var(--andes-color-background)
   );
-  color: var(--andes-color-danger-text, var(--andes-color-danger-active));
+  color: color-mix(
+    in srgb,
+    var(--andes-color-danger-text, var(--andes-color-danger-active)) 85%,
+    var(--andes-color-foreground)
+  );
 }
 
 .andes-tag--color-danger.andes-tag--solid {
@@ -277,7 +297,11 @@ a.andes-tag:focus-visible {
     var(--andes-color-info) 10%,
     var(--andes-color-background)
   );
-  color: var(--andes-color-info-text, var(--andes-color-info-active));
+  color: color-mix(
+    in srgb,
+    var(--andes-color-info-text, var(--andes-color-info-active)) 85%,
+    var(--andes-color-foreground)
+  );
 }
 
 .andes-tag--color-info.andes-tag--solid {
