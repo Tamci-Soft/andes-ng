@@ -5,7 +5,11 @@
   flex-direction: column;
   gap: var(--andes-space-2);
   padding: var(--andes-space-4);
-  max-width: min(100vw, 24rem);
+  /* Room for one notification (see toast-item.css) plus this region's own padding. */
+  max-width: min(
+    100vw,
+    calc(var(--andes-toast-width, 24rem) + 2 * var(--andes-space-4))
+  );
   box-sizing: border-box;
   /* Empty space around the stack shouldn't block clicks on whatever is underneath - each
      andes-toast-item opts back into pointer-events: auto on its own host. */

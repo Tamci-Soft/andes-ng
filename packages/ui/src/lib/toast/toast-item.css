@@ -7,8 +7,12 @@
   align-items: flex-start;
   gap: var(--andes-space-3);
   box-sizing: border-box;
-  min-width: 18rem;
-  max-width: 24rem;
+  /* One fixed width for every notification (Ant Design's 384px), so a stack of short and long
+     ones lines up as a single column instead of a ragged edge. `--andes-toast-width` is a
+     component-level hook like avatar's `--andes-avatar-radius`; the region caps it to the
+     viewport on narrow screens. */
+  width: var(--andes-toast-width, 24rem);
+  max-width: 100%;
   padding: var(--andes-space-3) var(--andes-space-4);
   border-radius: var(--andes-radius-lg);
   border: 1px solid var(--andes-color-border);
@@ -55,7 +59,7 @@
 :host([data-flavor='message']) {
   align-items: center;
   gap: var(--andes-space-2);
-  min-width: 0;
+  width: auto;
   max-width: min(calc(100vw - 2 * var(--andes-space-4)), 40rem);
   padding: var(--andes-space-2) var(--andes-space-3);
   border-inline-start: 1px solid var(--andes-color-border);
