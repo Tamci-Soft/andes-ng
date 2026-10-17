@@ -11,6 +11,7 @@ import {
   AndesBadgeStatus,
   AndesBadgeVariant,
 } from './badge';
+import { ANDES_PALETTE_COLORS } from '../palette/palette';
 
 @Component({
   imports: [AndesBadge],
@@ -199,6 +200,21 @@ describe('AndesBadge', () => {
     expect(
       fixture.nativeElement.querySelector('.andes-badge').classList,
     ).toContain('andes-badge--small');
+  });
+
+  it('sets the count at the 12px caption size in both sizes', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.count.set(5);
+    fixture.detectChanges();
+    const badge = () =>
+      fixture.nativeElement.querySelector('.andes-badge') as HTMLElement;
+
+    expect(getComputedStyle(badge()).fontSize).toBe('0.75rem');
+
+    fixture.componentInstance.size.set('small');
+    fixture.detectChanges();
+
+    expect(getComputedStyle(badge()).fontSize).toBe('0.75rem');
   });
 
   it('renders a pulsing ping element when processing', () => {
@@ -663,11 +679,62 @@ describe('AndesBadge warning variant contrast (WCAG 2.x AA, 4.5:1 for normal tex
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('verifies warning-active + background clears 4.5:1 in the dark theme (12.38:1)', () => {
+  // `color-mix(in srgb, a p%, b)`, rounded per channel the way the browser serializes it.
+  function mix(a: string, b: string, p: number): string {
+    const channels = [1, 3, 5].map((i) =>
+      Math.round(
+        parseInt(a.slice(i, i + 2), 16) * p +
+          parseInt(b.slice(i, i + 2), 16) * (1 - p),
+      ),
+    );
+    return `#${channels.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  it('documents that the dark -active pairing is a bright pill with navy text (12.38:1, but off-theme)', () => {
     const ratio = contrastRatio(dark.warningActive, dark.background);
 
     expect(ratio).toBeCloseTo(12.38, 1);
-    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('verifies the dark-theme deep fills clear 4.5:1 against the light foreground', () => {
+    const foreground = '#f8fafc';
+    const fills = {
+      success: mix('#16a34a', dark.background, 0.7),
+      warning: mix(warning, dark.background, 0.55),
+      info: mix('#0284c7', dark.background, 0.7),
+    };
+
+    expect(contrastRatio(fills.success, foreground)).toBeCloseTo(5.23, 1);
+    expect(contrastRatio(fills.warning, foreground)).toBeCloseTo(5.18, 1);
+    expect(contrastRatio(fills.info, foreground)).toBeCloseTo(6.18, 1);
+    for (const fill of Object.values(fills)) {
+      expect(contrastRatio(fill, foreground)).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it('declares exactly those dark fills, with light text, behind the dark theme', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/badge/badge.css'),
+      'utf8',
+    );
+    const dark =
+      css.match(
+        /:host-context\(\[data-andes-theme='dark'\]\)\s*{([^}]*)}/,
+      )?.[1] ?? '';
+    const squash = (value: string) => value.replace(/\s+/g, ' ');
+
+    expect(squash(dark)).toContain(
+      'var(--andes-color-success) 70%, var(--andes-color-background)',
+    );
+    expect(squash(dark)).toContain(
+      'var(--andes-color-warning) 55%, var(--andes-color-background)',
+    );
+    expect(squash(dark)).toContain(
+      'var(--andes-color-info) 70%, var(--andes-color-background)',
+    );
+    expect(dark).toContain(
+      '--_andes-badge-severity-text: var(--andes-color-foreground)',
+    );
   });
 
   it('renders the warning variant with the verified warning-active + background tokens, not the failing base pair', () => {
@@ -679,5 +746,303 @@ describe('AndesBadge warning variant contrast (WCAG 2.x AA, 4.5:1 for normal tex
     expect(rule).toContain('var(--andes-color-background)');
     expect(rule).not.toContain('var(--andes-color-warning)');
     expect(rule).not.toContain('var(--andes-color-warning-foreground)');
+  });
+});
+
+describe('AndesBadge dot accents', () => {
+  it('draws a warning status dot in the warning -hover accent, which clears 3:1 on a light page', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.status.set('warning');
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector(
+      '.andes-badge',
+    ) as HTMLElement;
+
+    expect(getComputedStyle(badge).backgroundColor).toContain(
+      '--andes-color-warning-hover',
+    );
+  });
+
+  it('keeps the text-safe -active shade for a warning count', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.variant.set('warning');
+    fixture.componentInstance.count.set(3);
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector(
+      '.andes-badge',
+    ) as HTMLElement;
+
+    expect(getComputedStyle(badge).backgroundColor).toContain(
+      '--andes-color-warning-active',
+    );
+  });
+});
+
+describe('AndesBadge dark theme', () => {
+  afterEach(() => document.documentElement.removeAttribute('data-andes-theme'));
+
+  function countBadge(variant: AndesBadgeVariant, dot = false) {
+    document.documentElement.setAttribute('data-andes-theme', 'dark');
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.variant.set(variant);
+    fixture.componentInstance.count.set(5);
+    fixture.componentInstance.dot.set(dot);
+    fixture.detectChanges();
+    return fixture.nativeElement.querySelector('.andes-badge') as HTMLElement;
+  }
+
+  it.each(['success', 'warning', 'info'] as const)(
+    'gives a %s count a deep fill and light text',
+    (variant) => {
+      const badge = countBadge(variant);
+      // Declared on the host (jsdom doesn't inherit custom properties down to the bubble).
+      const style = getComputedStyle(
+        badge.closest('andes-badge') as HTMLElement,
+      );
+
+      expect(getComputedStyle(badge).backgroundColor.replace(/\s+/g, '')).toBe(
+        `var(--_andes-badge-${variant}-fill,var(--andes-color-${variant}${variant === 'warning' ? '-active' : ''}))`,
+      );
+      expect(style.getPropertyValue('--_andes-badge-severity-text')).toBe(
+        'var(--andes-color-foreground)',
+      );
+      expect(
+        style.getPropertyValue(`--_andes-badge-${variant}-fill`),
+      ).toContain(`var(--andes-color-${variant})`);
+    },
+  );
+
+  it('leaves light mode on the -active fill with page-coloured text', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.variant.set('success');
+    fixture.componentInstance.count.set(5);
+    fixture.detectChanges();
+    const style = getComputedStyle(
+      fixture.nativeElement.querySelector('.andes-badge') as HTMLElement,
+    );
+
+    expect(style.getPropertyValue('--_andes-badge-success-fill')).toBe('');
+  });
+});
+
+describe('AndesBadge neutral dot', () => {
+  function dotBadge(apply: (host: HostComponent) => void) {
+    const fixture = TestBed.createComponent(HostComponent);
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+    return fixture.nativeElement.querySelector('.andes-badge') as HTMLElement;
+  }
+
+  it('draws status="default" and a secondary dot in the same 3:1-safe neutral', () => {
+    const defaultDot = dotBadge((h) => h.status.set('default'));
+    const secondaryDot = dotBadge((h) => {
+      h.variant.set('secondary');
+      h.dot.set(true);
+    });
+    const neutral = getComputedStyle(defaultDot).backgroundColor;
+
+    expect(neutral).toContain('var(--andes-color-muted-foreground) 85%');
+    expect(getComputedStyle(secondaryDot).backgroundColor).toBe(neutral);
+  });
+
+  it('keeps the secondary surface fill for a secondary count', () => {
+    const count = dotBadge((h) => {
+      h.variant.set('secondary');
+      h.count.set(4);
+    });
+
+    expect(getComputedStyle(count).backgroundColor).toBe(
+      'var(--andes-color-secondary)',
+    );
+  });
+});
+
+describe('AndesBadge palette colors', () => {
+  it('resolves a palette name to its themed custom property, with auto-contrast text', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.count.set(3);
+    fixture.componentInstance.color.set('indigo');
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector(
+      '.andes-badge',
+    ) as HTMLElement;
+
+    expect(badge.classList).toContain('andes-badge--custom');
+    expect(badge.style.getPropertyValue('--andes-badge-color')).toBe(
+      'var(--_andes-palette-indigo)',
+    );
+  });
+
+  it('declares a light and a dark value for every palette name', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/palette/palette.css'),
+      'utf8',
+    );
+    const [light, dark] = css.split(":host-context([data-andes-theme='dark'])");
+
+    for (const name of ANDES_PALETTE_COLORS) {
+      expect(light).toContain(`--_andes-palette-${name}:`);
+      expect(dark).toContain(`--_andes-palette-${name}:`);
+    }
+  });
+});
+
+describe('AndesBadge count forms', () => {
+  @Component({
+    imports: [AndesBadge],
+    template: `<andes-badge
+      [count]="count()"
+      [dot]="dot()"
+      [showZero]="showZero()"
+      [standalone]="standalone()"
+      [color]="color()"
+      text="Label"
+      ><span>Bell</span></andes-badge
+    >`,
+  })
+  class CountHost {
+    readonly count = signal<number | string | null | undefined>(undefined);
+    readonly dot = signal(false);
+    readonly showZero = signal(false);
+    readonly standalone = signal(false);
+    readonly color = signal<AndesBadgeColor | undefined>(undefined);
+  }
+
+  function create(apply: (host: CountHost) => void) {
+    const fixture = TestBed.createComponent(CountHost);
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+    const badge = () =>
+      fixture.nativeElement.querySelector('.andes-badge') as HTMLElement | null;
+    return { fixture, badge };
+  }
+
+  it('shows a non-numeric string count verbatim, as a pill', () => {
+    const { badge } = create((host) => host.count.set('new'));
+
+    expect(badge()?.textContent?.trim()).toBe('new');
+    expect(badge()?.classList).not.toContain('andes-badge--single-char');
+  });
+
+  it('treats a numeric string count as a number - capped and hidden at zero', () => {
+    const { fixture, badge } = create((host) => host.count.set('120'));
+
+    expect(badge()?.textContent?.trim()).toBe('99+');
+
+    fixture.componentInstance.count.set('0');
+    fixture.detectChanges();
+
+    expect(badge()).toBeNull();
+  });
+
+  it('renders nothing for a null count', () => {
+    const { badge } = create((host) => host.count.set(null));
+
+    expect(badge()).toBeNull();
+  });
+
+  it('hides a dot whose count is 0 unless showZero is set', () => {
+    const { fixture, badge } = create((host) => {
+      host.dot.set(true);
+      host.count.set(0);
+    });
+
+    expect(badge()).toBeNull();
+
+    fixture.componentInstance.showZero.set(true);
+    fixture.detectChanges();
+
+    expect(badge()?.classList).toContain('andes-badge--dot');
+
+    fixture.componentInstance.showZero.set(false);
+    fixture.componentInstance.count.set(4);
+    fixture.detectChanges();
+
+    expect(badge()?.classList).toContain('andes-badge--dot');
+    expect(badge()?.textContent?.trim()).toBe('');
+  });
+
+  it('renders a colored dot for a standalone color with no count', () => {
+    const { fixture, badge } = create((host) => {
+      host.standalone.set(true);
+      host.color.set('pink');
+    });
+
+    expect(badge()?.classList).toContain('andes-badge--dot');
+    expect(badge()?.style.getPropertyValue('--andes-badge-color')).toBe(
+      'var(--_andes-palette-pink)',
+    );
+    expect(
+      fixture.nativeElement.querySelector('.andes-badge__text')?.textContent,
+    ).toBe('Label');
+  });
+
+  it('keeps a standalone count a count bubble, even with a color', () => {
+    const { badge } = create((host) => {
+      host.standalone.set(true);
+      host.color.set('pink');
+      host.count.set(7);
+    });
+
+    expect(badge()?.classList).not.toContain('andes-badge--dot');
+    expect(badge()?.textContent?.trim()).toBe('7');
+  });
+});
+
+describe('AndesBadge motion', () => {
+  it('re-creates the count element on every change, so its enter animation replays', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.count.set(1);
+    fixture.detectChanges();
+    const first = fixture.nativeElement.querySelector('.andes-badge__count');
+
+    fixture.componentInstance.count.set(2);
+    fixture.detectChanges();
+    const second = fixture.nativeElement.querySelector('.andes-badge__count');
+
+    expect(first.textContent).toBe('1');
+    expect(second.textContent).toBe('2');
+    expect(second).not.toBe(first);
+  });
+
+  it('binds the enter animations only after the first render, and never under reduced motion', () => {
+    const html = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/badge/badge.html'),
+      'utf8',
+    );
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/badge/badge.css'),
+      'utf8',
+    );
+    const reduced = css.slice(
+      css.lastIndexOf('@media (prefers-reduced-motion: reduce)'),
+    );
+
+    expect(html).toContain(
+      `[animate.enter]="motion() ? 'andes-badge-enter' : ''"`,
+    );
+    expect(html).toContain(
+      `[animate.enter]="motion() ? 'andes-badge-count-enter' : ''"`,
+    );
+    expect(html).toContain('animate.leave="andes-badge-leave"');
+    expect(reduced).toContain('.andes-badge.andes-badge-enter');
+    expect(reduced).toContain('.andes-badge.andes-badge-leave');
+    expect(reduced).toContain('.andes-badge__count.andes-badge-count-enter');
+    expect(reduced).toContain('animation: none');
+  });
+
+  it('keeps every badge animation soft: no overshoot, no zoom from nothing, a slow ping', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/badge/badge.css'),
+      'utf8',
+    );
+    const beziers = [...css.matchAll(/cubic-bezier\(([^)]*)\)/g)].map((m) =>
+      m[1].split(',').map(Number),
+    );
+
+    // An overshooting curve has a control point past 1 on the progress axis.
+    expect(beziers.every(([, y1, , y2]) => y1 <= 1 && y2 <= 1)).toBe(true);
+    expect(css).not.toMatch(/scale: 0;/);
+    expect(css).toContain('animation: andes-badge-ping 2s');
   });
 });

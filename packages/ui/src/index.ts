@@ -9,6 +9,8 @@ export type {
 } from './lib/badge/badge';
 export { AndesBadgeRibbon } from './lib/badge/badge-ribbon';
 export type { AndesBadgeRibbonPlacement } from './lib/badge/badge-ribbon';
+export { ANDES_PALETTE_COLORS } from './lib/palette/palette';
+export type { AndesPaletteColor } from './lib/palette/palette';
 export { AndesTag, AndesTagCloseEvent } from './lib/tag/tag';
 export type {
   AndesTagColor,

@@ -1,7 +1,23 @@
+import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDropList,
+  moveItemInArray,
+} from '@angular/cdk/drag-drop';
+import { signal } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCircleX, lucideTag } from '@ng-icons/lucide';
+import {
+  lucideCircleCheck,
+  lucideCircleX,
+  lucideClock,
+  lucideLoaderCircle,
+  lucideTag,
+  lucideTriangleAlert,
+} from '@ng-icons/lucide';
 import type { Meta, StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
+import { ANDES_PALETTE_COLORS } from '../palette/palette';
 import { AndesTag, AndesTagCloseEvent } from './tag';
 
 const meta: Meta<AndesTag> = {
@@ -19,8 +35,12 @@ const meta: Meta<AndesTag> = {
         'warning',
         'danger',
         'info',
+        'processing',
+        'error',
+        ...ANDES_PALETTE_COLORS,
       ],
     },
+    icon: { control: false },
     variant: {
       control: 'select',
       options: ['outlined', 'filled', 'solid'],
@@ -278,4 +298,151 @@ export const IconInEveryForm: Story = {
       </div>
     `,
   }),
+};
+
+/**
+ * Named palette hues for categorizing (themed for light and dark). They go through the same
+ * readable-text derivation as an arbitrary CSS color, in every variant.
+ */
+export const PaletteColors: Story = {
+  render: () => ({
+    props: { palette: ANDES_PALETTE_COLORS },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; max-width: 48rem;">
+        @for (variant of ['outlined', 'filled', 'solid']; track variant) {
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            @for (color of palette; track color) {
+              <andes-tag [color]="color" [variant]="variant">{{ color }}</andes-tag>
+            }
+          </div>
+        }
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Status tags: the `processing` and `error` aliases sit beside `success`/`warning`/`default`,
+ * so the same status value can drive a badge and a tag. The `icon` input takes a template.
+ */
+export const StatusTags: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [NgIcon],
+      providers: [
+        provideIcons({
+          lucideCircleCheck,
+          lucideLoaderCircle,
+          lucideCircleX,
+          lucideTriangleAlert,
+          lucideClock,
+        }),
+      ],
+    },
+    template: `
+      <ng-template #success><ng-icon name="lucideCircleCheck" /></ng-template>
+      <ng-template #processing><ng-icon name="lucideLoaderCircle" /></ng-template>
+      <ng-template #error><ng-icon name="lucideCircleX" /></ng-template>
+      <ng-template #warning><ng-icon name="lucideTriangleAlert" /></ng-template>
+      <ng-template #waiting><ng-icon name="lucideClock" /></ng-template>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        @for (variant of ['outlined', 'filled', 'solid']; track variant) {
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <andes-tag color="success" [variant]="variant" [icon]="success">success</andes-tag>
+            <andes-tag color="processing" [variant]="variant" [icon]="processing">processing</andes-tag>
+            <andes-tag color="error" [variant]="variant" [icon]="error">error</andes-tag>
+            <andes-tag color="warning" [variant]="variant" [icon]="warning">warning</andes-tag>
+            <andes-tag color="default" [variant]="variant" [icon]="waiting">waiting</andes-tag>
+          </div>
+        }
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Add and remove tags at runtime. Each tag opts into the built-in motion with Angular's
+ * native animation API - `animate.enter="andes-tag-enter"` and
+ * `animate.leave="andes-tag-leave"` on the host - so it fades in when added and out when
+ * closed (instantly under `prefers-reduced-motion`). The first tag is not closable.
+ */
+export const AddAndRemove: Story = {
+  render: () => {
+    const tags = signal(['Unremovable', 'Invoices', 'Q3 close']);
+    return {
+      moduleMetadata: { imports: [AndesButton] },
+      props: {
+        tags,
+        remove: (tag: string) =>
+          tags.update((all) => all.filter((t) => t !== tag)),
+        add: (field: HTMLInputElement) => {
+          const value = field.value.trim();
+          if (value && !tags().includes(value)) {
+            tags.update((all) => [...all, value]);
+          }
+          field.value = '';
+        },
+      },
+      template: `
+        <div style="display: flex; flex-direction: column; gap: 1rem; max-width: 32rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; min-height: 1.5rem;">
+            @for (tag of tags(); track tag; let first = $first) {
+              <andes-tag
+                color="primary"
+                variant="filled"
+                [closable]="!first"
+                animate.enter="andes-tag-enter"
+                animate.leave="andes-tag-leave"
+                (closed)="remove(tag)"
+              >{{ tag }}</andes-tag>
+            }
+          </div>
+          <form style="display: flex; gap: 0.5rem;" (submit)="$event.preventDefault(); add(field)">
+            <input
+              #field
+              aria-label="New tag"
+              placeholder="New tag"
+              style="height: 2rem; padding-inline: 0.75rem; border: 1px solid var(--andes-color-input); border-radius: var(--andes-radius-md); background: var(--andes-color-background); color: var(--andes-color-foreground); font-family: inherit; font-size: 0.875rem;"
+            />
+            <andes-button type="submit" variant="outline">Add</andes-button>
+          </form>
+        </div>
+      `,
+    };
+  },
+};
+
+/**
+ * Reordering by drag and drop, composed from the CDK drag-drop directives on the tag hosts -
+ * the tag itself needs nothing special. Story-only: drag-drop belongs to the list, not to
+ * the tag.
+ */
+export const Draggable: Story = {
+  render: () => {
+    const tags = signal(['Accounts', 'Payables', 'Receivables', 'Ledger']);
+    return {
+      moduleMetadata: { imports: [CdkDropList, CdkDrag] },
+      props: {
+        tags,
+        drop: (event: CdkDragDrop<string[]>) =>
+          tags.update((all) => {
+            const next = [...all];
+            moveItemInArray(next, event.previousIndex, event.currentIndex);
+            return next;
+          }),
+      },
+      template: `
+        <div
+          cdkDropList
+          cdkDropListOrientation="horizontal"
+          (cdkDropListDropped)="drop($event)"
+          style="display: flex; align-items: center; gap: 0.5rem;"
+        >
+          @for (tag of tags(); track tag) {
+            <andes-tag cdkDrag style="cursor: grab;">{{ tag }}</andes-tag>
+          }
+        </div>
+      `,
+    };
+  },
 };

@@ -1,3 +1,10 @@
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideBook,
+  lucideFilm,
+  lucideMusic,
+  lucideTrophy,
+} from '@ng-icons/lucide';
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { AndesCheckableTagGroup } from './checkable-tag-group';
@@ -60,4 +67,36 @@ export const PrimitiveAndDisabledOptions: Story = {
 
 export const Disabled: Story = {
   args: { disabled: true, value: 'music' },
+};
+
+/**
+ * Options can carry an `icon` template (passed to each tag's `icon` input) and a `className`
+ * for the tag host. Binding `[value]` one-way only seeds the initial selection.
+ */
+export const WithIcons: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [NgIcon],
+      providers: [
+        provideIcons({ lucideFilm, lucideBook, lucideMusic, lucideTrophy }),
+      ],
+    },
+    template: `
+      <ng-template #film><ng-icon name="lucideFilm" /></ng-template>
+      <ng-template #book><ng-icon name="lucideBook" /></ng-template>
+      <ng-template #music><ng-icon name="lucideMusic" /></ng-template>
+      <ng-template #trophy><ng-icon name="lucideTrophy" /></ng-template>
+      <andes-checkable-tag-group
+        aria-label="Categories"
+        multiple
+        [value]="['books']"
+        [options]="[
+          { value: 'movies', label: 'Movies', icon: film },
+          { value: 'books', label: 'Books', icon: book },
+          { value: 'music', label: 'Music', icon: music },
+          { value: 'sports', label: 'Sports', icon: trophy, disabled: true },
+        ]"
+      />
+    `,
+  }),
 };

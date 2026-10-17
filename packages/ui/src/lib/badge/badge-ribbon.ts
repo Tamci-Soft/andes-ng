@@ -21,7 +21,7 @@ export type AndesBadgeRibbonPlacement = 'start' | 'end';
   selector: 'andes-badge-ribbon',
   imports: [NgTemplateOutlet],
   templateUrl: './badge-ribbon.html',
-  styleUrl: './badge-ribbon.css',
+  styleUrls: ['../palette/palette.css', './badge-ribbon.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AndesBadgeRibbon {

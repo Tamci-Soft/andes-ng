@@ -16,7 +16,13 @@ import {
 } from '@angular/core';
 import clsx from 'clsx';
 
-/** The themed presets, each backed by `--andes-color-*` tokens. */
+import { AndesPaletteColor, resolvePaletteColor } from '../palette/palette';
+
+/**
+ * The themed presets, each backed by `--andes-color-*` tokens. `processing` and `error` are
+ * status-flavored names for `info` and `danger`, matching AndesBadge's `status` values, so a
+ * status can feed a tag's `color` directly.
+ */
 export type AndesTagPresetColor =
   | 'default'
   | 'primary'
@@ -24,16 +30,19 @@ export type AndesTagPresetColor =
   | 'success'
   | 'warning'
   | 'danger'
-  | 'info';
+  | 'info'
+  | 'processing'
+  | 'error';
 /**
- * A preset, or any CSS color string (`#722ed1`, `rgb(...)`, a named color, `var(--x)`).
- * See the custom-color block in tag.css for how its text stays
+ * A preset, a named palette hue (`red`, `indigo`, `magenta`, ... - themed for light and dark,
+ * see palette.css), or any CSS color string (`#722ed1`, `rgb(...)`, `var(--x)`). Palette hues
+ * and arbitrary colors share the custom-color block in tag.css, which keeps their text
  * readable in every variant.
  */
 // `string & {}` keeps the preset literals in editor autocompletion instead of collapsing the
 // whole union to plain `string`.
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export type AndesTagColor = AndesTagPresetColor | (string & {});
+export type AndesTagColor =
+  AndesTagPresetColor | AndesPaletteColor | (string & {});
 /** Visual treatment, independent of `color` - `outlined` (border only) is the default look. */
 export type AndesTagVariant = 'outlined' | 'filled' | 'solid';
 
@@ -60,6 +69,12 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]',
 ].join(',');
 
+/** Status-flavored aliases, resolved to the preset whose styles they share. */
+const TAG_PRESET_ALIASES: Readonly<Record<string, string>> = {
+  processing: 'info',
+  error: 'danger',
+};
+
 /**
  * Emitted by `closed`. Calling `preventDefault()` synchronously inside the handler vetoes the
  * close - it only has an effect with `hideOnClose`, since without it the tag never removes
@@ -83,7 +98,7 @@ export class AndesTagCloseEvent {
   selector: 'andes-tag',
   imports: [NgTemplateOutlet],
   templateUrl: './tag.html',
-  styleUrl: './tag.css',
+  styleUrls: ['../palette/palette.css', './tag.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AndesTag {
@@ -91,6 +106,11 @@ export class AndesTag {
   private readonly document = inject(DOCUMENT);
 
   readonly color = input<AndesTagColor>('default');
+  /**
+   * Leading icon as a `TemplateRef`, rendered before any projected `slot=icon` content - the
+   * template form suits icons that come from data (e.g. a checkable group's options).
+   */
+  readonly icon = input<TemplateRef<unknown> | undefined>(undefined);
   readonly variant = input<AndesTagVariant>('outlined');
   /** `false` drops the border, keeping the tag's size unchanged. */
   readonly bordered = input(true, { transform: booleanAttribute });
@@ -173,10 +193,23 @@ export class AndesTag {
       !this.isLink(),
   );
 
-  /** Arbitrary CSS color from `color`, applied through `--andes-tag-color`. */
+  /** The preset `color` names (aliases resolved), or `null` for a palette hue / CSS color. */
+  private readonly presetColor = computed(() => {
+    const color = this.color() || 'default';
+    const resolved = TAG_PRESET_ALIASES[color] ?? color;
+    return TAG_PRESETS.includes(resolved) ? resolved : null;
+  });
+
+  /**
+   * Palette hue or arbitrary CSS color from `color`, applied through `--andes-tag-color` - a
+   * palette name as its themed custom property, anything else raw.
+   */
   protected readonly customColor = computed(() => {
     const color = this.color();
-    return color && !TAG_PRESETS.includes(color) ? color : null;
+    if (!color || this.presetColor()) {
+      return null;
+    }
+    return resolvePaletteColor(color) ?? color;
   });
 
   protected readonly classes = computed(() => {
@@ -186,7 +219,7 @@ export class AndesTag {
       !skipColorAndVariant &&
         (this.customColor()
           ? 'andes-tag--color-custom'
-          : `andes-tag--color-${this.color() || 'default'}`),
+          : `andes-tag--color-${this.presetColor()}`),
       !skipColorAndVariant && `andes-tag--${this.variant()}`,
       // Outlined/filled custom colors derive their text from the color itself (tag.css); a
       // separate class, not a `:not(.andes-tag--solid)`, keeps those rules from ever

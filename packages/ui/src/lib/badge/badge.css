@@ -14,10 +14,23 @@
   color: var(--andes-color-foreground);
 }
 
+/* The indicator hangs off the inline-end corner, so under RTL it moves to the top-left and its
+   centering shift has to point the other way. Physical `translate` can't follow writing
+   direction by itself; this sign flips it (and the `offset` x, which is logical too). */
+.andes-badge,
+.andes-badge-custom {
+  --_andes-badge-dir: 1;
+}
+
+.andes-badge:dir(rtl),
+.andes-badge-custom:dir(rtl) {
+  --_andes-badge-dir: -1;
+}
+
 .andes-badge {
   position: absolute;
-  top: 0;
-  right: 0;
+  inset-block-start: 0;
+  inset-inline-end: 0;
   z-index: 1;
   display: inline-flex;
   align-items: center;
@@ -28,11 +41,11 @@
   border-radius: var(--andes-radius-full);
   /* [x, y] from the `offset` input, defaulting to 0 - added on top of the corner anchor. */
   transform: translate(
-    calc(50% + var(--andes-badge-offset-x, 0px)),
+    calc((50% + var(--andes-badge-offset-x, 0px)) * var(--_andes-badge-dir)),
     calc(-50% + var(--andes-badge-offset-y, 0px))
   );
   font-family: var(--andes-font-family), sans-serif;
-  /* Ant Design's count: 12px digits in a 20px bubble. */
+  /* 12px: the counter size every other caption in the library uses. */
   font-size: 0.75rem;
   font-weight: var(--andes-font-weight-medium);
   line-height: 1;
@@ -69,7 +82,6 @@
   min-width: 0.875rem;
   height: 0.875rem;
   padding-inline: 0.1875rem;
-  font-size: 0.625rem;
 }
 
 /* Compound selector rather than relying on source order, so the small circle survives however
@@ -104,17 +116,90 @@
      explicitly pulls the parent's computed value even though background-color isn't
      inherited by default. */
   background-color: inherit;
-  animation: andes-badge-ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  /* A slow, faint pulse: it signals "in progress" without pulling the eye every second. */
+  animation: andes-badge-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Without motion the ring holds still as a soft halo, so a processing indicator still reads
+   as different from a plain dot. */
+@media (prefers-reduced-motion: reduce) {
+  .andes-badge__ping {
+    animation: none;
+    transform: scale(1.6);
+    opacity: 0.25;
+  }
 }
 
 @keyframes andes-badge-ping {
   0% {
     transform: scale(1);
-    opacity: 0.6;
+    opacity: 0.4;
   }
   100% {
-    transform: scale(2.2);
+    transform: scale(2);
     opacity: 0;
+  }
+}
+
+/* Motion. The enter classes are only bound after the first render (see `motion` in badge.ts),
+   so these play when a badge appears or its count changes, never on page load. `scale` (not
+   `transform`) composes with the corner-anchoring translate above instead of replacing it.
+   A short grow from 80% with a plain deceleration - no overshoot - so a new badge settles
+   rather than bouncing in. */
+.andes-badge.andes-badge-enter,
+.andes-badge-custom.andes-badge-enter {
+  animation: andes-badge-zoom-in 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-badge.andes-badge-leave,
+.andes-badge-custom.andes-badge-leave {
+  animation: andes-badge-zoom-out 0.12s ease-in forwards;
+}
+
+/* The changed count rolls up into place. Clipped by its bubble, except while processing - the
+   ping ring has to grow past the bubble's edge. */
+.andes-badge:not(.andes-badge--processing) {
+  overflow: hidden;
+}
+
+.andes-badge__count {
+  display: inline-block;
+}
+
+.andes-badge__count.andes-badge-count-enter {
+  animation: andes-badge-count-in 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes andes-badge-zoom-in {
+  from {
+    scale: 0.8;
+    opacity: 0;
+  }
+}
+
+@keyframes andes-badge-zoom-out {
+  to {
+    scale: 0.8;
+    opacity: 0;
+  }
+}
+
+/* A short lift from just below, not a full-height roll: the new number eases into place. */
+@keyframes andes-badge-count-in {
+  from {
+    translate: 0 40%;
+    opacity: 0;
+  }
+}
+
+/* No animation means Angular inserts and removes the elements immediately. */
+@media (prefers-reduced-motion: reduce) {
+  .andes-badge.andes-badge-enter,
+  .andes-badge-custom.andes-badge-enter,
+  .andes-badge.andes-badge-leave,
+  .andes-badge-custom.andes-badge-leave,
+  .andes-badge__count.andes-badge-count-enter {
+    animation: none;
   }
 }
 
@@ -140,24 +225,81 @@
    uses its -active shade (darker in light mode, lighter in dark mode) under
    --andes-color-background, which flips the opposite way (5.02-12.38:1). */
 .andes-badge--success {
-  background-color: var(--andes-color-success);
-  color: var(--andes-color-success-foreground);
+  background-color: var(
+    --_andes-badge-success-fill,
+    var(--andes-color-success)
+  );
+  color: var(
+    --_andes-badge-severity-text,
+    var(--andes-color-success-foreground)
+  );
 }
 
 .andes-badge--warning {
-  background-color: var(--andes-color-warning-active);
-  color: var(--andes-color-background);
+  background-color: var(
+    --_andes-badge-warning-fill,
+    var(--andes-color-warning-active)
+  );
+  color: var(--_andes-badge-severity-text, var(--andes-color-background));
 }
 
 .andes-badge--info {
+  background-color: var(--_andes-badge-info-fill, var(--andes-color-info));
+  color: var(--_andes-badge-severity-text, var(--andes-color-info-foreground));
+}
+
+/* Dark theme: warning's -active shade turns light there (it is hover feedback on a dark page), so
+   the count would be a bright amber pill with navy text. Success and info are deep in both
+   themes, but sink a little further here so all three severities share one look. Each keeps
+   light mode's look - a deep fill with light text - by sinking the base severity colour into the
+   dark page: 5.2:1 (success), 5.2:1 (warning) and 6.2:1 (info) against the foreground. Dots
+   keep their accent (below) - they carry no text. */
+:host-context([data-andes-theme='dark']) {
+  --_andes-badge-success-fill: color-mix(
+    in srgb,
+    var(--andes-color-success) 70%,
+    var(--andes-color-background)
+  );
+  --_andes-badge-warning-fill: color-mix(
+    in srgb,
+    var(--andes-color-warning) 55%,
+    var(--andes-color-background)
+  );
+  --_andes-badge-info-fill: color-mix(
+    in srgb,
+    var(--andes-color-info) 70%,
+    var(--andes-color-background)
+  );
+  --_andes-badge-severity-text: var(--andes-color-foreground);
+}
+
+/* A dot carries no text, so it only needs 3:1 against the page, not 4.5:1 for a glyph. It takes
+   the same severity accents AndesAlert draws its icons in, so a success dot and a success alert
+   read as one green. Warning's accent is its `-hover` shade: the base amber is ~2:1 on white. */
+.andes-badge--dot.andes-badge--success {
+  background-color: var(--andes-color-success);
+}
+
+.andes-badge--dot.andes-badge--warning {
+  background-color: var(--andes-color-warning-hover);
+}
+
+.andes-badge--dot.andes-badge--info {
   background-color: var(--andes-color-info);
-  color: var(--andes-color-info-foreground);
 }
 
 /* status="default" - a neutral gray status dot. Internal only (not an AndesBadgeVariant):
-   a gray *count* bubble would read as disabled rather than as a count. */
-.andes-badge--default {
-  background-color: var(--andes-color-muted-foreground);
+   a gray *count* bubble would read as disabled rather than as a count.
+   A secondary dot takes the same neutral: the secondary fill is a surface gray (1.25:1 on
+   white) and a dot of it vanished. The muted text gray sunk 15% into the page stays quieter
+   than text yet clears 3:1 on the page and on cards in both themes (3.6:1 light, 5.4:1 dark). */
+.andes-badge--default,
+.andes-badge--dot.andes-badge--secondary {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 85%,
+    var(--andes-color-background)
+  );
   color: var(--andes-color-background);
 }
 
@@ -187,14 +329,14 @@
    bubble, but with no bubble styling of its own: the template decides what it looks like. */
 .andes-badge-custom {
   position: absolute;
-  top: 0;
-  right: 0;
+  inset-block-start: 0;
+  inset-inline-end: 0;
   z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transform: translate(
-    calc(50% + var(--andes-badge-offset-x, 0px)),
+    calc((50% + var(--andes-badge-offset-x, 0px)) * var(--_andes-badge-dir)),
     calc(-50% + var(--andes-badge-offset-y, 0px))
   );
   line-height: 1;
