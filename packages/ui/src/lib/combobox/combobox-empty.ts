@@ -18,7 +18,7 @@ import {
  * `ComboboxEmpty` component would otherwise need to do itself, so this directive is
  * intentionally thin: it renders only when the consumer's `@empty` block does, and
  * contributes `role="status"` so assistive tech announces the message the moment it
- * appears - the equivalent of Base UI Autocomplete's live-region `Status` part.
+ * appears (a polite live region).
  *
  * The one thing it adds to the consumer's own message is an inbox glyph above it, a simple
  * container illustration rather than bare text: a panel holding nothing but one line of
