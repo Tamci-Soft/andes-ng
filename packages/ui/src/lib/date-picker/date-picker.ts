@@ -300,10 +300,10 @@ function sameValue(a: AndesDatePickerValue, b: AndesDatePickerValue): boolean {
 /**
  * A date (or range) field with a calendar popover, wired into Angular forms.
  *
- * Following the shadcn/ui anatomy, this is a *composition*: `AndesCalendar` does
- * the date work, `AndesOverlayPrimitive`'s `popover` preset does the panel work,
- * and this component owns the field, typed-date parsing, the time columns, the
- * commit rules and the `ControlValueAccessor`.
+ * This is a *composition*: `AndesCalendar` does the date work,
+ * `AndesOverlayPrimitive`'s `popover` preset does the panel work, and this component
+ * owns the field, typed-date parsing, the time columns, the commit rules and the
+ * `ControlValueAccessor`.
  *
  * ## The field
  *
