@@ -254,7 +254,9 @@ describe('AndesInput', () => {
     // no visible focus indicator at all - a WCAG 2.4.7 failure. The fix uses `outline`
     // (which browsers keep, recoloring it to the system's own highlight color, under
     // forced-colors) keyed off `:focus-visible` on the native input, matching every other
-    // control in this library.
+    // control in this library. The visible indicator is now the shared field style - border
+    // in the ring color plus a soft box-shadow halo - and the outline is kept, transparent,
+    // purely for forced-colors mode, where browsers repaint it in the system highlight color.
     //
     // jsdom does resolve dynamic pseudo-classes (`:focus`, `:focus-visible`, ...) both in
     // `Element.matches()` and in `getComputedStyle`, so the assertions below exercise the
@@ -281,7 +283,7 @@ describe('AndesInput', () => {
       expect(wrapper.matches(focusRingSelector)).toBe(true);
     });
 
-    it('defines the focus ring using `outline` (not `box-shadow`), keyed off `:focus-visible`', () => {
+    it('keeps a forced-colors outline under the halo, keyed off `:focus-visible`', () => {
       const css = readFileSync(
         join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
         'utf-8',
@@ -292,10 +294,10 @@ describe('AndesInput', () => {
         )?.[1];
 
       expect(ruleBody).toBeDefined();
-      expect(ruleBody).toContain(
-        'outline: 2px solid var(--andes-color-focus-ring)',
-      );
-      expect(ruleBody).not.toContain('box-shadow');
+      // The outline must stay (a real width and style) or forced-colors users lose focus.
+      expect(ruleBody).toContain('outline: 2px solid transparent');
+      expect(ruleBody).toContain('border-color: var(--andes-color-focus-ring)');
+      expect(ruleBody).toContain('box-shadow');
 
       // No live rule anywhere in the stylesheet should key the focus ring off
       // `:focus-within` - it fires on a plain mouse click, unlike `:focus-visible`.
@@ -318,8 +320,9 @@ describe('AndesInput', () => {
 
       // `auto` here would mean the UA's own default focus ring is back on the inner input.
       expect(getComputedStyle(input).outline).toBe('none');
-      expect(getComputedStyle(wrapper).outline).toBe(
-        '2px solid var(--andes-color-focus-ring)',
+      expect(getComputedStyle(wrapper).outline).toBe('2px solid transparent');
+      expect(getComputedStyle(wrapper).boxShadow).toContain(
+        'var(--andes-color-focus-ring)',
       );
     });
 
@@ -547,7 +550,7 @@ describe('AndesInput', () => {
       input.focus();
 
       expect(getComputedStyle(input).outline).toBe('none');
-      expect(getComputedStyle(wrapper).outlineColor).toBe(
+      expect(getComputedStyle(wrapper).boxShadow).toContain(
         'var(--andes-color-warning)',
       );
     });
