@@ -1,11 +1,14 @@
 import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import {
+  afterNextRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  ElementRef,
   inject,
+  Injector,
   input,
   model,
   numberAttribute,
@@ -233,9 +236,12 @@ export class AndesPagination {
   readonly showSizeChange = output<AndesPaginationSizeChange>();
 
   private readonly isNarrowViewport = signal(false);
+  private readonly document = inject(DOCUMENT);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   constructor() {
-    const view = inject(DOCUMENT).defaultView;
+    const view = this.document.defaultView;
     if (view && typeof view.matchMedia === 'function') {
       const query = view.matchMedia(RESPONSIVE_QUERY);
       this.isNarrowViewport.set(query.matches);
@@ -413,8 +419,47 @@ export class AndesPagination {
     if (target === this.clampedCurrentPage()) {
       return;
     }
+    this.restoreFocusAfterRender();
     this.current.set(target);
     this.pageChange.emit({ page: target, pageSize: this.resolvedPageSize() });
+  }
+
+  /**
+   * Activating Next/Previous can disable that very button, and a jumper can
+   * vanish from the new range - either way the browser drops focus to `<body>`.
+   * When focus was on such a control, hand it to the current page instead (or,
+   * in simple mode, the page input). Focus that was elsewhere is left alone.
+   */
+  private restoreFocusAfterRender(): void {
+    const focused = this.document.activeElement;
+    if (
+      !(focused instanceof HTMLElement) ||
+      !this.host.nativeElement.contains(focused)
+    ) {
+      return;
+    }
+    afterNextRender(
+      () => {
+        if (focused.isConnected && !focused.matches(':disabled')) {
+          return;
+        }
+        const active = this.document.activeElement;
+        if (active !== focused && active !== this.document.body && active) {
+          return;
+        }
+        const root = this.host.nativeElement;
+        const fallback =
+          root.querySelector<HTMLElement>('[aria-current="page"]') ??
+          root.querySelector<HTMLElement>(
+            '.andes-pagination__simple-input:not(:disabled)',
+          ) ??
+          root.querySelector<HTMLElement>(
+            '.andes-pagination__item:not(:disabled)',
+          );
+        fallback?.focus();
+      },
+      { injector: this.injector },
+    );
   }
 
   protected goToPrevious(): void {
