@@ -31,9 +31,8 @@ import {
 } from './table-sort';
 
 /*
- * The Ant Design Table filter examples ("Filter and sorter", "Filter in Tree",
- * "Filter search", "Customized filter panel", "Reset filters and sorters"), with
- * the same data and column setup, so the two can be compared side by side.
+ * Column filter examples: "Filter and sorter", "Filter in Tree", "Filter search",
+ * "Customized filter panel" and "Reset filters and sorters".
  */
 
 const TABLE_PARTS = [
@@ -103,10 +102,10 @@ const STYLES = `
 `;
 
 /**
- * Ant Design "Filter and sorter": a nested (submenu) Name filter that matches by
- * prefix, an Address filter, and sorters - the Name sorter only sorts descending.
- * Each filter's `predicate` is Ant's `onFilter`; `table.filterRows` applies them.
- * `(tableChange)` is Ant's `onChange`.
+ * Filter and sorter: a nested (submenu) Name filter that matches by prefix, an
+ * Address filter, and sorters - the Name sorter only sorts descending. Each
+ * filter's `predicate` tests a row; `table.filterRows` applies them and
+ * `(tableChange)` reports every sort or filter the user changes.
  */
 @Component({
   selector: 'andes-filter-sorter-demo',
@@ -200,8 +199,7 @@ class FilterSorterDemo {
 }
 
 /**
- * Ant Design "Filter in Tree" (`filterMode: 'tree'`) and "Filter search"
- * (`filterSearch`): the Name filter as a checkable tree - checking a category
+ * Filter in tree (`mode="tree"`) and filter search (`searchable`): the Name filter as a checkable tree - checking a category
  * checks its colors - and searchable lists. With `customSearch` the Address search
  * uses a function that matches from the start of the text only.
  */
@@ -300,10 +298,9 @@ class FilterTreeDemo {
 }
 
 /**
- * Ant Design "Customized filter panel": every column gets a text search panel
- * (`panel`, Ant's `filterDropdown`) with Search / Reset / Filter / close actions,
- * a search icon as its trigger (`icon`, Ant's `filterIcon`) that turns primary
- * while filtered, and the matching text highlighted in the cells.
+ * Customized filter panel: every column gets a text search panel (`panel`) with
+ * Search / Reset / Filter / close actions, a search icon as its trigger (`icon`)
+ * that turns primary while filtered, and the matching text highlighted in the cells.
  */
 @Component({
   selector: 'andes-filter-panel-demo',
@@ -537,7 +534,7 @@ function escapeRegExp(text: string): string {
 }
 
 /**
- * Ant Design "Reset filters and sorters": both filters are controlled through
+ * Reset filters and sorters: both filters are controlled through
  * `filteredValue`, updated from `(tableChange)`, so outside buttons can clear them
  * (Name starts filtered to "Jim"). Reset inside the Address panel returns the
  * draft to its `defaultFilteredValue` (`resetToDefault`) instead of emptying it.

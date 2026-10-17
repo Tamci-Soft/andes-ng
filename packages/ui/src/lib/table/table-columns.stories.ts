@@ -58,7 +58,7 @@ interface Entry {
   readonly note: string;
 }
 
-// The data of Ant Design's "Resizable column" example.
+// Sample entries for the resizable column demos.
 const ENTRIES: readonly Entry[] = [
   { key: 0, date: '2018-02-11', amount: 120, type: 'income', note: 'transfer' },
   { key: 1, date: '2018-03-11', amount: 243, type: 'income', note: 'transfer' },
@@ -66,7 +66,7 @@ const ENTRIES: readonly Entry[] = [
 ];
 
 /**
- * Ant Design "Resizable column": drag the edge of a header to resize it (the last
+ * Resizable columns: drag the edge of a header to resize it (the last
  * column takes up the slack), double-click the edge to fit the content, or focus
  * the edge with Tab and use Arrow Left/Right (Shift for 50px), Home/End and Enter.
  * `[(columnWidths)]` keeps the widths; `(columnResize)` reports each change.
@@ -243,7 +243,7 @@ interface Contact {
   readonly address: string;
 }
 
-// The data of Ant Design's "Drag sorting column" example.
+// Sample contacts for the reorderable column demo.
 const CONTACTS: readonly Contact[] = [
   {
     key: '1',
@@ -293,7 +293,7 @@ const CONTACT_COLUMNS: readonly {
 ];
 
 /**
- * Ant Design "Drag sorting column": drag a header sideways to move its column -
+ * Reorderable columns: drag a header sideways to move its column -
  * the pinned Name column stays first - or focus a header and press Alt+Arrow
  * Left/Right (the move is announced). The table reports the order through
  * `[(columnOrder)]`/`(columnReorder)`; the cells are rendered from

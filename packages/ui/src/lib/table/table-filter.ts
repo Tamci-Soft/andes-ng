@@ -46,12 +46,11 @@ export interface AndesTableFilterOption {
   readonly children?: readonly AndesTableFilterOption[];
 }
 
-/** How the default panel lays out nested options (Ant Design's `filterMode`). */
+/** How the default panel lays out nested options. */
 export type AndesTableFilterMode = 'menu' | 'tree';
 
 /**
- * Custom match for the filter's search box (Ant Design's `filterSearch` function):
- * whether `option` stays visible for the typed `query`.
+ * Custom match for the filter's search box: whether `option` stays visible for the typed `query`.
  */
 export type AndesTableFilterSearchFn = (
   query: string,
@@ -106,8 +105,7 @@ export interface AndesTableFilterClearOptions {
 }
 
 /**
- * Context handed to a custom filter panel template (Ant Design's `filterDropdown`).
- * Values are a *draft* until `confirm()` writes them to the table.
+ * Context handed to a custom filter panel template. Values are a *draft* until `confirm()` writes them to the table.
  */
 export interface AndesTableFilterPanelContext {
   /** Draft selection, same as `selected`. */
@@ -127,7 +125,7 @@ export interface AndesTableFilterPanelContext {
   readonly options: readonly AndesTableFilterOption[];
 }
 
-/** Context handed to a custom trigger icon template (Ant Design's `filterIcon`). */
+/** Context handed to a custom trigger icon template. */
 export interface AndesTableFilterIconContext {
   /** Whether the column is currently filtered. */
   readonly $implicit: boolean;
@@ -176,13 +174,14 @@ function sameValues(
  * `AndesTable.filterRows`. Clicks and keys inside the filter never reach the
  * header, so filtering does not also toggle the column's sort.
  *
- * Ant Design's column filter props map onto inputs as follows: `filters` ->
- * `options`, `filterMultiple` -> `multiple`, `filterSearch` -> `searchable`
- * (`true` or a match function), `filterMode` -> `mode`, `filteredValue` /
- * `defaultFilteredValue` -> the inputs of the same name,
- * `filterResetToDefaultFilteredValue` -> `resetToDefault`, `filterOnClose` ->
- * `applyOnClose`, `filterDropdown` -> `panel`, `filterIcon` -> `icon`, `onFilter`
- * -> `predicate`, `onFilterDropdownOpenChange` -> `(openChange)`.
+ * The inputs: `options` lists the choices, `multiple` switches checkboxes to
+ * radios, `searchable` shows a search box (`true`, or a match function), `mode`
+ * lays nested options out as a menu or a checkable tree, `filteredValue` makes
+ * the filter controlled and `defaultFilteredValue` seeds an uncontrolled one,
+ * `resetToDefault` sends Reset back to that default, `applyOnClose` applies the
+ * draft when the panel is dismissed, `panel` and `icon` replace the panel and the
+ * trigger icon with templates, `predicate` tests a row against the filter and
+ * `(openChange)` reports the panel opening and closing.
  *
  * The panel is a non-modal `role="dialog"` shown in the top layer (Popover API),
  * so the table's scroll container cannot clip it; it opens below the button, or
@@ -276,7 +275,7 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
   readonly resetToDefault = input(false, { transform: booleanAttribute });
 
   /**
-   * How a row is tested against this column's filter (Ant Design's `onFilter`):
+   * How a row is tested against this column's filter (a row predicate):
    * a per-value predicate (values OR-ed), or a matcher that sees all of the
    * column's values at once - `andesTextFilter`, `andesRangeFilter`,
    * `andesDateRangeFilter`. Collected by `AndesTable.filterRows`.
@@ -527,7 +526,7 @@ export class AndesTableFilter implements AndesTableFilterable, OnInit {
     }
 
     // Tree: (un)check the whole subtree, then re-derive every parent from its
-    // children - the same "conduction" as Ant Design's tree filter.
+    // children, so a fully checked parent is itself part of the filter.
     const subtree = new Set(subtreeValues(option));
     const draft = new Set(this.draft());
     const check = !this.isChecked(option);

@@ -3,7 +3,7 @@
   flex: none;
   /* The 24px button is taller than the 22px header line; pulling it into the cell
      padding keeps a filterable header exactly as tall as a plain one, and the end
-     margin tucks it toward the cell edge like Ant Design's trigger. */
+     margin tucks it toward the cell edge. */
   margin-block: calc((var(--andes-text-line-height, 1.375rem) - 1.5rem) / 2);
   margin-inline-end: calc(-1 * var(--andes-space-1));
   vertical-align: middle;
@@ -45,7 +45,7 @@
   color: var(--andes-color-primary-text);
 }
 
-/* Ant Design's filled funnel at 12px, the same size as the sort carets. */
+/* A filled funnel at 12px, the same size as the sort carets. */
 .andes-table-filter__icon {
   display: block;
   width: 0.75rem;
@@ -151,7 +151,7 @@
   color-scheme: dark;
 }
 
-/* Search box: an Ant Design default-size input (32px, 11px inline padding) with a
+/* Search box: a default-size input (32px, 11px inline padding) with a
    search icon, in an 8px band above the options. */
 .andes-table-filter__search {
   padding: var(--andes-space-2);
@@ -182,7 +182,7 @@
 
 .andes-table-filter__search-field:focus-within {
   /* Field focus, shared by every text field: the border takes the ring color and a soft
-     3px halo hugs it (Ant Design / shadcn style) instead of a ring floating 2px outside
+     3px halo hugs it instead of a ring floating 2px outside
      the border. The transparent outline is still there for forced-colors mode, which
      drops box-shadow but paints outlines in a system color. */
   outline: 2px solid transparent;
@@ -211,7 +211,7 @@
 
 .andes-table-filter__search-input {
   flex: 1 1 auto;
-  /* Ant Design's 140px search input; without a basis the native input's own default
+  /* A 140px search input; without a basis the native input's own default
      size would stretch the panel. */
   width: 8.75rem;
   min-width: 0;
@@ -229,7 +229,7 @@
   color: var(--andes-color-muted-foreground);
 }
 
-/* Options: Ant Design's menu - 4px inset, 32px rows with 12px inline padding, a
+/* Options: a menu with a 4px inset, 32px rows with 12px inline padding, a
    16px control and an 8px gap before the label. */
 .andes-table-filter__options {
   max-height: 16rem;
@@ -270,7 +270,7 @@
   outline-offset: 2px;
 }
 
-/* Menu mode: a parent is a group label (Ant Design's menu item group title). */
+/* Menu mode: a parent is a group label (a menu group title). */
 .andes-table-filter__group-title {
   padding-block: 0.3125rem;
   padding-inline: var(--andes-space-3);
@@ -281,7 +281,7 @@
   padding-inline-start: calc(var(--andes-space-3) + var(--andes-space-2));
 }
 
-/* Tree mode: Ant Design's filter tree - 8px inset, 24px nodes 4px apart, a 24px
+/* Tree mode: an 8px inset, 24px nodes 4px apart, a 24px
    switcher column and one 24px indent per level. */
 .andes-table-filter__options--tree {
   padding: var(--andes-space-2) var(--andes-space-2) 0;
@@ -366,7 +366,7 @@
   color: var(--andes-color-muted-foreground);
 }
 
-/* Footer: Reset (link) and OK (primary) as Ant Design's 24px small buttons, in a
+/* Footer: Reset (link) and OK (primary) as 24px small buttons, in a
    7px x 8px band under a hairline. */
 .andes-table-filter__actions {
   display: flex;

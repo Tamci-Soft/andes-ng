@@ -3,9 +3,8 @@
  * comparator consumers use to derive the sorted rows they render.
  *
  * `AndesTable` deliberately owns only the sort *state* (which column, which
- * direction) and never the data: rows stay in the consumer's own signal/store,
- * exactly like shadcn's plain Table. `andesSortRows` is the pure function that
- * closes the gap without dragging in a headless table engine.
+ * direction) and never the data: rows stay in the consumer's own signal/store.
+ * `andesSortRows` is the pure function that closes the gap without dragging in a headless table engine.
  */
 
 /** Direction a column is currently sorted in. `null` means "not sorted". */

@@ -22,7 +22,7 @@ interface Person {
   readonly address: string;
 }
 
-// The data of Ant Design's "Filter in Tree" example.
+// Sample people for the tree filter.
 const PEOPLE: readonly Person[] = [
   { key: 1, name: 'John Brown', address: 'New York No. 1 Lake Park' },
   { key: 2, name: 'Jim Green', address: 'London No. 1 Lake Park' },
@@ -213,7 +213,7 @@ function setup(configure?: (host: AdvancedHost) => void) {
   };
 }
 
-describe('AndesTableFilter tree mode (filterMode: tree)', () => {
+describe('AndesTableFilter tree mode', () => {
   it('checks a whole subtree from its parent and derives parents from children', () => {
     const { host, trigger, labelled, act, check, button } = setup();
 
@@ -232,7 +232,7 @@ describe('AndesTableFilter tree mode (filterMode: tree)', () => {
     expect(labelled('Category 2').checked).toBe(true);
 
     act(button('OK'));
-    // Ant Design's conduction: a fully checked parent's own value is included.
+    // A fully checked parent's own value is included.
     expect([...host.filters()['name']].sort()).toEqual(
       ['Black', 'Category 2', 'Green', 'Yellow'].sort(),
     );
@@ -311,7 +311,7 @@ describe('AndesTableFilter tree mode (filterMode: tree)', () => {
 });
 
 describe('AndesTableFilter search and menu groups', () => {
-  it('uses a custom search function (filterSearch as a function)', () => {
+  it('uses a custom search function', () => {
     const { trigger, optionTexts, act, search } = setup((h) => {
       h.mode.set('menu');
       h.searchable.set((query, option) =>
@@ -404,7 +404,7 @@ describe('AndesTableFilter value control', () => {
     expect(labelled('New York').checked).toBe(true);
   });
 
-  it('filters rows itself from each filter predicate (onFilter)', () => {
+  it('filters rows itself from each filter predicate', () => {
     const { host, detect, visibleKeys } = setup();
 
     host.filters.set({ name: ['Jim'], address: ['London'] });
@@ -418,7 +418,7 @@ describe('AndesTableFilter value control', () => {
 });
 
 describe('AndesTableFilter templates and events', () => {
-  it('renders a custom trigger icon with the filtered state (filterIcon)', () => {
+  it('renders a custom trigger icon with the filtered state', () => {
     @Component({
       imports: [AndesTable, AndesTableFilter, AndesTableHead, AndesTableHeader],
       template: `<andes-table [(filters)]="filters">
