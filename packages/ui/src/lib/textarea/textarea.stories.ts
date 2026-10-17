@@ -121,7 +121,7 @@ export const Required: Story = {
   render: (args) => ({
     props: args,
     template: `<div style="width: 320px;">
-      <label for="required-textarea" style="display: block; font-size: 0.875rem; margin-bottom: 0.25rem;">Message <span aria-hidden="true">*</span></label>
+      <label for="required-textarea" style="display: block; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground); margin-bottom: 0.25rem;">Message <span aria-hidden="true">*</span></label>
       <andes-textarea id="required-textarea" [size]="size" required placeholder="Required field" />
     </div>`,
   }),
@@ -132,7 +132,7 @@ export const Invalid: Story = {
     props: args,
     template: `<div style="width: 320px;">
       <andes-textarea [size]="size" aria-label="Message" aria-invalid="true" aria-describedby="textarea-error" />
-      <p id="textarea-error" style="color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem;">This field is required.</p>
+      <p id="textarea-error" style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-danger-text, var(--andes-color-danger)); font-size: 0.875rem; margin: 0.25rem 0 0;">This field is required.</p>
     </div>`,
   }),
 };
@@ -168,7 +168,7 @@ export const Clearable: Story = {
     },
     template: `<div style="width: 320px;">
       <andes-textarea clearable [formControl]="control" aria-label="Message" (cleared)="clearedCount = clearedCount + 1" />
-      <p style="font-size: 0.8rem; margin-top: 0.5rem;">Form value: "{{ control.value }}" - cleared {{ clearedCount }}×</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Form value: "{{ control.value }}" - cleared {{ clearedCount }}×</p>
     </div>`,
   }),
 };
@@ -178,7 +178,7 @@ export const PressEnter: Story = {
     props: { log: [] as string[] },
     template: `<div style="width: 320px;">
       <andes-textarea #ta aria-label="Message" placeholder="Press Enter…" (pressEnter)="log = [ta.value(), ...log].slice(0, 3)" />
-      <p style="font-size: 0.8rem; margin-top: 0.5rem;">pressEnter fired with: {{ log.length ? log.join(' | ') : '—' }}</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">pressEnter fired with: {{ log.length ? log.join(' | ') : '—' }}</p>
     </div>`,
   }),
 };
@@ -202,19 +202,19 @@ export const ResizeModes: Story = {
     template: `
       <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
         <div style="width: 220px;">
-          <p style="font-size: 0.75rem; margin-bottom: 0.25rem;">none</p>
+          <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground); margin: 0 0 0.25rem;">none</p>
           <andes-textarea resize="none" aria-label="Resize none" placeholder="none" />
         </div>
         <div style="width: 220px;">
-          <p style="font-size: 0.75rem; margin-bottom: 0.25rem;">vertical (default)</p>
+          <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground); margin: 0 0 0.25rem;">vertical (default)</p>
           <andes-textarea resize="vertical" aria-label="Resize vertical" placeholder="vertical" />
         </div>
         <div style="width: 220px;">
-          <p style="font-size: 0.75rem; margin-bottom: 0.25rem;">horizontal</p>
+          <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground); margin: 0 0 0.25rem;">horizontal</p>
           <andes-textarea resize="horizontal" aria-label="Resize horizontal" placeholder="horizontal" />
         </div>
         <div style="width: 220px;">
-          <p style="font-size: 0.75rem; margin-bottom: 0.25rem;">both</p>
+          <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground); margin: 0 0 0.25rem;">both</p>
           <andes-textarea resize="both" aria-label="Resize both" placeholder="both" />
         </div>
       </div>
@@ -243,7 +243,7 @@ export const WithNgModel: Story = {
     props: { ...args, value: 'Bound with [(ngModel)]' },
     template: `<div style="width: 320px;">
       <andes-textarea [(ngModel)]="value" aria-label="Message" />
-      <p style="font-size: 0.8rem; margin-top: 0.5rem;">Value: {{ value }}</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Value: {{ value }}</p>
     </div>`,
   }),
 };
@@ -253,7 +253,7 @@ export const TwoWayValue: Story = {
     props: { text: 'Bound with [(value)]' },
     template: `<div style="width: 320px;">
       <andes-textarea [(value)]="text" aria-label="Message" />
-      <p style="font-size: 0.8rem; margin-top: 0.5rem;">Value: {{ text }}</p>
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground); margin: 0.5rem 0 0;">Value: {{ text }}</p>
     </div>`,
   }),
 };
