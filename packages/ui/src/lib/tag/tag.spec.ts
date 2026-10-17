@@ -502,7 +502,8 @@ describe('AndesTag closeIcon', () => {
     expect(tag.classList).toContain('andes-tag--closable');
     expect(closeButton.querySelector('.custom-x')).toBeTruthy();
     expect(closeButton.querySelector('svg')).toBeFalsy();
-    expect(closeButton.getAttribute('aria-label')).toBe('Remove');
+    // The icon slot is decoration - only the label goes into the name.
+    expect(closeButton.getAttribute('aria-label')).toBe('Remove Beta');
     expect(tag.querySelector('[slot=icon]')?.textContent).toBe('*');
     expect(tag.textContent).toContain('Beta');
 
@@ -586,6 +587,110 @@ describe('AndesTag close event / hideOnClose', () => {
     expect(fixture.componentInstance.lastEvent?.defaultPrevented).toBe(true);
     expect(tag()).toBeTruthy();
     expect(tag().textContent).toContain('Beta');
+  });
+});
+
+describe('AndesTag close button accessible name', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<andes-tag closable [closeAriaLabel]="closeAriaLabel()">{{
+      label()
+    }}</andes-tag>`,
+  })
+  class NameHost {
+    readonly label = signal('Urgent');
+    readonly closeAriaLabel = signal<string | undefined>(undefined);
+  }
+
+  function setup(apply: (host: NameHost) => void = () => undefined) {
+    const fixture = TestBed.createComponent(NameHost);
+    apply(fixture.componentInstance);
+    fixture.detectChanges();
+    const closeName = () =>
+      (
+        fixture.nativeElement.querySelector(
+          '.andes-tag__close',
+        ) as HTMLButtonElement
+      ).getAttribute('aria-label');
+    return { fixture, closeName };
+  }
+
+  it('names the close button after the tag label by default', () => {
+    const { closeName } = setup();
+
+    expect(closeName()).toBe('Remove Urgent');
+  });
+
+  it('follows the label when its text changes', () => {
+    const { fixture, closeName } = setup();
+    fixture.componentInstance.label.set('Low priority');
+    fixture.detectChanges();
+
+    expect(closeName()).toBe('Remove Low priority');
+  });
+
+  it('uses closeAriaLabel verbatim when set', () => {
+    const { closeName } = setup((h) => h.closeAriaLabel.set('Quitar filtro'));
+
+    expect(closeName()).toBe('Quitar filtro');
+  });
+
+  it('falls back to plain "Remove" when the tag has no label text', () => {
+    const { closeName } = setup((h) => h.label.set(''));
+
+    expect(closeName()).toBe('Remove');
+  });
+});
+
+describe('AndesTag focus after hideOnClose', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<button type="button" class="before">Before</button>
+      @for (label of labels; track label) {
+        <andes-tag closable hideOnClose>{{ label }}</andes-tag>
+      }`,
+  })
+  class RowHost {
+    readonly labels = ['One', 'Two', 'Three'];
+  }
+
+  function setup() {
+    const fixture = TestBed.createComponent(RowHost);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const closeButtons = Array.from(
+      root.querySelectorAll<HTMLButtonElement>('.andes-tag__close'),
+    );
+    const close = (button: HTMLButtonElement) => {
+      button.focus();
+      button.click();
+      fixture.detectChanges();
+    };
+    return { fixture, root, closeButtons, close };
+  }
+
+  it("moves focus to the next tag's close button", () => {
+    const { closeButtons, close } = setup();
+    close(closeButtons[1]);
+
+    expect(document.activeElement).toBe(closeButtons[2]);
+  });
+
+  it('falls back to the previous tabbable element when the last tag closes', () => {
+    const { closeButtons, close } = setup();
+    close(closeButtons[2]);
+
+    expect(document.activeElement).toBe(closeButtons[1]);
+  });
+
+  it('leaves focus alone when it was not on the tag', () => {
+    const { fixture, root, closeButtons } = setup();
+    const before = root.querySelector('.before') as HTMLButtonElement;
+    before.focus();
+    closeButtons[1].click();
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(before);
   });
 });
 

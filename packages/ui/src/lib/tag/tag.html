@@ -18,6 +18,7 @@
 <!-- hideOnClose: closed and not vetoed - render nothing. -->
 } @else if (isClosable()) {
 <span
+  #closableTag
   data-slot="tag"
   [class]="classes()"
   [style.--andes-tag-color]="customColor()"
@@ -27,7 +28,7 @@
     type="button"
     class="andes-tag__close"
     [disabled]="disabled()"
-    [attr.aria-label]="closeAriaLabel()"
+    [attr.aria-label]="closeLabel()"
     (click)="onClose($event)"
   >
     @if (closeIcon(); as icon) {
