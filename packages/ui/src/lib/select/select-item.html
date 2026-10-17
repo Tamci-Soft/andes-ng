@@ -15,6 +15,7 @@
   [disabled]="skipped()"
   [hidden]="filteredOut()"
   [typeaheadLabel]="label()"
+  [attr.title]="title() ?? null"
   [attr.aria-selected]="selected()"
   [attr.aria-disabled]="unavailable() || null"
   [attr.data-selected]="selected() ? '' : null"
@@ -23,7 +24,10 @@
 >
   <span class="andes-select__option-label"><ng-content /></span>
   <span class="andes-select__option-indicator" aria-hidden="true">
-    @if (selected()) {
+    @if (selected() && select.optionSelectedIcon() !== null) { @if
+    (select.optionSelectedIcon(); as icon) {
+    <ng-container [ngTemplateOutlet]="icon" />
+    } @else {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path
         d="M20 6 9 17l-5-5"
@@ -31,6 +35,6 @@
         stroke-linejoin="round"
       />
     </svg>
-    }
+    } }
   </span>
 </button>

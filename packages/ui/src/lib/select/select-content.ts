@@ -6,7 +6,6 @@ import {
 } from '@andes-ng/primitives';
 import { NgTemplateOutlet } from '@angular/common';
 import {
-  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -20,7 +19,7 @@ import {
 import { AndesSelectGroup } from './select-group';
 import { AndesSelectItem } from './select-item';
 import { AndesSelectLabel } from './select-label';
-import { AndesSelectState } from './select-state';
+import { AndesSelectState, matchTriggerWidthAttribute } from './select-state';
 
 /**
  * The panel holding the options: a `role="listbox"` element, plus the loading and empty
@@ -58,8 +57,25 @@ export class AndesSelectContent {
   readonly align = input<AndesOverlayAlign | undefined>(undefined);
   /** Gap in px between trigger and panel. */
   readonly sideOffset = input(4);
-  /** Size the panel to the trigger's width, as a native `<select>` does. */
-  readonly matchTriggerWidth = input(true, { transform: booleanAttribute });
+  /**
+   * Panel width: `true` sizes it to the trigger, as a native `<select>` does; `false`
+   * sizes it to its own content; a number sets it in px. Defaults to the select's own
+   * `matchTriggerWidth`, and to `true` when neither is set.
+   */
+  readonly matchTriggerWidth = input<boolean | number | undefined, unknown>(
+    undefined,
+    { transform: matchTriggerWidthAttribute },
+  );
+
+  /** @internal The resolved panel width rule. */
+  protected readonly widthRule = computed(
+    () => this.matchTriggerWidth() ?? this.select.matchTriggerWidth() ?? true,
+  );
+  protected readonly matchesTrigger = computed(() => this.widthRule() === true);
+  protected readonly fixedWidth = computed(() => {
+    const rule = this.widthRule();
+    return typeof rule === 'number' ? rule : null;
+  });
 
   /** @internal The template `AndesSelect` opens. */
   readonly panelTemplate = viewChild.required(TemplateRef);
@@ -82,7 +98,10 @@ export class AndesSelectContent {
           side: this.side() ?? this.select.placementSide(),
           align: this.align() ?? this.select.placementAlign(),
           sideOffset: this.sideOffset(),
-          matchAnchorWidth: this.matchTriggerWidth(),
+          matchAnchorWidth: this.matchesTrigger(),
+          // The list belongs above or below its field, never beside it: when neither side
+          // has room for all of it, the panel shrinks to the larger one and its options
+          // scroll (the `size.minHeight` set by `AndesSelect` lets CDK shrink the pane).
           crossSideFallback: false,
           flexibleDimensions: true,
         },

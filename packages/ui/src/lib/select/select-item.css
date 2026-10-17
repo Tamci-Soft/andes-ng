@@ -66,6 +66,19 @@
   );
 }
 
+/* A selected option under the keyboard cursor or the pointer still has to show it: the
+   selected tint above would otherwise paint over the cursor, leaving it invisible on every
+   selected row of a multiple select. A stronger mix of the same tint marks both at once. */
+.andes-select__option[data-selected][data-active],
+.andes-select__option[data-selected]:focus-visible,
+.andes-select__option[data-selected]:hover:not([data-disabled]) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 22%,
+    transparent
+  );
+}
+
 .andes-select__option[data-disabled] {
   cursor: not-allowed;
   opacity: 0.5;
@@ -86,7 +99,8 @@
   flex: 0 0 auto;
   width: 1em;
   height: 1em;
-  color: var(--andes-color-primary);
+  /* The text tone, not the fill: the fill only reaches 2.8:1 on the dark popover. */
+  color: var(--andes-color-primary-text);
 }
 
 .andes-select__option-indicator svg {

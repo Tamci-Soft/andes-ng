@@ -4,7 +4,26 @@ import type {
   AndesOverlayPrimitive,
   AndesOverlaySide,
 } from '@andes-ng/primitives';
-import type { Signal, TemplateRef } from '@angular/core';
+import { booleanAttribute, type Signal, type TemplateRef } from '@angular/core';
+
+/**
+ * Input transform for `matchTriggerWidth`: a number (or numeric string) is a panel width
+ * in px, `undefined`/`null` stay unset, and anything else goes through `booleanAttribute`.
+ */
+export function matchTriggerWidthAttribute(
+  value: unknown,
+): boolean | number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())) {
+    return Number(value);
+  }
+  return booleanAttribute(value);
+}
 
 /** Control height, matching the `sm`/`md`/`lg` steps used across andes-ng form controls. */
 export type AndesSelectSize = 'sm' | 'md' | 'lg';
@@ -48,6 +67,8 @@ export interface AndesSelectOption<T = unknown> {
   readonly value: T;
   readonly label: string;
   readonly disabled?: boolean;
+  /** Native tooltip shown when the pointer rests on the option. */
+  readonly title?: string;
   readonly [key: string]: unknown;
 }
 
@@ -55,6 +76,46 @@ export interface AndesSelectOption<T = unknown> {
 export interface AndesSelectOptionGroup<T = unknown> {
   readonly label: string;
   readonly options: readonly AndesSelectOption<T>[];
+  /** Native tooltip shown when the pointer rests on the group. */
+  readonly title?: string;
+}
+
+/**
+ * Which fields of an `options` entry hold its value, its label and its child options, for
+ * data that does not already use `value`/`label`/`options` - rows straight from an API,
+ * say `{ id, name }`. Every field is optional and falls back to its default name;
+ * `groupLabel` falls back to `label`.
+ */
+export interface AndesSelectFieldNames {
+  readonly value?: string;
+  readonly label?: string;
+  readonly options?: string;
+  readonly groupLabel?: string;
+}
+
+/**
+ * Orders the `options` entries in the panel, the way `Array.prototype.sort` takes a
+ * comparator. Options are sorted within their own group; groups keep their place. The
+ * current search text is passed along, so results can be ranked against it.
+ */
+export type AndesSelectFilterSort = (
+  a: AndesSelectOption,
+  b: AndesSelectOption,
+  info: { readonly searchValue: string },
+) => number;
+
+/**
+ * How many tags the trigger renders: a fixed number, or `'responsive'` to fit as many as
+ * the trigger's width allows on a single row.
+ */
+export type AndesSelectMaxTagCount = number | 'responsive';
+
+/** Template context for `panelHeader` and `panelFooter`. */
+export interface AndesSelectPanelContext {
+  /** The current search text. */
+  readonly $implicit: string;
+  /** Closes the panel. */
+  readonly close: () => void;
 }
 
 /** The `options` input: flat options, groups, or a mix of both. */
@@ -126,6 +187,7 @@ export type AndesSelectOptionEntry =
   | {
       readonly kind: 'group';
       readonly label: string;
+      readonly title?: string;
       readonly options: readonly AndesSelectOption[];
     };
 
@@ -167,6 +229,8 @@ export abstract class AndesSelectState {
   abstract readonly listboxId: string;
   /** Stable id of the hidden element summarising the selection for screen readers. */
   abstract readonly summaryId: string;
+  /** Stable id of the panel's root element. */
+  abstract readonly panelId: string;
 
   /** Whether the panel is open. */
   abstract readonly isOpen: Signal<boolean>;
@@ -217,6 +281,10 @@ export abstract class AndesSelectState {
   /** Screen-reader text describing the selection, or `null` when the trigger shows it. */
   abstract readonly selectionSummary: Signal<string | null>;
 
+  /** Every tag of the selection (`multiple`/`tags` mode), before `maxTagCount` applies. */
+  abstract readonly tags: Signal<readonly AndesSelectTag[]>;
+  /** Whether `maxTagCount` is `'responsive'`. */
+  abstract readonly responsiveTags: Signal<boolean>;
   /** The tags rendered in the trigger (`multiple`/`tags` mode), capped by `maxTagCount`. */
   abstract readonly visibleTags: Signal<readonly AndesSelectTag[]>;
   /** The tags hidden by `maxTagCount`. */
@@ -227,6 +295,10 @@ export abstract class AndesSelectState {
   abstract readonly maxTagPlaceholderTemplate: Signal<TemplateRef<AndesSelectMaxTagPlaceholderContext> | null>;
   /** Maximum characters shown per tag. */
   abstract readonly maxTagTextLength: Signal<number | undefined>;
+  /** Text of the `+ N ...` tag for a given list of hidden tags. */
+  abstract maxTagPlaceholderTextFor(omitted: readonly AndesSelectTag[]): string;
+  /** Records how many tags fit in the trigger, for `maxTagCount="responsive"`. */
+  abstract setResponsiveTagCount(count: number | null): void;
 
   /** Custom renderers. */
   abstract readonly tagTemplate: Signal<
@@ -241,10 +313,27 @@ export abstract class AndesSelectState {
   abstract readonly prefix: Signal<TemplateRef<unknown> | undefined>;
   abstract readonly suffixIcon: Signal<TemplateRef<unknown> | null | undefined>;
   abstract readonly clearIcon: Signal<TemplateRef<unknown> | undefined>;
+  abstract readonly clearLabel: Signal<string>;
   abstract readonly removeIcon: Signal<TemplateRef<unknown> | undefined>;
+  abstract readonly loadingIcon: Signal<TemplateRef<unknown> | undefined>;
+  abstract readonly optionSelectedIcon: Signal<
+    TemplateRef<unknown> | null | undefined
+  >;
+  abstract readonly panelHeader: Signal<
+    TemplateRef<AndesSelectPanelContext> | undefined
+  >;
+  abstract readonly panelFooter: Signal<
+    TemplateRef<AndesSelectPanelContext> | undefined
+  >;
+  /** Context handed to `panelHeader` and `panelFooter`. */
+  abstract readonly panelContext: Signal<AndesSelectPanelContext>;
 
-  /** The `options` input, normalised for rendering. */
+  /** The `options` input, normalised. */
   abstract readonly optionEntries: Signal<readonly AndesSelectOptionEntry[]>;
+  /** The `options` input, normalised and ordered by `filterSort`, for rendering. */
+  abstract readonly renderedOptionEntries: Signal<
+    readonly AndesSelectOptionEntry[]
+  >;
   /** The typed text offered as a new value in `tags` mode, or `null`. */
   abstract readonly tagCandidate: Signal<string | null>;
   /** Selected `tags`-mode values that no option carries, listed so they can be deselected. */
@@ -259,6 +348,8 @@ export abstract class AndesSelectState {
   >;
   /** Maximum height of the panel in px. */
   abstract readonly listHeight: Signal<number>;
+  /** The select's own `matchTriggerWidth`, which `AndesSelectContent` falls back to. */
+  abstract readonly matchTriggerWidth: Signal<boolean | number | undefined>;
   /** Default panel side and alignment, from `placement`. */
   abstract readonly placementSide: Signal<AndesOverlaySide>;
   abstract readonly placementAlign: Signal<AndesOverlayAlign>;
@@ -294,6 +385,8 @@ export abstract class AndesSelectState {
   abstract close(): void;
   /** Opens the panel if closed, closes it if open. */
   abstract toggle(): void;
+  /** Re-fits and re-positions an open panel after the trigger box changed size. */
+  abstract repositionPanel(): void;
   /** Moves focus to the combobox. */
   abstract focus(): void;
 
@@ -301,4 +394,10 @@ export abstract class AndesSelectState {
   abstract onTriggerKeydown(event: KeyboardEvent): void;
   /** Marks the control as touched. */
   abstract markAsTouched(): void;
+  /** Tracks focus entering the select (its trigger or its panel). */
+  abstract onFocusIn(event: FocusEvent): void;
+  /** Tracks focus leaving the select (its trigger or its panel). */
+  abstract onFocusOut(event: FocusEvent): void;
+  /** Handles a scroll of the option list. */
+  abstract onPanelScroll(event: Event): void;
 }

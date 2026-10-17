@@ -1,4 +1,5 @@
 import { AndesListNavigationItem } from '@andes-ng/primitives';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -25,10 +26,14 @@ import { AndesSelectState, type AndesSelectItemRef } from './select-state';
  */
 @Component({
   selector: 'andes-select-item',
-  imports: [AndesListNavigationItem],
+  imports: [AndesListNavigationItem, NgTemplateOutlet],
   templateUrl: './select-item.html',
   styleUrl: './select-item.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    // Moved onto the option element, so the tooltip belongs to what the pointer is on.
+    '[attr.title]': 'null',
+  },
 })
 export class AndesSelectItem
   implements AndesSelectItemRef, AfterViewInit, OnDestroy
@@ -43,6 +48,8 @@ export class AndesSelectItem
    * across elements or decorated with icons.
    */
   readonly label = input<string | undefined>(undefined);
+  /** Native tooltip for the option - the full text of a label the panel truncates. */
+  readonly title = input<string | undefined>(undefined);
   /** Arbitrary data handed to the select's `filterOption` and `optionFilterProp`. */
   readonly data = input<unknown>(undefined);
   /** @internal Marks an option the select renders itself for a `tags`-mode value. */

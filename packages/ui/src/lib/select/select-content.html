@@ -3,47 +3,89 @@
     andesOverlayContent
     data-slot="select-panel"
     class="andes-select__panel"
+    [id]="select.panelId"
     [attr.data-size]="select.size()"
     [attr.data-side]="side() ?? select.placementSide()"
-    [attr.data-match-trigger-width]="matchTriggerWidth() ? '' : null"
-    [style.max-height.px]="select.listHeight()"
+    [attr.data-match-trigger-width]="matchesTrigger() ? '' : null"
+    [style.width.px]="fixedWidth()"
+    (focusin)="select.onFocusIn($event)"
+    (focusout)="select.onFocusOut($event)"
   >
+    @if (select.panelHeader(); as header) {
+    <div class="andes-select__panel-extra" data-slot="select-panel-header">
+      <ng-container
+        [ngTemplateOutlet]="header"
+        [ngTemplateOutletContext]="select.panelContext()"
+      />
+    </div>
+    }
+
     <div
-      role="listbox"
-      data-slot="select-content"
-      class="andes-select__listbox"
-      [id]="select.listboxId"
-      [attr.aria-multiselectable]="select.isMultiple() || null"
-      [attr.aria-busy]="select.loading() || null"
-      [attr.aria-labelledby]="select.ariaLabelledby()"
-      [attr.aria-label]="select.ariaLabelledby() ? null : select.ariaLabel()"
+      class="andes-select__viewport"
+      data-slot="select-viewport"
+      [style.max-height.px]="select.listHeight()"
+      (scroll)="select.onPanelScroll($event)"
     >
-      @if (select.tagCandidate(); as candidate) {
-      <andes-select-item custom [value]="candidate" [label]="candidate"
-        >{{ candidate }}</andes-select-item
+      <div
+        role="listbox"
+        data-slot="select-content"
+        class="andes-select__listbox"
+        [id]="select.listboxId"
+        [attr.aria-multiselectable]="select.isMultiple() || null"
+        [attr.aria-busy]="select.loading() || null"
+        [attr.aria-labelledby]="select.ariaLabelledby()"
+        [attr.aria-label]="select.ariaLabelledby() ? null : select.ariaLabel()"
       >
-      } @for (value of select.customTags(); track $index) {
-      <andes-select-item custom [value]="value" [label]="select.labelFor(value)"
-        >{{ select.labelFor(value) }}</andes-select-item
-      >
-      }
+        @if (select.tagCandidate(); as candidate) {
+        <andes-select-item custom [value]="candidate" [label]="candidate"
+          >{{ candidate }}</andes-select-item
+        >
+        } @for (value of select.customTags(); track $index) {
+        <andes-select-item
+          custom
+          [value]="value"
+          [label]="select.labelFor(value)"
+          >{{ select.labelFor(value) }}</andes-select-item
+        >
+        }
 
-      <ng-content />
+        <ng-content />
 
-      <!--
+        <!--
         The item markup is repeated rather than shared through an <ng-template>: an item
         stamped out by `ngTemplateOutlet` takes its injector from where the template is
         declared, so an item inside a group would no longer find that group.
       -->
-      @for (entry of select.optionEntries(); track $index) { @if (entry.kind ===
-      'group') {
-      <andes-select-group>
-        <andes-select-label>{{ entry.label }}</andes-select-label>
-        @for (option of entry.options; track $index) {
+        @for (entry of select.renderedOptionEntries(); track $index) { @if
+        (entry.kind === 'group') {
+        <andes-select-group [attr.title]="entry.title ?? null">
+          <andes-select-label>{{ entry.label }}</andes-select-label>
+          @for (option of entry.options; track $index) {
+          <andes-select-item
+            [value]="option.value"
+            [label]="option.label"
+            [disabled]="option.disabled ?? false"
+            [title]="option.title"
+            [data]="option"
+          >
+            @if (select.optionTemplate(); as template) {
+            <ng-container
+              [ngTemplateOutlet]="template"
+              [ngTemplateOutletContext]="{
+                      $implicit: option,
+                      selected: select.isSelectedValue(option.value),
+                    }"
+            />
+            } @else { {{ option.label }} }
+          </andes-select-item>
+          }
+        </andes-select-group>
+        } @else { @let option = entry.option;
         <andes-select-item
           [value]="option.value"
           [label]="option.label"
           [disabled]="option.disabled ?? false"
+          [title]="option.title"
           [data]="option"
         >
           @if (select.optionTemplate(); as template) {
@@ -56,37 +98,28 @@
           />
           } @else { {{ option.label }} }
         </andes-select-item>
-        }
-      </andes-select-group>
-      } @else { @let option = entry.option;
-      <andes-select-item
-        [value]="option.value"
-        [label]="option.label"
-        [disabled]="option.disabled ?? false"
-        [data]="option"
-      >
-        @if (select.optionTemplate(); as template) {
-        <ng-container
-          [ngTemplateOutlet]="template"
-          [ngTemplateOutletContext]="{
-                      $implicit: option,
-                      selected: select.isSelectedValue(option.value),
-                    }"
-        />
-        } @else { {{ option.label }} }
-      </andes-select-item>
-      } }
+        } }
+      </div>
+
+      @if (select.showLoadingRow()) {
+      <div class="andes-select__status" data-slot="select-loading-row">
+        Loading…
+      </div>
+      } @else if (select.showEmpty()) {
+      <div class="andes-select__status" data-slot="select-empty">
+        @if (notFoundTemplate(); as template) {
+        <ng-container [ngTemplateOutlet]="template" />
+        } @else { {{ notFoundText() }} }
+      </div>
+      }
     </div>
 
-    @if (select.showLoadingRow()) {
-    <div class="andes-select__status" data-slot="select-loading-row">
-      Loading…
-    </div>
-    } @else if (select.showEmpty()) {
-    <div class="andes-select__status" data-slot="select-empty">
-      @if (notFoundTemplate(); as template) {
-      <ng-container [ngTemplateOutlet]="template" />
-      } @else { {{ notFoundText() }} }
+    @if (select.panelFooter(); as footer) {
+    <div class="andes-select__panel-extra" data-slot="select-panel-footer">
+      <ng-container
+        [ngTemplateOutlet]="footer"
+        [ngTemplateOutletContext]="select.panelContext()"
+      />
     </div>
     }
   </div>
