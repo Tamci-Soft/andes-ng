@@ -20,6 +20,7 @@ import {
   AndesOverlayPrimitive,
   provideAndesOverlay,
 } from './overlay-primitive';
+import { andesConnectedPositions } from './overlay-positioning';
 import { AndesOverlayTriggerPrimitive } from './overlay-trigger-primitive';
 
 /**
@@ -1378,6 +1379,41 @@ describe('AndesOverlayPrimitive', () => {
 
       expect(pane()?.style.height).toBe('50%');
       expect(pane()?.style.width).toBe('320px');
+    });
+
+    it('falls back to the opposite side, then the perpendicular ones', () => {
+      const sides = andesConnectedPositions('bottom', 'start', 4, 0, true).map(
+        (position) => `${position.originX}/${position.originY}`,
+      );
+
+      expect(sides).toEqual([
+        'start/bottom',
+        'start/top',
+        'end/top',
+        'start/top',
+      ]);
+    });
+
+    it('stays above or below the anchor when cross-side fallback is off', () => {
+      const positions = andesConnectedPositions(
+        'bottom',
+        'start',
+        4,
+        0,
+        true,
+        false,
+      );
+
+      expect(positions.map((position) => position.overlayY)).toEqual([
+        'top',
+        'bottom',
+      ]);
+      expect(
+        positions.every(
+          (position) =>
+            position.originX === 'start' && position.overlayX === 'start',
+        ),
+      ).toBe(true);
     });
   });
 
