@@ -9,6 +9,9 @@
 }
 
 .andes-input-wrapper {
+  /* The size rules below set the field's outer height (2rem/2.5rem/3rem) like every other
+     text field; content-box sizing added the 1px border on top (a 42px md input). */
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: var(--andes-space-2);
@@ -37,8 +40,14 @@
    `box-shadow` but substitutes its own color for an author-specified `outline`). */
 .andes-input-wrapper:has(.andes-input__control:focus-visible) {
   border-color: var(--andes-color-focus-ring);
-  outline: 2px solid var(--andes-color-focus-ring);
+  /* Field focus, shared by every text field: the border takes the ring color and a soft
+     3px halo hugs it (Ant Design / shadcn style) instead of a ring floating 2px outside
+     the border. The transparent outline is still there for forced-colors mode, which
+     drops box-shadow but paints outlines in a system color. */
+  outline: 2px solid transparent;
   outline-offset: 2px;
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
 }
 
 /* Variants. Declared after the base focus rule (so the stylesheet's first `:has(...:focus-visible)`
@@ -73,7 +82,6 @@
 
 .andes-input-wrapper--invalid:has(.andes-input__control:focus-visible) {
   border-color: var(--andes-color-danger);
-  outline-color: var(--andes-color-danger);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
@@ -86,7 +94,6 @@
 
 .andes-input-wrapper--warning:has(.andes-input__control:focus-visible) {
   border-color: var(--andes-color-warning);
-  outline-color: var(--andes-color-warning);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
 }
