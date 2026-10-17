@@ -4,6 +4,7 @@ import {
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
+  computed,
   ElementRef,
   input,
   output,
@@ -14,12 +15,15 @@ import {
 import { AndesButton, type AndesButtonVariant } from '../button/button';
 import type {
   AndesDialogAutoFocusButton,
+  AndesDialogButtonProps,
   AndesDialogFooterContext,
 } from './dialog-base';
 
 /**
  * The built-in footer both dialog surfaces and the imperative service render: a
  * Cancel/OK pair, or a consumer's custom footer template laid out in the same box.
+ * A custom template is handed the built-in buttons as templates too
+ * (`okButton`, `cancelButton`, `defaultButtons`), so it can extend the pair.
  *
  * It only reports activations; what OK and Cancel *do* (emit an output, await a
  * promise, close) is the caller's business, which is what lets the declarative roots
@@ -43,31 +47,65 @@ import type {
   },
   template: `
     @if (template(); as custom) {
-      <ng-container *ngTemplateOutlet="custom; context: context()" />
+      <ng-container
+        *ngTemplateOutlet="
+          custom;
+          context: {
+            $implicit: context().$implicit,
+            ok: context().ok,
+            cancel: context().cancel,
+            okButton: okTpl,
+            cancelButton: cancelTpl,
+            defaultButtons: buttonsTpl,
+          }
+        "
+      />
     } @else {
+      <ng-container *ngTemplateOutlet="buttonsTpl" />
+    }
+
+    <ng-template #buttonsTpl>
       @if (showCancel()) {
-        <andes-button
-          #cancelButton
-          variant="secondary"
-          data-slot="dialog-cancel"
-          [disabled]="cancelDisabled()"
-          [loading]="cancelLoading()"
-          (click)="activate('cancel')"
-        >
-          {{ cancelText() }}
-        </andes-button>
+        <ng-container *ngTemplateOutlet="cancelTpl" />
       }
+      <ng-container *ngTemplateOutlet="okTpl" />
+    </ng-template>
+
+    <ng-template #cancelTpl>
+      @let cancelProps = cancelButtonProps();
+      <andes-button
+        #cancelButton
+        data-slot="dialog-cancel"
+        [class]="cancelProps?.className ?? ''"
+        [variant]="cancelProps?.variant ?? 'secondary'"
+        [size]="cancelProps?.size ?? 'md'"
+        [ghost]="cancelProps?.ghost ?? false"
+        [aria-label]="cancelProps?.ariaLabel"
+        [disabled]="cancelBlocked()"
+        [loading]="cancelBusy()"
+        (click)="activate('cancel')"
+      >
+        {{ cancelText() }}
+      </andes-button>
+    </ng-template>
+
+    <ng-template #okTpl>
+      @let okProps = okButtonProps();
       <andes-button
         #okButton
         data-slot="dialog-ok"
-        [variant]="okType()"
-        [disabled]="okDisabled()"
-        [loading]="okLoading()"
+        [class]="okProps?.className ?? ''"
+        [variant]="okProps?.variant ?? okType()"
+        [size]="okProps?.size ?? 'md'"
+        [ghost]="okProps?.ghost ?? false"
+        [aria-label]="okProps?.ariaLabel"
+        [disabled]="okBlocked()"
+        [loading]="okBusy()"
         (click)="activate('ok')"
       >
         {{ okText() }}
       </andes-button>
-    }
+    </ng-template>
   `,
 })
 export class AndesDialogActions implements AfterViewInit {
@@ -82,15 +120,32 @@ export class AndesDialogActions implements AfterViewInit {
   readonly cancelLoading = input(false, { transform: booleanAttribute });
   readonly showCancel = input(true, { transform: booleanAttribute });
   readonly autoFocusButton = input<AndesDialogAutoFocusButton>(null);
+  /** Extra settings for the OK button. */
+  readonly okButtonProps = input<AndesDialogButtonProps | null>(null);
+  /** Extra settings for the Cancel button. */
+  readonly cancelButtonProps = input<AndesDialogButtonProps | null>(null);
   /** A custom footer, rendered in place of the button pair. */
   readonly template = input<TemplateRef<AndesDialogFooterContext> | null>(null);
-  /** Context for `template`. */
-  readonly context = input<AndesDialogFooterContext | null>(null);
+  /** The actions handed to `template`, alongside the built-in button templates. */
+  readonly context = input.required<AndesDialogFooterContext>();
 
   /** OK was activated. */
   readonly okClick = output<void>();
   /** Cancel was activated. */
   readonly cancelClick = output<void>();
+
+  protected readonly okBlocked = computed(
+    () => this.okDisabled() || !!this.okButtonProps()?.disabled,
+  );
+  protected readonly cancelBlocked = computed(
+    () => this.cancelDisabled() || !!this.cancelButtonProps()?.disabled,
+  );
+  protected readonly okBusy = computed(
+    () => this.okLoading() || !!this.okButtonProps()?.loading,
+  );
+  protected readonly cancelBusy = computed(
+    () => this.cancelLoading() || !!this.cancelButtonProps()?.loading,
+  );
 
   private readonly okButton = viewChild('okButton', { read: ElementRef });
   private readonly cancelButton = viewChild('cancelButton', {
@@ -119,8 +174,8 @@ export class AndesDialogActions implements AfterViewInit {
     // wrapper can still be clicked around it (padding, a programmatic click).
     const blocked =
       which === 'ok'
-        ? this.okDisabled() || this.okLoading()
-        : this.cancelDisabled() || this.cancelLoading();
+        ? this.okBlocked() || this.okBusy()
+        : this.cancelBlocked() || this.cancelBusy();
     if (blocked) {
       return;
     }

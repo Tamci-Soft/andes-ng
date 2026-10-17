@@ -29,7 +29,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import type { AndesButtonVariant } from '../button/button';
+import type { AndesButtonSize, AndesButtonVariant } from '../button/button';
 
 /**
  * Max-width step of a dialog surface. A token-driven scale keeps consumers off magic
@@ -44,6 +44,9 @@ export type AndesDialogSize = 'sm' | 'md' | 'lg' | 'xl';
  * `andes-overlay-backdrop` hook.
  */
 export const ANDES_DIALOG_BACKDROP_CLASS = 'andes-dialog-backdrop';
+
+/** Added next to `ANDES_DIALOG_BACKDROP_CLASS` under `maskBlur`. */
+const ANDES_DIALOG_BACKDROP_BLUR_CLASS = 'andes-dialog-backdrop--blur';
 
 /**
  * Viewport breakpoints a responsive `width` can key on: `xs` < 576px, `sm` >= 576px,
@@ -73,9 +76,42 @@ export type AndesDialogWidth =
 export type AndesDialogAutoFocusButton = 'ok' | 'cancel' | null;
 
 /**
+ * Extra settings for one of the built-in footer buttons. Each field layers on top of
+ * the dedicated input it overlaps with: `variant` wins over `okType`, while `disabled`
+ * and `loading` add to `okDisabled`/`confirmLoading` (either one disables the button).
+ */
+export interface AndesDialogButtonProps {
+  /** Visual variant. For OK this overrides `okType`; Cancel defaults to `'secondary'`. */
+  readonly variant?: AndesButtonVariant;
+  /** Control size. Default `'md'`. */
+  readonly size?: AndesButtonSize;
+  /** Render the transparent, outlined form of the variant. */
+  readonly ghost?: boolean;
+  /** Disable the button. */
+  readonly disabled?: boolean;
+  /** Show a spinner and make the button inert. */
+  readonly loading?: boolean;
+  /** Accessible name, when the visible label alone is ambiguous. */
+  readonly ariaLabel?: string;
+  /** Extra classes on the button's host element. */
+  readonly className?: string;
+}
+
+/**
  * What a custom `footer` template receives: the two actions the built-in footer would
  * have wired, so a bespoke footer (three buttons, a checkbox beside the actions) keeps
  * the same OK/Cancel semantics.
+ *
+ * When the dialog renders the template it also hands over the built-in buttons
+ * themselves, already labelled, styled and wired, so a footer can add to the default
+ * pair rather than rebuild it:
+ *
+ * ```html
+ * <ng-template #footer let-buttons="defaultButtons">
+ *   <andes-button variant="ghost" (click)="saveDraft()">Save draft</andes-button>
+ *   <ng-container *ngTemplateOutlet="buttons" />
+ * </ng-template>
+ * ```
  */
 export interface AndesDialogFooterContext {
   /** The same object as the named fields, for `let-actions`. */
@@ -84,6 +120,15 @@ export interface AndesDialogFooterContext {
   readonly ok: () => void;
   /** Runs the Cancel action: emits `cancelled` and closes. */
   readonly cancel: () => void;
+  /** The built-in OK button, for `ngTemplateOutlet`. */
+  readonly okButton?: TemplateRef<void>;
+  /** The built-in Cancel button, for `ngTemplateOutlet`. */
+  readonly cancelButton?: TemplateRef<void>;
+  /**
+   * The built-in pair exactly as the default footer renders it (Cancel only when
+   * `showCancel` is on), for `ngTemplateOutlet`.
+   */
+  readonly defaultButtons?: TemplateRef<void>;
 }
 
 /** The pair of actions handed to a custom footer template. */
@@ -234,6 +279,10 @@ export abstract class AndesDialogRoot {
   abstract readonly showCancel: Signal<boolean>;
   /** Built-in footer: which button receives initial focus. */
   abstract readonly autoFocusButton: Signal<AndesDialogAutoFocusButton>;
+  /** Built-in footer: extra settings for the OK button. */
+  abstract readonly okButtonProps: Signal<AndesDialogButtonProps | null>;
+  /** Built-in footer: extra settings for the Cancel button. */
+  abstract readonly cancelButtonProps: Signal<AndesDialogButtonProps | null>;
   /** Context handed to a custom `footer` template. */
   abstract readonly footerContext: AndesDialogFooterContext;
   /** Opens the dialog. */
@@ -308,6 +357,11 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
    */
   readonly mask = input(true, { transform: booleanAttribute });
   /**
+   * Blur the page behind the backdrop scrim, on top of dimming it. Takes effect on the
+   * next open, and only while `mask` is on.
+   */
+  readonly maskBlur = input(false, { transform: booleanAttribute });
+  /**
    * Explicit `z-index` for the dialog and its backdrop, overriding the
    * `--andes-z-index-modal` layer. Reach for it only to
    * stack above third-party overlays, since the token layers already order andes-ng's
@@ -339,6 +393,18 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
    * Base UI's `finalFocus`.
    */
   readonly restoreFocusTo = input<HTMLElement | null>(null);
+  /**
+   * Return focus to the trigger (or `restoreFocusTo`) when the dialog closes. Turn it
+   * off when the close navigates away or moves focus somewhere of its own.
+   */
+  readonly restoreFocus = input(true, { transform: booleanAttribute });
+  /**
+   * Keep Tab and Shift+Tab inside the surface while it is open. On by default, as a
+   * modal requires; switch it off only for a surface that hosts a widget managing focus
+   * itself across the page (an embedded editor, a third-party picker). Initial focus
+   * still moves into the surface either way. Takes effect on the next open.
+   */
+  readonly trapFocus = input(true, { transform: booleanAttribute });
 
   /** The footer rendered after the content. See `AndesDialogFooterOption`. */
   readonly footer = input<AndesDialogFooterOption>(null);
@@ -365,6 +431,13 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
    * element.
    */
   readonly autoFocusButton = input<AndesDialogAutoFocusButton>(null);
+  /**
+   * Built-in footer: extra OK button settings (size, ghost, accessible name, classes)
+   * beyond the dedicated inputs. See `AndesDialogButtonProps`.
+   */
+  readonly okButtonProps = input<AndesDialogButtonProps | null>(null);
+  /** Built-in footer: extra Cancel button settings. See `AndesDialogButtonProps`. */
+  readonly cancelButtonProps = input<AndesDialogButtonProps | null>(null);
 
   /** Emits after the dialog has opened. */
   readonly opened = output<void>();
@@ -433,6 +506,11 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
         closeOnEscape: this.closeOnEscape(),
         lockScroll: this.lockScroll(),
         hasBackdrop: this.mask(),
+        restoreFocus: this.restoreFocus(),
+        trapFocus: this.trapFocus(),
+        backdropClass: this.maskBlur()
+          ? [ANDES_DIALOG_BACKDROP_CLASS, ANDES_DIALOG_BACKDROP_BLUR_CLASS]
+          : ANDES_DIALOG_BACKDROP_CLASS,
         ...this.configOverrides(),
       });
     });

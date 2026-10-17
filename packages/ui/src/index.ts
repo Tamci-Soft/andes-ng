@@ -5,6 +5,7 @@ export { AndesDialogRoot, AndesDialogSurface } from './lib/dialog/dialog-base';
 export type {
   AndesDialogAutoFocusButton,
   AndesDialogBreakpoint,
+  AndesDialogButtonProps,
   AndesDialogFooterActions,
   AndesDialogFooterContext,
   AndesDialogFooterOption,

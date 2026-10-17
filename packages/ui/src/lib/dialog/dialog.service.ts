@@ -19,6 +19,7 @@ import {
 
 import type { AndesButtonVariant } from '../button/button';
 import {
+  ANDES_ALERT_DIALOG_OUTSIDE_CLICK,
   AndesAlertDialog,
   AndesAlertDialogContent,
   AndesAlertDialogContentTemplate,
@@ -28,6 +29,7 @@ import {
 import { AndesDialogActions } from './dialog-actions';
 import type {
   AndesDialogAutoFocusButton,
+  AndesDialogButtonProps,
   AndesDialogFooterContext,
   AndesDialogSize,
   AndesDialogWidth,
@@ -65,6 +67,10 @@ export interface AndesDialogMethodConfig {
   readonly okDisabled?: boolean;
   /** Disable Cancel. */
   readonly cancelDisabled?: boolean;
+  /** Extra OK button settings (size, ghost, accessible name, classes). */
+  readonly okButtonProps?: AndesDialogButtonProps | null;
+  /** Extra Cancel button settings. */
+  readonly cancelButtonProps?: AndesDialogButtonProps | null;
   /**
    * Show Cancel next to OK. Defaults to `true` for `confirm` and `false` for the
    * four acknowledgement kinds, which only need dismissing.
@@ -74,14 +80,19 @@ export interface AndesDialogMethodConfig {
    * Runs when OK is activated. Return a promise to keep the dialog open with OK in
    * its loading state until it settles: resolving closes the dialog, rejecting keeps
    * it open so the user can retry.
+   *
+   * The handler receives a `close` function. A handler that declares that parameter
+   * and returns no promise takes over closing: the dialog stays open until it calls
+   * `close()` (say, after a validation step of its own).
    */
-  readonly onOk?: () => unknown;
+  readonly onOk?: (close: () => void) => unknown;
   /**
-   * Runs when the user backs out - Cancel, the "x", or Escape. From the Cancel button
-   * a returned promise works like `onOk`'s; from the "x" or Escape the dialog has
-   * already closed and the result is ignored.
+   * Runs when the user backs out - Cancel, the "x", Escape or (with `maskClosable`) a
+   * backdrop click. From the Cancel button a returned promise, or a declared `close`
+   * parameter, works like `onOk`'s; from the other paths the dialog has already
+   * closed, `close` does nothing and the result is ignored.
    */
-  readonly onCancel?: () => unknown;
+  readonly onCancel?: (close: () => void) => unknown;
   /** Runs once the dialog has closed and been torn down, whatever the outcome. */
   readonly afterClose?: () => void;
   /**
@@ -94,10 +105,22 @@ export interface AndesDialogMethodConfig {
   readonly closable?: boolean;
   /** Accessible label for the "x". Default `'Close'`. */
   readonly closeLabel?: string;
+  /** Replaces the "x" glyph; keep it decorative (`aria-hidden="true"`). */
+  readonly closeIcon?: TemplateRef<unknown> | null;
   /** Escape closes the dialog (as a cancel). Default `true`. */
   readonly keyboard?: boolean;
   /** Render the backdrop scrim. Default `true`. */
   readonly mask?: boolean;
+  /**
+   * A click on the backdrop closes the dialog, as a cancel. Default `false`: these
+   * dialogs ask for an explicit answer, so a stray click beside one should not count
+   * as one. Meant for the acknowledgement kinds, where nothing is lost by dismissing.
+   */
+  readonly maskClosable?: boolean;
+  /** Blur the page behind the backdrop. Default `false`. */
+  readonly maskBlur?: boolean;
+  /** Return focus to the element focused at open time once closed. Default `true`. */
+  readonly restoreFocus?: boolean;
   /** Block document scroll while open. Default `true`. */
   readonly lockScroll?: boolean;
   /** Centre vertically. Default `true`; `false` parks it near the top. */
@@ -222,6 +245,15 @@ const METHOD_ICON_PATHS: Record<AndesDialogMethodKind, string> = {
     AndesDialogActions,
     NgTemplateOutlet,
   ],
+  providers: [
+    {
+      provide: ANDES_ALERT_DIALOG_OUTSIDE_CLICK,
+      useFactory: () => {
+        const method = inject(AndesDialogMethod);
+        return computed(() => method.ref().config().maskClosable ?? false);
+      },
+    },
+  ],
   template: `
     @let cfg = ref().config();
     <andes-alert-dialog
@@ -229,6 +261,8 @@ const METHOD_ICON_PATHS: Record<AndesDialogMethodKind, string> = {
       [closeOnEscape]="cfg.keyboard ?? true"
       [lockScroll]="cfg.lockScroll ?? true"
       [mask]="cfg.mask ?? true"
+      [maskBlur]="cfg.maskBlur ?? false"
+      [restoreFocus]="cfg.restoreFocus ?? true"
       [centered]="cfg.centered ?? true"
       [size]="cfg.size ?? 'md'"
       [width]="cfg.width ?? null"
@@ -295,6 +329,8 @@ const METHOD_ICON_PATHS: Record<AndesDialogMethodKind, string> = {
             [cancelLoading]="cancelLoading()"
             [showCancel]="showCancel()"
             [autoFocusButton]="autoFocusButton()"
+            [okButtonProps]="cfg.okButtonProps ?? null"
+            [cancelButtonProps]="cfg.cancelButtonProps ?? null"
             (okClick)="runOk()"
             (cancelClick)="runCancel()"
           />
@@ -308,14 +344,18 @@ const METHOD_ICON_PATHS: Record<AndesDialogMethodKind, string> = {
             [attr.aria-label]="cfg.closeLabel ?? 'Close'"
             (click)="dismiss()"
           >
-            <svg
-              class="andes-dialog__close-icon"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path d="M6 6 18 18M18 6 6 18" />
-            </svg>
+            @if (cfg.closeIcon; as closeIcon) {
+              <ng-container *ngTemplateOutlet="closeIcon" />
+            } @else {
+              <svg
+                class="andes-dialog__close-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M6 6 18 18M18 6 6 18" />
+              </svg>
+            }
           </button>
         }
       </andes-alert-dialog-content>
@@ -378,6 +418,8 @@ export class AndesDialogMethod {
   /** How the pending close should settle `result`. */
   private outcome: boolean | null = null;
   private cancelHandled = false;
+  /** Set once a close is under way, so a late handler result cannot undo it. */
+  private closing = false;
 
   protected asTemplate(
     value: AndesDialogMethodContent,
@@ -389,7 +431,12 @@ export class AndesDialogMethod {
     if (this.okLoading() || this.cancelLoading()) {
       return;
     }
-    if (await this.settleThrough(this.ref().config().onOk, this.okLoading)) {
+    const done = await this.settleThrough(
+      this.ref().config().onOk,
+      this.okLoading,
+      () => this.close(true),
+    );
+    if (done) {
       this.close(true);
     }
   }
@@ -402,10 +449,15 @@ export class AndesDialogMethod {
     const done = await this.settleThrough(
       this.ref().config().onCancel,
       this.cancelLoading,
+      () => {
+        // A deferred close still came from the Cancel button, whose handler has run.
+        this.cancelHandled = true;
+        this.close(false);
+      },
     );
     if (done) {
       this.close(false);
-    } else {
+    } else if (!this.closing) {
       this.cancelHandled = false;
     }
   }
@@ -417,6 +469,10 @@ export class AndesDialogMethod {
 
   /** @internal */
   close(confirmed: boolean): void {
+    if (this.closing) {
+      return;
+    }
+    this.closing = true;
     this.outcome = confirmed;
     this.open.set(false);
   }
@@ -440,7 +496,11 @@ export class AndesDialogMethod {
     // open any more, but a rejection must not go unhandled either.
     if (!confirmed && !this.cancelHandled && reason !== 'destroyed') {
       Promise.resolve()
-        .then(() => this.ref().config().onCancel?.())
+        .then(() =>
+          this.ref()
+            .config()
+            .onCancel?.(() => undefined),
+        )
         .catch((error: unknown) => console.error(error));
     }
     this.ref().settle(confirmed);
@@ -449,21 +509,24 @@ export class AndesDialogMethod {
   /**
    * Runs a handler, holding `loading` while a returned promise is pending. Resolves
    * whether the dialog should now close: a rejected promise keeps it open (so the
-   * user can retry) and is logged rather than swallowed.
+   * user can retry) and is logged rather than swallowed, and a handler that declared
+   * the `close` parameter without returning a promise keeps it open until it calls
+   * `close`.
    */
   private async settleThrough(
-    handler: (() => unknown) | undefined,
+    handler: ((close: () => void) => unknown) | undefined,
     loading: WritableSignal<boolean>,
+    close: () => void,
   ): Promise<boolean> {
     let result: unknown;
     try {
-      result = handler?.();
+      result = handler?.(close);
     } catch (error) {
       console.error(error);
       return false;
     }
     if (!isPromiseLike(result)) {
-      return true;
+      return !handler || handler.length === 0;
     }
     loading.set(true);
     try {
