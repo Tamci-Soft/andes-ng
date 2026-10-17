@@ -381,7 +381,8 @@ export abstract class AndesDialogRootBase implements AndesDialogRoot {
   readonly ok = output<void>();
   /**
    * The user backed out: Escape, a backdrop/outside click, the built-in "x" or the
-   * built-in Cancel. Emits the close reason, just before `closed`.
+   * built-in Cancel (or an alert dialog's `andesAlertDialogCancel`). Emits the close
+   * reason, just before `closed`.
    */
   readonly cancelled = output<AndesOverlayCloseReason>();
   /**
