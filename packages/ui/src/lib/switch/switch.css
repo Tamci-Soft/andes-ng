@@ -1,28 +1,54 @@
 .andes-switch {
-  /* 44 x 22px with an 18px thumb, as Ant's default Switch. */
-  --andes-switch-track-height: 1.375rem;
+  /* Size defaults: a 44 x 22px track with an 18px thumb. The public hooks
+     (--andes-switch-track-height, --andes-switch-track-width, --andes-switch-thumb-size,
+     --andes-switch-track-padding, --andes-switch-inner-margin) are never declared here, so a
+     value set on the <andes-switch> host - or any ancestor - inherits through and wins over
+     the default for the current size. */
+  --andes-switch-default-track-height: 1.375rem;
   /* A minimum, not a fixed width: the track grows to fit checked/unchecked track content. */
-  --andes-switch-track-width: 2.75rem;
-  --andes-switch-thumb-size: 1.125rem;
+  --andes-switch-default-track-width: 2.75rem;
+  --andes-switch-default-thumb-size: 1.125rem;
   /* Gap between the thumb and the track's outer edge. */
-  --andes-switch-track-padding: 0.125rem;
+  --andes-switch-default-track-padding: 0.125rem;
   /* Gap between track content and the track edge on the side away from the thumb. */
-  --andes-switch-inner-margin: 0.5625rem;
+  --andes-switch-default-inner-margin: 0.5625rem;
+
+  /* Resolved geometry, read by the track and inherited by the thumb and track content. */
+  --andes-switch-resolved-track-height: var(
+    --andes-switch-track-height,
+    var(--andes-switch-default-track-height)
+  );
+  --andes-switch-resolved-track-width: var(
+    --andes-switch-track-width,
+    var(--andes-switch-default-track-width)
+  );
+  --andes-switch-resolved-thumb-size: var(
+    --andes-switch-thumb-size,
+    var(--andes-switch-default-thumb-size)
+  );
+  --andes-switch-resolved-track-padding: var(
+    --andes-switch-track-padding,
+    var(--andes-switch-default-track-padding)
+  );
+  --andes-switch-resolved-inner-margin: var(
+    --andes-switch-inner-margin,
+    var(--andes-switch-default-inner-margin)
+  );
 
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   box-sizing: border-box;
-  height: var(--andes-switch-track-height);
-  min-width: var(--andes-switch-track-width);
+  height: var(--andes-switch-resolved-track-height);
+  min-width: var(--andes-switch-resolved-track-width);
   padding: 0;
   border-radius: var(--andes-radius-full);
   /* Transparent, so it only shows in forced-colors mode (and as the invalid border). Everything
      inside is positioned against the padding box, so offsets below subtract this 1px to keep
      their distances measured from the track's outer edge. */
   border: 1px solid transparent;
-  background-color: var(--andes-color-input);
+  background-color: var(--andes-switch-track-color, var(--andes-color-input));
   /* A native <button> does not inherit font-family, so projected/string track content would
      otherwise fall back to the UA's default (serif/Arial) face. */
   font-family: var(--andes-font-family), sans-serif;
@@ -35,20 +61,33 @@
 }
 
 .andes-switch--sm {
-  /* 28 x 16px with a 12px thumb, as Ant's small Switch. */
-  --andes-switch-track-height: 1rem;
-  --andes-switch-track-width: 1.75rem;
-  --andes-switch-thumb-size: 0.75rem;
-  --andes-switch-track-padding: 0.125rem;
-  --andes-switch-inner-margin: 0.375rem;
+  /* 28 x 16px with a 12px thumb. */
+  --andes-switch-default-track-height: 1rem;
+  --andes-switch-default-track-width: 1.75rem;
+  --andes-switch-default-thumb-size: 0.75rem;
+  --andes-switch-default-track-padding: 0.125rem;
+  --andes-switch-default-inner-margin: 0.375rem;
 }
 
 .andes-switch[data-checked] {
-  background-color: var(--andes-color-primary);
+  background-color: var(
+    --andes-switch-track-checked-color,
+    var(--andes-color-primary)
+  );
 }
 
-.andes-switch[data-checked]:hover:not(:disabled):not([data-disabled]) {
-  background-color: var(--andes-color-primary-hover);
+/* Hover only where a click would actually toggle - not on a read-only or loading switch. The
+   unchecked hover tint derives from the (possibly customised) track color; a custom checked
+   color without its own hover color keeps that color on hover instead of snapping back to
+   the primary hover shade. */
+/* prettier-ignore */
+.andes-switch:hover:not(:disabled):not([data-disabled]):not([data-readonly]):not([data-loading]) {
+  background-color: var(--andes-switch-track-hover-color, color-mix(in srgb, var(--andes-switch-track-color, var(--andes-color-input)), var(--andes-color-foreground) 12%));
+}
+
+/* prettier-ignore */
+.andes-switch[data-checked]:hover:not(:disabled):not([data-disabled]):not([data-readonly]):not([data-loading]) {
+  background-color: var(--andes-switch-track-checked-hover-color, var(--andes-switch-track-checked-color, var(--andes-color-primary-hover)));
 }
 
 .andes-switch:focus-visible {
@@ -77,10 +116,9 @@
   border-color: var(--andes-color-danger);
 }
 
+/* One indicator only: the focus outline turns danger; no second halo around it. */
 .andes-switch--invalid:focus-visible {
   outline-color: var(--andes-color-danger);
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
 /* Thumb - absolutely positioned (rather than a flex item nudged by a transform) so its
@@ -90,16 +128,25 @@
   position: absolute;
   z-index: 1;
   top: 50%;
-  inset-inline-start: calc(var(--andes-switch-track-padding) - 1px);
+  /* The track's 1px (transparent) border sits outside this containing block, so take it
+     back off - otherwise the inline gap is 1px wider than the block gap. */
+  inset-inline-start: calc(var(--andes-switch-resolved-track-padding) - 1px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--andes-switch-thumb-size);
-  width: var(--andes-switch-thumb-size);
+  height: var(--andes-switch-resolved-thumb-size);
+  width: var(--andes-switch-resolved-thumb-size);
   border-radius: var(--andes-radius-full);
-  background-color: var(--andes-color-background);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+  /* A light knob in both themes: --andes-color-background turns near-black in the dark
+     theme, which left the thumb all but invisible on the dark track. The primary
+     foreground token is the one that stays white in both. */
+  background-color: var(
+    --andes-switch-thumb-color,
+    var(--andes-color-primary-foreground)
+  );
+  box-shadow: var(--andes-switch-thumb-shadow, 0 1px 2px rgb(0 0 0 / 15%));
   transform: translateY(-50%);
+  /* Eased at both ends so the knob glides across and settles, rather than darting. */
   transition: inset-inline-start var(--andes-motion-duration-mid, 0.2s)
     var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
   pointer-events: none;
@@ -107,8 +154,8 @@
 
 .andes-switch[data-checked] .andes-switch__thumb {
   inset-inline-start: calc(
-    100% - var(--andes-switch-thumb-size) - var(--andes-switch-track-padding) +
-      1px
+    100% - var(--andes-switch-resolved-thumb-size) -
+      var(--andes-switch-resolved-track-padding) + 1px
   );
 }
 
@@ -123,13 +170,18 @@
 }
 
 .andes-switch[data-checked] .andes-switch__spinner {
-  color: var(--andes-color-primary);
+  color: var(--andes-switch-track-checked-color, var(--andes-color-primary));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .andes-switch,
   .andes-switch__thumb {
     transition: none;
+  }
+
+  /* Still turns - it is the only sign the switch is busy - just slower. */
+  .andes-switch__spinner {
+    animation-duration: 2.4s;
   }
 }
 
@@ -148,6 +200,7 @@
   display: grid;
   flex: 1 1 auto;
   align-self: stretch;
+  /* 12px in both sizes - the caption floor; smaller track text stopped being readable. */
   font-size: 0.75rem;
   line-height: 1;
   pointer-events: none;
@@ -167,18 +220,20 @@
 }
 
 .andes-switch__content--checked {
-  padding-inline-start: calc(var(--andes-switch-inner-margin) - 1px);
+  padding-inline-start: calc(var(--andes-switch-resolved-inner-margin) - 1px);
   padding-inline-end: calc(
-    var(--andes-switch-thumb-size) + 3 * var(--andes-switch-track-padding) - 1px
+    var(--andes-switch-resolved-thumb-size) + 3 *
+      var(--andes-switch-resolved-track-padding) - 1px
   );
   color: var(--andes-color-primary-foreground);
 }
 
 .andes-switch__content--unchecked {
   padding-inline-start: calc(
-    var(--andes-switch-thumb-size) + 3 * var(--andes-switch-track-padding) - 1px
+    var(--andes-switch-resolved-thumb-size) + 3 *
+      var(--andes-switch-resolved-track-padding) - 1px
   );
-  padding-inline-end: calc(var(--andes-switch-inner-margin) - 1px);
+  padding-inline-end: calc(var(--andes-switch-resolved-inner-margin) - 1px);
   /* --andes-color-muted-foreground only reaches ~3.2:1 on --andes-color-input, below
      WCAG AA for this text's size - --andes-color-foreground clears it comfortably. */
   color: var(--andes-color-foreground);
