@@ -259,7 +259,7 @@ export const Centered: Story = {
 };
 
 export const Gutter: Story = {
-  args: { tabBarGutter: 32 },
+  args: { tabBarGutter: 16 },
 };
 
 /**
