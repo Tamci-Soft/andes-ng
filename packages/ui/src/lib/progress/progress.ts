@@ -201,8 +201,7 @@ function isGradient(
 export class AndesProgress {
   /**
    * Current value. `null` (the default) puts the meter in the indeterminate
-   * state - matching Base UI's `Progress.Root` contract - since `0` and
-   * "unknown progress" are different states to assistive tech.
+   * state, since `0` and "unknown progress" are different states to assistive tech.
    */
   readonly value = input<number | null>(null);
   readonly min = input(0);

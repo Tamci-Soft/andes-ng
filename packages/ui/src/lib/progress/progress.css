@@ -37,7 +37,7 @@
 
 /* ---------------------------------------------------------------- Line */
 
-/* One text line tall (22px at the default size, as Ant Design's line progress), so stacked bars
+/* One text line tall (22px at the default size), so stacked bars
    keep a steady rhythm whether or not they show the percentage. */
 .andes-progress__body {
   display: flex;
