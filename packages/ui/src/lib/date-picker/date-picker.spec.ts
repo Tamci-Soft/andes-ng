@@ -978,6 +978,28 @@ describe('AndesDatePicker', () => {
         view.keydown(view.trigger(), 'Enter');
 
         expect(view.host.control.value).toBeNull();
+        expect(view.host.clears).toBe(1);
+      });
+
+      it('emits clear when emptied text is committed by leaving the field', () => {
+        const view = createFeature();
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+
+        view.typeInto(view.trigger(), '');
+        view.blurTo(view.root.querySelector<HTMLElement>('#outside'));
+
+        expect(view.host.control.value).toBeNull();
+        expect(view.host.clears).toBe(1);
+      });
+
+      it('does not emit clear when the emptied field held no value', () => {
+        const view = createFeature();
+
+        view.typeInto(view.trigger(), '');
+        view.keydown(view.trigger(), 'Enter');
+
+        expect(view.host.clears).toBe(0);
       });
 
       it('uses a token format for display and parsing, trying every pattern', () => {
@@ -1245,6 +1267,28 @@ describe('AndesDatePicker', () => {
 
         const value = view.host.control.value as readonly [Date, Date];
         expect(value.map(toDateKey)).toEqual(['2024-02-10', '2024-02-12']);
+      });
+
+      it('emits clear when the start text is emptied, but not the end text alone', () => {
+        const view = createRange();
+        view.host.control.setValue([d(2024, 2, 10), d(2024, 2, 20)]);
+        view.fixture.detectChanges();
+        const [start, end] = view.inputs();
+
+        // Emptying the end leaves the start selected: the value is incomplete
+        // (null), but the picker was not cleared.
+        view.typeInto(end, '');
+        view.blurTo(view.root.querySelector<HTMLElement>('#outside'));
+        expect(view.host.control.value).toBeNull();
+        expect(view.host.clears).toBe(0);
+
+        view.host.control.setValue([d(2024, 2, 10), d(2024, 2, 20)]);
+        view.fixture.detectChanges();
+        view.typeInto(start, '');
+        view.blurTo(view.root.querySelector<HTMLElement>('#outside'));
+
+        expect(view.host.control.value).toBeNull();
+        expect(view.host.clears).toBe(1);
       });
 
       it('commits a preset range at once', () => {
