@@ -144,14 +144,19 @@
   );
 }
 
+/* Borderless has no border to carry the status, so the typed text (inherited by the
+   textarea) does. That is TEXT, so it uses the status *text* tokens, not the fills: danger
+   #dc2626 is 3.7:1 on the dark background and warning #f59e0b 2.1:1 on white. The tokens land
+   with bugfix/token-state-contrast; until then danger falls back to the fill and warning to
+   its already-AA `-active` shade. */
 .andes-textarea-wrapper--borderless.andes-textarea-wrapper--invalid {
   border-color: transparent;
-  color: var(--andes-color-danger);
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
 
 .andes-textarea-wrapper--borderless.andes-textarea-wrapper--warning {
   border-color: transparent;
-  color: var(--andes-color-warning-active);
+  color: var(--andes-color-warning-text, var(--andes-color-warning-active));
 }
 
 /* Borderless stays borderless while focused, whatever its status - the outline alone marks
@@ -290,5 +295,5 @@
 }
 
 .andes-textarea__count--exceeded {
-  color: var(--andes-color-danger);
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
