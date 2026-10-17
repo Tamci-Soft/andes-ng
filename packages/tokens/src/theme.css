@@ -33,7 +33,7 @@
   --andes-color-secondary-foreground: #111827;
 
   --andes-color-muted: #f1f5f9;
-  --andes-color-muted-foreground: #64748b;
+  --andes-color-muted-foreground: #5f6f86;
 
   --andes-color-accent: #f3f4f6;
   --andes-color-accent-hover: #e5e7eb;
@@ -70,6 +70,9 @@
      solid-button shades on purpose: those are tuned for legibility as a fill color, not as
      standalone text/border on a dark or colored backdrop. */
   --andes-color-ghost: #ffffff;
+  /* Text on a hovered secondary ghost button, whose fill is --andes-color-ghost: fixed for the
+     same reason, since the theme's secondary-foreground is near-white in dark mode. */
+  --andes-color-ghost-foreground: #111827;
   --andes-color-primary-ghost: #60a5fa;
   --andes-color-danger-ghost: #fca5a5;
 
@@ -113,8 +116,8 @@
   --andes-color-popover-foreground: #f8fafc;
 
   --andes-color-primary: #2563eb;
-  --andes-color-primary-hover: #3b82f6;
-  --andes-color-primary-active: #60a5fa;
+  --andes-color-primary-hover: #1d4ed8;
+  --andes-color-primary-active: #1e40af;
   --andes-color-primary-foreground: #ffffff;
   --andes-color-primary-text: #60a5fa;
 
@@ -131,8 +134,8 @@
   --andes-color-accent-foreground: #f8fafc;
 
   --andes-color-danger: #dc2626;
-  --andes-color-danger-hover: #ef4444;
-  --andes-color-danger-active: #f87171;
+  --andes-color-danger-hover: #b91c1c;
+  --andes-color-danger-active: #991b1b;
   --andes-color-danger-foreground: #ffffff;
 
   --andes-color-success: #16a34a;
