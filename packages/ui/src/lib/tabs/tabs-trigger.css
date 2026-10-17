@@ -15,31 +15,44 @@
   align-items: center;
   justify-content: center;
   gap: var(--andes-space-2);
-  padding: var(--andes-space-2) var(--andes-space-4);
+  /* Ant Design's tab metrics: 12px 0 (46px-tall line tabs; the list's 32px gap spaces them),
+     14px / 22px labels. */
+  padding: var(--andes-space-3) 0;
   border: none;
   background: none;
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   white-space: nowrap;
   color: var(--andes-color-muted-foreground);
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 :host([data-size='sm']) .andes-tabs__trigger {
-  padding: var(--andes-space-1) var(--andes-space-3);
+  padding-block: var(--andes-space-2);
 }
 
 :host([data-size='lg']) .andes-tabs__trigger {
-  padding: var(--andes-space-3) var(--andes-space-5);
+  padding-block: var(--andes-space-4);
   font-size: 1rem;
   line-height: 1.5rem;
 }
 
 :host([data-orientation='vertical']) .andes-tabs__trigger {
   justify-content: flex-start;
+  padding: var(--andes-space-2) 1.5rem;
+}
+
+/* Card tabs carry their own inline padding inside the bordered tab. */
+:host([data-variant='card']) .andes-tabs__trigger {
+  padding: var(--andes-space-2) var(--andes-space-4);
+}
+
+:host([data-variant='card'][data-size='sm']) .andes-tabs__trigger {
+  padding-block: 0.375rem;
 }
 
 .andes-tabs__trigger:hover:not(:disabled) {
@@ -78,9 +91,10 @@
 
 :host([data-variant='card']) {
   border: 1px solid var(--andes-color-border);
-  border-radius: var(--andes-radius-md) var(--andes-radius-md) 0 0;
+  border-radius: var(--andes-radius-lg) var(--andes-radius-lg) 0 0;
   background: var(--andes-color-muted);
-  transition: background-color 0.15s ease;
+  transition: background-color var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 /* Full foreground on the muted card fill: muted-foreground only reaches ~4.3:1 there. */
@@ -94,7 +108,7 @@
 }
 
 :host([data-variant='card'][data-position='bottom']) {
-  border-radius: 0 0 var(--andes-radius-md) var(--andes-radius-md);
+  border-radius: 0 0 var(--andes-radius-lg) var(--andes-radius-lg);
 }
 
 :host([data-variant='card'][data-position='bottom'][data-selected]) {
@@ -103,9 +117,9 @@
 }
 
 :host([data-variant='card'][data-position='left']) {
-  border-start-start-radius: var(--andes-radius-md);
+  border-start-start-radius: var(--andes-radius-lg);
   border-start-end-radius: 0;
-  border-end-start-radius: var(--andes-radius-md);
+  border-end-start-radius: var(--andes-radius-lg);
   border-end-end-radius: 0;
 }
 
@@ -116,9 +130,9 @@
 
 :host([data-variant='card'][data-position='right']) {
   border-start-start-radius: 0;
-  border-start-end-radius: var(--andes-radius-md);
+  border-start-end-radius: var(--andes-radius-lg);
   border-end-start-radius: 0;
-  border-end-end-radius: var(--andes-radius-md);
+  border-end-end-radius: var(--andes-radius-lg);
 }
 
 :host([data-variant='card'][data-position='right'][data-selected]) {
@@ -143,7 +157,8 @@
   font-family: var(--andes-font-family), sans-serif;
   color: var(--andes-color-muted-foreground);
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-tabs__remove:hover {

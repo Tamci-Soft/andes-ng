@@ -3,7 +3,8 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: var(--andes-space-3);
+  /* Ant Design's 16px between the tab bar and the panel. */
+  gap: var(--andes-space-4);
   min-width: 0;
   font-family: var(--andes-font-family), sans-serif;
   color: var(--andes-color-foreground);
@@ -182,10 +183,14 @@
 
 .andes-tabs__ink-bar--animated {
   transition:
-    left 0.3s ease,
-    width 0.3s ease,
-    top 0.3s ease,
-    height 0.3s ease;
+    left var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    width var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    top var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    height var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 /* ---- Scroll arrows and add button --------------------------------------------------------- */
@@ -237,13 +242,14 @@
   min-width: 2.25rem;
   margin-inline-start: var(--andes-space-1);
   border: 1px solid var(--andes-color-border);
-  border-radius: var(--andes-radius-md) var(--andes-radius-md) 0 0;
+  border-radius: var(--andes-radius-lg) var(--andes-radius-lg) 0 0;
   background: var(--andes-color-muted);
-  transition: color 0.15s ease;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-tabs__bar--bottom .andes-tabs__add {
-  border-radius: 0 0 var(--andes-radius-md) var(--andes-radius-md);
+  border-radius: 0 0 var(--andes-radius-lg) var(--andes-radius-lg);
 }
 
 .andes-tabs__bar--vertical .andes-tabs__add {
@@ -253,17 +259,17 @@
 }
 
 .andes-tabs__bar--left .andes-tabs__add {
-  border-start-start-radius: var(--andes-radius-md);
+  border-start-start-radius: var(--andes-radius-lg);
   border-start-end-radius: 0;
-  border-end-start-radius: var(--andes-radius-md);
+  border-end-start-radius: var(--andes-radius-lg);
   border-end-end-radius: 0;
 }
 
 .andes-tabs__bar--right .andes-tabs__add {
   border-start-start-radius: 0;
-  border-start-end-radius: var(--andes-radius-md);
+  border-start-end-radius: var(--andes-radius-lg);
   border-end-start-radius: 0;
-  border-end-end-radius: var(--andes-radius-md);
+  border-end-end-radius: var(--andes-radius-lg);
 }
 
 .andes-tabs__add:focus-visible {
