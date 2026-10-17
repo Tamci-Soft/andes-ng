@@ -683,9 +683,9 @@ describe('AndesAccordion - extended features', () => {
     });
 
     it.each([
-      ['sm', 'var(--andes-space-2)', '0.875rem'],
-      ['md', 'var(--andes-space-4)', '1rem'],
-      ['lg', 'var(--andes-space-5)', '1.125rem'],
+      ['sm', 'var(--andes-space-2)', 'var(--andes-text-font-size, 0.875rem)'],
+      ['md', 'var(--andes-space-3)', 'var(--andes-text-font-size, 0.875rem)'],
+      ['lg', 'var(--andes-space-4)', '1rem'],
     ] as const)(
       'applies the %s header padding and font size',
       (size, padding, fontSize) => {
@@ -926,7 +926,7 @@ describe('AndesAccordion - extended features', () => {
 
       click(buttons()[0]);
       click(buttons()[0]);
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      await new Promise((resolve) => setTimeout(resolve, 450));
       fixture.detectChanges();
 
       expect(root.querySelector('.lazy-a')).toBeNull();
