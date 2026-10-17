@@ -1,0 +1,75 @@
+@if (search()) {
+<input
+  type="search"
+  class="andes-tabs-more__search"
+  role="combobox"
+  aria-autocomplete="list"
+  aria-expanded="true"
+  autocomplete="off"
+  [attr.aria-controls]="listId"
+  [attr.aria-activedescendant]="navigation.activeDescendantId()"
+  [attr.aria-label]="searchPlaceholder()"
+  [placeholder]="searchPlaceholder()"
+  [value]="query()"
+  (input)="onQuery($event)"
+  (keydown.enter)="pickActive($event)"
+/>
+}
+<div
+  class="andes-tabs-more__list"
+  [id]="listId"
+  [attr.role]="search() ? 'listbox' : 'none'"
+  [attr.aria-label]="search() ? label() : null"
+>
+  @for (tab of filtered(); track tab.key) {
+  <div class="andes-tabs-more__row" role="none">
+    <div
+      class="andes-tabs-more__item"
+      andesListNavigationItem
+      [disabled]="tab.disabled"
+      [typeaheadLabel]="tab.label"
+      [attr.data-key]="tab.key"
+      [attr.data-selected]="tab.selected ? '' : null"
+      [attr.role]="search() ? 'option' : 'menuitem'"
+      [attr.aria-selected]="search() ? tab.selected : null"
+      [attr.aria-disabled]="tab.disabled ? 'true' : null"
+      [attr.aria-keyshortcuts]="tab.removable && !search() ? 'Delete' : null"
+      (click)="onPick(tab)"
+      (keydown.enter)="onItemKey(tab, $event)"
+      (keydown.space)="onItemKey(tab, $event)"
+      (keydown.delete)="onDeleteKey(tab, $event)"
+    >
+      @if (tab.icon; as icon) {
+      <span class="andes-tabs-more__icon" aria-hidden="true">
+        <ng-container [ngTemplateOutlet]="icon" />
+      </span>
+      }
+      <span class="andes-tabs-more__label">{{ tab.label }}</span>
+    </div>
+    @if (tab.removable) {
+    <button
+      type="button"
+      class="andes-tabs-more__remove"
+      tabindex="-1"
+      aria-hidden="true"
+      (mousedown)="$event.preventDefault()"
+      (click)="onRemove(tab, $event)"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
+      </svg>
+    </button>
+    }
+  </div>
+  } @empty {
+  <div class="andes-tabs-more__empty" role="none">{{ emptyText() }}</div>
+  }
+</div>

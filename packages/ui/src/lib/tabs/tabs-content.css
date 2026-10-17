@@ -18,20 +18,19 @@
   outline-offset: 2px;
 }
 
+/* A short cross-fade only: the panel swaps in place, so sliding it as well made the
+   whole content block lurch on every tab change. */
 :host(.andes-tabs-content--animated) {
-  animation: andes-tabs-pane-in var(--andes-motion-duration-slow, 0.3s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  animation: andes-tabs-pane-in 0.15s ease-out;
 }
 
 @keyframes andes-tabs-pane-in {
   from {
     opacity: 0;
-    transform: translateY(0.25rem);
   }
 
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

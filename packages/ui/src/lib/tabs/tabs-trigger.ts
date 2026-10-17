@@ -1,4 +1,5 @@
 import { AndesListNavigationItem } from '@andes-ng/primitives';
+import { CdkDrag } from '@angular/cdk/drag-drop';
 import { NgTemplateOutlet } from '@angular/common';
 import {
   booleanAttribute,
@@ -34,10 +35,16 @@ import { ANDES_TABS, AndesTabsTriggerRef } from './tabs-types';
  * because the WAI-ARIA APG's keyboard equivalent is the `Delete` key on the focused tab
  * (advertised through `aria-keyshortcuts`), and a second focusable control inside the
  * `tablist` would break its single-tab-stop roving model.
+ *
+ * Each trigger is also a CDK drag item for a `draggable` Tabs (see `AndesTabsList`); the
+ * drag stays disabled unless the parent Tabs is `draggable`, and always for a disabled tab.
+ * `Alt`+`Shift`+arrow key is the keyboard alternative to dragging: it asks to move the
+ * focused tab one step along the bar.
  */
 @Component({
   selector: 'andes-tabs-trigger',
   imports: [AndesListNavigationItem, NgTemplateOutlet],
+  hostDirectives: [CdkDrag],
   templateUrl: './tabs-trigger.html',
   styleUrl: './tabs-trigger.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,6 +56,8 @@ import { ANDES_TABS, AndesTabsTriggerRef } from './tabs-types';
     '[attr.data-selected]': 'isSelected() ? "" : null',
     '[attr.data-disabled]': 'disabled() ? "" : null',
     '[attr.data-closable]': 'showRemove() ? "" : null',
+    '[attr.data-draggable]': 'canDrag() ? "" : null',
+    '[attr.data-sorting]': 'tabs.sorting() ? "" : null',
   },
 })
 export class AndesTabsTrigger implements AndesTabsTriggerRef, OnInit {
@@ -81,6 +90,25 @@ export class AndesTabsTrigger implements AndesTabsTriggerRef, OnInit {
   );
   protected readonly panelId = computed(() => this.tabs.panelId(this.value()));
 
+  protected readonly canDrag = computed(
+    () => this.tabs.draggable() && !this.disabled(),
+  );
+
+  protected readonly keyShortcuts = computed(() => {
+    const shortcuts: string[] = [];
+    if (this.showRemove()) {
+      shortcuts.push('Delete');
+    }
+    if (this.canDrag()) {
+      shortcuts.push(
+        ...(this.tabs.resolvedOrientation() === 'vertical'
+          ? ['Alt+Shift+ArrowUp', 'Alt+Shift+ArrowDown']
+          : ['Alt+Shift+ArrowLeft', 'Alt+Shift+ArrowRight']),
+      );
+    }
+    return shortcuts.length ? shortcuts.join(' ') : null;
+  });
+
   protected readonly showRemove = computed(
     () =>
       this.tabs.editable() &&
@@ -88,6 +116,9 @@ export class AndesTabsTrigger implements AndesTabsTriggerRef, OnInit {
       !this.disabled() &&
       this.closeIcon() !== null,
   );
+
+  /** @internal Satisfies `AndesTabsTriggerRef`; read by the overflow menu. */
+  readonly removable = this.showRemove;
 
   protected readonly resolvedCloseIcon = computed(
     () => this.closeIcon() ?? this.tabs.removeIcon(),
@@ -114,6 +145,18 @@ export class AndesTabsTrigger implements AndesTabsTriggerRef, OnInit {
   readonly navigationItem = this.navItem;
 
   constructor() {
+    const drag = inject(CdkDrag, { self: true });
+    effect(() => {
+      drag.data = this.value();
+      drag.disabled = !this.canDrag();
+    });
+    const started = drag.started.subscribe(() => this.tabs.setSorting(true));
+    const ended = drag.ended.subscribe(() => this.tabs.setSorting(false));
+    this.destroyRef.onDestroy(() => {
+      started.unsubscribe();
+      ended.unsubscribe();
+    });
+
     // Automatic activation (the default, and the WAI-ARIA APG's recommendation for plain
     // tabs): once this trigger becomes the list's active (focused) item, select it too,
     // exactly as documented on `AndesListNavigation` itself. In "manual" mode this effect
@@ -139,6 +182,12 @@ export class AndesTabsTrigger implements AndesTabsTriggerRef, OnInit {
     this.destroyRef.onDestroy(() => this.tabs.unregisterTrigger(this));
   }
 
+  /** @internal Satisfies `AndesTabsTriggerRef`: the tab button's visible text. */
+  labelText(): string {
+    const button = this.navItem()?.element;
+    return (button?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  }
+
   protected onClick(event: MouseEvent): void {
     this.tabs.handleTabClick(this.value(), event);
   }
@@ -150,6 +199,27 @@ export class AndesTabsTrigger implements AndesTabsTriggerRef, OnInit {
   protected onRemove(event: MouseEvent): void {
     event.stopPropagation();
     this.tabs.requestRemove(this.value(), event, false);
+  }
+
+  /** `Alt`+`Shift`+arrow key: the keyboard alternative to dragging a `draggable` tab. */
+  protected onKeydown(event: KeyboardEvent): void {
+    if (!this.canDrag() || !event.altKey || !event.shiftKey) {
+      return;
+    }
+    const vertical = this.tabs.resolvedOrientation() === 'vertical';
+    const rtl = !vertical && getComputedStyle(this.element).direction === 'rtl';
+    let step: -1 | 1 | 0 = 0;
+    if (vertical) {
+      step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      step = (event.key === 'ArrowRight') !== rtl ? 1 : -1;
+    }
+    if (step === 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    this.tabs.moveByKeyboard(this.value(), step);
   }
 
   protected onDeleteKey(event: Event): void {

@@ -4,7 +4,7 @@
   andesListNavigationItem
   [attr.aria-selected]="isSelected()"
   [attr.aria-controls]="panelId()"
-  [attr.aria-keyshortcuts]="showRemove() ? 'Delete' : null"
+  [attr.aria-keyshortcuts]="keyShortcuts()"
   [disabled]="disabled()"
   [attr.disabled]="disabled() ? '' : null"
   [class]="classes()"
@@ -12,6 +12,7 @@
   (keydown.enter)="onSelect()"
   (keydown.space)="onSelect()"
   (keydown.delete)="onDeleteKey($event)"
+  (keydown)="onKeydown($event)"
 >
   @if (icon(); as iconTemplate) {
   <span class="andes-tabs__icon" aria-hidden="true">

@@ -1,0 +1,201 @@
+/* The menu renders in the overlay container under <body>, outside the Tabs, so it sets its
+   own font rather than inheriting the page's. */
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+  box-sizing: border-box;
+  min-width: 10rem;
+  max-width: min(20rem, 100vw - 2 * var(--andes-space-4));
+  max-height: min(20rem, 100dvh - 2 * var(--andes-space-4));
+  padding: var(--andes-space-1);
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow: var(
+    --andes-shadow-md,
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%)
+  );
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  outline: none;
+  /* The entry every overlay menu shares: 150ms, from 97%, settling without overshoot.
+     It grows from the corner nearest the "more" button it hangs off. */
+  transform-origin: top right;
+  animation: andes-tabs-more-in 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes andes-tabs-more-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The overlay marks the menu while it closes and waits for this before removing it: the
+   entry played back, shorter and accelerating away. */
+:host([data-andes-closing]) {
+  pointer-events: none;
+  animation: andes-tabs-more-out var(--andes-duration-fast, 120ms)
+    var(--andes-ease-in, ease-in) forwards;
+}
+
+@keyframes andes-tabs-more-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  :host([data-andes-closing]) {
+    animation: none;
+  }
+}
+
+/* The filter field follows the shared field look: one focus indicator (primary border
+   plus a soft 2px ring), never an outline drawn around the border as a second frame. */
+.andes-tabs-more__search {
+  box-sizing: border-box;
+  flex: none;
+  width: 100%;
+  height: 2rem;
+  margin: 0;
+  padding: 0 0.6875rem;
+  /* A native search field ignores padding and radius in some engines until reset. */
+  appearance: none;
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font: inherit;
+  line-height: 1.375rem;
+  outline: none;
+  box-shadow: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.andes-tabs-more__search::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-tabs-more__search:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+}
+
+.andes-tabs-more__search:focus {
+  border-color: var(--andes-color-primary);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+  outline: none;
+}
+
+.andes-tabs-more__list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.andes-tabs-more__row {
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-tabs-more__row:hover,
+.andes-tabs-more__row:has([data-active]) {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-tabs-more__item {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--andes-space-2);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 2rem;
+  padding: var(--andes-space-1) var(--andes-space-3);
+  border-radius: var(--andes-radius-sm);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.andes-tabs-more__item:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.andes-tabs-more__item[data-selected] {
+  color: var(--andes-color-primary-text);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-tabs-more__item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-tabs-more__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.andes-tabs-more__icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.andes-tabs-more__icon ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.andes-tabs-more__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0 var(--andes-space-2);
+  border: none;
+  background: none;
+  font-family: inherit;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-tabs-more__remove:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-tabs-more__remove svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.andes-tabs-more__empty {
+  padding: var(--andes-space-1) var(--andes-space-3);
+  color: var(--andes-color-muted-foreground);
+}
