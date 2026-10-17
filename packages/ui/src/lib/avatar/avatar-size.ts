@@ -107,14 +107,14 @@ export function resolveAvatarSize(
 
 /**
  * Font size for a pixel-sized avatar. Tracks the ratio of the preset steps
- * (`md` is 40px box / 14px text) so a custom size reads the same as the
+ * (`lg` is 40px box / 16px text) so a custom size reads the same as the
  * nearest preset, with a floor so tiny avatars keep legible initials - the
  * fallback additionally shrinks overlong text to fit (see
  * AndesAvatarFallback), so this only has to be right for short initials.
  * Also drives the `em`-sized status badge.
  */
 export function avatarFontSizeFor(px: number): number {
-  return Math.max(10, Math.round(px * 0.35));
+  return Math.max(10, Math.round(px * 0.4));
 }
 
 /**

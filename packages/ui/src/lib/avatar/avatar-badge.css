@@ -5,7 +5,7 @@
   box-sizing: border-box;
   /* `em`, not a fixed px/rem step: the badge is a child of AndesAvatar, which
      sets a different `font-size` per size token (0.625rem at `xs` up to
-     1.375rem at `xl`), so an `em`-sized dot tracks the avatar's size scale
+     1.25rem at `xl`), so an `em`-sized dot tracks the avatar's size scale
      without this component having to duplicate that scale - or take a `size`
      input that could drift out of sync with its parent's. */
   width: 0.75em;
