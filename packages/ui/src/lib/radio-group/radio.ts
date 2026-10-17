@@ -25,7 +25,9 @@ let nextRadioId = 0;
     '[attr.data-checked]': 'isChecked() ? "" : null',
     '[attr.data-disabled]': 'isDisabled() ? "" : null',
     // Forwarded to the real native radio input in the template instead - a screen reader
-    // never sees this non-interactive host element, so leaving these here would do nothing.
+    // never sees this non-interactive host element, so leaving these here would do nothing,
+    // and a static `id` left behind would be duplicated on both elements at once.
+    '[attr.id]': 'null',
     '[attr.aria-label]': 'null',
     '[attr.aria-describedby]': 'null',
   },
