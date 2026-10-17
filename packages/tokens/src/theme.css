@@ -106,6 +106,10 @@
 }
 
 [data-andes-theme='dark'] {
+  /* Native controls inside a dark subtree (checkboxes, scrollbars, date/number inputs) follow
+     the theme too, instead of rendering as light UA widgets on the dark surfaces. */
+  color-scheme: dark;
+
   --andes-color-background: #0f172a;
   --andes-color-foreground: #f8fafc;
 
