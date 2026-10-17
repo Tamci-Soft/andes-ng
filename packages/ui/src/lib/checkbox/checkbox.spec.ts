@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { By } from '@angular/platform-browser';
 
 import { AndesCheckbox, AndesCheckboxChange } from './checkbox';
 
@@ -382,6 +383,55 @@ describe('AndesCheckbox', () => {
       expect(host.hasAttribute('aria-label')).toBe(false);
       expect(host.hasAttribute('aria-describedby')).toBe(false);
       expect(host.hasAttribute('aria-invalid')).toBe(false);
+    });
+  });
+
+  describe('id', () => {
+    @Component({
+      imports: [AndesCheckbox],
+      template: `<label for="terms">Accept terms</label>
+        <andes-checkbox id="terms" />`,
+    })
+    class IdHost {}
+
+    function createIdHost() {
+      const fixture = TestBed.createComponent(IdHost);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const externalLabel = root.querySelector(
+        'label[for=terms]',
+      ) as HTMLLabelElement;
+      const input = root.querySelector('input') as HTMLInputElement;
+      return { fixture, root, externalLabel, input };
+    }
+
+    it('puts the id on the native input only, never on the host', () => {
+      const { root, input } = createIdHost();
+
+      expect(input.id).toBe('terms');
+      expect(root.querySelector('andes-checkbox')?.hasAttribute('id')).toBe(
+        false,
+      );
+      expect(root.querySelectorAll('#terms')).toHaveLength(1);
+    });
+
+    it('makes an external <label for> the input label (its accessible name)', () => {
+      const { externalLabel, input } = createIdHost();
+
+      expect(externalLabel.control).toBe(input);
+      expect(Array.from(input.labels ?? [])).toContain(externalLabel);
+    });
+
+    it('toggles the checkbox when the external label is clicked', () => {
+      const { fixture, externalLabel, input } = createIdHost();
+      const checkbox = fixture.debugElement.query(By.directive(AndesCheckbox))
+        .componentInstance as AndesCheckbox;
+
+      externalLabel.click();
+      fixture.detectChanges();
+
+      expect(input.checked).toBe(true);
+      expect(checkbox.checked()).toBe(true);
     });
   });
 
