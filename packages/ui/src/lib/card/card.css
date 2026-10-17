@@ -8,12 +8,12 @@
 :host(.andes-card) {
   display: flex;
   flex-direction: column;
-  /* Card-local density knob (mirrors shadcn's own `--card-spacing`) - not a global design
-     token, so it lives here rather than in packages/tokens/src/theme.css. Only the root
-     overrides it; descendants merely consume the cascaded value. */
+  /* Card-local density knob - not a global design token, so it lives here rather than in
+     packages/tokens/src/theme.css. Only the root overrides it; descendants merely consume
+     the cascaded value. */
   --andes-card-spacing: 1.5rem;
-  /* Head metrics (Ant Design's Card): a 56px minimum head with 12px block padding, so a
-     title-only head is exactly 56px and a 32px action button still fits inside it. */
+  /* Head metrics: a 56px minimum head with 12px block padding, so a title-only head is
+     exactly 56px and a 32px action button still fits inside it. */
   --andes-card-head-min-height: 3.5rem;
   --andes-card-head-padding-block: var(--andes-space-3);
   /* Card-local as well: reset on every card root so a nested card never inherits an inner
