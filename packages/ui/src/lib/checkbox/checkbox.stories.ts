@@ -136,7 +136,7 @@ export const ChangeEvent: Story = {
         [(checked)]="checked"
         (changed)="last = 'checked=' + $event.checked + ', value=' + $event.value + ', native=' + $event.event.type"
       >Subscribe to newsletter</andes-checkbox>
-      <p style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-foreground); margin-top: 1rem;">
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
         Last change: {{ last }}
       </p>
     `,
@@ -150,7 +150,7 @@ export const IndeterminateToChecked: Story = {
     // Clicking - or pressing Space on - a mixed checkbox checks it, like the native control.
     template: `
       <andes-checkbox [(checked)]="checked" [(indeterminate)]="indeterminate">Mixed state</andes-checkbox>
-      <p style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-foreground); margin-top: 1rem;">
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
         checked={{ checked }}, indeterminate={{ indeterminate }}
       </p>
     `,

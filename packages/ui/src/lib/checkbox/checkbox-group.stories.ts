@@ -66,7 +66,7 @@ export const SelectAll: Story = {
         <andes-checkbox value="banana">Banana</andes-checkbox>
         <andes-checkbox value="cherry">Cherry</andes-checkbox>
       </andes-checkbox-group>
-      <p style="font-family: var(--andes-font-family), sans-serif; margin-top: 1rem;">
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; margin-top: 1rem;">
         Selected: {{ value.length ? value.join(', ') : 'none' }}
       </p>
     `,
@@ -125,7 +125,7 @@ export const ReactiveForm: Story = {
         <andes-checkbox value="banana">Banana</andes-checkbox>
         <andes-checkbox value="cherry">Cherry</andes-checkbox>
       </andes-checkbox-group>
-      <p style="font-family: var(--andes-font-family), sans-serif; margin-top: 1rem;">
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; margin-top: 1rem;">
         Control value: {{ control.value.join(', ') || 'none' }}
       </p>
     `,
@@ -133,7 +133,7 @@ export const ReactiveForm: Story = {
 };
 
 const selectedText = `
-  <p style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-foreground); margin-top: 1rem;">
+  <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
     Selected: {{ value.length ? value.join(', ') : 'none' }}
   </p>
 `;
@@ -234,7 +234,7 @@ export const ChangeEvent: Story = {
         [(value)]="value"
         (changed)="last = '[' + $event.join(', ') + ']'"
       />
-      <p style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-foreground); margin-top: 1rem;">
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
         Last change: {{ last }}
       </p>
     `,
@@ -253,7 +253,7 @@ export const SkipGroup: Story = {
         <andes-checkbox value="banana">Banana</andes-checkbox>
         <andes-checkbox value="notify" skipGroup [(checked)]="notify">Notify me about new fruit (not part of the group)</andes-checkbox>
       </andes-checkbox-group>
-      <p style="font-family: var(--andes-font-family), sans-serif; color: var(--andes-color-foreground); margin-top: 1rem;">
+      <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
         Selected: {{ value.length ? value.join(', ') : 'none' }} - notify: {{ notify }}
       </p>
     `,

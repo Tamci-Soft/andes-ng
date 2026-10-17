@@ -1,9 +1,19 @@
+:host {
+  /* Not the default `inline`: an inline host wraps the label in a line box at the page's own
+     line-height, which made each item 24px tall instead of the label's 22px. */
+  display: inline-flex;
+}
+
 .andes-checkbox {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--andes-space-2);
   font-family: var(--andes-font-family), sans-serif;
+  /* Body-text scale (14px / 22px), so a row of checkboxes is as dense as the fields around it
+     instead of inheriting the page's 16px. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   /* Set rather than inherited so the label stays legible in the dark theme even when the page
      itself never sets a text color. */
   color: var(--andes-color-foreground);
@@ -33,8 +43,8 @@
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 /* Visually hidden but still the real, focusable, clickable control - only its paint is
@@ -65,8 +75,10 @@
   border-radius: var(--andes-radius-sm);
   background-color: var(--andes-color-background);
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-checkbox__input:hover:not(:disabled) ~ .andes-checkbox__box {
@@ -105,7 +117,22 @@
   height: 0.75rem;
   color: var(--andes-color-primary-foreground);
   opacity: 0;
+  /* The mark grows in from a little under full size as it fades in - a short, subtle settle
+     rather than Ant's overshooting pop. */
+  transform: scale(0.6);
   pointer-events: none;
+  transition:
+    opacity var(--andes-motion-duration-mid, 0.2s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    transform var(--andes-motion-duration-mid, 0.2s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-checkbox__box,
+  .andes-checkbox__icon {
+    transition: none;
+  }
 }
 
 /* KEEP EACH OF THE THREE ICON-VISIBILITY SELECTORS BELOW ON A SINGLE LINE.
@@ -124,11 +151,13 @@
 /* prettier-ignore */
 .andes-checkbox__input:checked ~ .andes-checkbox__box .andes-checkbox__icon--check {
   opacity: 1;
+  transform: none;
 }
 
 /* prettier-ignore */
 .andes-checkbox__input:indeterminate ~ .andes-checkbox__box .andes-checkbox__icon--indeterminate {
   opacity: 1;
+  transform: none;
 }
 
 /* Indeterminate wins visually over checked when a native checkbox happens to carry both DOM
@@ -137,6 +166,7 @@
 /* prettier-ignore */
 .andes-checkbox__input:indeterminate ~ .andes-checkbox__box .andes-checkbox__icon--check {
   opacity: 0;
+  transform: scale(0.6);
 }
 
 .andes-checkbox__label:empty {
