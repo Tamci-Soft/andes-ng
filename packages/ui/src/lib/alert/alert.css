@@ -1,12 +1,11 @@
 /*
- * Layout follows Spartan NG's Alert anatomy (`.spartan-alert` in its style registry): a
- * bordered card with the icon in a leading column and the stacked title and description beside
- * it. The icon is nudged down a fraction so it seats against the title's cap height rather than
+ * Layout: a bordered card with the icon in a leading column and the stacked title and
+ * description beside it. The icon is nudged down a fraction so it seats against the title's cap height rather than
  * centering against the whole block. The row is a flex line rather than a grid so the optional
  * trailing parts (an inline-end action, the close button) take room only when rendered, at any
- * width - a text close button included - without a column template per combination. Only the
- * structure is borrowed; every value here comes from Andes' own token set. The severity
- * treatment lives at the end of the file, per variant.
+ * width - a text close button included - without a column template per combination. Every value
+ * here comes from Andes' own token set. The severity treatment lives at the end of the file, per
+ * variant.
  */
 
 :host {
@@ -20,7 +19,7 @@
   /* Tighter than any spacing token on purpose: the title and description are one unit of text,
      so the gap between them has to read as leading, not as separation. */
   --andes-alert-row-gap: 0.125rem;
-  /* 8px x 12px: Ant Design's single-line alert, and the same box as a Toast message. */
+  /* 8px x 12px single-line box, the same box as a Toast message. */
   --andes-alert-padding-block: var(--andes-space-2);
   --andes-alert-padding-inline: var(--andes-space-3);
   --andes-alert-icon-size: 1rem;
