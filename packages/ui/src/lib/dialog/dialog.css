@@ -35,6 +35,10 @@
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
   font-family: var(--andes-font-family), sans-serif;
+  /* Body copy at the component text scale (14px/22px), so projected paragraphs do not
+     inherit a 16px page size. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   /* A fixed dark ink rather than one derived from --andes-color-foreground, for the same
      reason --andes-color-overlay is black-based: a shadow is cast light, not themed ink.
      Deriving it from the foreground turned this into a white halo in the dark theme,
@@ -192,7 +196,7 @@
 
 .andes-dialog__title {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1rem;
   /* 600, not --andes-font-weight-medium: at 500 the title carried no more weight than a
      field label beside it. Both reference libraries set a dialog title in semibold, and
      the token scale has no semibold step yet. */
@@ -200,14 +204,13 @@
   /* Fixed at 24px rather than a ratio, so the close control can be centred on the
      title's first line from the same number. */
   line-height: 1.5rem;
-  letter-spacing: -0.01em;
   color: var(--andes-color-popover-foreground);
 }
 
 .andes-dialog__description {
   margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-muted-foreground);
 }
 
@@ -288,8 +291,10 @@
   color: var(--andes-color-muted-foreground);
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 /* Mixed from the foreground rather than taken from --andes-color-accent, which is the
@@ -416,7 +421,11 @@
   box-sizing: border-box;
   width: 100%;
   padding: var(--andes-space-5);
-  animation: andes-dialog-enter 0.16s ease-out;
+  /* A short fade with a barely-there scale (0.96 -> 1) on the ease-out curve. Ant's
+     own modal zooms up from 0.2 over 0.3s, which reads as a lunge on a desktop-sized
+     surface; this keeps the "arriving" cue without the motion drawing the eye. */
+  animation: andes-dialog-enter var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 /* Parks a `[centered]="false"` surface near the top. The CDK wrapper centres the pane
@@ -437,17 +446,21 @@
 
 /* The CDK's prebuilt stylesheet fades every backdrop over 400ms, so the scrim kept
    darkening for well over a tenth of a second after the dialog had finished arriving.
-   Matching the pane's own duration lands the two together. Scoped to the class the two
-   dialog roots pass as `backdropClass`, so no other overlay's timing changes. */
+   Matching the pane's own duration (0.2s, also Ant's mask fade) lands the two together.
+   Scoped to the class the two dialog roots pass as `backdropClass`, so no other
+   overlay's timing changes. */
 .andes-dialog-backdrop {
-  transition-duration: 0.16s;
-  transition-timing-function: ease-out;
+  transition-duration: var(--andes-motion-duration-mid, 0.2s);
+  transition-timing-function: var(
+    --andes-motion-ease-out,
+    cubic-bezier(0.215, 0.61, 0.355, 1)
+  );
 }
 
 @keyframes andes-dialog-enter {
   from {
     opacity: 0;
-    transform: scale(0.97);
+    transform: scale(0.96);
   }
 
   to {
