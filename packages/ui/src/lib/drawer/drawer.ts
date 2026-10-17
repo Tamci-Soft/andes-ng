@@ -14,8 +14,7 @@ import {
 } from '../sheet/edge-panel';
 
 /**
- * A bottom-anchored panel - shadcn's `Drawer` (Base UI–backed since its migration
- * off `vaul`).
+ * A bottom-anchored panel (the bottom-sheet pattern).
  *
  * Shares its whole behavior with `AndesSheet` (same overlay primitive, `drawer`
  * preset, dismissal, slide-out, `size`/`height`, `push`, `loading`, lazy
@@ -26,7 +25,7 @@ import {
  * makes a "drawer" feel different from a bottom-anchored Sheet. The overlay
  * primitive intentionally ships no gesture/swipe handling, and reimplementing
  * pointer/touch gesture recognition is out of scope here; track it as a
- * follow-up before calling Drawer feature-complete against shadcn/Base UI.
+ * follow-up before calling Drawer feature-complete.
  *
  * ```html
  * <andes-drawer>

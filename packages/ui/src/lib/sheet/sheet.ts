@@ -17,8 +17,7 @@ import {
 export type AndesSheetSide = AndesOverlayEdge;
 
 /**
- * A side panel that complements the main content of the screen - shadcn's
- * `Sheet`.
+ * A side panel that complements the main content of the screen.
  *
  * Built on the same `@andes-ng/primitives` overlay primitive as Dialog, configured
  * with the `drawer` preset (modal semantics: focus trap, scroll lock, backdrop) and
