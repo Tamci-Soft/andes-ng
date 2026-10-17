@@ -16,9 +16,9 @@ import { AndesAccordionLazy } from './accordion-lazy';
 import { AndesAccordionState } from './accordion-state';
 
 /** Fallback for `destroyOnHidden` when no `transitionend` arrives (transitions disabled, reduced
- *  motion, a detached panel) - comfortably longer than the 0.2s collapse in
+ *  motion, a detached panel) - comfortably longer than the 0.3s collapse in
  *  accordion-content.css. */
-const DESTROY_FALLBACK_MS = 300;
+const DESTROY_FALLBACK_MS = 400;
 
 /**
  * The collapsible panel for one accordion item. Exposed as a `region` landmark, labelled by its

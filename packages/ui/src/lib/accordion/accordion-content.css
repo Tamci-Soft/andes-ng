@@ -9,7 +9,8 @@
 :host {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.2s ease;
+  transition: grid-template-rows var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 :host([data-state='open']) {
@@ -37,20 +38,28 @@
 
 /* The panel's breathing room lives one level in, on a plain (non-grid-item, non-clipping) box.
    When open it contributes its padding to the `1fr` track exactly as before; when closed the
-   clipping box above collapses to a true 0px and takes this element's padding with it. */
+   clipping box above collapses to a true 0px and takes this element's padding with it.
+   Inline padding matches the header's, so the body text lines up under the label. */
 .andes-accordion-content__body {
+  padding-top: var(--andes-space-1);
+  padding-inline: var(--andes-space-4);
   padding-bottom: var(--andes-space-4);
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-foreground);
 }
 
 .andes-accordion-content__body[data-size='sm'] {
+  padding-top: 0;
+  padding-inline: var(--andes-space-3);
   padding-bottom: var(--andes-space-2);
-  font-size: 0.875rem;
 }
 
 .andes-accordion-content__body[data-size='lg'] {
-  padding-bottom: var(--andes-space-5);
-  font-size: 1.125rem;
+  padding-inline: 1.5rem;
+  padding-bottom: 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
 }
 
 /* Bordered: a separate content band under the tinted header. The divider is a border on this
@@ -62,9 +71,9 @@
 }
 
 .andes-accordion-content__body[data-variant='bordered'][data-size='sm'] {
-  padding: var(--andes-space-3);
+  padding: var(--andes-space-2) var(--andes-space-3);
 }
 
 .andes-accordion-content__body[data-variant='bordered'][data-size='lg'] {
-  padding: var(--andes-space-5);
+  padding: 1.5rem;
 }
