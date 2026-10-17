@@ -24,6 +24,37 @@ const imports = [
   AndesDrawerContent,
 ];
 
+/**
+ * Demo text fields styled like the library's own fields: one focus indicator (primary
+ * border plus a soft 2px ring), never the browser's outline drawn as a second frame.
+ */
+const FIELD_STYLES = `
+  <style>
+    .sb-field-input {
+      box-sizing: border-box;
+      min-height: 2rem;
+      padding: 0.25rem 0.6875rem;
+      border: 1px solid var(--andes-color-input);
+      border-radius: var(--andes-radius-md);
+      background-color: var(--andes-color-background);
+      color: var(--andes-color-foreground);
+      font: inherit;
+      line-height: 1.375rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    .sb-field-input::placeholder { color: var(--andes-color-muted-foreground); }
+    .sb-field-input:hover {
+      border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+    }
+    .sb-field-input:focus {
+      border-color: var(--andes-color-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+      outline: none;
+    }
+  </style>
+`;
+
 const goalBody = `
   <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
     <span style="font-size: 2rem; font-weight: 600;">350</span>
@@ -43,6 +74,10 @@ const meta: Meta<AndesDrawer> = {
     closeOnEscape: { control: 'boolean' },
     closeOnOutsideClick: { control: 'boolean' },
     loading: { control: 'boolean' },
+    closePlacement: { control: 'inline-radio', options: ['start', 'end'] },
+    closeDisabled: { control: 'boolean' },
+    maskBlur: { control: 'boolean' },
+    resizable: { control: 'boolean' },
   },
   args: {
     size: 'default',
@@ -52,6 +87,10 @@ const meta: Meta<AndesDrawer> = {
     closeOnEscape: true,
     closeOnOutsideClick: true,
     loading: false,
+    closePlacement: 'end',
+    closeDisabled: false,
+    maskBlur: false,
+    resizable: false,
   },
   render: (args) => ({
     moduleMetadata: { imports },
@@ -65,6 +104,10 @@ const meta: Meta<AndesDrawer> = {
         [closeOnEscape]="closeOnEscape"
         [closeOnOutsideClick]="closeOnOutsideClick"
         [loading]="loading"
+        [closePlacement]="closePlacement"
+        [closeDisabled]="closeDisabled"
+        [maskBlur]="maskBlur"
+        [resizable]="resizable"
       >
         <andes-button variant="primary" andesDrawerTrigger>Open drawer</andes-button>
 
@@ -122,7 +165,7 @@ export const NoMask: Story = {
 export const ExtraAndLazyContent: Story = {
   render: () => ({
     moduleMetadata: { imports },
-    template: `
+    template: `${FIELD_STYLES}
       <andes-drawer>
         <andes-button variant="primary" andesDrawerTrigger>Open drawer</andes-button>
         <andes-drawer-header>
@@ -132,7 +175,7 @@ export const ExtraAndLazyContent: Story = {
         <ng-template andesDrawerContent>
           <label style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem;">
             Message (kept between opens)
-            <textarea rows="3" style="padding: 0.5rem; border: 1px solid var(--andes-color-border); border-radius: var(--andes-radius-md); font-family: inherit; color: inherit; background: transparent;"></textarea>
+            <textarea rows="3" class="sb-field-input"></textarea>
           </label>
         </ng-template>
         <andes-drawer-footer>
@@ -172,6 +215,37 @@ export const NestedPush: Story = {
       <p data-testid="after-open-log" style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground);">
         afterOpenChange: {{ log || ' —' }}
       </p>
+    `,
+  }),
+};
+
+/** `closePlacement="start"` moves the close button to the header's leading corner. */
+export const ClosePlacementStart: Story = {
+  args: { closePlacement: 'start' },
+};
+
+/** `maskBlur` blurs the page behind the backdrop. */
+export const MaskBlur: Story = {
+  args: { maskBlur: true },
+};
+
+/**
+ * `resizable` adds a grip on the top edge: drag it, or focus it and use the
+ * arrow keys (Shift for larger steps). `maxSize` caps the height in px.
+ */
+export const Resizable: Story = {
+  render: () => ({
+    moduleMetadata: { imports },
+    props: { last: null },
+    template: `
+      <andes-drawer resizable [maxSize]="640" (resizeEnd)="last = $event">
+        <andes-button variant="primary" andesDrawerTrigger>Open resizable drawer</andes-button>
+        <andes-drawer-header>
+          <andes-drawer-title>Activity log</andes-drawer-title>
+          <andes-drawer-description>Pull the grip up for more rows (up to 640px).</andes-drawer-description>
+        </andes-drawer-header>
+        <p style="margin: 0; text-align: center;">Last height: {{ last ?? '—' }}{{ last ? 'px' : '' }}</p>
+      </andes-drawer>
     `,
   }),
 };

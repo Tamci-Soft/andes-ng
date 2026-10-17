@@ -26,18 +26,46 @@ const imports = [
 
 const fieldStyle =
   'display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem;';
-const inputStyle =
-  'padding: 0.5rem; border: 1px solid var(--andes-color-border); border-radius: var(--andes-radius-md); font-family: inherit; color: inherit; background: transparent;';
+/**
+ * Demo text fields styled like the library's own fields: one focus indicator (primary
+ * border plus a soft 2px ring), never the browser's outline drawn as a second frame.
+ */
+const FIELD_STYLES = `
+  <style>
+    .sb-field-input {
+      box-sizing: border-box;
+      min-height: 2rem;
+      padding: 0.25rem 0.6875rem;
+      border: 1px solid var(--andes-color-input);
+      border-radius: var(--andes-radius-md);
+      background-color: var(--andes-color-background);
+      color: var(--andes-color-foreground);
+      font: inherit;
+      line-height: 1.375rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    .sb-field-input::placeholder { color: var(--andes-color-muted-foreground); }
+    .sb-field-input:hover {
+      border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+    }
+    .sb-field-input:focus {
+      border-color: var(--andes-color-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+      outline: none;
+    }
+  </style>
+`;
 
 const profileForm = `
   <div style="display: flex; flex-direction: column; gap: 0.75rem;">
     <label style="${fieldStyle}">
       Name
-      <input value="Jane Doe" style="${inputStyle}" />
+      <input value="Jane Doe" class="sb-field-input" />
     </label>
     <label style="${fieldStyle}">
       Username
-      <input value="@janedoe" style="${inputStyle}" />
+      <input value="@janedoe" class="sb-field-input" />
     </label>
   </div>
 `;
@@ -56,6 +84,10 @@ const meta: Meta<AndesSheet> = {
     closeOnEscape: { control: 'boolean' },
     closeOnOutsideClick: { control: 'boolean' },
     loading: { control: 'boolean' },
+    closePlacement: { control: 'inline-radio', options: ['start', 'end'] },
+    closeDisabled: { control: 'boolean' },
+    maskBlur: { control: 'boolean' },
+    resizable: { control: 'boolean' },
   },
   args: {
     side: 'right',
@@ -67,11 +99,15 @@ const meta: Meta<AndesSheet> = {
     closeOnEscape: true,
     closeOnOutsideClick: true,
     loading: false,
+    closePlacement: 'end',
+    closeDisabled: false,
+    maskBlur: false,
+    resizable: false,
   },
   render: (args) => ({
     moduleMetadata: { imports },
     props: args,
-    template: `
+    template: `${FIELD_STYLES}
       <andes-sheet
         [side]="side"
         [size]="size"
@@ -82,6 +118,10 @@ const meta: Meta<AndesSheet> = {
         [closeOnEscape]="closeOnEscape"
         [closeOnOutsideClick]="closeOnOutsideClick"
         [loading]="loading"
+        [closePlacement]="closePlacement"
+        [closeDisabled]="closeDisabled"
+        [maskBlur]="maskBlur"
+        [resizable]="resizable"
       >
         <andes-button variant="primary" andesSheetTrigger>Open sheet</andes-button>
 
@@ -190,12 +230,13 @@ export const ExtraAndCloseIcon: Story = {
 /**
  * `<ng-template andesSheetContent>` renders the body on first open. By default it
  * is kept alive between opens (type in the field, close, reopen: the text is
- * still there); `destroyOnHidden` recreates it on every open.
+ * still there); `forceRender` creates it before the first open instead, and
+ * `destroyOnHidden` recreates it on every open.
  */
 export const LazyContent: Story = {
   render: () => ({
     moduleMetadata: { imports },
-    template: `
+    template: `${FIELD_STYLES}
       <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
         <andes-sheet>
           <andes-button variant="primary" andesSheetTrigger>Kept alive</andes-button>
@@ -204,6 +245,15 @@ export const LazyContent: Story = {
             <andes-sheet-description>Type something, close, reopen.</andes-sheet-description>
           </andes-sheet-header>
           <ng-template andesSheetContent>${profileForm.replace('Jane Doe', '')}</ng-template>
+        </andes-sheet>
+
+        <andes-sheet forceRender>
+          <andes-button variant="outline" andesSheetTrigger>forceRender</andes-button>
+          <andes-sheet-header>
+            <andes-sheet-title>Rendered up front</andes-sheet-title>
+            <andes-sheet-description>Created with the page, before the first open, and kept alive.</andes-sheet-description>
+          </andes-sheet-header>
+          <ng-template andesSheetContent>${profileForm}</ng-template>
         </andes-sheet>
 
         <andes-sheet destroyOnHidden>
@@ -249,6 +299,47 @@ export const NestedPush: Story = {
       <p data-testid="after-open-log" style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-muted-foreground);">
         afterOpenChange: {{ log || ' —' }}
       </p>
+    `,
+  }),
+};
+
+/** `closePlacement="start"` moves the close button to the header's leading corner. */
+export const ClosePlacementStart: Story = {
+  args: { closePlacement: 'start' },
+};
+
+/** `closeDisabled` keeps the close button visible but inert; Escape and the backdrop still close. */
+export const CloseDisabled: Story = {
+  args: { closeDisabled: true },
+};
+
+/** `maskBlur` blurs the page behind the backdrop. */
+export const MaskBlur: Story = {
+  args: { maskBlur: true },
+};
+
+/**
+ * `resizable` adds a handle on the inner edge: drag it, or focus it and use the
+ * arrow keys (Shift for larger steps). `maxSize` caps it; `(resizeStart)`,
+ * `(resizing)` and `(resizeEnd)` report the size in px.
+ */
+export const Resizable: Story = {
+  render: () => ({
+    moduleMetadata: { imports },
+    props: { last: null },
+    template: `
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+        @for (edge of ['right', 'left', 'bottom']; track edge) {
+          <andes-sheet [side]="edge" resizable [maxSize]="720" (resizeEnd)="last = $event">
+            <andes-button variant="outline" andesSheetTrigger>Resizable ({{ edge }})</andes-button>
+            <andes-sheet-header>
+              <andes-sheet-title>Order lines</andes-sheet-title>
+              <andes-sheet-description>Drag the inner edge to make room for more columns (up to 720px).</andes-sheet-description>
+            </andes-sheet-header>
+            <p style="margin: 0;">Last size: {{ last ?? '—' }}{{ last ? 'px' : '' }}</p>
+          </andes-sheet>
+        }
+      </div>
     `,
   }),
 };

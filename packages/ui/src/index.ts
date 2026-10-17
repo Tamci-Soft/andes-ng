@@ -23,6 +23,7 @@ export {
 } from './lib/sheet/edge-panel';
 export type {
   AndesEdgePanelAutoFocus,
+  AndesEdgePanelClosePlacement,
   AndesEdgePanelLength,
   AndesEdgePanelSize,
 } from './lib/sheet/edge-panel';

@@ -44,6 +44,13 @@ export type AndesEdgePanelLength = number | string;
 export type AndesEdgePanelAutoFocus = boolean | AndesOverlayAutoFocus;
 
 /**
+ * Where the built-in close button sits in the header row: `'end'` (the
+ * trailing corner, the default) or `'start'` (the leading corner, before the
+ * title).
+ */
+export type AndesEdgePanelClosePlacement = 'start' | 'end';
+
+/**
  * Lets a Sheet or Drawer find the panel it is nested in (for `push`) and lets the
  * shared lazy-content outlet find the panel it renders into.
  */
@@ -57,6 +64,16 @@ const LARGE_SIZE = '736px';
 const DEFAULT_PUSH_DISTANCE = '180px';
 /** Class of the CDK overlay container; clicks inside it belong to *some* overlay. */
 const OVERLAY_CONTAINER_SELECTOR = '.cdk-overlay-container';
+/** Smallest size a drag or arrow key can resize the panel to, in px. */
+const MIN_RESIZE_SIZE = 160;
+/** How far one arrow-key press on the resize handle moves it, in px. */
+const RESIZE_KEY_STEP = 16;
+/** Arrow-key step while Shift is held, in px. */
+const RESIZE_KEY_STEP_LARGE = 64;
+/** Blur applied to the scrim behind the panel when `maskBlur` is set. */
+const MASK_BLUR = 'blur(4px)';
+/** Class on the backdrop while `maskBlur` is set. */
+const MASK_BLUR_CLASS = 'andes-edge-panel-backdrop--blur';
 
 /** A bare number (or numeric string, from a static attribute) means px. */
 export function toCssLength(
@@ -85,8 +102,15 @@ function toAutoFocus(value: unknown): AndesOverlayAutoFocus {
   return 'first-tabbable';
 }
 
-function toZIndex(value: number | string | null): number | null {
-  if (value === null || value === '') {
+/** `null`/`undefined` mean "not set"; anything else is a boolean attribute. */
+function toOptionalBoolean(value: unknown): boolean | null {
+  return value === null || value === undefined ? null : booleanAttribute(value);
+}
+
+function toOptionalNumber(
+  value: number | string | null | undefined,
+): number | null {
+  if (value === null || value === undefined || value === '') {
     return null;
   }
   const parsed = Number(value);
@@ -236,6 +260,16 @@ export abstract class AndesEdgePanel {
   readonly closeIcon = input<TemplateRef<unknown> | null>(null);
   /** Accessible name of the close button. Default `'Close'`. */
   readonly closeLabel = input('Close');
+  /** Header corner the close button sits in. Default `'end'`. */
+  readonly closePlacement = input<AndesEdgePanelClosePlacement>('end');
+  /**
+   * Render the close button disabled. Only the button: Escape, the backdrop and
+   * `andes…Close` elements keep their own settings.
+   */
+  readonly closeDisabled = input(false, { transform: booleanAttribute });
+
+  /** Blur the page behind the backdrop mask. No effect without `mask`. */
+  readonly maskBlur = input(false, { transform: booleanAttribute });
 
   /** Show a skeleton in place of the body. The header, footer and close button stay. */
   readonly loading = input(false, { transform: booleanAttribute });
@@ -249,6 +283,26 @@ export abstract class AndesEdgePanel {
   readonly destroyOnHidden = input(false, { transform: booleanAttribute });
 
   /**
+   * Create the `<ng-template andes…Content>` content right away instead of on
+   * first open, so its components (and anything they load) are ready before
+   * the panel is shown. Projected (non-template) content is always rendered.
+   */
+  readonly forceRender = input(false, { transform: booleanAttribute });
+
+  /**
+   * Let the user drag the panel's inner edge (or use the arrow keys on it) to
+   * change its size along the slide axis. The resized size lasts until `size`,
+   * `width`/`height` or the edge changes.
+   */
+  readonly resizable = input(false, { transform: booleanAttribute });
+  /** Upper bound for `resizable`, in px. The viewport is always a bound too. */
+  readonly maxSize = input<number | null, number | string | null>(null, {
+    transform: toOptionalNumber,
+  });
+  /** Accessible name of the resize handle. Default `'Resize panel'`. */
+  readonly resizeLabel = input('Resize panel');
+
+  /**
    * Push this panel aside while a nested Sheet/Drawer is open.
    * `true` pushes 180px; a number (px) or CSS length sets the distance. Opt-in.
    */
@@ -260,8 +314,18 @@ export abstract class AndesEdgePanel {
    * hatch for embedding in third-party stacking contexts.
    */
   readonly zIndex = input<number | null, number | string | null>(null, {
-    transform: toZIndex,
+    transform: toOptionalNumber,
   });
+
+  /**
+   * Keep Tab/Shift+Tab inside the panel while it is open. Unset (the default)
+   * follows `mask`: a masked panel traps focus, an unmasked one does not.
+   */
+  readonly trapFocus = input<boolean | null, unknown>(null, {
+    transform: toOptionalBoolean,
+  });
+  /** Return focus to the trigger (or what was focused before) on close. Default `true`. */
+  readonly restoreFocus = input(true, { transform: booleanAttribute });
 
   /** What receives focus on open. Default: the first tabbable element. */
   readonly autoFocus = input<
@@ -274,11 +338,21 @@ export abstract class AndesEdgePanel {
 
   /** Emits after the open (`true`) or close (`false`) slide animation has finished. */
   readonly afterOpenChange = output<boolean>();
+  /** A resize (drag or arrow key) started; emits the size it started from, in px. */
+  readonly resizeStart = output<number>();
+  /** The size changed during a resize; emits the new size in px. */
+  readonly resizing = output<number>();
+  /** A resize finished; emits the final size in px. */
+  readonly resizeEnd = output<number>();
 
   private readonly _titleId = signal<string | null>(null);
   private readonly _descriptionId = signal<string | null>(null);
   private readonly openChildren = signal(0);
   private readonly lazyTemplate = signal<TemplateRef<unknown> | null>(null);
+  /** Size set by the resize handle, in px; wins over every size input. */
+  private readonly resizedSize = signal<number | null>(null);
+  /** Whether a pointer drag on the resize handle is in progress. */
+  protected readonly resizeActive = signal(false);
 
   protected readonly ariaLabelledBy = computed(
     () => this._titleId() ?? undefined,
@@ -289,6 +363,10 @@ export abstract class AndesEdgePanel {
 
   /** The panel's size along its slide axis, or `null` for the CSS default. */
   protected readonly panelSize = computed(() => {
+    const resized = this.resizedSize();
+    if (resized !== null) {
+      return `${resized}px`;
+    }
     const explicit = toCssLength(this.explicitSize());
     if (explicit) {
       return explicit;
@@ -310,6 +388,15 @@ export abstract class AndesEdgePanel {
     }
     return toCssLength(push);
   });
+
+  /** Resize handle orientation: a vertical bar for left/right panels. */
+  protected readonly resizeOrientation = computed(() => {
+    const edge = this.panelEdge();
+    return edge === 'left' || edge === 'right' ? 'vertical' : 'horizontal';
+  });
+
+  /** The resized size while one is set, for the handle's `aria-valuenow`. */
+  protected readonly resizeValue = computed(() => this.resizedSize());
 
   /** Whether a nested panel is open and this one should move aside for it. */
   protected readonly pushed = computed(
@@ -337,19 +424,38 @@ export abstract class AndesEdgePanel {
 
     effect(() => {
       const modal = this.mask();
+      const trap = this.trapFocus() ?? modal;
       this.configureOverlay({
         positioning: { kind: 'edge', edge: this.panelEdge() },
         hasBackdrop: modal,
-        trapFocus: modal,
+        trapFocus: trap,
         lockScroll: modal,
-        ariaModal: modal,
+        // Content outside a modal is announced as inert, which is only true
+        // while focus cannot leave the panel.
+        ariaModal: modal && trap,
+        restoreFocus: this.restoreFocus(),
         autoFocus: this.autoFocus(),
       });
     });
 
     effect(() => {
       this.zIndex();
+      this.maskBlur();
       untracked(() => this.configureOverlay({}));
+    });
+
+    // A new size from the consumer (or a new edge) replaces a resized one.
+    effect(() => {
+      this.size();
+      this.explicitSize();
+      this.panelEdge();
+      untracked(() => this.resizedSize.set(null));
+    });
+
+    effect(() => {
+      if (this.forceRender() && this.lazyTemplate()) {
+        untracked(() => this.ensureLazyView());
+      }
     });
 
     effect(() => {
@@ -448,27 +554,152 @@ export abstract class AndesEdgePanel {
    * panel being torn down on close (unless `destroyOnHidden`).
    */
   mountLazyContent(host: HTMLElement): void {
+    const view = this.ensureLazyView();
+    if (!view) {
+      return;
+    }
+    for (const node of view.rootNodes) {
+      host.appendChild(node);
+    }
+    view.detectChanges();
+  }
+
+  /** Starts a pointer drag on the resize handle. Bound by the panel template. */
+  protected onResizePointerDown(event: PointerEvent): void {
+    if (event.button !== 0 || this.closing) {
+      return;
+    }
+    const handle = event.currentTarget as HTMLElement | null;
+    const panel = this.overlay.contentElement();
+    if (!handle || !panel) {
+      return;
+    }
+    event.preventDefault();
+    const horizontal = this.resizeOrientation() === 'vertical';
+    const edge = this.panelEdge();
+    // Dragging towards the panel's own edge shrinks it.
+    const direction = edge === 'right' || edge === 'bottom' ? -1 : 1;
+    const startPointer = horizontal ? event.clientX : event.clientY;
+    const startSize = this.currentSize(panel);
+
+    handle.setPointerCapture?.(event.pointerId);
+    this.resizeActive.set(true);
+    this.resizeStart.emit(startSize);
+
+    let lastSize = startSize;
+    const onMove = (move: PointerEvent) => {
+      const pointer = horizontal ? move.clientX : move.clientY;
+      const next = this.clampSize(
+        startSize + direction * (pointer - startPointer),
+      );
+      if (next !== lastSize) {
+        lastSize = next;
+        this.resizedSize.set(next);
+        this.resizing.emit(next);
+      }
+    };
+    const ends = ['pointerup', 'pointercancel', 'lostpointercapture'] as const;
+    const onEnd = () => {
+      handle.removeEventListener('pointermove', onMove);
+      for (const type of ends) {
+        handle.removeEventListener(type, onEnd);
+      }
+      this.resizeActive.set(false);
+      this.resizeEnd.emit(lastSize);
+    };
+    handle.addEventListener('pointermove', onMove);
+    for (const type of ends) {
+      handle.addEventListener(type, onEnd);
+    }
+  }
+
+  /** Arrow keys on the focused resize handle. Bound by the panel template. */
+  protected onResizeKeydown(event: KeyboardEvent): void {
+    const edge = this.panelEdge();
+    const grow: Record<AndesOverlayEdge, string> = {
+      right: 'ArrowLeft',
+      left: 'ArrowRight',
+      bottom: 'ArrowUp',
+      top: 'ArrowDown',
+    };
+    const shrink: Record<AndesOverlayEdge, string> = {
+      right: 'ArrowRight',
+      left: 'ArrowLeft',
+      bottom: 'ArrowDown',
+      top: 'ArrowUp',
+    };
+    const sign =
+      event.key === grow[edge] ? 1 : event.key === shrink[edge] ? -1 : 0;
+    const panel = this.overlay.contentElement();
+    if (sign === 0 || !panel) {
+      return;
+    }
+    event.preventDefault();
+    const step = event.shiftKey ? RESIZE_KEY_STEP_LARGE : RESIZE_KEY_STEP;
+    const startSize = this.currentSize(panel);
+    const next = this.clampSize(startSize + sign * step);
+    this.resizeStart.emit(startSize);
+    this.resizedSize.set(next);
+    this.resizing.emit(next);
+    this.resizeEnd.emit(next);
+  }
+
+  /** The panel's rendered size along its slide axis, in px. */
+  private currentSize(panel: HTMLElement): number {
+    const rect = panel.getBoundingClientRect();
+    const size =
+      this.resizeOrientation() === 'vertical' ? rect.width : rect.height;
+    return Math.round(size || this.resizedSize() || MIN_RESIZE_SIZE);
+  }
+
+  /** Bounds a resize by the minimum, `maxSize` and the viewport. */
+  private clampSize(size: number): number {
+    const view = this.overlay.contentElement()?.ownerDocument.defaultView;
+    const viewport = view
+      ? this.resizeOrientation() === 'vertical'
+        ? view.innerWidth
+        : view.innerHeight
+      : Number.POSITIVE_INFINITY;
+    const max = Math.min(this.maxSize() ?? Number.POSITIVE_INFINITY, viewport);
+    return Math.round(
+      Math.max(MIN_RESIZE_SIZE, Math.min(size, Math.max(MIN_RESIZE_SIZE, max))),
+    );
+  }
+
+  /** Creates the lazy content's view if it does not exist yet. */
+  private ensureLazyView(): EmbeddedViewRef<unknown> | null {
     const template = this.lazyTemplate();
     if (!template) {
-      return;
+      return null;
     }
     if (!this.lazyView || this.lazyView.destroyed) {
       this.lazyView = template.createEmbeddedView(null);
       this.appRef.attachView(this.lazyView);
     }
-    for (const node of this.lazyView.rootNodes) {
-      host.appendChild(node);
-    }
-    this.lazyView.detectChanges();
+    return this.lazyView;
   }
 
   private configureOverlay(patch: Partial<AndesOverlayConfig>): void {
     this.overlay.configure(patch);
     // `configure()` re-applies the layer's z-index while open; re-assert ours.
-    this.applyZIndex();
+    this.applyOverlayStyles();
   }
 
-  private applyZIndex(): void {
+  private applyOverlayStyles(): void {
+    const backdrop = this.overlay.backdropElement();
+    if (backdrop) {
+      const blur = this.maskBlur() ? MASK_BLUR : null;
+      // Also a class, as a hook for a consumer who wants a different blur.
+      backdrop.classList.toggle(MASK_BLUR_CLASS, blur !== null);
+      for (const property of ['backdrop-filter', '-webkit-backdrop-filter']) {
+        if (blur) {
+          backdrop.style.setProperty(property, blur);
+        } else {
+          backdrop.style.removeProperty(property);
+        }
+      }
+    }
+
     const zIndex = this.zIndex();
     const pane = this.overlay.panelElement();
     if (zIndex === null || zIndex === undefined || !pane) {
@@ -477,9 +708,7 @@ export abstract class AndesEdgePanel {
     // The pane's parent is CDK's per-overlay host element, the one the primitive
     // puts the layer z-index on.
     pane.parentElement?.style.setProperty('z-index', String(zIndex));
-    this.overlay
-      .backdropElement()
-      ?.style.setProperty('z-index', String(zIndex));
+    backdrop?.style.setProperty('z-index', String(zIndex));
   }
 
   private show(): void {
@@ -498,7 +727,7 @@ export abstract class AndesEdgePanel {
       this.parentPanel.childOpened();
       this.countedInParent = true;
     }
-    this.applyZIndex();
+    this.applyOverlayStyles();
     syncBackdropToPanel(
       this.overlay.contentElement(),
       this.overlay.backdropElement(),
