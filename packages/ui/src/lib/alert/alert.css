@@ -18,7 +18,8 @@
   /* Tighter than any spacing token on purpose: the title and description are one unit of text,
      so the gap between them has to read as leading, not as separation. */
   --andes-alert-row-gap: 0.125rem;
-  --andes-alert-padding-block: var(--andes-space-3);
+  /* 8px x 12px: Ant Design's single-line alert, and the same box as a Toast message. */
+  --andes-alert-padding-block: var(--andes-space-2);
   --andes-alert-padding-inline: var(--andes-space-3);
   --andes-alert-icon-size: 1rem;
   /* Optical, not geometric: seats the glyph against the title's cap height rather than the top
@@ -27,6 +28,7 @@
   --andes-alert-title-size: 0.875rem;
   --andes-alert-title-leading: 1.375rem;
   --andes-alert-close-inset: var(--andes-space-2);
+  --andes-alert-close-size: 1.5rem;
 
   position: relative;
   display: grid;
@@ -123,20 +125,29 @@
    its own trailing alert slot the same way); the container reserves the room so a long title
    can never run under it. */
 .andes-alert--closable {
-  padding-inline-end: calc(var(--andes-alert-padding-inline) + 1.5rem);
+  padding-inline-end: calc(
+    var(--andes-alert-close-inset) + var(--andes-alert-close-size) +
+      var(--andes-space-2)
+  );
 }
 
 .andes-alert__close {
   position: absolute;
-  inset-block-start: var(--andes-alert-close-inset);
+  /* Centered on the first text line (the title, or the message when there is none) in every
+     size mode, rather than a fixed inset that sat a few px above it: half the line box's
+     leftover room around the button, measured from where the text starts. */
+  inset-block-start: calc(
+    var(--andes-alert-padding-block) +
+      (var(--andes-alert-title-leading) - var(--andes-alert-close-size)) / 2
+  );
   inset-inline-end: var(--andes-alert-close-inset);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   /* 1.5rem rather than the glyph's own 0.875rem so the control clears the 24x24 minimum
      target size (WCAG 2.2 SC 2.5.8) without drawing a visibly larger button. */
-  width: 1.5rem;
-  height: 1.5rem;
+  width: var(--andes-alert-close-size);
+  height: var(--andes-alert-close-size);
   padding: 0;
   border: none;
   border-radius: var(--andes-radius-sm);
@@ -187,20 +198,20 @@
 
 /*
  * Title + description together: the alert is carrying a real message rather than a one-line
- * notice, so the icon and title step up a size and the card gets more room, giving the title
- * clear precedence over the body text. A single-line alert keeps the compact metrics above.
+ * notice, so the icon steps up a size and the card gets a little more room. The metrics match
+ * a Toast notification (12px x 16px box, 20px icon, 14px medium title) so the two read as one
+ * family; the title's weight and color, not a bigger size, give it precedence over the body.
  */
 .andes-alert:has(
   > .andes-alert__title:not(:empty) ~ .andes-alert__description:not(:empty)
 ) {
   --andes-alert-column-gap: var(--andes-space-3);
   --andes-alert-row-gap: var(--andes-space-1);
-  --andes-alert-padding-block: var(--andes-space-4);
-  --andes-alert-padding-inline: var(--andes-space-5);
-  --andes-alert-icon-size: 1.5rem;
-  --andes-alert-icon-offset: 0rem;
-  --andes-alert-title-size: 1rem;
-  --andes-alert-title-leading: 1.5rem;
+  --andes-alert-padding-block: var(--andes-space-3);
+  --andes-alert-padding-inline: var(--andes-space-4);
+  --andes-alert-icon-size: 1.25rem;
+  /* (1.375rem line - 1.25rem glyph) / 2: centers the icon on the title line. */
+  --andes-alert-icon-offset: 0.0625rem;
   --andes-alert-close-inset: var(--andes-space-3);
 }
 
