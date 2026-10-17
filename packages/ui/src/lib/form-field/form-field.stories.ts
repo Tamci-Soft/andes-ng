@@ -39,7 +39,7 @@ const fieldModuleMetadata = {
 /**
  * Andes-look styling for the NATIVE controls these stories render (AndesInput/AndesSelect are
  * not on `develop` yet - see the docs below): the shared control scale (24/32/40px, 14px text)
- * and the shared field focus (border + halo, never a ring outside the border). Injected once as a real stylesheet rather than
+ * and the shared field focus (border + 2px ring, never an outline outside the border). Injected once as a real stylesheet rather than
  * an inline `style` attribute: an inline border would outrank - and so hide - the field's own
  * status tint (`.andes-form-field--invalid :where(input)`), which is part of what these
  * stories demonstrate. Everything sits in zero-specificity `:where()` so any library rule wins.
@@ -50,6 +50,7 @@ export const DEMO_CONTROL_CSS = `
   box-sizing: border-box;
   width: 100%;
   height: 2rem;
+  margin: 0;
   padding: 0.25rem 0.6875rem;
   border: 1px solid var(--andes-color-input);
   border-radius: 0.375rem;
@@ -58,15 +59,23 @@ export const DEMO_CONTROL_CSS = `
   font-family: var(--andes-font-family), sans-serif;
   font-size: 0.875rem;
   line-height: 1.375rem;
-  transition:
-    border-color 0.1s cubic-bezier(0.215, 0.61, 0.355, 1),
-    box-shadow 0.1s cubic-bezier(0.215, 0.61, 0.355, 1);
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
 }
-:where(.andes-demo-control):focus-visible {
-  border-color: var(--andes-color-focus-ring);
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+:where(.andes-demo-control)::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+:where(.andes-demo-control:hover:not(:disabled)) {
+  border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+}
+:where(.andes-demo-control:focus) {
+  border-color: var(--andes-color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+  outline: none;
+}
+:where(.andes-demo-control:disabled) {
+  background: var(--andes-color-muted);
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
 }
 :where([data-size='sm'] .andes-demo-control) {
   height: 1.5rem;
@@ -598,6 +607,78 @@ export const NoStyleCompound: Story = {
             </div>
           </andes-form-field>
         </div>
+      `,
+    };
+  },
+};
+
+/**
+ * `warningValidators` - ordinary `ValidatorFn`s whose errors never block the form: the field
+ * goes `warning` with a message from the same message maps, while the control stays valid.
+ * A real error still wins. Try a price under the 12.50 cost, then clear it.
+ */
+export const WarningValidators: Story = {
+  render: () => {
+    const belowCost = (control: AbstractControl): ValidationErrors | null =>
+      control.value !== '' && Number(control.value) < 12.5
+        ? { belowCost: { cost: '12.50' } }
+        : null;
+    const price = new FormControl('9.90', Validators.required);
+    price.markAsTouched();
+    return {
+      moduleMetadata: fieldModuleMetadata,
+      props: { price, warnings: [belowCost] },
+      template: `
+        <div andesForm style="max-width: 360px;">
+          <andes-form-field
+            label="Unit price"
+            hasFeedback
+            [warningValidators]="warnings"
+            [errorMessages]="{ belowCost: 'Below the unit cost of {cost}.' }"
+          >
+            <input andesFormControl [formControl]="price" inputmode="decimal" class="andes-demo-control" />
+          </andes-form-field>
+          <p style="margin: 0; font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground);">
+            control.valid = {{ price.valid }}
+          </p>
+        </div>
+      `,
+    };
+  },
+};
+
+/**
+ * `hidden` hides a field but keeps its control in the form - its value and validity still
+ * count (here the record id travels with the value). `feedbackIcons` swaps the built-in
+ * status icons for a template, and `tooltip` accepts a template for rich hint content.
+ */
+export const HiddenFieldTemplatesAndIcons: Story = {
+  render: () => {
+    const form = new FormGroup({
+      id: new FormControl('INV-0042'),
+      ruc: new FormControl('2010', [
+        Validators.required,
+        Validators.pattern(/^\d{11}$/),
+      ]),
+    });
+    form.controls.ruc.markAsTouched();
+    return {
+      moduleMetadata: fieldModuleMetadata,
+      props: { form },
+      template: `
+        <ng-template #icons let-status>
+          <span style="display: inline-grid; place-items: center; width: 1rem; height: 1rem; border-radius: var(--andes-radius-sm); background: currentColor;"><span style="color: var(--andes-color-background); font-size: 0.6875rem; font-weight: 700; line-height: 1;">{{ status === 'error' ? '!' : status === 'success' ? '✓' : status === 'warning' ? '?' : '…' }}</span></span>
+        </ng-template>
+        <ng-template #tip>Taxpayer id: <strong>11 digits</strong>, no spaces.</ng-template>
+        <form andesForm [formGroup]="form" [feedbackIcons]="icons" style="max-width: 360px;">
+          <andes-form-field label="Record id" hidden>
+            <input andesFormControl formControlName="id" class="andes-demo-control" />
+          </andes-form-field>
+          <andes-form-field label="Tax id" hasFeedback [tooltip]="tip">
+            <input andesFormControl formControlName="ruc" class="andes-demo-control" />
+          </andes-form-field>
+          <code style="font-size: 0.75rem; color: var(--andes-color-muted-foreground);">form.value = {{ form.value | json }}</code>
+        </form>
       `,
     };
   },

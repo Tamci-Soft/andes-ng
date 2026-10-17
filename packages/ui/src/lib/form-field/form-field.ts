@@ -9,8 +9,11 @@ import {
   inject,
   input,
   signal,
+  TemplateRef,
   ViewEncapsulation,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Validators, type ValidatorFn } from '@angular/forms';
 
 import { resolveAndesFormErrorMessages } from './form-error-messages';
 import {
@@ -23,11 +26,14 @@ import {
   type AndesFormColumn,
   type AndesFormControlApi,
   type AndesFormErrorMessages,
+  type AndesFormFeedbackIconContext,
   type AndesFormFieldApi,
   type AndesFormFieldChildApi,
   type AndesFormLabelAlign,
   type AndesFormLayout,
   type AndesFormRequiredMark,
+  type AndesFormRequiredMarkContext,
+  type AndesFormShowErrorsOn,
   type AndesFormValidateStatus,
 } from './form-field-tokens';
 import { AndesFormLabel } from './form-label';
@@ -89,7 +95,7 @@ function toTrack(column: AndesFormColumn): string {
 @Component({
   selector: 'andes-form-field',
   exportAs: 'andesFormField',
-  imports: [AndesFormLabel],
+  imports: [AndesFormLabel, NgTemplateOutlet],
   templateUrl: './form-field.html',
   styleUrl: './form-field.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -97,6 +103,9 @@ function toTrack(column: AndesFormColumn): string {
   // projected control, none of which carry this component's emulated-encapsulation scope
   // attribute - see the header comment in form-field.css for the full rationale.
   encapsulation: ViewEncapsulation.None,
+  host: {
+    '[attr.hidden]': 'hidden() ? "" : null',
+  },
   providers: [
     {
       provide: ANDES_FORM_FIELD,
@@ -144,8 +153,9 @@ export class AndesFormField implements AndesFormFieldApi {
   /** Secondary text rendered below the control and any messages. */
   readonly extra = input<string | undefined>(undefined);
 
-  /** Help text behind an info icon next to the label. */
-  readonly tooltip = input<string | undefined>(undefined);
+  /** Help text behind an info icon next to the label - a string, or a template for rich
+   *  content (keep it to non-interactive content: the bubble only opens on hover/focus). */
+  readonly tooltip = input<string | TemplateRef<void> | undefined>(undefined);
 
   /** Accessible name of the tooltip's trigger button - override to localize. */
   readonly tooltipLabel = input('More information');
@@ -174,6 +184,32 @@ export class AndesFormField implements AndesFormFieldApi {
 
   /** Error messages for this field only; merged over the form's and the provided ones. */
   readonly errorMessages = input<AndesFormErrorMessages | undefined>(undefined);
+
+  /** Overrides the form's `showErrorsOn` - when this field starts showing its status. */
+  readonly showErrorsOn = input<AndesFormShowErrorsOn | undefined>(undefined);
+
+  /**
+   * Non-blocking checks, run against the control's value with the same `ValidatorFn`
+   * signature as `Validators.*`. Their errors never touch the control's validity (the form
+   * still submits); they put the field in the `warning` status and are shown through the same
+   * message maps as errors, while there is no error to show.
+   */
+  readonly warningValidators = input<
+    ValidatorFn | readonly ValidatorFn[] | null
+  >(null);
+
+  /** Custom `hasFeedback` icons - a template rendered with the status as `$implicit`.
+   *  Overrides the form's `feedbackIcons`. */
+  readonly feedbackIcons = input<
+    TemplateRef<AndesFormFeedbackIconContext> | undefined
+  >(undefined);
+
+  /**
+   * Hide the whole field (`hidden` attribute on the host) while keeping its control
+   * registered - it still takes part in the form's value and validity. Use `@if` instead to
+   * take a field out of the form entirely.
+   */
+  readonly hidden = input(false, { transform: booleanAttribute });
 
   /**
    * Render no chrome at all - no label, no messages, no layout - only the projected control,
@@ -225,6 +261,22 @@ export class AndesFormField implements AndesFormFieldApi {
     this.hasLabel() ? this.labelId() : null,
   );
 
+  /** Errors of the `warningValidators`, run against the control's current value. */
+  private readonly warningErrors = computed(() => {
+    const validators = this.warningValidators();
+    const control = this.controlApi();
+    const target = control?.control();
+    if (!validators || !control || !target) {
+      return null;
+    }
+    // Read the value signal so the warnings re-run on every change.
+    control.value();
+    const validator = Array.isArray(validators)
+      ? Validators.compose([...validators])
+      : (validators as ValidatorFn);
+    return validator?.(target) ?? null;
+  });
+
   /** Status derived from this field's own control plus any `noStyle` children. */
   private readonly derivedStatus = computed<AndesFormValidateStatus | null>(
     () => {
@@ -238,9 +290,11 @@ export class AndesFormField implements AndesFormFieldApi {
             ? 'validating'
             : control.showError()
               ? 'error'
-              : control.valid()
-                ? 'success'
-                : null,
+              : this.warningErrors()
+                ? 'warning'
+                : control.valid()
+                  ? 'success'
+                  : null,
         );
       }
       return STATUS_PRIORITY.find((s) => statuses.includes(s)) ?? null;
@@ -284,6 +338,28 @@ export class AndesFormField implements AndesFormFieldApi {
     return [...own, ...nested];
   });
 
+  /** Display strings for the `warningValidators` (plus those of any `noStyle` children),
+   *  resolved like {@link validationMessages}. Empty unless the field is in `warning`. */
+  readonly warningMessages = computed<readonly string[]>(() => {
+    const control = this.controlApi();
+    const own =
+      control?.interacted() && this.status() === 'warning'
+        ? resolveAndesFormErrorMessages(
+            this.warningErrors(),
+            [
+              this.errorMessages(),
+              this.form?.errorMessages(),
+              this.providedMessages,
+            ],
+            this.label(),
+          )
+        : [];
+    const nested = this.children()
+      .filter((child) => child.noStyle())
+      .flatMap((child) => child.warningMessages());
+    return [...own, ...nested];
+  });
+
   /** What the help slot shows: the `help` text, else the generated messages - unless an
    *  `<andes-form-error>` was authored, which then owns error display on its own. */
   protected readonly helpMessages = computed<readonly string[]>(() => {
@@ -291,13 +367,15 @@ export class AndesFormField implements AndesFormFieldApi {
     if (help !== undefined) {
       return help ? [help] : [];
     }
-    return this.showError() && !this.errorPresent()
-      ? this.validationMessages()
-      : [];
+    if (this.showError()) {
+      return this.errorPresent() ? [] : this.validationMessages();
+    }
+    return this.status() === 'warning' ? this.warningMessages() : [];
   });
 
-  protected readonly helpIsGenerated = computed(
-    () => this.help() === undefined,
+  /** Generated errors interrupt (`alert`); generated warnings are announced politely. */
+  protected readonly helpRole = computed(() =>
+    this.help() !== undefined ? null : this.showError() ? 'alert' : 'status',
   );
 
   readonly resolvedLayout = computed<AndesFormLayout>(
@@ -327,7 +405,21 @@ export class AndesFormField implements AndesFormFieldApi {
     this.hasFeedback() && !this.noStyle() ? this.status() : null,
   );
 
-  private readonly isRequired = computed(
+  protected readonly feedbackTemplate = computed(
+    () => this.feedbackIcons() ?? this.form?.feedbackIcons() ?? null,
+  );
+
+  readonly resolvedShowErrorsOn = computed<AndesFormShowErrorsOn>(
+    () => this.showErrorsOn() ?? this.form?.showErrorsOn() ?? 'interacted',
+  );
+
+  /** The control's form path (`data-path` on the field root) - what `scrollToField` finds
+   *  the field by. */
+  protected readonly controlPath = computed(
+    () => this.controlApi()?.path() ?? null,
+  );
+
+  readonly isRequired = computed(
     () => this.required() ?? this.controlApi()?.markedRequired() ?? false,
   );
 
@@ -342,6 +434,13 @@ export class AndesFormField implements AndesFormFieldApi {
   readonly showOptionalMark = computed(
     () => this.resolvedRequiredMark() === 'optional' && !this.isRequired(),
   );
+
+  readonly requiredMarkTemplate = computed(() => {
+    const mark = this.resolvedRequiredMark();
+    return mark instanceof TemplateRef
+      ? (mark as TemplateRef<AndesFormRequiredMarkContext>)
+      : null;
+  });
 
   readonly optionalText = computed(
     () => this.form?.optionalText() ?? '(optional)',
@@ -389,6 +488,7 @@ export class AndesFormField implements AndesFormFieldApi {
       noStyle: this.noStyle,
       status: this.status,
       errorMessages: this.validationMessages,
+      warningMessages: this.warningMessages,
     };
     const unregister = this.parent?.registerChild(child);
     if (unregister) {

@@ -1,9 +1,12 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   forwardRef,
   inject,
   signal,
+  TemplateRef,
   ViewEncapsulation,
 } from '@angular/core';
 
@@ -25,7 +28,8 @@ import { ANDES_FORM_FIELD, ANDES_FORM_LABEL } from './form-field-tokens';
  * Decorations, all resolved by the enclosing field (and its `AndesForm`):
  * - required mark - a leading `*`, `aria-hidden` because `aria-required` on the control
  *   already says it to assistive technology; or, with `requiredMark="optional"`, a visible
- *   "(optional)" suffix on the fields that are NOT required.
+ *   "(optional)" suffix on the fields that are NOT required; or a custom template after the
+ *   label text, given whether the field is required.
  * - `tooltip` - an info button after the `<label>` with a `role="tooltip"` bubble, shown on
  *   hover/focus and dismissed with Escape. It sits *outside* the `<label>` so its accessible
  *   name never gets folded into the control's.
@@ -36,7 +40,7 @@ import { ANDES_FORM_FIELD, ANDES_FORM_LABEL } from './form-field-tokens';
  */
 @Component({
   selector: 'andes-form-label',
-  imports: [],
+  imports: [NgTemplateOutlet],
   template: `<label
       class="andes-form-label"
       [attr.id]="field?.labelId() ?? null"
@@ -51,8 +55,17 @@ import { ANDES_FORM_FIELD, ANDES_FORM_LABEL } from './form-field-tokens';
           field.optionalText()
         }}</span>
       }
+      @if (field?.requiredMarkTemplate(); as markTemplate) {
+        <ng-container
+          [ngTemplateOutlet]="markTemplate"
+          [ngTemplateOutletContext]="{
+            $implicit: field.isRequired(),
+            required: field.isRequired(),
+          }"
+        />
+      }
     </label>
-    @if (field?.tooltip(); as tooltip) {
+    @if (field?.tooltip()) {
       <span
         class="andes-form-label__tooltip"
         (mouseenter)="tooltipOpen.set(true)"
@@ -86,8 +99,13 @@ import { ANDES_FORM_FIELD, ANDES_FORM_LABEL } from './form-field-tokens';
           role="tooltip"
           [attr.id]="field.tooltipId()"
           [hidden]="!tooltipOpen()"
-          >{{ tooltip }}</span
         >
+          @if (tooltipTemplate(); as template) {
+            <ng-container [ngTemplateOutlet]="template" />
+          } @else {
+            {{ field.tooltip() }}
+          }
+        </span>
       </span>
     }
     @if (field?.showColon()) {
@@ -110,4 +128,9 @@ export class AndesFormLabel {
   protected readonly field = inject(ANDES_FORM_FIELD, { optional: true });
 
   protected readonly tooltipOpen = signal(false);
+
+  protected readonly tooltipTemplate = computed(() => {
+    const tooltip = this.field?.tooltip();
+    return tooltip instanceof TemplateRef ? tooltip : null;
+  });
 }

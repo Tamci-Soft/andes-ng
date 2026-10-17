@@ -24,13 +24,13 @@
 .andes-form-field {
   display: flex;
   flex-direction: column;
-  /* No gap: like Ant Design's Form.Item the label carries its own 8px below it, and the help /
-     extra lines sit right under the control (their 22px line gives them room). */
+  /* No gap: the label carries its own 8px below it, and the help / extra lines sit right under
+     the control (their 20px line gives them room). */
   gap: 0;
   font-family: var(--andes-font-family), sans-serif;
 }
 
-/* Body text scale for every text part: 14px on a 22px line (labels, help, extra, errors). */
+/* Labels use the body text scale: 14px on a 22px line. */
 .andes-form-label {
   font-size: var(--andes-text-font-size, 0.875rem);
   line-height: var(--andes-text-line-height, 1.375rem);
@@ -38,40 +38,44 @@
   color: var(--andes-color-foreground);
 }
 
+/* Helper text (description, help, extra, errors) is the 12px/20px caption size. */
 .andes-form-description {
   margin: 0;
-  font-size: var(--andes-text-font-size, 0.875rem);
-  line-height: var(--andes-text-line-height, 1.375rem);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
   color: var(--andes-color-muted-foreground);
 }
 
 /* Status colors used as TEXT go through the `--andes-color-<status>-text` tokens, not the
    `--andes-color-<status>` fills: the fills are tuned as backgrounds and fail 4.5:1 as small
-   text (danger #dc2626 is 3.7:1 on the dark canvas, warning #f59e0b is 2.1:1 on white). The
-   `-text` tokens land with bugfix/token-state-contrast; until then the fill is the fallback.
+   text (danger #dc2626 is 3.7:1 on the dark canvas, warning #f59e0b is 2.1:1 on white). Until
+   the `-text` tokens land, the -hover / -active shades (which clear 4.5:1) are the fallback.
    The hasFeedback icons below keep the fills - graphics only need 3:1. */
 .andes-form-error {
   margin: 0;
-  font-size: var(--andes-text-font-size, 0.875rem);
-  line-height: var(--andes-text-line-height, 1.375rem);
-  color: var(--andes-color-danger-text, var(--andes-color-danger));
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  /* --andes-color-danger-hover clears 4.5:1 in both themes (6.5:1 light, 4.8:1 dark). */
+  color: var(--andes-color-danger-text, var(--andes-color-danger-hover));
 }
 
 /* Andes-ng's own controls (AndesInput, AndesCheckbox, ...) already draw their own
-   invalid-state border/halo off their `aria-invalid` input - this only adds a matching
-   tint for plain native controls placed directly inside the field, which have no such
-   styling of their own. Only DIRECT children of the control slot: the native element nested
-   inside an Andes control must not get a halo of its own on top of its wrapper's (two rings).
-   Focus is the shared field focus shape - border plus a soft halo - in the danger color. */
+   invalid-state border/ring off their `aria-invalid` input - this only adds a matching
+   tint for plain native text controls placed DIRECTLY inside the field, which have no such
+   styling of their own. Direct children only: a component's inner native input sits deeper
+   and is deliberately bare (its wrapper is the box), so a border or ring on it would draw a
+   second box inside the field. Focus follows the field look: border plus a soft 2px ring in
+   the status colour, and no outline beside it. */
 /* prettier-ignore */
-.andes-form-field--invalid > .andes-form-field__control > :where(input, select, textarea) {
+.andes-form-field--invalid > .andes-form-field__control > :where(input:not([type='checkbox'], [type='radio']), select, textarea) {
   border-color: var(--andes-color-danger);
 }
 
 /* prettier-ignore */
-.andes-form-field--invalid > .andes-form-field__control > :where(input, select, textarea):focus-visible {
+.andes-form-field--invalid > .andes-form-field__control > :where(input:not([type='checkbox'], [type='radio']), select, textarea):focus {
   border-color: var(--andes-color-danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+  outline: none;
 }
 
 /* ---------------------------------------------------------------------------------------
@@ -95,7 +99,7 @@ andes-form-label {
   min-width: 0;
 }
 
-/* Vertical: 8px between the label and its control, as in Ant Design's vertical Form. */
+/* Vertical: 8px between the label and its control. */
 /* prettier-ignore */
 .andes-form-field:not(.andes-form-field--horizontal, .andes-form-field--inline) > .andes-form-field__label {
   padding-block-end: var(--andes-space-2);
@@ -124,16 +128,31 @@ andes-form-label {
 /* Horizontal and inline: label in column 1, control in column 2 of the same row, messages
    under the control. The label box is one control tall (32px; 24/40px in a sm/lg form) and
    centres its text, so it lines up with a single-line control and stays at the top of a tall
-   one (a textarea), like Ant Design's horizontal Form. The
+   one (a textarea), as a horizontal form does. The
    horizontal column widths come from AndesFormField's inline `grid-template-columns`
    (labelCol/wrapperCol); a label-less horizontal field keeps the empty label column, which
    is what lines a submit row up under the controls. */
 .andes-form-field--horizontal,
 .andes-form-field--inline {
+  /* The height of one control row at the form's size, so the label centres on the first line
+     of the control - a single-line field lines up exactly, and a tall one (a textarea, a
+     group) keeps its label at the top instead of drifting to the middle. */
+  --_andes-form-control-height: var(--andes-control-height-md, 2rem);
+
   display: grid;
   column-gap: 0;
   row-gap: 0;
   align-items: start;
+}
+
+/* prettier-ignore */
+.andes-form[data-size='sm'] .andes-form-field {
+  --_andes-form-control-height: var(--andes-control-height-sm, 1.5rem);
+}
+
+/* prettier-ignore */
+.andes-form[data-size='lg'] .andes-form-field {
+  --_andes-form-control-height: var(--andes-control-height-lg, 2.5rem);
 }
 
 .andes-form-field--inline {
@@ -144,7 +163,7 @@ andes-form-label {
 .andes-form-field--inline > .andes-form-field__label {
   grid-column: 1;
   grid-row: 1;
-  min-height: var(--andes-control-height-md, 2rem);
+  min-height: var(--_andes-form-control-height);
   padding-inline-end: var(--andes-space-2);
 }
 
@@ -236,6 +255,8 @@ andes-form-label {
   border-radius: var(--andes-radius-full);
   background: none;
   color: var(--andes-color-muted-foreground);
+  /* A native button does not inherit the page font by default. */
+  font-family: inherit;
   cursor: help;
 }
 
@@ -261,14 +282,17 @@ andes-form-label {
   width: max-content;
   max-width: 16rem;
   padding: var(--andes-space-1) var(--andes-space-2);
-  border-radius: var(--andes-radius-md);
+  /* Same surface, type and depth as AndesTooltip, so a label hint reads like every other
+     tooltip on the screen. */
+  border-radius: var(--andes-radius-sm);
   transform: translateX(-50%);
-  background: var(--andes-color-foreground);
-  color: var(--andes-color-background);
+  background: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 15%));
   font-family: var(--andes-font-family), sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: normal;
-  line-height: 1.4;
+  line-height: 1.375rem;
   white-space: normal;
   text-align: start;
 }
@@ -280,31 +304,34 @@ andes-form-label {
 /* help / generated messages / extra */
 .andes-form-field__help,
 .andes-form-field__extra {
-  font-size: var(--andes-text-font-size, 0.875rem);
-  line-height: var(--andes-text-line-height, 1.375rem);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
   color: var(--andes-color-muted-foreground);
 }
 
 /* prettier-ignore */
 .andes-form-field[data-status='error'] > .andes-form-field__messages > .andes-form-field__help {
-  color: var(--andes-color-danger-text, var(--andes-color-danger));
+  color: var(--andes-color-danger-text, var(--andes-color-danger-hover));
 }
 
+/* Amber text needs the -active shade: --andes-color-warning is 2.2:1 on white, while
+   --andes-color-warning-active is 5:1 in light and lightens past 10:1 in dark. */
 /* prettier-ignore */
 .andes-form-field[data-status='warning'] > .andes-form-field__messages > .andes-form-field__help {
-  color: var(--andes-color-warning-text, var(--andes-color-warning));
+  color: var(--andes-color-warning-text, var(--andes-color-warning-active));
 }
 
 /* `warning` tints plain native controls the same way `--invalid` does above. */
 /* prettier-ignore */
-.andes-form-field[data-status='warning'] > .andes-form-field__control > :where(input, select, textarea) {
-  border-color: var(--andes-color-warning);
+.andes-form-field[data-status='warning'] > .andes-form-field__control > :where(input:not([type='checkbox'], [type='radio']), select, textarea) {
+  border-color: var(--andes-color-warning-hover);
 }
 
 /* prettier-ignore */
-.andes-form-field[data-status='warning'] > .andes-form-field__control > :where(input, select, textarea):focus-visible {
-  border-color: var(--andes-color-warning);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
+.andes-form-field[data-status='warning'] > .andes-form-field__control > :where(input:not([type='checkbox'], [type='radio']), select, textarea):focus {
+  border-color: var(--andes-color-warning-hover);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-warning-hover) 20%, transparent);
+  outline: none;
 }
 
 /* hasFeedback status icon, drawn over the trailing edge of the control. */
@@ -333,8 +360,10 @@ andes-form-label {
   color: var(--andes-color-success);
 }
 
+/* The icon is the only status cue that is not color-on-border, so it needs 3:1 too -
+   plain amber is 2.2:1 on white. Same shade as the warning text it sits above. */
 .andes-form-field__feedback[data-status='warning'] {
-  color: var(--andes-color-warning);
+  color: var(--andes-color-warning-active);
 }
 
 .andes-form-field__feedback[data-status='error'] {
@@ -346,7 +375,7 @@ andes-form-label {
 }
 
 .andes-form-field__feedback[data-status='validating'] svg {
-  animation: andes-form-field-spin 0.8s linear infinite;
+  animation: andes-form-field-spin 1s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -388,7 +417,7 @@ andes-form-label {
 }
 
 /* AndesForm host. Its stylesheet is this one: every field part injects it, and a form
-   without any field needs no styling. Fields are 24px apart, Ant Design's Form.Item spacing. */
+   without any field needs no styling. Fields are 24px apart. */
 .andes-form--vertical,
 .andes-form--horizontal {
   display: flex;
@@ -401,4 +430,9 @@ andes-form-label {
   flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--andes-space-4);
+}
+
+/* `hidden` on a field: gone from the layout, but still part of the form model. */
+andes-form-field[hidden] {
+  display: none;
 }
