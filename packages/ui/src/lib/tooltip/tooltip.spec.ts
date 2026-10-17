@@ -7,6 +7,7 @@ import { AndesButton } from '../button/button';
 import { AndesTooltip } from './tooltip';
 import { AndesTooltipContent } from './tooltip-content';
 import {
+  ANDES_TOOLTIP_HOVERABLE_GRACE,
   ANDES_TOOLTIP_LONG_PRESS_DELAY,
   ANDES_TOOLTIP_TOUCH_HIDE_DELAY,
   type AndesTooltipTriggerAction,
@@ -111,10 +112,12 @@ describe('AndesTooltip', () => {
     );
   }
 
+  /** Leaves the trigger and waits out the hoverable grace. */
   function unhover(trigger: HTMLElement) {
     trigger.dispatchEvent(
       new PointerEvent('pointerleave', { pointerType: 'mouse' }),
     );
+    vi.advanceTimersByTime(ANDES_TOOLTIP_HOVERABLE_GRACE);
   }
 
   function touchHover(trigger: HTMLElement) {
@@ -175,7 +178,7 @@ describe('AndesTooltip', () => {
     expect(panel()).toBeNull();
   });
 
-  it('closes on mouse-leave', () => {
+  it('closes on mouse-leave, after the hoverable grace', () => {
     vi.useFakeTimers();
     const { fixture, trigger, panel } = createHost();
 
@@ -184,8 +187,29 @@ describe('AndesTooltip', () => {
     fixture.detectChanges();
     expect(panel()).toBeTruthy();
 
-    unhover(trigger);
+    trigger.dispatchEvent(
+      new PointerEvent('pointerleave', { pointerType: 'mouse' }),
+    );
+    vi.advanceTimersByTime(ANDES_TOOLTIP_HOVERABLE_GRACE - 1);
     fixture.detectChanges();
+    expect(panel()).toBeTruthy();
+
+    vi.advanceTimersByTime(1);
+    fixture.detectChanges();
+    expect(panel()).toBeNull();
+  });
+
+  it('cancels a pending open when the trigger is pressed', () => {
+    vi.useFakeTimers();
+    const { fixture, trigger, panel } = createHost();
+
+    hover(trigger);
+    trigger.dispatchEvent(
+      new PointerEvent('pointerdown', { pointerType: 'mouse', bubbles: true }),
+    );
+    vi.advanceTimersByTime(600);
+    fixture.detectChanges();
+
     expect(panel()).toBeNull();
   });
 
@@ -488,6 +512,8 @@ describe('tooltip placement helpers', () => {
       [zIndex]="zIndex()"
       [destroyOnHidden]="destroyOnHidden()"
       [fresh]="fresh()"
+      [disableHoverablePopup]="disableHoverablePopup()"
+      [closeOnClick]="closeOnClick()"
     >
       <button
         type="button"
@@ -520,6 +546,8 @@ class FeatureHostComponent {
   readonly zIndex = signal<number | null>(null);
   readonly destroyOnHidden = signal(false);
   readonly fresh = signal(false);
+  readonly disableHoverablePopup = signal(false);
+  readonly closeOnClick = signal(true);
   readonly triggerDisabled = signal(false);
 }
 
@@ -575,6 +603,12 @@ describe('AndesTooltip (extended options)', () => {
     });
     element.dispatchEvent(event);
     return event;
+  }
+
+  /** Pointer-leave, then the hoverable grace. Needs fake timers. */
+  function leave(element: HTMLElement): void {
+    pointer(element, 'pointerleave');
+    vi.advanceTimersByTime(ANDES_TOOLTIP_HOVERABLE_GRACE);
   }
 
   afterEach(() => {
@@ -793,6 +827,165 @@ describe('AndesTooltip (extended options)', () => {
     });
   });
 
+  describe('hoverable tooltip', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    /** The open tooltip element. */
+    function tooltipOf(panel: () => HTMLElement | null): HTMLElement {
+      const element = panel();
+      if (!element) {
+        throw new Error('Expected the tooltip to be open');
+      }
+      return element;
+    }
+
+    function openByHover() {
+      const created = createHost();
+      pointer(created.trigger, 'pointerenter');
+      created.fixture.detectChanges();
+      expect(created.panel()).toBeTruthy();
+      return created;
+    }
+
+    it('stays open while the pointer moves from the trigger onto the tooltip', () => {
+      const { fixture, trigger, panel } = openByHover();
+
+      pointer(trigger, 'pointerleave');
+      vi.advanceTimersByTime(ANDES_TOOLTIP_HOVERABLE_GRACE - 1);
+      pointer(tooltipOf(panel), 'pointerenter');
+      vi.advanceTimersByTime(ANDES_TOOLTIP_HOVERABLE_GRACE * 10);
+      fixture.detectChanges();
+
+      expect(panel()).toBeTruthy();
+      expect(tooltipOf(panel).hasAttribute('data-hoverable')).toBe(true);
+    });
+
+    it('closes after the grace once the pointer leaves the tooltip', () => {
+      const { fixture, host, trigger, panel } = openByHover();
+      pointer(trigger, 'pointerleave');
+      const tooltip = tooltipOf(panel);
+      pointer(tooltip, 'pointerenter');
+
+      pointer(tooltip, 'pointerleave');
+      vi.advanceTimersByTime(ANDES_TOOLTIP_HOVERABLE_GRACE - 1);
+      fixture.detectChanges();
+      expect(panel()).toBeTruthy();
+
+      vi.advanceTimersByTime(1);
+      fixture.detectChanges();
+      expect(panel()).toBeNull();
+      expect(host.changes).toEqual([true, false]);
+    });
+
+    it('stays open when the pointer goes back from the tooltip to the trigger', () => {
+      const { fixture, trigger, panel } = openByHover();
+      pointer(trigger, 'pointerleave');
+      pointer(tooltipOf(panel), 'pointerenter');
+
+      pointer(tooltipOf(panel), 'pointerleave');
+      pointer(trigger, 'pointerenter');
+      vi.advanceTimersByTime(ANDES_TOOLTIP_HOVERABLE_GRACE * 10);
+      fixture.detectChanges();
+
+      expect(panel()).toBeTruthy();
+    });
+
+    it('is still dismissed by Escape while the pointer is on the tooltip', () => {
+      const { fixture, trigger, panel } = openByHover();
+      pointer(trigger, 'pointerleave');
+      pointer(tooltipOf(panel), 'pointerenter');
+
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          keyCode: 27,
+          bubbles: true,
+        }),
+      );
+      fixture.detectChanges();
+
+      expect(panel()).toBeNull();
+    });
+
+    it('closes on leave and ignores the pointer with disableHoverablePopup', () => {
+      const { fixture, host, trigger, overlay, panel } = createHost();
+      host.disableHoverablePopup.set(true);
+      fixture.detectChanges();
+      pointer(trigger, 'pointerenter');
+      fixture.detectChanges();
+      expect(tooltipOf(panel).hasAttribute('data-hoverable')).toBe(false);
+      expect(overlay.panelElement()?.style.pointerEvents).toBe('none');
+
+      pointer(trigger, 'pointerleave');
+      fixture.detectChanges();
+
+      expect(panel()).toBeNull();
+    });
+  });
+
+  describe('closeOnClick', () => {
+    it('closes a hover/focus tooltip when the trigger is pressed', () => {
+      const { fixture, host, trigger, panel } = createHost();
+      pointer(trigger, 'pointerenter');
+      fixture.detectChanges();
+      expect(panel()).toBeTruthy();
+
+      pointer(trigger, 'pointerdown');
+      fixture.detectChanges();
+
+      expect(panel()).toBeNull();
+      expect(host.open()).toBe(false);
+    });
+
+    it('stays closed through the focus the press causes until the pointer leaves', () => {
+      vi.useFakeTimers();
+      const { fixture, trigger, panel } = createHost();
+      pointer(trigger, 'pointerenter');
+      pointer(trigger, 'pointerdown');
+      trigger.focus();
+      pointer(trigger, 'pointerup');
+      trigger.click();
+      fixture.detectChanges();
+      expect(panel()).toBeNull();
+
+      leave(trigger);
+      pointer(trigger, 'pointerenter');
+      fixture.detectChanges();
+      expect(panel()).toBeTruthy();
+    });
+
+    it('ignores a press with closeOnClick=false', () => {
+      const { fixture, host, trigger, panel } = createHost();
+      host.closeOnClick.set(false);
+      fixture.detectChanges();
+      pointer(trigger, 'pointerenter');
+
+      pointer(trigger, 'pointerdown');
+      fixture.detectChanges();
+
+      expect(panel()).toBeTruthy();
+    });
+
+    it('leaves the toggle to a "click" trigger', () => {
+      const { fixture, host, trigger, panel } = createHost();
+      host.trigger.set(['hover', 'click']);
+      fixture.detectChanges();
+      pointer(trigger, 'pointerenter');
+      fixture.detectChanges();
+      expect(panel()).toBeTruthy();
+
+      pointer(trigger, 'pointerdown');
+      fixture.detectChanges();
+      expect(panel()).toBeTruthy();
+
+      trigger.click();
+      fixture.detectChanges();
+      expect(panel()).toBeNull();
+    });
+  });
+
   describe('open / openChange', () => {
     it('opens and closes programmatically', () => {
       const { fixture, host, panel } = createHost();
@@ -808,13 +1001,14 @@ describe('AndesTooltip (extended options)', () => {
     });
 
     it('reports user-driven changes through openChange and the two-way binding', () => {
+      vi.useFakeTimers();
       const { fixture, host, trigger } = createHost();
 
       pointer(trigger, 'pointerenter');
       fixture.detectChanges();
       expect(host.open()).toBe(true);
 
-      pointer(trigger, 'pointerleave');
+      leave(trigger);
       fixture.detectChanges();
       expect(host.open()).toBe(false);
       expect(host.changes).toEqual([true, false]);
@@ -937,9 +1131,13 @@ describe('AndesTooltip (extended options)', () => {
       fixture: ReturnType<typeof createHost>['fixture'],
       trigger: HTMLElement,
     ) {
-      pointer(trigger, 'pointerleave');
+      leave(trigger);
       fixture.detectChanges();
     }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
 
     it('keeps the rendered content across openings by default', () => {
       const { fixture, trigger } = createHost();
@@ -993,6 +1191,7 @@ describe('AndesTooltip (extended options)', () => {
 
   describe('accessibility', () => {
     it("adds its id to the trigger's own aria-describedby and removes only it", () => {
+      vi.useFakeTimers();
       const { fixture, trigger, overlay } = createHost();
 
       pointer(trigger, 'pointerenter');
@@ -1001,7 +1200,7 @@ describe('AndesTooltip (extended options)', () => {
         `own-hint ${overlay.contentId}`,
       );
 
-      pointer(trigger, 'pointerleave');
+      leave(trigger);
       fixture.detectChanges();
       expect(trigger.getAttribute('aria-describedby')).toBe('own-hint');
     });
@@ -1009,7 +1208,7 @@ describe('AndesTooltip (extended options)', () => {
 
   describe('disabled trigger', () => {
     it('hands hover over to the wrapper while the trigger is disabled', async () => {
-      const { host, trigger, tooltipHost, overlay, panel, settle } =
+      const { fixture, host, trigger, tooltipHost, overlay, panel, settle } =
         createHost();
       host.triggerDisabled.set(true);
       await settle();
@@ -1028,8 +1227,9 @@ describe('AndesTooltip (extended options)', () => {
       expect(panel()).toBeTruthy();
       expect(overlay.anchor()).toBe(tooltipHost);
 
-      pointer(tooltipHost, 'pointerleave');
-      await settle();
+      vi.useFakeTimers();
+      leave(tooltipHost);
+      fixture.detectChanges();
       expect(panel()).toBeNull();
     });
 

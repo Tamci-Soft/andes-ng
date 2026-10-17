@@ -5,6 +5,9 @@
     andesOverlayContent
     [class]="panelClasses()"
     [attr.data-side]="renderedSide()"
+    [attr.data-hoverable]="disableHoverablePopup() ? null : ''"
+    (pointerenter)="intent.contentPointerEnter($event)"
+    (pointerleave)="intent.contentPointerLeave($event)"
     [style.--andes-tooltip-background]="customColor()"
     [style.--andes-tooltip-max-width]="maxWidthValue()"
     [style.--andes-tooltip-arrow-offset]="arrowOffsetValue()"

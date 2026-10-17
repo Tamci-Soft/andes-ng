@@ -8,7 +8,8 @@ import { AndesTooltipGroup } from './tooltip-group';
  * What opens a tooltip. Combine them with an array (`['hover', 'focus']` is
  * the default).
  *
- * - `hover`: mouse/pen hover, after `openDelay`; closes on leave. On touch
+ * - `hover`: mouse/pen hover, after `openDelay`; closes on leave (of the
+ *   trigger, or of the tooltip itself while it is hoverable). On touch
  *   screens, where there is no hover, a long-press stands in for it.
  * - `focus`: keyboard (or programmatic) focus, after `openDelay`; closes on blur.
  * - `click`: toggles immediately on click (or Enter/Space on a button).
@@ -38,6 +39,10 @@ export interface AndesTooltipHoverIntentConfig {
   readonly disabled: boolean;
   /** Which interactions open the tooltip. */
   readonly triggers: readonly AndesTooltipTriggerAction[];
+  /** Whether the pointer may move from the trigger onto the tooltip without it closing. */
+  readonly hoverable: boolean;
+  /** Whether pressing the trigger closes a hover/focus tooltip. */
+  readonly closeOnClick: boolean;
 }
 
 /** The actual open/close actions, bound once by `AndesTooltip` in its constructor. */
@@ -66,6 +71,14 @@ export const ANDES_TOOLTIP_LONG_PRESS_DELAY = 500;
  */
 export const ANDES_TOOLTIP_TOUCH_HIDE_DELAY = 1500;
 
+/**
+ * Minimum delay, in ms, before a hoverable tooltip closes after the pointer
+ * leaves the trigger or the tooltip - long enough to cross the `sideOffset`
+ * gap between them, short enough to read as closing on leave. Ant Design's
+ * `mouseLeaveDelay` defaults to the same `0.1s`.
+ */
+export const ANDES_TOOLTIP_HOVERABLE_GRACE = 100;
+
 /** How long, in ms, after a touch a focus event is still considered touch-caused. */
 const ANDES_TOOLTIP_TOUCH_FOCUS_WINDOW = 1000;
 
@@ -75,6 +88,8 @@ const DEFAULT_CONFIG: AndesTooltipHoverIntentConfig = {
   instantReopenWindow: 400,
   disabled: false,
   triggers: ['hover', 'focus'],
+  hoverable: true,
+  closeOnClick: true,
 };
 
 /**
@@ -116,6 +131,12 @@ export class AndesTooltipHoverIntent {
   private closeTimeoutId: ReturnType<typeof setTimeout> | undefined;
   private longPressTimeoutId: ReturnType<typeof setTimeout> | undefined;
   private longPressOpened = false;
+  /**
+   * Set when a press on the trigger dismissed the tooltip: the focus that the
+   * same press causes, and the hover that is still going on, must not reopen
+   * it. Cleared once the pointer leaves the trigger or focus does.
+   */
+  private pressDismissed = false;
   private lastTouchAt = -Infinity;
 
   constructor() {
@@ -170,32 +191,52 @@ export class AndesTooltipHoverIntent {
     ) {
       return;
     }
-    this.requestOpen();
+    if (!this.pressDismissed) {
+      this.requestOpen();
+    }
   }
 
   /** `pointerleave` - the matching hover-close. */
   pointerLeave(event: PointerEvent, source: AndesTooltipPointerSource): void {
-    if (
-      !this.accepts(source) ||
-      event.pointerType === 'touch' ||
-      !this.has('hover')
-    ) {
+    if (!this.accepts(source) || event.pointerType === 'touch') {
       return;
     }
-    this.requestClose();
+    this.pressDismissed = false;
+    if (this.has('hover')) {
+      this.requestClose(this.pointerCloseDelay());
+    }
   }
 
-  /** `pointerdown` - starts the touch long-press that stands in for hover. */
+  /**
+   * `pointerenter` on the tooltip itself. A hoverable tooltip stays open
+   * while the pointer is over it (WCAG 2.1 SC 1.4.13), so this cancels the
+   * close that leaving the trigger scheduled.
+   */
+  contentPointerEnter(event: PointerEvent): void {
+    if (this.hoversContent(event)) {
+      this.clearCloseTimer();
+    }
+  }
+
+  /** `pointerleave` on the tooltip itself - closes it, as leaving the trigger does. */
+  contentPointerLeave(event: PointerEvent): void {
+    if (this.hoversContent(event)) {
+      this.requestClose(this.pointerCloseDelay());
+    }
+  }
+
+  /**
+   * `pointerdown` - starts the touch long-press that stands in for hover; a
+   * mouse/pen press instead dismisses a hover/focus tooltip (`closeOnClick`).
+   */
   pointerDown(event: PointerEvent, source: AndesTooltipPointerSource): void {
     if (event.pointerType === 'touch') {
       this.lastTouchAt = Date.now();
+    } else {
+      this.dismissOnPress(event, source);
+      return;
     }
-    if (
-      !this.accepts(source) ||
-      event.pointerType !== 'touch' ||
-      !this.has('hover') ||
-      this.config.disabled
-    ) {
+    if (!this.accepts(source) || !this.has('hover') || this.config.disabled) {
       return;
     }
     this.clearLongPressTimer();
@@ -240,13 +281,14 @@ export class AndesTooltipHoverIntent {
     if (Date.now() - this.lastTouchAt < ANDES_TOOLTIP_TOUCH_FOCUS_WINDOW) {
       return;
     }
-    if (this.has('focus')) {
+    if (this.has('focus') && !this.pressDismissed) {
       this.requestOpen();
     }
   }
 
   /** Focus left the trigger. */
   focusOut(): void {
+    this.pressDismissed = false;
     if (this.has('focus')) {
       this.requestClose();
     }
@@ -306,10 +348,10 @@ export class AndesTooltipHoverIntent {
   }
 
   /**
-   * Requests the tooltip close: after `closeDelay`, immediately by default.
-   * Called on mouse-leave (not touch) and on blur.
+   * Requests the tooltip close: after `delay` - `closeDelay` unless given,
+   * immediately by default. Called on mouse-leave (not touch) and on blur.
    */
-  requestClose(): void {
+  requestClose(delay = this.config.closeDelay): void {
     // A close always cancels a still-pending open, whether or not the
     // tooltip ever actually opened.
     this.clearOpenTimer();
@@ -317,7 +359,7 @@ export class AndesTooltipHoverIntent {
       return;
     }
 
-    const delay = this.config.closeDelay;
+    this.clearCloseTimer();
     if (delay <= 0) {
       this.handlers?.close();
       return;
@@ -333,6 +375,52 @@ export class AndesTooltipHoverIntent {
       return;
     }
     this.handlers?.open();
+  }
+
+  /**
+   * A primary-button mouse/pen press on the trigger closes a hover/focus
+   * tooltip, and cancels one still waiting to open: the user has moved on
+   * from reading the hint to acting on the trigger. Not with a `click`
+   * trigger, which toggles instead.
+   */
+  private dismissOnPress(
+    event: PointerEvent,
+    source: AndesTooltipPointerSource,
+  ): void {
+    if (
+      !this.accepts(source) ||
+      !this.config.closeOnClick ||
+      event.button !== 0 ||
+      this.has('click') ||
+      (!this.has('hover') && !this.has('focus'))
+    ) {
+      return;
+    }
+    this.pressDismissed = true;
+    this.clearTimers();
+    if (this.overlay.isOpen()) {
+      this.handlers?.close();
+    }
+  }
+
+  /**
+   * The close delay after the pointer leaves: never shorter than
+   * {@link ANDES_TOOLTIP_HOVERABLE_GRACE} while hoverable, or the tooltip
+   * would close before the pointer could cross over to it.
+   */
+  private pointerCloseDelay(): number {
+    return this.config.hoverable
+      ? Math.max(this.config.closeDelay, ANDES_TOOLTIP_HOVERABLE_GRACE)
+      : this.config.closeDelay;
+  }
+
+  /** Whether a pointer event on the tooltip itself counts as hovering it. */
+  private hoversContent(event: PointerEvent): boolean {
+    return (
+      this.config.hoverable &&
+      event.pointerType !== 'touch' &&
+      this.has('hover')
+    );
   }
 
   private has(action: AndesTooltipTriggerAction): boolean {
