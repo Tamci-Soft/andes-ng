@@ -565,7 +565,7 @@ describe('AndesFormField', () => {
 
       expect(style.display).toBe('flex');
       expect(style.flexDirection).toBe('column');
-      // The spacing lives on the label row (Ant's vertical Form.Item), not in a flex gap that
+      // The spacing lives on the label row (in a vertical form), not in a flex gap that
       // would also push the help text away from its control.
       expect(
         getComputedStyle(
