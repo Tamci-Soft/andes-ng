@@ -1,16 +1,21 @@
 .andes-button {
   position: relative;
+  /* The size heights are outer heights. A native <button> is border-box by default but the
+     <a> rendered for `href` is not, so without this an anchor button stood 2px taller than
+     a <button> of the same size. */
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--andes-space-2);
   overflow: hidden;
+  /* Fixed-height control: a wrapped label would be clipped by overflow above. */
+  white-space: nowrap;
   border-radius: var(--andes-radius-md);
   border: 1px solid transparent;
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
   line-height: var(--andes-control-line-height, 1.375rem);
-  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -47,10 +52,9 @@
   border-color: var(--andes-color-danger);
 }
 
+/* One indicator only: the focus outline turns danger; no second halo around it. */
 .andes-button--invalid:focus-visible {
   outline-color: var(--andes-color-danger);
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
 .andes-button--full-width {
@@ -58,17 +62,17 @@
   width: 100%;
 }
 
-/* Sizes - the shared control scale (24/32/40px, Ant Design's small/middle/large), so a
-   button lines up with inputs, selects and pagination items of the same size. `xs` sits one
-   step below it for dense toolbars. Inline padding is 7px/15px: the 8px/16px rhythm less the
-   1px border, which sits inside the box. */
+/* Sizes - the shared control scale (24/32/40px), so a button lines up with inputs, selects
+   and pagination items of the same size. `xs` sits one step below it for dense toolbars.
+   Inline padding is 7px/15px: the 8px/16px rhythm less the 1px border, which sits inside
+   the box. */
 
 .andes-button--xs {
   height: 1.25rem;
-  padding-inline: var(--andes-space-1);
+  padding-inline: var(--andes-space-2);
   border-radius: var(--andes-control-radius-sm, 0.25rem);
   font-size: 0.75rem;
-  line-height: 1.25rem;
+  line-height: 1rem;
 }
 
 .andes-button--sm {
@@ -76,6 +80,7 @@
   padding-inline: var(--andes-control-padding-x-sm, 0.4375rem);
   border-radius: var(--andes-control-radius-sm, 0.25rem);
   font-size: var(--andes-control-font-size-sm, 0.875rem);
+  line-height: 1.375rem;
 }
 
 .andes-button--md {
@@ -83,6 +88,7 @@
   padding-inline: 0.9375rem;
   border-radius: var(--andes-control-radius-md, 0.375rem);
   font-size: var(--andes-control-font-size-md, 0.875rem);
+  line-height: 1.375rem;
 }
 
 .andes-button--lg {
@@ -90,6 +96,7 @@
   padding-inline: 0.9375rem;
   border-radius: var(--andes-control-radius-lg, 0.5rem);
   font-size: var(--andes-control-font-size-lg, 1rem);
+  line-height: 1.5rem;
 }
 
 /* Icon-only buttons are squares of the same heights. Their font-size sizes the projected
@@ -130,6 +137,33 @@
 /* After the sizes, which each set their own radius, so the pill shape wins at every size. */
 .andes-button--full {
   border-radius: var(--andes-radius-full);
+}
+
+/* Circle: fully rounded and at least as wide as it is tall, so an icon-only button becomes a
+   true circle and a short label a capsule with tight padding. */
+
+.andes-button--circle {
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-button--circle.andes-button--xs {
+  min-width: 1.25rem;
+  padding-inline: var(--andes-space-1);
+}
+
+.andes-button--circle.andes-button--sm {
+  min-width: 1.5rem;
+  padding-inline: var(--andes-space-1);
+}
+
+.andes-button--circle.andes-button--md {
+  min-width: 2rem;
+  padding-inline: var(--andes-space-2);
+}
+
+.andes-button--circle.andes-button--lg {
+  min-width: 2.5rem;
+  padding-inline: var(--andes-space-2);
 }
 
 /* Variants */
@@ -183,6 +217,10 @@
   background-color: var(--andes-color-accent);
 }
 
+.andes-button--outline:active:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-accent-hover);
+}
+
 .andes-button--dashed {
   background-color: var(--andes-color-background);
   border-style: dashed;
@@ -194,6 +232,10 @@
   background-color: var(--andes-color-accent);
 }
 
+.andes-button--dashed:active:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-accent-hover);
+}
+
 .andes-button--ghost {
   background-color: transparent;
   color: var(--andes-color-accent-foreground);
@@ -201,6 +243,10 @@
 
 .andes-button--ghost:hover:not(:disabled):not([data-disabled]) {
   background-color: var(--andes-color-accent);
+}
+
+.andes-button--ghost:active:not(:disabled):not([data-disabled]) {
+  background-color: var(--andes-color-accent-hover);
 }
 
 .andes-button--link {
@@ -213,6 +259,188 @@
 
 .andes-button--link:hover:not(:disabled):not([data-disabled]) {
   text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Filled: a soft tint with no border - quieter than solid, louder than ghost. Neutral unless
+   a color is set (see below). */
+
+.andes-button--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 6%,
+    transparent
+  );
+  color: var(--andes-color-foreground);
+}
+
+.andes-button--filled:hover:not(:disabled):not([data-disabled]) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 10%,
+    transparent
+  );
+}
+
+.andes-button--filled:active:not(:disabled):not([data-disabled]) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 15%,
+    transparent
+  );
+}
+
+/* Color: each semantic color fills the same four slots, and the color-aware variant rules
+   below read only the slots. `--andes-button-color-text` is the shade legible as text or a
+   border on the page background (the plain warning amber is too light for that); `-ghost` is the light shade for ghost
+   mode, which sits on dark or colored backdrops. */
+
+.andes-button--color-primary {
+  --andes-button-color: var(--andes-color-primary);
+  --andes-button-color-hover: var(--andes-color-primary-hover);
+  --andes-button-color-active: var(--andes-color-primary-active);
+  --andes-button-color-foreground: var(--andes-color-primary-foreground);
+  --andes-button-color-ghost: var(--andes-color-primary-ghost);
+  --andes-button-color-text: var(--andes-color-primary-text);
+}
+
+.andes-button--color-danger {
+  --andes-button-color: var(--andes-color-danger);
+  --andes-button-color-hover: var(--andes-color-danger-hover);
+  --andes-button-color-active: var(--andes-color-danger-active);
+  --andes-button-color-foreground: var(--andes-color-danger-foreground);
+  --andes-button-color-ghost: var(--andes-color-danger-ghost);
+  --andes-button-color-text: var(--andes-color-danger-hover);
+}
+
+.andes-button--color-success {
+  --andes-button-color: var(--andes-color-success);
+  --andes-button-color-hover: var(--andes-color-success-hover);
+  --andes-button-color-active: var(--andes-color-success-active);
+  --andes-button-color-foreground: var(--andes-color-success-foreground);
+  --andes-button-color-ghost: color-mix(
+    in srgb,
+    var(--andes-color-success) 55%,
+    #ffffff
+  );
+  --andes-button-color-text: var(--andes-color-success-hover);
+}
+
+.andes-button--color-warning {
+  --andes-button-color: var(--andes-color-warning);
+  --andes-button-color-hover: var(--andes-color-warning-hover);
+  --andes-button-color-active: var(--andes-color-warning-active);
+  --andes-button-color-foreground: var(--andes-color-warning-foreground);
+  --andes-button-color-ghost: var(--andes-color-warning);
+  --andes-button-color-text: var(--andes-color-warning-active);
+}
+
+.andes-button--color-info {
+  --andes-button-color: var(--andes-color-info);
+  --andes-button-color-hover: var(--andes-color-info-hover);
+  --andes-button-color-active: var(--andes-color-info-active);
+  --andes-button-color-foreground: var(--andes-color-info-foreground);
+  --andes-button-color-ghost: color-mix(
+    in srgb,
+    var(--andes-color-info) 55%,
+    #ffffff
+  );
+  --andes-button-color-text: var(--andes-color-info-hover);
+}
+
+.andes-button--colored.andes-button--primary {
+  background-color: var(--andes-button-color);
+  color: var(--andes-button-color-foreground);
+}
+
+.andes-button--colored.andes-button--primary:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-button-color-hover);
+}
+
+.andes-button--colored.andes-button--primary:active:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-button-color-active);
+}
+
+.andes-button--colored.andes-button--outline,
+.andes-button--colored.andes-button--dashed {
+  border-color: var(--andes-button-color-text);
+  color: var(--andes-button-color-text);
+}
+
+.andes-button--colored.andes-button--outline:hover:not(:disabled):not(
+    [data-disabled]
+  ),
+.andes-button--colored.andes-button--dashed:hover:not(:disabled):not(
+    [data-disabled]
+  ),
+.andes-button--colored.andes-button--ghost:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-button-color) 10%,
+    transparent
+  );
+}
+
+.andes-button--colored.andes-button--outline:active:not(:disabled):not(
+    [data-disabled]
+  ),
+.andes-button--colored.andes-button--dashed:active:not(:disabled):not(
+    [data-disabled]
+  ),
+.andes-button--colored.andes-button--ghost:active:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-button-color) 18%,
+    transparent
+  );
+}
+
+.andes-button--colored.andes-button--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-button-color) 12%,
+    transparent
+  );
+  /* Pulled a quarter of the way toward the page foreground: on its own tinted fill the plain
+     text shade drops under 4.5:1 for primary and success in the light theme. */
+  color: color-mix(
+    in srgb,
+    var(--andes-button-color-text) 75%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-button--colored.andes-button--filled:hover:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-button-color) 20%,
+    transparent
+  );
+}
+
+.andes-button--colored.andes-button--filled:active:not(:disabled):not(
+    [data-disabled]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-button-color) 28%,
+    transparent
+  );
+}
+
+.andes-button--colored.andes-button--ghost,
+.andes-button--colored.andes-button--link {
+  color: var(--andes-button-color-text);
 }
 
 /* Ghost mode: transparent background, border/text tinted to the variant's own color -
@@ -244,6 +472,14 @@
   color: var(--andes-color-ghost-foreground);
 }
 
+/* The white hover fill is theme-fixed, but secondary-foreground turns near-white in the dark
+   theme - which left the label invisible on hover there. The page background is the dark
+   ink in that theme. */
+/* prettier-ignore */
+:host-context([data-andes-theme='dark']) .andes-button--ghost-mode.andes-button--secondary:hover:not(:disabled):not([data-disabled]) {
+  color: var(--andes-color-background);
+}
+
 .andes-button--ghost-mode.andes-button--danger {
   background-color: transparent;
   border-color: var(--andes-color-danger-ghost);
@@ -257,9 +493,27 @@
   color: var(--andes-color-danger-foreground);
 }
 
+/* Ghost mode with a color: outline and label in the color, filled on hover. */
+
+.andes-button--ghost-mode.andes-button--colored.andes-button--primary {
+  background-color: transparent;
+  border-color: var(--andes-button-color-ghost);
+  color: var(--andes-button-color-ghost);
+}
+
+.andes-button--ghost-mode.andes-button--colored.andes-button--primary:hover:not(
+    :disabled
+  ):not([data-disabled]) {
+  background-color: var(--andes-button-color);
+  color: var(--andes-button-color-foreground);
+}
+
 /* Loading */
 
-.andes-button--loading {
+/* A loading button is also disabled; this outranks the generic `:disabled` cursor so the
+   pointer says "busy" rather than "not allowed". */
+.andes-button--loading:disabled,
+.andes-button--loading[data-disabled] {
   cursor: wait;
 }
 
@@ -270,7 +524,14 @@
   border: 2px solid currentcolor;
   border-right-color: transparent;
   border-radius: var(--andes-radius-full);
-  animation: andes-button-spin 0.6s linear infinite;
+  /* One turn a second reads as "working" without looking frantic. */
+  animation: andes-button-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-button__spinner {
+    animation-duration: 2.4s;
+  }
 }
 
 @keyframes andes-button-spin {
@@ -285,11 +546,13 @@
   position: absolute;
   border-radius: var(--andes-radius-full);
   background-color: currentcolor;
-  opacity: 0.15;
+  /* A faint wash, not a flash: at a tenth of the label color it stays under the hover/active
+     fill change instead of competing with it. */
+  opacity: 0.1;
   transform: scale(0);
   /* Kept at or under RIPPLE_DURATION_MS in button.ts, which removes the element. */
   animation: andes-button-ripple var(--andes-motion-duration-slow, 0.3s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
   pointer-events: none;
 }
 
@@ -300,8 +563,8 @@
   }
 }
 
-/* button.ts already skips the ripple under reduced motion; this covers a preference that
-   changes while a ripple is mid-flight. */
+/* The ripple is pure decoration; the hover/active colour change already confirms the press.
+   button.ts skips it under reduced motion; this covers a preference that changes mid-flight. */
 @media (prefers-reduced-motion: reduce) {
   .andes-button__ripple {
     display: none;

@@ -1,0 +1,62 @@
+.andes-button-group {
+  display: inline-flex;
+  align-items: stretch;
+  vertical-align: middle;
+}
+
+.andes-button-group--vertical {
+  flex-direction: column;
+}
+
+/* Hovered or focused buttons rise above their neighbours so the overlapped border and the
+   focus ring are drawn whole. */
+.andes-button-group .andes-button:hover,
+.andes-button-group .andes-button:focus-visible {
+  z-index: 1;
+}
+
+/* Horizontal: square the inner corners and overlap the shared 1px border. */
+
+.andes-button-group--horizontal > :not(:first-child) .andes-button {
+  margin-inline-start: -1px;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+.andes-button-group--horizontal > :not(:last-child) .andes-button {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* Vertical: same on the block axis, and every button spans the group's width. */
+
+.andes-button-group--vertical .andes-button {
+  display: flex;
+  width: 100%;
+}
+
+.andes-button-group--vertical > :not(:first-child) .andes-button {
+  margin-block-start: -1px;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.andes-button-group--vertical > :not(:last-child) .andes-button {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* Solid buttons have no visible border, so two of them would merge into one block. A faint
+   divider in the label color keeps the segments apart in any color and theme. */
+.andes-button-group > :not(:first-child) .andes-button--primary,
+.andes-button-group > :not(:first-child) .andes-button--secondary,
+.andes-button-group > :not(:first-child) .andes-button--danger {
+  border-inline-start-color: color-mix(in srgb, currentcolor 30%, transparent);
+}
+
+.andes-button-group--vertical > :not(:first-child) .andes-button--primary,
+.andes-button-group--vertical > :not(:first-child) .andes-button--secondary,
+.andes-button-group--vertical > :not(:first-child) .andes-button--danger {
+  border-inline-start-color: transparent;
+  border-block-start-color: color-mix(in srgb, currentcolor 30%, transparent);
+}

@@ -1,8 +1,10 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
+import { AndesButtonGroup } from './button-group';
 import {
   AndesButton,
+  AndesButtonColor,
   AndesButtonShape,
   AndesButtonSize,
   AndesButtonType,
@@ -23,12 +25,15 @@ import {
     [target]="target()"
     [type]="type()"
     [ghost]="ghost()"
+    [color]="color()"
+    [danger]="danger()"
+    [ripple]="ripple()"
     >Save</andes-button
   >`,
 })
 class HostComponent {
   readonly variant = signal<AndesButtonVariant>('primary');
-  readonly size = signal<AndesButtonSize>('md');
+  readonly size = signal<AndesButtonSize | undefined>('md');
   readonly shape = signal<AndesButtonShape>('default');
   readonly disabled = signal(false);
   readonly loading = signal(false);
@@ -38,6 +43,9 @@ class HostComponent {
   readonly target = signal<string | undefined>(undefined);
   readonly type = signal<AndesButtonType>('button');
   readonly ghost = signal(false);
+  readonly color = signal<AndesButtonColor | undefined>(undefined);
+  readonly danger = signal(false);
+  readonly ripple = signal(true);
 }
 
 describe('AndesButton', () => {
@@ -197,6 +205,16 @@ describe('AndesButton', () => {
 
     expect(anchor.tagName).toBe('A');
     expect(anchor.getAttribute('href')).toBe('https://andes-ng.dev');
+  });
+
+  it('sizes the anchor border-box like the native button, so both share one outer height', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.href.set('https://andes-ng.dev');
+    fixture.detectChanges();
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(getComputedStyle(anchor).boxSizing).toBe('border-box');
+    expect(getComputedStyle(anchor).whiteSpace).toBe('nowrap');
   });
 
   it('removes href from the anchor when disabled', () => {
@@ -407,6 +425,185 @@ describe('AndesButton', () => {
       stubReducedMotion(true);
 
       expect(press().querySelector('.andes-button__ripple')).toBeNull();
+    });
+  });
+
+  it('falls back to the medium size when size is left unset', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.size.set(undefined);
+    fixture.detectChanges();
+
+    expect(button.classList).toContain('andes-button--md');
+    expect(button.getAttribute('data-size')).toBe('md');
+  });
+
+  it('supports the filled variant', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.variant.set('filled');
+    fixture.detectChanges();
+
+    expect(button.classList).toContain('andes-button--filled');
+  });
+
+  it('tints the variant with the requested color', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.variant.set('outline');
+    fixture.componentInstance.color.set('success');
+    fixture.detectChanges();
+
+    expect(button.classList).toContain('andes-button--colored');
+    expect(button.classList).toContain('andes-button--color-success');
+    expect(button.getAttribute('data-color')).toBe('success');
+  });
+
+  it('adds no color class or data-color when no color is set', () => {
+    const { button } = createHost();
+
+    expect(button.classList).not.toContain('andes-button--colored');
+    expect(button.hasAttribute('data-color')).toBe(false);
+  });
+
+  it('treats danger as the danger color, winning over color', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.variant.set('ghost');
+    fixture.componentInstance.color.set('info');
+    fixture.componentInstance.danger.set(true);
+    fixture.detectChanges();
+
+    expect(button.classList).toContain('andes-button--color-danger');
+    expect(button.classList).not.toContain('andes-button--color-info');
+  });
+
+  it('renders round as the pill shape', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.shape.set('round');
+    fixture.detectChanges();
+
+    expect(button.classList).toContain('andes-button--full');
+  });
+
+  it('applies the circle shape', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.shape.set('circle');
+    fixture.detectChanges();
+
+    expect(button.classList).toContain('andes-button--circle');
+    expect(button.classList).not.toContain('andes-button--full');
+  });
+
+  it('adds a ripple on press by default', () => {
+    const { button } = createHost();
+    button.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, clientX: 4 }),
+    );
+
+    expect(button.querySelector('.andes-button__ripple')).toBeTruthy();
+  });
+
+  it('keeps the ripple a faint wash and the spinner at a calm pace', () => {
+    const { fixture, button } = createHost();
+    button.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, clientX: 4 }),
+    );
+    const ripple = button.querySelector('.andes-button__ripple') as HTMLElement;
+
+    expect(getComputedStyle(ripple).opacity).toBe('0.1');
+
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+    const spinner = button.querySelector(
+      '.andes-button__spinner',
+    ) as HTMLElement;
+
+    expect(getComputedStyle(spinner).animation).toContain(' 1s ');
+  });
+
+  it('skips the ripple when ripple is false', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.ripple.set(false);
+    fixture.detectChanges();
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+
+    expect(button.querySelector('.andes-button__ripple')).toBeFalsy();
+  });
+
+  it('marks a disabled anchor aria-disabled', () => {
+    const { fixture, button } = createHost();
+    fixture.componentInstance.href.set('/orders');
+    fixture.componentInstance.disabled.set(true);
+    fixture.detectChanges();
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(anchor.getAttribute('aria-disabled')).toBe('true');
+    expect(button).toBeTruthy();
+  });
+
+  it('marks a loading anchor aria-busy', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.href.set('/orders');
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(anchor.getAttribute('aria-busy')).toBe('true');
+    expect(anchor.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  describe('inside a button group', () => {
+    @Component({
+      imports: [AndesButton, AndesButtonGroup],
+      template: `<andes-button-group
+        [size]="groupSize()"
+        [orientation]="orientation()"
+        aria-label="Actions"
+      >
+        <andes-button>One</andes-button>
+        <andes-button size="lg">Two</andes-button>
+      </andes-button-group>`,
+    })
+    class GroupHost {
+      readonly groupSize = signal<AndesButtonSize | undefined>('sm');
+      readonly orientation = signal<'horizontal' | 'vertical'>('horizontal');
+    }
+
+    function createGroup() {
+      const fixture = TestBed.createComponent(GroupHost);
+      fixture.detectChanges();
+      const group = fixture.nativeElement.querySelector(
+        'andes-button-group',
+      ) as HTMLElement;
+      const buttons = Array.from(
+        group.querySelectorAll('button'),
+      ) as HTMLButtonElement[];
+      return { fixture, group, buttons };
+    }
+
+    it('exposes the group role and its orientation', () => {
+      const { fixture, group } = createGroup();
+
+      expect(group.getAttribute('role')).toBe('group');
+      expect(group.classList).toContain('andes-button-group--horizontal');
+
+      fixture.componentInstance.orientation.set('vertical');
+      fixture.detectChanges();
+
+      expect(group.classList).toContain('andes-button-group--vertical');
+      expect(group.getAttribute('data-orientation')).toBe('vertical');
+    });
+
+    it('gives its size to buttons without their own', () => {
+      const { buttons } = createGroup();
+
+      expect(buttons[0].classList).toContain('andes-button--sm');
+      expect(buttons[1].classList).toContain('andes-button--lg');
+    });
+
+    it('lets buttons fall back to medium when the group has no size', () => {
+      const { fixture, buttons } = createGroup();
+      fixture.componentInstance.groupSize.set(undefined);
+      fixture.detectChanges();
+
+      expect(buttons[0].classList).toContain('andes-button--md');
     });
   });
 });
