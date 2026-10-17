@@ -90,3 +90,31 @@ export function andesPaginateRows<TRow>(
 
   return rows.slice(start, start + pageSize);
 }
+
+/**
+ * `columns` in the user's `order` of column keys (`AndesTable.columnOrder`), for
+ * rendering the header and body cells of a reorderable table. Columns whose key is
+ * not in `order` (e.g. a selection column) keep their own position; the others
+ * fill the remaining positions in `order`. An empty `order` returns `columns`.
+ */
+export function andesOrderColumns<TColumn>(
+  columns: readonly TColumn[],
+  order: readonly string[] | null | undefined,
+  keyOf: (column: TColumn) => string | undefined,
+): readonly TColumn[] {
+  if (!order?.length) {
+    return columns;
+  }
+  const rank = new Map(order.map((key, index) => [key, index]));
+  const rankOf = (column: TColumn) => {
+    const key = keyOf(column);
+    return key === undefined ? undefined : rank.get(key);
+  };
+  const ordered = columns
+    .filter((column) => rankOf(column) !== undefined)
+    .sort((a, b) => (rankOf(a) as number) - (rankOf(b) as number));
+  let next = 0;
+  return columns.map((column) =>
+    rankOf(column) === undefined ? column : ordered[next++],
+  );
+}

@@ -7,6 +7,8 @@ export type {
   AndesTableCaptionSide,
   AndesTableChange,
   AndesTableChangeAction,
+  AndesTableColumnMovedText,
+  AndesTableColumnReorder,
   AndesTableColumnResize,
   AndesTableDensity,
   AndesTableLayout,
@@ -22,6 +24,7 @@ export type {
 } from './lib/table/table-context';
 export {
   andesFilterRows,
+  andesOrderColumns,
   andesPageCount,
   andesPaginateRows,
 } from './lib/table/table-data';

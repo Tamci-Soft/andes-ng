@@ -24,5 +24,8 @@
   <div class="andes-table__sr-only" role="status">
     @if (loading()) { {{ loadingLabel() }} }
   </div>
+  <div class="andes-table__sr-only" aria-live="polite">
+    {{ announcement() }}
+  </div>
 </div>
 <ng-content select="[andesTableBottom]" />

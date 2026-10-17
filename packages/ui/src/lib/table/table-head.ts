@@ -1,9 +1,11 @@
+import { CdkDrag } from '@angular/cdk/drag-drop';
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  effect,
   ElementRef,
   inject,
   input,
@@ -61,12 +63,18 @@ function optionalBoolean(value: unknown): boolean | undefined {
  * Left/Right resize by 10px (50px with Shift, mirrored in right-to-left), Home/End
  * jump to the limits, and Enter - like a double-click - fits the column to its
  * content. `width` sets a starting width (Ant's column `width`).
+ *
+ * Reordering: in a `reorderable` table a keyed, unpinned header in the `<thead>`
+ * can be dragged sideways to a new position (a CDK drag inside the header's drop
+ * list), or moved one place with Alt+Arrow Left/Right while focused. Opt a column
+ * out with `[reorderable]="false"`.
  */
 @Component({
   // A component on the native <th> (not a wrapper element) so the table keeps its
   // real cell semantics; the template only arranges the cell's own content.
   selector: 'th[andesTableHead]',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  hostDirectives: [CdkDrag],
   template: `<div class="andes-table__head-content">
       <span class="andes-table__head-title" [id]="id + '-title'"
         ><ng-content
@@ -111,7 +119,11 @@ function optionalBoolean(value: unknown): boolean | undefined {
     '[class]': 'classes()',
     '[attr.scope]': 'scope()',
     '[attr.aria-sort]': 'ariaSort()',
-    '[attr.tabindex]': 'sortKey() ? 0 : null',
+    '[attr.tabindex]': 'sortKey() || canReorder() ? 0 : null',
+    '[attr.data-column-key]': 'key() ?? null',
+    '[attr.data-reorder]': "reorderable() === false ? 'off' : null",
+    '[attr.aria-keyshortcuts]':
+      "canReorder() ? 'Alt+ArrowLeft Alt+ArrowRight' : null",
     '[attr.data-sort]': 'direction()',
     '[attr.data-sort-priority]': 'sortPriority()',
     '[style.inset-inline-start]': "fixed() === 'start' ? offset() : null",
@@ -120,12 +132,17 @@ function optionalBoolean(value: unknown): boolean | undefined {
     '(click)': 'toggleSort()',
     '(keydown.enter)': 'onActivateKey($event)',
     '(keydown.space)': 'onActivateKey($event)',
+    '(keydown)': 'onMoveKey($event)',
   },
 })
 export class AndesTableHead {
   private readonly table = inject(AndesTable);
   private readonly host = inject<ElementRef<HTMLTableCellElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly drag = inject(CdkDrag, { self: true });
+
+  /** Set by a finished drag so the click that ends it does not also sort. */
+  private suppressClick = false;
 
   protected readonly id = `andes-table-head-${nextHeadId++}`;
 
@@ -181,6 +198,11 @@ export class AndesTableHead {
   /** Widest width, in pixels, a resize may reach. Unbounded when unset. */
   readonly maxWidth = input<number | undefined>(undefined);
 
+  /** Allow this column to move in a `reorderable` table. Defaults to yes. */
+  readonly reorderable = input<boolean | undefined, unknown>(undefined, {
+    transform: optionalBoolean,
+  });
+
   /** Start of the resize handle's accessible name; the column title follows it. */
   readonly resizeText = input('Resize column');
 
@@ -189,6 +211,17 @@ export class AndesTableHead {
 
   protected readonly isResizable = computed(
     () => !!this.key() && (this.resizable() ?? this.table.resizable()),
+  );
+
+  /** Whether this header can be dragged or moved with Alt+Arrow keys. */
+  protected readonly canReorder = computed(
+    () =>
+      this.table.reorderable() &&
+      !!this.key() &&
+      !this.fixed() &&
+      this.reorderable() !== false &&
+      // Only header cells inside the <thead> drop list move.
+      !!this.drag.dropContainer,
   );
 
   /** This header's handle is being dragged. */
@@ -253,12 +286,33 @@ export class AndesTableHead {
       this.sortKey() && 'andes-table__head--sortable',
       this.direction() && 'andes-table__head--sorted',
       this.isResizable() && 'andes-table__head--resizable',
+      this.canReorder() && 'andes-table__head--reorderable',
       andesCellModifiers(this.fixed(), this.ellipsis()),
     ),
   );
 
+  constructor() {
+    const drag = this.drag;
+    drag.lockAxis = 'x';
+    // The preview stays inside the row, so the table's cell styles still reach it.
+    drag.previewContainer = 'parent';
+    drag.previewClass = 'andes-table__drag-preview';
+    effect(() => {
+      drag.disabled = !this.canReorder();
+    });
+    const ended = drag.ended.subscribe(() => {
+      this.suppressClick = true;
+      setTimeout(() => (this.suppressClick = false));
+    });
+    this.destroyRef.onDestroy(() => ended.unsubscribe());
+  }
+
   /** Advances this column through the sort cycle. No-op without a `sortKey`. */
   toggleSort(): void {
+    if (this.suppressClick) {
+      this.suppressClick = false;
+      return;
+    }
     const key = this.sortKey();
     if (key) {
       this.table.toggleSort(key, this.sortDirections());
@@ -273,6 +327,23 @@ export class AndesTableHead {
     // Space would scroll the page otherwise, and Enter can submit an enclosing form.
     event.preventDefault();
     this.toggleSort();
+  }
+
+  // Reordering
+
+  protected onMoveKey(event: KeyboardEvent): void {
+    if (
+      !event.altKey ||
+      (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') ||
+      event.target !== this.host.nativeElement ||
+      !this.canReorder()
+    ) {
+      return;
+    }
+    event.preventDefault();
+    // ArrowRight moves toward the visual right: the end in LTR, the start in RTL.
+    const towardEnd = (event.key === 'ArrowRight') !== this.isRtl();
+    this.table.moveColumnBy(this.host.nativeElement, towardEnd ? 1 : -1);
   }
 
   // Resizing

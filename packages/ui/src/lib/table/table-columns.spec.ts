@@ -1,13 +1,17 @@
-import { Component, signal } from '@angular/core';
+import { type CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { Component, computed, ElementRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 
 import {
   AndesTable,
+  type AndesTableColumnReorder,
   type AndesTableColumnResize,
   type AndesTableLayout,
 } from './table';
 import { AndesTableBody } from './table-body';
 import { AndesTableCell } from './table-cell';
+import { andesOrderColumns } from './table-data';
 import { AndesTableHead } from './table-head';
 import { AndesTableHeader } from './table-header';
 import { AndesTableRow } from './table-row';
@@ -250,5 +254,213 @@ describe('AndesTable resizable columns', () => {
     expect(table.classList).toContain('andes-table--resizing');
     pointer(document, 'pointerup', 0);
     expect(table.classList).not.toContain('andes-table--resizing');
+  });
+});
+
+describe('AndesTable reorderable columns', () => {
+  interface Column {
+    readonly key: string;
+    readonly title: string;
+    readonly fixed?: 'start' | 'end';
+  }
+
+  const COLUMNS: readonly Column[] = [
+    { key: 'id', title: 'ID', fixed: 'start' },
+    { key: 'name', title: 'Name' },
+    { key: 'status', title: 'Status' },
+    { key: 'total', title: 'Total' },
+  ];
+
+  @Component({
+    imports: [
+      AndesTable,
+      AndesTableBody,
+      AndesTableCell,
+      AndesTableHead,
+      AndesTableHeader,
+      AndesTableRow,
+    ],
+    template: `<andes-table
+      [reorderable]="reorderable()"
+      [(columnOrder)]="order"
+      (columnReorder)="moves.push($event)"
+    >
+      <thead andesTableHeader>
+        <tr andesTableRow>
+          <th andesTableHead>
+            <span class="andes-table__sr-only">Select</span>
+          </th>
+          @for (column of ordered(); track column.key) {
+            <th andesTableHead [columnKey]="column.key" [fixed]="column.fixed">
+              {{ column.title }}
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody andesTableBody>
+        <tr andesTableRow>
+          <td andesTableCell></td>
+          @for (column of ordered(); track column.key) {
+            <td andesTableCell [fixed]="column.fixed">{{ column.key }}-1</td>
+          }
+        </tr>
+      </tbody>
+    </andes-table>`,
+  })
+  class ReorderHost {
+    readonly reorderable = signal(true);
+    readonly order = signal<readonly string[]>([]);
+    readonly moves: AndesTableColumnReorder[] = [];
+    readonly ordered = computed(() =>
+      andesOrderColumns(COLUMNS, this.order(), (column) => column.key),
+    );
+  }
+
+  function setup() {
+    const fixture = TestBed.createComponent(ReorderHost);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const host = fixture.componentInstance;
+    const header = (key: string) =>
+      root.querySelector(`th[data-column-key="${key}"]`) as HTMLElement;
+    const headerKeys = () =>
+      Array.from(root.querySelectorAll('thead th')).map(
+        (th) => th.getAttribute('data-column-key') ?? '-',
+      );
+    const bodyTexts = () =>
+      Array.from(root.querySelectorAll('tbody td')).map((td) =>
+        td.textContent?.trim(),
+      );
+    const move = (key: string, arrow: 'ArrowLeft' | 'ArrowRight') => {
+      const th = header(key);
+      th.focus();
+      th.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: arrow,
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      fixture.detectChanges();
+    };
+    return { fixture, root, host, header, headerKeys, bodyTexts, move };
+  }
+
+  it('makes keyed, unpinned headers focusable drag sources with a keyboard hint', () => {
+    const { root, header } = setup();
+
+    expect(header('name').getAttribute('tabindex')).toBe('0');
+    expect(header('name').getAttribute('aria-keyshortcuts')).toBe(
+      'Alt+ArrowLeft Alt+ArrowRight',
+    );
+    expect(header('name').classList).toContain('cdk-drag');
+    expect(header('name').classList).not.toContain('cdk-drag-disabled');
+    // Pinned and unkeyed columns stay put.
+    expect(header('id').classList).toContain('cdk-drag-disabled');
+    expect(header('id').getAttribute('aria-keyshortcuts')).toBeNull();
+    expect(root.querySelector('thead th')?.classList).toContain(
+      'cdk-drag-disabled',
+    );
+    expect(root.querySelector('thead')?.classList).toContain('cdk-drop-list');
+  });
+
+  it('moves a column with Alt+Arrow keys, keeping focus and announcing it', async () => {
+    const { fixture, root, host, header, headerKeys, bodyTexts, move } =
+      setup();
+
+    move('name', 'ArrowRight');
+    await fixture.whenStable();
+
+    expect(host.moves).toEqual([
+      {
+        columnKey: 'name',
+        previousIndex: 1,
+        currentIndex: 2,
+        order: ['id', 'status', 'name', 'total'],
+      },
+    ]);
+    expect(headerKeys()).toEqual(['-', 'id', 'status', 'name', 'total']);
+    expect(bodyTexts()).toEqual(['', 'id-1', 'status-1', 'name-1', 'total-1']);
+    expect(document.activeElement).toBe(header('name'));
+    expect(
+      root.querySelector('[aria-live="polite"]')?.textContent?.trim(),
+    ).toBe('Name moved to position 3 of 4');
+
+    move('name', 'ArrowLeft');
+    expect(headerKeys()).toEqual(['-', 'id', 'name', 'status', 'total']);
+  });
+
+  it('never moves a column across a pinned or unkeyed one', () => {
+    const { host, headerKeys, move } = setup();
+
+    move('name', 'ArrowLeft');
+    move('id', 'ArrowRight');
+    move('total', 'ArrowRight');
+
+    expect(host.moves).toEqual([]);
+    expect(headerKeys()).toEqual(['-', 'id', 'name', 'status', 'total']);
+  });
+
+  it('mirrors the arrows in right-to-left', () => {
+    const { header, headerKeys, move } = setup();
+    header('status').style.direction = 'rtl';
+
+    move('status', 'ArrowLeft');
+
+    expect(headerKeys()).toEqual(['-', 'id', 'name', 'total', 'status']);
+  });
+
+  it('applies a drop from the header drop list', () => {
+    const { fixture, host, header, headerKeys } = setup();
+    const dropList = fixture.debugElement
+      .query(By.directive(CdkDropList))
+      .injector.get(CdkDropList);
+
+    dropList.dropped.emit({
+      previousIndex: 4,
+      currentIndex: 2,
+      item: { element: new ElementRef(header('total')) },
+    } as unknown as CdkDragDrop<unknown>);
+    fixture.detectChanges();
+
+    expect(host.order()).toEqual(['id', 'total', 'name', 'status']);
+    expect(headerKeys()).toEqual(['-', 'id', 'total', 'name', 'status']);
+  });
+
+  it('stays inert unless the table is reorderable', () => {
+    const { fixture, host, root, header, move } = setup();
+    host.reorderable.set(false);
+    fixture.detectChanges();
+
+    expect(header('name').classList).toContain('cdk-drag-disabled');
+    expect(header('name').getAttribute('tabindex')).toBeNull();
+    expect(root.querySelector('thead')?.classList).toContain(
+      'cdk-drop-list-disabled',
+    );
+    move('name', 'ArrowRight');
+    expect(host.moves).toEqual([]);
+  });
+});
+
+describe('andesOrderColumns', () => {
+  const columns = ['select', 'a', 'b', 'c'].map((key) => ({ key }));
+  const keyOf = (column: { key: string }) =>
+    column.key === 'select' ? undefined : column.key;
+
+  it('returns the columns untouched without an order', () => {
+    expect(andesOrderColumns(columns, [], keyOf)).toBe(columns);
+  });
+
+  it('orders keyed columns and keeps unkeyed ones in place', () => {
+    expect(
+      andesOrderColumns(columns, ['c', 'a', 'b'], keyOf).map((c) => c.key),
+    ).toEqual(['select', 'c', 'a', 'b']);
+  });
+
+  it('keeps columns missing from the order in their own positions', () => {
+    expect(
+      andesOrderColumns(columns, ['b', 'a'], keyOf).map((c) => c.key),
+    ).toEqual(['select', 'b', 'a', 'c']);
   });
 });
