@@ -128,6 +128,17 @@ class NumericHostComponent {
 
 @Component({
   imports: [AndesRadioGroup, AndesRadio],
+  template: `<andes-radio-group>
+    <andes-radio id="static-radio" value="a">Option A</andes-radio>
+    <andes-radio [id]="boundId" value="b">Option B</andes-radio>
+  </andes-radio-group>`,
+})
+class IdHostComponent {
+  boundId = 'bound-radio';
+}
+
+@Component({
+  imports: [AndesRadioGroup, AndesRadio],
   template: `<andes-radio-group [autoFocus]="groupAutoFocus" [value]="value">
       <andes-radio value="a" disabled>Option A</andes-radio>
       <andes-radio value="b">Option B</andes-radio>
@@ -255,6 +266,25 @@ describe('AndesRadioGroup / AndesRadio', () => {
     fixture.componentInstance.orientation.set('horizontal');
     fixture.detectChanges();
     expect(group.getAttribute('data-orientation')).toBe('horizontal');
+  });
+
+  it('moves a static or bound id from the andes-radio host to its native input', () => {
+    const fixture = TestBed.createComponent(IdHostComponent);
+    fixture.detectChanges();
+    const root: HTMLElement = fixture.nativeElement;
+
+    for (const id of ['static-radio', 'bound-radio']) {
+      const matches = root.querySelectorAll(`#${id}`);
+      expect(matches).toHaveLength(1);
+      expect(matches[0].tagName).toBe('INPUT');
+      const label = root.querySelector(`label[for="${id}"]`);
+      expect(label?.contains(matches[0])).toBe(true);
+    }
+    expect(
+      Array.from(root.querySelectorAll('andes-radio')).every(
+        (item) => !item.hasAttribute('id'),
+      ),
+    ).toBe(true);
   });
 
   describe('ControlValueAccessor', () => {
