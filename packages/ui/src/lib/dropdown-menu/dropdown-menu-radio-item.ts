@@ -11,16 +11,19 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 
+import { AndesDropdownMenuRadioGroup } from './dropdown-menu-radio-group';
 import { AndesDropdownMenuRoot } from './dropdown-menu-root';
 import { AndesDropdownMenuLevel } from './dropdown-menu-types';
 
 /**
- * One option within a set of mutually-exclusive radio items. Items sharing the same
- * `name` form a group; selecting one deselects any other with the same `name`.
+ * One option within a set of mutually-exclusive radio items.
  *
- * There is no separate `AndesDropdownMenuRadioGroup` component - grouping is by
- * matching `name`, the same convention native `<input type="radio">` uses, which
- * keeps the anatomy to what was actually required without an extra wrapper.
+ * Inside an `AndesDropdownMenuRadioGroup` the group owns the value: the item is
+ * checked while the group's `value` equals its own, and selecting it sets the group's
+ * `value` - `name` is ignored there. Outside one, items sharing the same `name` form a
+ * group, the convention native `<input type="radio">` uses; that state lives in the
+ * menu, so it can be seeded (`defaultChecked`) and observed (`(selected)`) but not set
+ * by the parent later - use the group component when it must be.
  *
  * See the class-level comment on `AndesDropdownMenuContent` for why this needs
  * `encapsulation: ViewEncapsulation.None`: its BEM classes live only in `host: {
@@ -64,11 +67,15 @@ import { AndesDropdownMenuLevel } from './dropdown-menu-types';
   },
 })
 export class AndesDropdownMenuRadioItem implements OnInit {
-  /** The group this item belongs to. Items sharing a `name` are mutually exclusive. */
-  readonly name = input.required<string>();
+  /**
+   * The group this item belongs to, outside an `AndesDropdownMenuRadioGroup` (ignored
+   * inside one). Items sharing a `name` are mutually exclusive; ungrouped items without
+   * one share a single unnamed group.
+   */
+  readonly name = input<string>('');
   /** The value this item represents within its group. */
   readonly value = input.required<unknown>();
-  /** Selects this item on init if its group has no value yet. Default `false`. */
+  /** Selects this item on init if its group (either kind) has no value yet. Default `false`. */
   readonly defaultChecked = input(false, { transform: booleanAttribute });
   /** Whether selecting the item closes the menu. Default `false`. */
   readonly closeOnSelect = input(false, { transform: booleanAttribute });
@@ -80,9 +87,12 @@ export class AndesDropdownMenuRadioItem implements OnInit {
 
   private readonly menu = inject(AndesDropdownMenuRoot);
   private readonly level = inject(AndesDropdownMenuLevel);
+  private readonly group = inject(AndesDropdownMenuRadioGroup, {
+    optional: true,
+  });
 
   protected readonly checked = computed(
-    () => this.menu.radioGroupValue(this.name())() === this.value(),
+    () => this.groupValue() === this.value(),
   );
 
   /**
@@ -90,11 +100,8 @@ export class AndesDropdownMenuRadioItem implements OnInit {
    * `defaultChecked` seed happens here instead.
    */
   ngOnInit(): void {
-    if (
-      this.defaultChecked() &&
-      this.menu.radioGroupValue(this.name())() === undefined
-    ) {
-      this.menu.setRadioGroupValue(this.name(), this.value());
+    if (this.defaultChecked() && this.groupValue() === undefined) {
+      this.select();
     }
   }
 
@@ -102,7 +109,7 @@ export class AndesDropdownMenuRadioItem implements OnInit {
     if (this.isDisabled()) {
       return;
     }
-    this.menu.setRadioGroupValue(this.name(), this.value());
+    this.select();
     this.selected.emit(this.value());
     if (this.closeOnSelect()) {
       this.menu.hide('item');
@@ -112,6 +119,20 @@ export class AndesDropdownMenuRadioItem implements OnInit {
   protected onKeydownActivate(event: Event): void {
     event.preventDefault();
     this.activate();
+  }
+
+  private groupValue(): unknown {
+    return this.group
+      ? this.group.value()
+      : this.menu.radioGroupValue(this.name())();
+  }
+
+  private select(): void {
+    if (this.group) {
+      this.group.select(this.value());
+    } else {
+      this.menu.setRadioGroupValue(this.name(), this.value());
+    }
   }
 
   /** Pointing at a sibling is the cue to close this level's open submenu. */

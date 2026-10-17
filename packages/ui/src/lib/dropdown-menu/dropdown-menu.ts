@@ -601,8 +601,9 @@ export class AndesDropdownMenu
   }
 
   /**
-   * Current value of the named radio group. There is no separate radio-group
-   * component - grouping is by matching `name`, the same as native radio inputs.
+   * Current value of the named radio group - radio items outside an
+   * `AndesDropdownMenuRadioGroup` group by matching `name`, the same as native radio
+   * inputs. A radio-group component keeps its own value instead.
    */
   radioGroupValue(name: string): Signal<unknown> {
     return this.radioGroupSignal(name).asReadonly();
