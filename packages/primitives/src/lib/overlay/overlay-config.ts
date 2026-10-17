@@ -330,3 +330,46 @@ export const ANDES_OVERLAY_BACKDROP_CLASS = 'andes-overlay-backdrop';
 
 /** Class applied to every andes-ng overlay pane, as a styling hook for consumers. */
 export const ANDES_OVERLAY_PANE_CLASS = 'andes-overlay-pane';
+
+/**
+ * Attribute (empty value) the overlay primitive sets while an overlay is closing,
+ * so a component can play an exit animation before the pane is removed.
+ *
+ * When `close()` is called, the attribute goes on the overlay pane, on each direct
+ * element child of the pane (the root elements of the component's own panel
+ * template, which is where emulated-encapsulation styles can reach it) and on the
+ * backdrop, if there is one. The pane and backdrop also stop receiving pointer
+ * events. The primitive then waits for every animation or transition running in
+ * the pane (and on the backdrop) to finish, at most
+ * {@link ANDES_OVERLAY_EXIT_TIMEOUT_MS}, before detaching.
+ *
+ * A component opts in by styling its panel root, for example
+ *
+ * ```css
+ * .panel[data-andes-closing] {
+ *   animation: panel-exit 120ms ease-in forwards;
+ * }
+ * @media (prefers-reduced-motion: reduce) {
+ *   .panel[data-andes-closing] { animation: none; }
+ * }
+ * ```
+ *
+ * Use `animation-fill-mode: forwards` (or a transition) so the panel does not
+ * snap back to full opacity between the end of the animation and the detach.
+ * Without any exit style the close stays instant and synchronous, and it is also
+ * instant when the user prefers reduced motion.
+ *
+ * While the attribute is present `isOpen()` is already `false`; focus is restored
+ * and `closed` emits only after the pane is detached. If focus moved to another
+ * element on the page during the exit, it stays there instead of returning to
+ * the trigger. Opening again before then
+ * removes the attribute and keeps the same pane, and neither `closed` nor `opened`
+ * emits for the interrupted close.
+ */
+export const ANDES_OVERLAY_CLOSING_ATTRIBUTE = 'data-andes-closing';
+
+/**
+ * Longest a close waits for exit animations before detaching the overlay anyway,
+ * so a stalled or endless animation can never keep a closed overlay on screen.
+ */
+export const ANDES_OVERLAY_EXIT_TIMEOUT_MS = 300;
