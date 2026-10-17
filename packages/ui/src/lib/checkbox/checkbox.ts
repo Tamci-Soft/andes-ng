@@ -49,7 +49,9 @@ export interface AndesCheckboxChange {
   host: {
     // Forwarded to the native input in the template instead - a screen reader never sees
     // this non-interactive host element, so leaving these here would do nothing (see the
-    // same convention in AndesButton).
+    // same convention in AndesButton). `id` too: an external `<label for>` must point at the
+    // focusable input, and a static `id` left on the host would duplicate it.
+    '[attr.id]': 'null',
     '[attr.aria-label]': 'null',
     '[attr.aria-labelledby]': 'null',
     '[attr.aria-describedby]': 'null',
@@ -127,6 +129,8 @@ export class AndesCheckbox implements ControlValueAccessor {
    */
   readonly readOnly = input(false, { transform: booleanAttribute });
   readonly value = input<string | undefined>(undefined);
+  /** `id` of the native input, for an external `<label for>`. Never left on the host. */
+  readonly id = input<string | undefined>(undefined);
   readonly name = input<string | undefined>(undefined);
   readonly ariaLabel = input<string | undefined>(undefined, {
     alias: 'aria-label',
