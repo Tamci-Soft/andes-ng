@@ -27,7 +27,7 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
 }
 
@@ -72,34 +72,47 @@
 }
 
 .andes-skeleton-composite__content {
+  /* A flex column so the line boxes' margins below add up instead of collapsing. */
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
 }
 
 .andes-skeleton-composite__title {
   width: 100%;
   height: 1rem;
+  /* Each bar stands in for one line of text, so it sits inside that line's box: a 16px bar
+     with 4px of half-leading either side fills a 24px title line exactly, and the content that
+     replaces it doesn't jump when it loads. */
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
   border-radius: var(--andes-radius-sm);
 }
 
-/* Beside an avatar, nudge the 16px title down onto the default 32px avatar's centre line. */
+/* Beside an avatar, the title line drops a further 4px so its bar sits vertically centered on
+   the default (md, 2rem) avatar. */
 .andes-skeleton-composite--with-avatar .andes-skeleton-composite__title {
   margin-top: var(--andes-space-2);
 }
 
+/* Body rows follow 14px text on a 22px line: 14px bars, 8px apart, with 4px of half-leading
+   above the first and below the last - so n rows take exactly n lines of body text. */
 .andes-skeleton-composite__paragraph {
   display: flex;
   flex-direction: column;
-  gap: var(--andes-space-4);
+  gap: var(--andes-space-2);
+  padding-block: var(--andes-space-1);
 }
 
+/* The same small step a title and its description keep between them. */
 .andes-skeleton-composite__title + .andes-skeleton-composite__paragraph {
-  margin-top: var(--andes-space-5);
+  margin-top: var(--andes-space-1);
 }
 
 .andes-skeleton-composite__row {
   width: 100%;
-  height: 1rem;
+  height: 0.875rem;
   border-radius: var(--andes-radius-sm);
 }
 

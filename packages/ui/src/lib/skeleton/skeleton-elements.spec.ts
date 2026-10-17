@@ -94,6 +94,7 @@ describe('AndesSkeletonButton', () => {
       [shape]="shape()"
       [block]="block()"
       [active]="active()"
+      [width]="width()"
     />`,
   })
   class Host {
@@ -101,6 +102,7 @@ describe('AndesSkeletonButton', () => {
     readonly shape = signal<AndesSkeletonButtonShape>('default');
     readonly block = signal(false);
     readonly active = signal(false);
+    readonly width = signal<string | number | undefined>(undefined);
   }
 
   it('defaults to a static md placeholder with the default shape', () => {
@@ -154,6 +156,30 @@ describe('AndesSkeletonButton', () => {
       'andes-skeleton-fill--active',
     );
   });
+
+  it('applies a custom width as both width and min-width', () => {
+    const { fixture, part } = render(Host);
+    expect(part('skeleton-button').style.width).toBe('');
+
+    fixture.componentInstance.width.set(120);
+    fixture.detectChanges();
+    expect(part('skeleton-button').style.width).toBe('120px');
+    expect(part('skeleton-button').style.minWidth).toBe('120px');
+
+    fixture.componentInstance.width.set('8rem');
+    fixture.detectChanges();
+    expect(part('skeleton-button').style.width).toBe('8rem');
+  });
+
+  it('lets block win over a custom width', () => {
+    const { fixture, part } = render(Host);
+    fixture.componentInstance.width.set(120);
+    fixture.componentInstance.block.set(true);
+    fixture.detectChanges();
+
+    expect(part('skeleton-button').style.width).toBe('');
+    expect(part('skeleton-button').style.minWidth).toBe('');
+  });
 });
 
 describe('AndesSkeletonInput', () => {
@@ -163,12 +189,14 @@ describe('AndesSkeletonInput', () => {
       [size]="size()"
       [block]="block()"
       [active]="active()"
+      [width]="width()"
     />`,
   })
   class Host {
     readonly size = signal<AndesSkeletonSize>('md');
     readonly block = signal(false);
     readonly active = signal(false);
+    readonly width = signal<string | number | undefined>(undefined);
   }
 
   it('defaults to a static, inline md placeholder', () => {
@@ -199,6 +227,18 @@ describe('AndesSkeletonInput', () => {
     expect(root.querySelector('andes-skeleton-input')?.classList).toContain(
       'andes-skeleton-element--block',
     );
+  });
+
+  it('applies a custom width unless block is set', () => {
+    const { fixture, part } = render(Host);
+    fixture.componentInstance.width.set(240);
+    fixture.detectChanges();
+    expect(part('skeleton-input').style.width).toBe('240px');
+    expect(part('skeleton-input').style.minWidth).toBe('240px');
+
+    fixture.componentInstance.block.set(true);
+    fixture.detectChanges();
+    expect(part('skeleton-input').style.width).toBe('');
   });
 
   it('treats a bare block attribute as true', () => {
