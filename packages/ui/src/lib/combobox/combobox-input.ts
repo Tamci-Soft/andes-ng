@@ -130,6 +130,11 @@ export class AndesComboboxInput<T = string> {
         this.combobox.backfillActiveItem();
         return;
       case 'Enter':
+        // An Enter that commits an IME composition (e.g. Japanese/Chinese input) is
+        // not the user picking the highlighted option.
+        if (event.isComposing) {
+          return;
+        }
         if (this.combobox.selectActiveItem()) {
           event.preventDefault();
         }

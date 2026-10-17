@@ -116,11 +116,12 @@ function harness<
     detect();
   }
 
-  function press(key: string): KeyboardEvent {
+  function press(key: string, init: KeyboardEventInit = {}): KeyboardEvent {
     const event = new KeyboardEvent('keydown', {
       key,
       bubbles: true,
       cancelable: true,
+      ...init,
     });
     Object.defineProperty(event, 'keyCode', { get: () => KEY_CODES[key] ?? 0 });
     input.dispatchEvent(event);
@@ -524,6 +525,22 @@ describe('AndesCombobox', () => {
       press('Enter');
 
       expect(host.value()).toBeNull();
+    });
+
+    it('ignores an Enter that commits an IME composition', () => {
+      const { focus, press, host, input } = createNgModelHost();
+      focus();
+      press('ArrowDown');
+
+      const event = press('Enter', { isComposing: true });
+
+      expect(host.value()).toBeNull();
+      expect(event.defaultPrevented).toBe(false);
+      expect(input.getAttribute('aria-expanded')).toBe('true');
+
+      press('Enter');
+
+      expect(host.value()).toBe('Apple');
     });
   });
 
