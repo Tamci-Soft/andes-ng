@@ -20,6 +20,10 @@ const withTheme: Decorator = (story, context) => {
   }
   document.body.style.backgroundColor =
     theme === 'dark' ? '#0f172a' : '#ffffff';
+  // Demo text in the theme's own foreground, or captions/logs stay black on the dark canvas;
+  // `color-scheme` makes native controls in a story (plain <button> triggers) render dark too.
+  document.body.style.color = 'var(--andes-color-foreground)';
+  document.documentElement.style.colorScheme = theme ?? 'light';
   // Demo text around the components (captions, logs, plain triggers) uses the library font too,
   // so a story reads as one surface instead of mixing Geist with the browser's Times/Arial.
   document.body.style.fontFamily = 'var(--andes-font-family), sans-serif';
