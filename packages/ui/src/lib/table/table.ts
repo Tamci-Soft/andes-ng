@@ -73,6 +73,15 @@ export interface AndesTableChange {
   readonly sorts: readonly AndesSortState[];
 }
 
+/** A column width change, as reported by `(columnResize)`. */
+export interface AndesTableColumnResize {
+  readonly columnKey: string;
+  /** New width in pixels. */
+  readonly width: number;
+  /** Every stored column width after the change, column key -> pixels. */
+  readonly widths: Readonly<Record<string, number>>;
+}
+
 let nextTableId = 0;
 
 /**
@@ -226,6 +235,25 @@ export class AndesTable {
   /** Toggle a keyed row's expansion by clicking anywhere in it. */
   readonly expandRowByClick = input(false, { transform: booleanAttribute });
 
+  /**
+   * Give every header with a column key a resize handle. A header's own
+   * `resizable` wins.
+   */
+  readonly resizable = input(false, { transform: booleanAttribute });
+
+  /**
+   * Column widths set by resizing, column key -> pixels. Two-way bindable, so
+   * widths can be restored or persisted; a header's `width` applies until its
+   * column has an entry here.
+   */
+  readonly columnWidths = model<Readonly<Record<string, number>>>({});
+
+  /** Fires on every width change made by dragging or the keyboard. */
+  readonly columnResize = output<AndesTableColumnResize>();
+
+  /** A resize drag is in progress. */
+  private readonly resizing = signal(false);
+
   /** Shared `name` for this table's radio buttons, so they form one group. */
   readonly radioGroupName = `andes-table-${nextTableId++}-selection`;
 
@@ -315,6 +343,7 @@ export class AndesTable {
       this.scrollYLength() && 'andes-table--sticky-header',
       this.pingStart() && 'andes-table--ping-start',
       this.pingEnd() && 'andes-table--ping-end',
+      this.resizing() && 'andes-table--resizing',
     ),
   );
 
@@ -482,6 +511,28 @@ export class AndesTable {
       sort: this.sort(),
       sorts: this.activeSorts(),
     });
+  }
+
+  // Column widths
+
+  /** Stored width of `columnKey` in pixels, or `undefined` when it has none. */
+  widthFor(columnKey: string): number | undefined {
+    return this.columnWidths()?.[columnKey];
+  }
+
+  /** Stores `columnKey`'s width as a user resize and reports it. */
+  resizeColumn(columnKey: string, width: number): void {
+    if (this.widthFor(columnKey) === width) {
+      return;
+    }
+    const widths = { ...(this.columnWidths() ?? {}), [columnKey]: width };
+    this.columnWidths.set(widths);
+    this.columnResize.emit({ columnKey, width, widths });
+  }
+
+  /** Marks a resize drag as in progress, for the table-wide resize cursor. */
+  setResizing(resizing: boolean): void {
+    this.resizing.set(resizing);
   }
 
   // Selection

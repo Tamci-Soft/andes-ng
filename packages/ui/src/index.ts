@@ -7,6 +7,7 @@ export type {
   AndesTableCaptionSide,
   AndesTableChange,
   AndesTableChangeAction,
+  AndesTableColumnResize,
   AndesTableDensity,
   AndesTableLayout,
   AndesTableSelectAllState,
