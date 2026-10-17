@@ -16,6 +16,14 @@
   grid-template-rows: 1fr;
 }
 
+/* Snaps open/closed instead. `destroyOnHidden` still removes the body, via the fallback timer in
+   accordion-content.ts, since no `transitionend` fires. */
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: none;
+  }
+}
+
 /* The grid item that actually collapses. It must stay a *pure* clipping box with no padding or
    border of its own: `overflow: hidden` clips to the PADDING box, not the content box, so any
    padding here survives the collapse as a band of still-painted content. With

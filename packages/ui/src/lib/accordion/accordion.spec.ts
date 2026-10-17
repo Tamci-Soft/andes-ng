@@ -7,6 +7,7 @@ import {
   AndesAccordion,
   type AndesAccordionCollapsible,
   type AndesAccordionExpandIconPosition,
+  type AndesAccordionHeadingLevel,
   type AndesAccordionItemConfig,
   type AndesAccordionSize,
   AndesAccordionType,
@@ -201,6 +202,29 @@ describe('AndesAccordion / AndesAccordionItem / AndesAccordionTrigger / AndesAcc
       const labelledBy = panels[0].getAttribute('aria-labelledby');
       expect(labelledBy).toBeTruthy();
       expect(triggers[0].getAttribute('id')).toBe(labelledBy);
+    });
+
+    it('wraps each trigger in an h3 by default', () => {
+      const { triggers } = createHost();
+
+      expect(triggers[0].parentElement?.tagName).toBe('H3');
+    });
+
+    it('honors prefers-reduced-motion for the panel height and the chevron rotation', () => {
+      // Asserted against the CSS source: jsdom never matches a `prefers-reduced-motion` media
+      // query, so the cascade can't exercise these rules.
+      const dir = 'packages/ui/src/lib/accordion';
+      const reducedMotionBlock = (file: string) =>
+        readFileSync(`${dir}/${file}`, 'utf8').match(
+          /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/,
+        )?.[1] ?? '';
+
+      expect(reducedMotionBlock('accordion-content.css')).toMatch(
+        /:host \{\s*transition: none;/,
+      );
+      expect(reducedMotionBlock('accordion-trigger.css')).toMatch(
+        /\.andes-accordion-trigger__icon \{\s*transition: none;/,
+      );
     });
 
     it('gives independent accordion instances their own isolated ids', () => {
@@ -972,6 +996,147 @@ describe('AndesAccordion - extended features', () => {
       const event = press(a, 'ArrowDown');
       expect(event.defaultPrevented).toBe(false);
       expect(document.activeElement).toBe(a);
+    });
+  });
+
+  describe('headingLevel', () => {
+    @Component({
+      imports: [
+        AndesAccordion,
+        AndesAccordionItem,
+        AndesAccordionTrigger,
+        AndesAccordionContent,
+      ],
+      template: `<andes-accordion [headingLevel]="rootLevel()">
+        <andes-accordion-item value="a">
+          <andes-accordion-trigger>Section A</andes-accordion-trigger>
+          <andes-accordion-content>Content A</andes-accordion-content>
+        </andes-accordion-item>
+        <andes-accordion-item value="b" [headingLevel]="itemLevel()">
+          <andes-accordion-trigger>Section B</andes-accordion-trigger>
+          <andes-accordion-content>Content B</andes-accordion-content>
+        </andes-accordion-item>
+      </andes-accordion>`,
+    })
+    class HeadingLevelHost {
+      readonly rootLevel = signal<AndesAccordionHeadingLevel>(3);
+      readonly itemLevel = signal<AndesAccordionHeadingLevel | undefined>(
+        undefined,
+      );
+    }
+
+    function headingTags(root: HTMLElement): string[] {
+      return Array.from(
+        root.querySelectorAll('.andes-accordion-trigger__heading'),
+      ).map((heading) => heading.tagName);
+    }
+
+    it('applies the root level to every item and keeps the trigger inside it', () => {
+      const fixture = TestBed.createComponent(HeadingLevelHost);
+      fixture.componentInstance.rootLevel.set(2);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(headingTags(root)).toEqual(['H2', 'H2']);
+      expect(
+        root.querySelector('h2 > .andes-accordion-trigger__button')
+          ?.textContent,
+      ).toContain('Section A');
+    });
+
+    it('lets an item override the root level, and inherits it again once unset', () => {
+      const fixture = TestBed.createComponent(HeadingLevelHost);
+      fixture.componentInstance.itemLevel.set(5);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(headingTags(root)).toEqual(['H3', 'H5']);
+
+      fixture.componentInstance.itemLevel.set(undefined);
+      fixture.componentInstance.rootLevel.set(4);
+      fixture.detectChanges();
+
+      expect(headingTags(root)).toEqual(['H4', 'H4']);
+    });
+
+    it('keeps the label, aria wiring and toggling when the level changes at runtime', () => {
+      const fixture = TestBed.createComponent(HeadingLevelHost);
+      fixture.detectChanges();
+      fixture.componentInstance.rootLevel.set(6);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const button = root.querySelector(
+        'h6 > .andes-accordion-trigger__button',
+      ) as HTMLButtonElement;
+      const panel = root.querySelector(
+        'andes-accordion-content',
+      ) as HTMLElement;
+
+      expect(button.textContent).toContain('Section A');
+      expect(button.getAttribute('aria-controls')).toBe(panel.id);
+
+      button.click();
+      fixture.detectChanges();
+
+      expect(button.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('coerces bare string levels and clamps out-of-range ones to h2-h6', () => {
+      @Component({
+        imports: [
+          AndesAccordion,
+          AndesAccordionItem,
+          AndesAccordionTrigger,
+          AndesAccordionContent,
+        ],
+        template: `<andes-accordion headingLevel="4">
+          <andes-accordion-item value="a">
+            <andes-accordion-trigger>A</andes-accordion-trigger>
+            <andes-accordion-content>A</andes-accordion-content>
+          </andes-accordion-item>
+          <andes-accordion-item value="b" headingLevel="9">
+            <andes-accordion-trigger>B</andes-accordion-trigger>
+            <andes-accordion-content>B</andes-accordion-content>
+          </andes-accordion-item>
+          <andes-accordion-item value="c" headingLevel="1">
+            <andes-accordion-trigger>C</andes-accordion-trigger>
+            <andes-accordion-content>C</andes-accordion-content>
+          </andes-accordion-item>
+          <andes-accordion-item value="d" headingLevel="nope">
+            <andes-accordion-trigger>D</andes-accordion-trigger>
+            <andes-accordion-content>D</andes-accordion-content>
+          </andes-accordion-item>
+        </andes-accordion>`,
+      })
+      class BareLevelHost {}
+
+      const fixture = TestBed.createComponent(BareLevelHost);
+      fixture.detectChanges();
+
+      expect(headingTags(fixture.nativeElement)).toEqual([
+        'H4',
+        'H6',
+        'H2',
+        'H3',
+      ]);
+    });
+
+    it('maps headingLevel from the items input', () => {
+      @Component({
+        imports: [AndesAccordion],
+        template: `<andes-accordion [headingLevel]="2" [items]="items" />`,
+      })
+      class ItemsLevelHost {
+        readonly items: AndesAccordionItemConfig[] = [
+          { key: 'one', label: 'One' },
+          { key: 'two', label: 'Two', headingLevel: 4 },
+        ];
+      }
+
+      const fixture = TestBed.createComponent(ItemsLevelHost);
+      fixture.detectChanges();
+
+      expect(headingTags(fixture.nativeElement)).toEqual(['H2', 'H4']);
     });
   });
 

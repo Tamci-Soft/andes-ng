@@ -1,6 +1,9 @@
 import { computed, Injectable, type Signal, signal } from '@angular/core';
 
-import type { AndesAccordionCollapsible } from './accordion-state';
+import type {
+  AndesAccordionCollapsible,
+  AndesAccordionHeadingLevel,
+} from './accordion-state';
 
 let nextItemId = 0;
 
@@ -18,6 +21,8 @@ export interface AndesAccordionItemHost {
   readonly mode: Signal<AndesAccordionTriggerMode>;
   readonly showArrow: Signal<boolean>;
   readonly forceRender: Signal<boolean>;
+  /** The item's own `headingLevel`, or the root's when the item doesn't set one. */
+  readonly headingLevel: Signal<AndesAccordionHeadingLevel>;
 }
 
 /**
@@ -51,6 +56,9 @@ export class AndesAccordionItemState {
   );
   readonly showArrow = computed(() => this.host()?.showArrow() ?? true);
   readonly forceRender = computed(() => this.host()?.forceRender() ?? false);
+  readonly headingLevel = computed<AndesAccordionHeadingLevel>(
+    () => this.host()?.headingLevel() ?? 3,
+  );
 
   connect(host: AndesAccordionItemHost): void {
     this.host.set(host);

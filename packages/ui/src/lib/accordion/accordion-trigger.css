@@ -208,3 +208,9 @@
 .andes-accordion-trigger__icon[data-state='open'] {
   transform: rotate(180deg);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-accordion-trigger__icon {
+    transition: none;
+  }
+}

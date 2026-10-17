@@ -15,7 +15,8 @@ import {
 } from './accordion-state';
 
 /**
- * The clickable header for one accordion item. Renders a native `<h3>` wrapping a native
+ * The clickable header for one accordion item. Renders a native heading (`<h3>` unless the root or
+ * item sets `headingLevel`) wrapping a native
  * `<button>` - the same structural choice shadcn's Base UI-backed implementation makes
  * (`Accordion.Header` wrapping `Accordion.Trigger`) - so the trigger is a real, natively
  * focusable and activatable control (Enter/Space for free), and `aria-expanded`/`aria-controls`
@@ -61,6 +62,7 @@ export class AndesAccordionTrigger {
    *  `AndesAccordionItem.mode`. */
   protected readonly isDisabled = this.itemState.disabled;
   protected readonly mode = this.itemState.mode;
+  protected readonly headingLevel = this.itemState.headingLevel;
   protected readonly showArrow = this.itemState.showArrow;
   protected readonly size = this.rootState.size;
   protected readonly variant = this.rootState.variant;

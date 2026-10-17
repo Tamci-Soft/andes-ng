@@ -19,9 +19,11 @@ import {
   type AndesAccordionCollapsible,
   type AndesAccordionExpandIconContext,
   type AndesAccordionExpandIconPosition,
+  type AndesAccordionHeadingLevel,
   type AndesAccordionSize,
   AndesAccordionState,
   type AndesAccordionType,
+  coerceAccordionHeadingLevel,
 } from './accordion-state';
 import { AndesAccordionTrigger } from './accordion-trigger';
 
@@ -29,6 +31,7 @@ export type {
   AndesAccordionCollapsible,
   AndesAccordionExpandIconContext,
   AndesAccordionExpandIconPosition,
+  AndesAccordionHeadingLevel,
   AndesAccordionSize,
   AndesAccordionType,
 } from './accordion-state';
@@ -44,6 +47,7 @@ export interface AndesAccordionItemConfig {
   collapsible?: AndesAccordionCollapsible;
   showArrow?: boolean;
   forceRender?: boolean;
+  headingLevel?: AndesAccordionHeadingLevel;
 }
 
 const TRIGGER_CONTROL_SELECTOR =
@@ -120,6 +124,11 @@ export class AndesAccordion {
   /** ArrowDown/ArrowUp move focus to the next/previous trigger (wrapping), Home/End to the
    *  first/last - the APG's optional accordion keys. */
   readonly arrowNavigation = input(false, { transform: booleanAttribute });
+  /** Level of the heading wrapping every trigger (`2`-`6`, default `3`) - pick the one that fits
+   *  the page's outline, per the WAI-ARIA APG accordion pattern. Items can override it. */
+  readonly headingLevel = input<AndesAccordionHeadingLevel, unknown>(3, {
+    transform: coerceAccordionHeadingLevel,
+  });
 
   protected readonly classes = computed(() =>
     clsx(
@@ -142,6 +151,7 @@ export class AndesAccordion {
       expandIcon: this.expandIcon,
       expandIconPosition: this.expandIconPosition,
       destroyOnHidden: this.destroyOnHidden,
+      headingLevel: this.headingLevel,
     });
   }
 
