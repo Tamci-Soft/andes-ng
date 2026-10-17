@@ -85,17 +85,20 @@
 }
 
 .andes-dropdown-menu__item[data-variant='destructive'] {
-  color: var(--andes-color-danger);
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
 
 /*
- * `--andes-color-danger` is tuned as a solid *fill* color and is deliberately fixed
- * across themes, so as standalone text it only reaches 2.4:1 on the dark popover
- * surface (#dc2626 on #1e293b) - the same class of bug the Button's link variant hit
- * with `--andes-color-primary` (see `--andes-color-primary-text` in
- * `@andes-ng/tokens`). The real fix is a `--andes-color-danger-text` token that
- * brightens in dark mode; until that lands, fall back to the theme-fixed ghost red,
- * which exists for exactly this "red text on a dark surface" case and reaches 7.2:1.
+ * Destructive item text uses `--andes-color-danger-text` (the danger color as TEXT,
+ * >= 4.5:1 on the popover surface in both themes, added by
+ * bugfix/token-state-contrast), not the `--andes-color-danger` fill. The fill is
+ * deliberately fixed across themes, so as standalone text it only reaches 3.0:1 on
+ * the dark popover surface (#dc2626 on #1e293b) - the same class of bug the Button's
+ * link variant hit with `--andes-color-primary` (see `--andes-color-primary-text`).
+ * Until the token lands, the rule above falls back to the fill (4.8:1 on the white
+ * popover) and this dark-theme rule to the theme-fixed ghost red, which exists for
+ * exactly this "red text on a dark surface" case and reaches 7.7:1. Once the token
+ * exists both rules resolve to it.
  */
 [data-andes-theme='dark']
   .andes-dropdown-menu__item[data-variant='destructive'] {
