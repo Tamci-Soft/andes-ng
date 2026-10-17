@@ -230,7 +230,10 @@ export const MarksObject: Story = {
       37: '37°C',
       100: {
         label: '100°C',
-        style: { color: 'var(--andes-color-danger)', fontWeight: 600 },
+        style: {
+          color: 'var(--andes-color-danger-text, var(--andes-color-danger))',
+          fontWeight: 600,
+        },
       },
     },
   },
