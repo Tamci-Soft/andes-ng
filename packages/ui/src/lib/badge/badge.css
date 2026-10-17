@@ -55,7 +55,7 @@
   box-shadow: 0 0 0 2px var(--andes-color-background);
 }
 
-/* A one-character count renders as a true circle, the way shadcn's count indicators do -
+/* A one-character count renders as a true circle, as most count indicators do -
    only 2+ characters are allowed to elongate into a pill.
    `min-width` above cannot produce that circle by itself: it floors the box at the height, but
    `padding-inline` is then added *outside* that floor (the badge is content-box, and under a
@@ -70,7 +70,7 @@
   padding-inline: 0;
 }
 
-/* 6px, Ant Design's dot. */
+/* A 6px dot. */
 .andes-badge--dot {
   min-width: 0.375rem;
   width: 0.375rem;

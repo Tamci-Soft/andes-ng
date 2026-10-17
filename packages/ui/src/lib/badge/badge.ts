@@ -248,7 +248,7 @@ export class AndesBadge {
 
   /**
    * A one-character count is forced into a true circle rather than the slightly elongated box
-   * `min-width` alone produces, matching shadcn's count-indicator convention: the badge is
+   * `min-width` alone produces, the usual count-indicator convention: the badge is
    * only allowed to stretch into a pill once the content genuinely needs the width.
    * `min-width` can't deliver that on its own - the glyph still sits on top of
    * `padding-inline`, so the box ends up wider than tall even for a single digit.
