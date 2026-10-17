@@ -75,6 +75,20 @@ describe('AndesInput', () => {
     expect(wrapper.classList).toContain(`andes-input-wrapper--${size}`);
   });
 
+  it.each([
+    ['sm', '1.5rem', '0.875rem'],
+    ['md', '2rem', '0.875rem'],
+    ['lg', '2.5rem', '1rem'],
+  ] as const)('sizes %s to %s high with %s text', (size, height, fontSize) => {
+    const { fixture, wrapper } = createHost();
+    fixture.componentInstance.size.set(size);
+    fixture.detectChanges();
+
+    const style = getComputedStyle(wrapper);
+    expect(style.height).toBe(height);
+    expect(style.fontSize).toBe(fontSize);
+  });
+
   it.each(['email', 'password', 'number', 'search', 'tel', 'url'] as const)(
     'supports the %s type',
     (type) => {
@@ -232,6 +246,27 @@ describe('AndesInput', () => {
       ).toBeFalsy();
     });
 
+    it('sizes the clear icon from the field and pads its hit area to 24px', () => {
+      const { fixture, input } = createHost();
+      fixture.componentInstance.clearable.set(true);
+      fixture.detectChanges();
+
+      input.value = 'hello';
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      const style = getComputedStyle(
+        fixture.nativeElement.querySelector('.andes-input__clear'),
+      );
+      // jsdom reports the declared keyword rather than resolving it - a native button
+      // left alone reports the UA's own size instead.
+      // The padding is half the gap between the 1em glyph and 24px (5px at 14px text, 4px at
+      // 16px), so the hit area stays 24px at every size; jsdom reports the normalised calc().
+      expect(style.fontSize).toBe('inherit');
+      expect(style.padding).toBe('calc(0.5 * (1.5rem - 1em))');
+      expect(style.margin).toBe('calc(0.5 * (1em - 1.5rem))');
+    });
+
     it('does not render a clear button while disabled, even with a value', () => {
       const { fixture, input } = createHost();
       fixture.componentInstance.clearable.set(true);
@@ -248,107 +283,102 @@ describe('AndesInput', () => {
   });
 
   describe('focus indicator', () => {
-    // Regression coverage for a forced-colors (Windows High Contrast Mode) a11y bug: the
-    // wrapper used to show focus purely via `box-shadow` on `:focus-within`. `box-shadow`
-    // is stripped entirely under `forced-colors: active`, which left keyboard users with
-    // no visible focus indicator at all - a WCAG 2.4.7 failure. The fix uses `outline`
-    // (which browsers keep, recoloring it to the system's own highlight color, under
-    // forced-colors) keyed off `:focus-visible` on the native input, matching every other
-    // control in this library. The visible indicator is now the shared field style - border
-    // in the ring color plus a soft box-shadow halo - and the outline is kept, transparent,
-    // purely for forced-colors mode, where browsers repaint it in the system highlight color.
+    // A focused field shows exactly one indicator: its own border turns the focus colour and a
+    // soft 2px ring hugs it from outside. It used to be a 2px `outline` offset 2px from the
+    // border, which painted as a second, detached frame around the field (and only on keyboard
+    // focus, so a mouse click showed nothing at all).
     //
-    // jsdom does resolve dynamic pseudo-classes (`:focus`, `:focus-visible`, ...) both in
-    // `Element.matches()` and in `getComputedStyle`, so the assertions below exercise the
-    // real cascade against a really-focused input. It does not expand shorthands, though,
-    // so `outline` is compared as the authored string rather than via `outlineStyle`; and
-    // `var()` is left unresolved, hence the token name appearing verbatim. The authored
-    // stylesheet is also read directly where the point is which *selector* carries a
-    // declaration, which a computed style cannot show.
-    const focusRingSelector =
-      '.andes-input-wrapper:has(.andes-input__control:focus-visible)';
-
-    it('does not match the focus-ring selector before the input is focused', () => {
-      const { wrapper } = createHost();
-
-      expect(wrapper.matches(focusRingSelector)).toBe(false);
-    });
-
-    it('matches the focus-ring selector once the native input is focused', () => {
-      const { input, wrapper } = createHost();
-
-      input.focus();
-
-      expect(document.activeElement).toBe(input);
-      expect(wrapper.matches(focusRingSelector)).toBe(true);
-    });
-
-    it('keeps a forced-colors outline under the halo, keyed off `:focus-visible`', () => {
-      const css = readFileSync(
-        join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
-        'utf-8',
-      );
-      const ruleBody =
-        /:has\(\.andes-input__control:focus-visible\)\s*{([^}]*)}/.exec(
-          css,
-        )?.[1];
-
-      expect(ruleBody).toBeDefined();
-      // The outline must stay (a real width and style) or forced-colors users lose focus.
-      expect(ruleBody).toContain('outline: 2px solid transparent');
-      expect(ruleBody).toContain('border-color: var(--andes-color-focus-ring)');
-      expect(ruleBody).toContain('box-shadow');
-
-      // No live rule anywhere in the stylesheet should key the focus ring off
-      // `:focus-within` - it fires on a plain mouse click, unlike `:focus-visible`.
-      // (Comments are stripped first since the stylesheet documents, in prose, why
-      // `:focus-within` was deliberately dropped for this purpose.)
-      const cssWithoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
-      expect(cssWithoutComments).not.toMatch(/:focus-within/);
-    });
-
-    // Regression coverage for the "double ring" this fix removes: dropping `outline: none`
-    // from `.andes-input__control` left the browser's own default ring painting on the
-    // native input *in addition to* the wrapper's authored one, so a focused field showed
-    // two differently-colored rectangles with a gap between them. The inner control must
-    // resolve to `outline: none` while focused; the wrapper must still resolve to the real
-    // authored outline.
-    it('paints exactly one focus ring: the wrapper outlines, the native input does not', () => {
-      const { input, wrapper } = createHost();
-
-      input.focus();
-
-      // `auto` here would mean the UA's own default focus ring is back on the inner input.
-      expect(getComputedStyle(input).outline).toBe('none');
-      expect(getComputedStyle(wrapper).outline).toBe('2px solid transparent');
-      expect(getComputedStyle(wrapper).boxShadow).toContain(
-        'var(--andes-color-focus-ring)',
-      );
-    });
-
-    it('does not reset the outline of the native input while it is unfocused', () => {
-      const { input } = createHost();
-
-      expect(getComputedStyle(input).outline).not.toBe('none');
-    });
-
-    it("scopes the native-ring reset to the control's own focus pseudo-classes", () => {
-      const css = readFileSync(
+    // jsdom resolves dynamic pseudo-classes (`:focus-within`, `:has()`) in `getComputedStyle`
+    // but leaves `var()` unresolved and doesn't expand shorthands, so values are compared as
+    // authored. The stylesheet is read directly where the point is which selector carries a
+    // declaration.
+    const css = () =>
+      readFileSync(
         join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
         'utf-8',
       ).replace(/\/\*[\s\S]*?\*\//g, '');
 
-      // Every `outline: none` in the stylesheet must be scoped to a focus state of the
-      // native control. A blanket `.andes-input__control { outline: none }` would also kill
-      // any outline a consumer or the UA applies for non-focus reasons, and it is the shape
-      // the pre-fix code used - the wrapper's ring is what must carry accessibility here.
-      const outlineNoneRules = [
-        ...css.matchAll(/([^{}]+){([^}]*outline:\s*none[^}]*)}/g),
-      ].map((match) => match[1].trim());
+    it('keys the ring off `:focus-within` on the wrapper, so mouse focus shows it too', () => {
+      const { input, wrapper } = createHost();
 
-      expect(outlineNoneRules).toEqual([
-        '.andes-input__control:focus,\n.andes-input__control:focus-visible',
-      ]);
+      expect(wrapper.matches(':focus-within')).toBe(false);
+      input.focus();
+
+      expect(document.activeElement).toBe(input);
+      expect(getComputedStyle(wrapper).outline).toBe('none');
+      expect(getComputedStyle(wrapper).boxShadow).toBe(
+        '0 0 0 2px var(--_andes-input-ring)',
+      );
+    });
+
+    it('paints the ring as a 2px shadow, never as an outline around the bordered box', () => {
+      const ruleBody = /\.andes-input-wrapper:focus-within\s*{([^}]*)}/.exec(
+        css(),
+      )?.[1];
+
+      expect(ruleBody).toContain(
+        'border-color: var(--_andes-input-border-focus)',
+      );
+      expect(ruleBody).toContain(
+        'box-shadow: 0 0 0 2px var(--_andes-input-ring)',
+      );
+      expect(ruleBody).toContain('outline: none');
+      expect(css()).not.toMatch(/outline-offset:\s*2px/);
+      // Only the inner buttons (clear, visibility toggle) keep a keyboard outline of their own.
+      expect(css()).not.toMatch(/andes-input-wrapper[^{]*:focus-visible/);
+    });
+
+    it('resolves the default ring and focus border to the primary colour at 20%', () => {
+      expect(css()).toMatch(
+        /--_andes-input-ring: color-mix\(\s*in srgb,\s*var\(--andes-color-primary\) 20%,\s*transparent\s*\)/,
+      );
+      expect(css()).toMatch(
+        /--_andes-input-border-focus: var\(--andes-color-primary\)/,
+      );
+    });
+
+    it('keeps the native input bare: no border, outline, shadow, fill or padding', () => {
+      const { input } = createHost();
+
+      input.focus();
+      const style = getComputedStyle(input);
+
+      expect(style.outline).toBe('0');
+      expect(style.boxShadow).toBe('none');
+      expect(style.padding).toBe('0px');
+      expect(style.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    });
+
+    it('swaps in a real outline only under forced colours, where box-shadow is dropped', () => {
+      expect(css()).toMatch(
+        /@media \(forced-colors: active\)\s*{\s*\.andes-input-wrapper:focus-within\s*{\s*outline: 2px solid Highlight;/,
+      );
+    });
+
+    it('tints the border and ring with the status colour', () => {
+      const body = (selector: string) =>
+        new RegExp(`\\.${selector}\\s*{([^}]*)}`).exec(css())?.[1] ?? '';
+
+      expect(body('andes-input-wrapper--invalid')).toMatch(
+        /--_andes-input-ring: color-mix\(\s*in srgb,\s*var\(--andes-color-danger\) 20%/,
+      );
+      expect(body('andes-input-wrapper--warning')).toMatch(
+        /--_andes-input-border: var\(--andes-color-warning-hover\)/,
+      );
+      expect(body('andes-input-wrapper--warning')).toMatch(
+        /--_andes-input-ring: color-mix\(\s*in srgb,\s*var\(--andes-color-warning-hover\) 20%/,
+      );
+    });
+
+    it('marks a read-only field so hover and focus leave its border alone', () => {
+      const fixture = TestBed.createComponent(AndesInput);
+      fixture.componentRef.setInput('readOnly', true);
+      fixture.detectChanges();
+      const wrapper = fixture.nativeElement.querySelector(
+        '.andes-input-wrapper',
+      );
+
+      expect(wrapper.classList).toContain('andes-input-wrapper--readonly');
     });
   });
 
@@ -549,10 +579,14 @@ describe('AndesInput', () => {
 
       input.focus();
 
-      expect(getComputedStyle(input).outline).toBe('none');
-      expect(getComputedStyle(wrapper).boxShadow).toContain(
-        'var(--andes-color-warning)',
+      expect(getComputedStyle(input).outline).toBe('0');
+      expect(getComputedStyle(wrapper).outline).toBe('none');
+      expect(getComputedStyle(wrapper).boxShadow).toBe(
+        '0 0 0 2px var(--_andes-input-ring)',
       );
+      expect(
+        getComputedStyle(wrapper).getPropertyValue('--_andes-input-ring'),
+      ).toContain('var(--andes-color-warning-hover) 20%');
     });
   });
 
@@ -849,8 +883,292 @@ describe('AndesInput', () => {
           join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
           'utf-8',
         ),
-      ).toMatch(/\.andes-input__control\s*{[^}]*font-family:\s*inherit;/);
+      ).toMatch(/\.andes-input__control\s*{[^}]*font: inherit;/);
       expect(input).toBeTruthy();
     });
+  });
+});
+
+describe('AndesInput count limits', () => {
+  // Counts user-perceived characters, so an emoji or a flag is one, not two to four.
+  const graphemes = (value: string) =>
+    Array.from(new Intl.Segmenter().segment(value)).length;
+
+  @Component({
+    imports: [AndesInput],
+    template: `<andes-input
+      aria-label="Message"
+      showCount
+      [countMax]="countMax()"
+      [maxLength]="maxLength()"
+      [countStrategy]="strategy()"
+      [countExceedFormatter]="exceedFormatter()"
+      [countFormatter]="formatter()"
+      [(value)]="text"
+    />`,
+  })
+  class CountHost {
+    readonly countMax = signal<number | undefined>(5);
+    readonly maxLength = signal<number | undefined>(undefined);
+    readonly strategy = signal<((value: string) => number) | undefined>(
+      undefined,
+    );
+    readonly exceedFormatter = signal<
+      ((value: string, config: { max: number }) => string) | undefined
+    >(undefined);
+    readonly formatter = signal<
+      ((info: AndesInputCountInfo) => string) | undefined
+    >(undefined);
+    readonly text = signal('');
+  }
+
+  function createCountHost() {
+    const fixture = TestBed.createComponent(CountHost);
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector(
+      'input',
+    ) as HTMLInputElement;
+    const count = () =>
+      fixture.nativeElement.querySelector('.andes-input__count') as HTMLElement;
+    const wrapper = () =>
+      fixture.nativeElement.querySelector(
+        '.andes-input-wrapper',
+      ) as HTMLElement;
+    const type = (value: string) => {
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+    return { fixture, input, count, wrapper, type };
+  }
+
+  it('countMax is a soft limit: it is counted against and flagged, never enforced natively', () => {
+    const { fixture, input, count, wrapper, type } = createCountHost();
+
+    expect(input.getAttribute('maxlength')).toBeNull();
+    type('abc');
+    expect(count().textContent?.trim()).toBe('3 / 5');
+    expect(wrapper().classList).not.toContain('andes-input-wrapper--invalid');
+
+    type('abcdefg');
+    expect(fixture.componentInstance.text()).toBe('abcdefg');
+    expect(count().textContent?.trim()).toBe('7 / 5');
+    expect(count().classList).toContain('andes-input__count--exceeded');
+    expect(wrapper().classList).toContain('andes-input-wrapper--invalid');
+    // Over the soft limit is announced as well as painted - the same rule as AndesTextarea.
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+
+    type('abcde');
+    expect(input.getAttribute('aria-invalid')).toBeNull();
+    expect(count().classList).not.toContain('andes-input__count--exceeded');
+  });
+
+  it('falls back to maxLength when countMax is not set', () => {
+    const { fixture, count, type } = createCountHost();
+    fixture.componentInstance.countMax.set(undefined);
+    fixture.componentInstance.maxLength.set(10);
+    fixture.detectChanges();
+
+    type('abc');
+
+    expect(count().textContent?.trim()).toBe('3 / 10');
+  });
+
+  it('measures with countStrategy, and hands the formatter that count and the limit', () => {
+    const { fixture, count, type } = createCountHost();
+    fixture.componentInstance.strategy.set(graphemes);
+    fixture.componentInstance.formatter.set(
+      ({ count: used, maxLength }) => `${used} of ${maxLength}`,
+    );
+    fixture.detectChanges();
+
+    type('🇵🇪👍🏽a');
+
+    expect(count().textContent?.trim()).toBe('3 of 5');
+  });
+
+  it('trims an over-limit value with countExceedFormatter, in the model and the element', () => {
+    const { fixture, input, count, type } = createCountHost();
+    fixture.componentInstance.strategy.set(graphemes);
+    fixture.componentInstance.exceedFormatter.set((value, { max }) =>
+      Array.from(new Intl.Segmenter().segment(value))
+        .slice(0, max)
+        .map((part) => part.segment)
+        .join(''),
+    );
+    fixture.detectChanges();
+
+    type('ab👍🏽cdef');
+
+    expect(fixture.componentInstance.text()).toBe('ab👍🏽cd');
+    expect(input.value).toBe('ab👍🏽cd');
+    expect(count().textContent?.trim()).toBe('5 / 5');
+    expect(count().classList).not.toContain('andes-input__count--exceeded');
+  });
+
+  it('leaves text mid-IME-composition alone and trims once it is committed', () => {
+    const { fixture, input, type } = createCountHost();
+    fixture.componentInstance.exceedFormatter.set((value, { max }) =>
+      value.slice(0, max),
+    );
+    fixture.detectChanges();
+    type('abcd');
+
+    input.value = 'abcdefg';
+    input.dispatchEvent(new InputEvent('input', { isComposing: true }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.text()).toBe('abcdefg');
+
+    input.dispatchEvent(new CompositionEvent('compositionend'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.text()).toBe('abcde');
+    expect(input.value).toBe('abcde');
+  });
+});
+
+describe('AndesInput clearIcon', () => {
+  @Component({
+    imports: [AndesInput],
+    template: `<andes-input
+        aria-label="Name"
+        clearable
+        value="Ana"
+        [clearIcon]="icon"
+      />
+      <ng-template #icon><span class="custom-clear">✕</span></ng-template>`,
+  })
+  class ClearIconHost {}
+
+  it('draws the template inside the clear button in place of the default icon', () => {
+    const fixture = TestBed.createComponent(ClearIconHost);
+    fixture.detectChanges();
+    const clear = fixture.nativeElement.querySelector(
+      '.andes-input__clear',
+    ) as HTMLButtonElement;
+
+    expect(clear.querySelector('.custom-clear')).toBeTruthy();
+    expect(clear.querySelector('svg')).toBeNull();
+    expect(clear.getAttribute('aria-label')).toBe('Clear');
+  });
+});
+
+describe('AndesInput clear button design', () => {
+  const css = () =>
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
+      'utf-8',
+    ).replace(/\/\*[\s\S]*?\*\//g, '');
+
+  @Component({
+    imports: [AndesInput],
+    template: `<andes-input
+      aria-label="Name"
+      clearable
+      value="Ana"
+      [clearLabel]="label()"
+    />`,
+  })
+  class ClearLabelHost {
+    readonly label = signal('Clear');
+  }
+
+  function createClearHost() {
+    const fixture = TestBed.createComponent(ClearLabelHost);
+    fixture.detectChanges();
+    const clear = () =>
+      fixture.nativeElement.querySelector(
+        '[data-slot="input-clear"]',
+      ) as HTMLButtonElement;
+    return { fixture, clear };
+  }
+
+  it('names the button from clearLabel, "Clear" by default', () => {
+    const { fixture, clear } = createClearHost();
+    expect(clear().getAttribute('aria-label')).toBe('Clear');
+
+    fixture.componentInstance.label.set('Borrar');
+    fixture.detectChanges();
+    expect(clear().getAttribute('aria-label')).toBe('Borrar');
+  });
+
+  it('is a keyboard stop of its own (no negative tabindex)', () => {
+    const { clear } = createClearHost();
+    expect(clear().tabIndex).toBe(0);
+    expect(clear().hasAttribute('tabindex')).toBe(false);
+  });
+
+  it('draws the shared glyph: a filled disc with the "x" knocked out of it', () => {
+    const { clear } = createClearHost();
+    const glyph = clear().querySelector('svg.andes-input__clear-glyph');
+    expect(glyph?.querySelector('circle')).toBeTruthy();
+    expect(glyph?.querySelector('path')).toBeTruthy();
+    expect(css()).toMatch(
+      /\.andes-input__clear-glyph circle\s*{[^}]*fill: currentColor;/,
+    );
+    expect(css()).toMatch(
+      /\.andes-input__clear-glyph path\s*{[^}]*stroke: var\(--andes-color-background\);/,
+    );
+  });
+
+  it('has a 24px hit area that the negative margin takes back out of the layout', () => {
+    const rule = css().match(/\.andes-input__clear\s*{[^}]*}/)?.[0] ?? '';
+    expect(rule).toContain('padding: calc((1.5rem - 1em) / 2);');
+    expect(rule).toContain('margin: calc((1em - 1.5rem) / 2);');
+    expect(rule).toContain('visibility: hidden;');
+  });
+
+  it('shows on hover or focus-within, and always without hover', () => {
+    expect(css()).toMatch(
+      /\.andes-input-wrapper:hover \.andes-input__clear,\s*\.andes-input-wrapper:focus-within \.andes-input__clear\s*{\s*visibility: visible;/,
+    );
+    expect(css()).toMatch(
+      /@media \(hover: none\)\s*{\s*\.andes-input__clear\s*{\s*visibility: visible;/,
+    );
+    expect(css()).toMatch(
+      /\.andes-input__clear:focus-visible\s*{[^}]*outline: 2px solid var\(--andes-color-focus-ring\);/,
+    );
+  });
+});
+
+describe('AndesInput focused / blurred', () => {
+  @Component({
+    imports: [AndesInput],
+    template: `<andes-input
+      aria-label="Name"
+      (focused)="events.push('focused:' + $event.type)"
+      (blurred)="events.push('blurred:' + $event.type)"
+    />`,
+  })
+  class FocusHost {
+    readonly events: string[] = [];
+  }
+
+  it('re-emits the native FocusEvent of the inner input', () => {
+    const fixture = TestBed.createComponent(FocusHost);
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector(
+      'input',
+    ) as HTMLInputElement;
+
+    input.dispatchEvent(new FocusEvent('focus'));
+    input.dispatchEvent(new FocusEvent('blur'));
+
+    expect(fixture.componentInstance.events).toEqual([
+      'focused:focus',
+      'blurred:blur',
+    ]);
+  });
+});
+
+describe('AndesInput text alignment hook', () => {
+  it('aligns the typed text from --andes-input-text-align, start by default', () => {
+    expect(
+      readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
+        'utf-8',
+      ),
+    ).toMatch(
+      /\.andes-input__control\s*{[^}]*text-align:\s*var\(--andes-input-text-align,\s*start\);/,
+    );
   });
 });

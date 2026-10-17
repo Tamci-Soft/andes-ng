@@ -147,3 +147,48 @@ describe('AndesInputSearch', () => {
     expect(button().disabled).toBe(true);
   });
 });
+
+describe('AndesInputSearch custom button content', () => {
+  @Component({
+    imports: [AndesInputSearch],
+    template: `<andes-input-search
+        aria-label="Templated"
+        [enterButton]="content"
+      />
+      <andes-input-search aria-label="Custom icon" [searchIcon]="icon" />
+      <ng-template #content><span class="custom-content">Go</span></ng-template>
+      <ng-template #icon
+        ><svg class="custom-icon" viewBox="0 0 24 24"></svg
+      ></ng-template>`,
+  })
+  class CustomButtonHost {}
+
+  function buttons() {
+    const fixture = TestBed.createComponent(CustomButtonHost);
+    fixture.detectChanges();
+    return Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '.andes-input__search-button button',
+      ),
+    ) as HTMLButtonElement[];
+  }
+
+  it('draws an enterButton template as a primary, text-sized button that names itself', () => {
+    const [templated] = buttons();
+
+    expect(templated.querySelector('.custom-content')?.textContent).toBe('Go');
+    expect(templated.querySelectorAll('svg')).toHaveLength(0);
+    expect(templated.classList).toContain('andes-button--primary');
+    expect(templated.classList).toContain('andes-button--md');
+    expect(templated.getAttribute('aria-label')).toBeNull();
+  });
+
+  it('swaps the magnifier for searchIcon, keeping the "Search" name', () => {
+    const [, custom] = buttons();
+    const icons = custom.querySelectorAll('svg');
+
+    expect(icons).toHaveLength(1);
+    expect(icons[0].classList).toContain('custom-icon');
+    expect(custom.getAttribute('aria-label')).toBe('Search');
+  });
+});

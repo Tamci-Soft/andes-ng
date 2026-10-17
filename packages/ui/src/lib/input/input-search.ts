@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -6,6 +7,7 @@ import {
   forwardRef,
   input,
   output,
+  TemplateRef,
 } from '@angular/core';
 import { NG_VALUE_ACCESSOR } from '@angular/forms';
 
@@ -21,9 +23,17 @@ export interface AndesInputSearchEvent {
   event?: Event;
 }
 
+export type AndesInputSearchEnterButton =
+  boolean | string | TemplateRef<unknown>;
+
 // A bare `enterButton` attribute arrives as '' - read it as `true`, like booleanAttribute,
-// while still letting a non-empty string through as the button's label.
-function enterButtonAttribute(value: boolean | string | null | undefined) {
+// while still letting a non-empty string (the label) or a template (custom content) through.
+function enterButtonAttribute(
+  value: AndesInputSearchEnterButton | null | undefined,
+): AndesInputSearchEnterButton {
+  if (value instanceof TemplateRef) {
+    return value;
+  }
   if (value === '' || value === 'true') {
     return true;
   }
@@ -39,7 +49,7 @@ function enterButtonAttribute(value: boolean | string | null | undefined) {
  */
 @Component({
   selector: 'andes-input-search',
-  imports: [AndesButton],
+  imports: [AndesButton, NgTemplateOutlet],
   templateUrl: './input.html',
   styleUrl: './input.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -55,12 +65,15 @@ function enterButtonAttribute(value: boolean | string | null | undefined) {
 export class AndesInputSearch extends AndesInputBase {
   /**
    * `false` (default): a neutral icon button. `true`: a primary icon button. A string: a primary
-   * button with that text as its label.
+   * button with that text as its label. A template: a primary button drawing that content - it
+   * must carry its own accessible name (visible text, or an `aria-label` on an icon).
    */
-  readonly enterButton = input<boolean | string, boolean | string | null>(
-    false,
-    { transform: enterButtonAttribute },
-  );
+  readonly enterButton = input<
+    AndesInputSearchEnterButton,
+    AndesInputSearchEnterButton | null
+  >(false, { transform: enterButtonAttribute });
+  /** Replaces the magnifier icon of an icon-only search button. */
+  readonly searchIcon = input<TemplateRef<unknown> | undefined>(undefined);
   /** Shows a spinner on the button and suppresses `(searched)` until it clears. */
   readonly loading = input(false, { transform: booleanAttribute });
 
@@ -79,6 +92,8 @@ export class AndesInputSearch extends AndesInputBase {
     const enterButton = this.enterButton();
     return {
       label: typeof enterButton === 'string' ? enterButton : undefined,
+      content: enterButton instanceof TemplateRef ? enterButton : undefined,
+      icon: this.searchIcon(),
       primary: enterButton !== false,
       loading: this.loading(),
     };

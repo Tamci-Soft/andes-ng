@@ -29,28 +29,32 @@
       [value]="value()"
       (input)="onInput($event)"
       (keydown)="onKeydown($event)"
-      (blur)="onBlur()"
+      (compositionend)="onCompositionEnd($event)"
+      (focus)="onFocus($event)"
+      (blur)="onBlur($event)"
     />
     @if (showClear()) {
     <button
       type="button"
       class="andes-input__clear"
-      aria-label="Clear"
+      data-slot="input-clear"
+      [attr.aria-label]="clearLabel()"
       (mousedown)="keepFocus($event)"
       (click)="onClearClick($event)"
     >
+      @if (clearIcon(); as customClearIcon) {
+      <ng-container *ngTemplateOutlet="customClearIcon" />
+      } @else {
       <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+        class="andes-input__clear-glyph"
+        viewBox="0 0 16 16"
         aria-hidden="true"
+        focusable="false"
       >
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
+        <circle cx="8" cy="8" r="8" />
+        <path d="M5.5 5.5l5 5m0-5-5 5" />
       </svg>
+      }
     </button>
     } @if (passwordToggle() !== null) {
     <button
@@ -58,11 +62,19 @@
       class="andes-input__password-toggle"
       aria-label="Show password"
       [attr.aria-pressed]="passwordToggle()"
+      [attr.tabindex]="passwordToggleTabIndex()"
       [disabled]="isDisabled()"
       (mousedown)="keepFocus($event)"
       (click)="togglePasswordVisibility()"
     >
-      @if (passwordToggle()) {
+      @if (passwordToggleIcon(); as customToggleIcon) {
+      <ng-container
+        *ngTemplateOutlet="
+          customToggleIcon;
+          context: { $implicit: !!passwordToggle() }
+        "
+      />
+      } @else if (passwordToggle()) {
       <svg
         data-icon="eye-off"
         viewBox="0 0 24 24"
@@ -126,10 +138,16 @@
     [size]="searchButtonSize()"
     [loading]="button.loading"
     [disabled]="isDisabled()"
-    [aria-label]="button.label ? undefined : 'Search'"
+    [aria-label]="button.label || button.content ? undefined : 'Search'"
     (click)="onSearchClick($event)"
   >
-    @if (!button.label) {
+    <!-- Sibling blocks rather than nested ones: only a block with a single root element is
+         matched against the button's [slot=icon-start] selector. -->
+    @if (!button.label && !button.content && button.icon) {
+    <span slot="icon-start" class="andes-input__search-icon" aria-hidden="true"
+      ><ng-container *ngTemplateOutlet="button.icon"
+    /></span>
+    } @if (!button.label && !button.content && !button.icon) {
     <svg
       slot="icon-start"
       viewBox="0 0 24 24"
@@ -143,7 +161,9 @@
       <circle cx="11" cy="11" r="8"></circle>
       <path d="m21 21-4.3-4.3"></path>
     </svg>
-    } {{ button.label }}
+    } @if (button.content) {
+    <ng-container *ngTemplateOutlet="button.content" />
+    } @else { {{ button.label }} }
   </andes-button>
   }
 </span>
