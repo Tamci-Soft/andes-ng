@@ -97,7 +97,7 @@
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
-  /* Body text scale shared by every component: 14px on a 22px line (Ant Design). */
+  /* Body text scale shared by every component: 14px on a 22px line. */
   font-size: var(--andes-text-font-size, 0.875rem);
   line-height: var(--andes-text-line-height, 1.375rem);
   /* Equal-width digits keep amounts in an end-aligned column lined up place by place. */
@@ -161,12 +161,12 @@
   white-space: nowrap;
   vertical-align: middle;
   /* A header's `width` (and a resized width) is the whole column, padding included,
-     like Ant Design's column width - and what a resize drag measures and sets. */
+     as a column width - and what a resize drag measures and sets. */
   box-sizing: border-box;
 }
 
 /* Header content: the title takes the free width, then the sort indicator, then the
-   filter trigger at the inline end - Ant Design's header layout. A flex box inside the
+   filter trigger at the inline end. A flex box inside the
    cell rather than on it, so the <th> stays a real table cell. */
 .andes-table ::ng-deep .andes-table__head-content {
   display: flex;
@@ -260,8 +260,8 @@
   text-align: end;
 }
 
-/* Density. `compact` is Ant Design's small table (8px all round, 39px rows) and
-   `default` its default/large one (16px all round, 55px rows); `comfortable` adds
+/* Density. `compact` is a small table (8px all round, 39px rows) and `default`
+   the standard one (16px all round, 55px rows); `comfortable` adds
    breathing room above that for sparse, reading-heavy tables. */
 
 .andes-table--compact {
@@ -309,7 +309,7 @@
   background-color: var(--andes-color-accent-hover);
 }
 
-/* Direction indicator: Ant Design's stacked 12px carets, the active one in the primary
+/* Direction indicator: stacked 12px carets, the active one in the primary
    color. Hidden from assistive tech, which reads the header's `aria-sort` instead. The
    resting color is the muted foreground, which still clears the 3:1 non-text contrast
    minimum on the header background. */
@@ -387,7 +387,7 @@
   touch-action: none;
 }
 
-/* Ant Design's header separator - a short hairline on the cell edge - which becomes a
+/* A header separator - a short hairline on the cell edge - which becomes a
    full-height primary bar while the handle is hovered, focused or dragged. The bar is
    the focus indicator; the transparent outline stands in for it in forced colors. */
 .andes-table ::ng-deep .andes-table__resize-handle::after {

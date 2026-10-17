@@ -59,7 +59,7 @@ function optionalBoolean(value: unknown): boolean | undefined {
  * Exported as `andesTableHead`, so a header can draw its own sort indicator from
  * `direction()` after turning the built-in one off with `[sortIcon]="false"`.
  *
- * The content is laid out like Ant Design's header: the projected title takes the
+ * The content is laid out in one row: the projected title takes the
  * free width, followed by the sort indicator and then any `andes-table-filter`,
  * which sits at the cell's inline end.
  *
