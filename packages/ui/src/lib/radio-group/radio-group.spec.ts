@@ -164,6 +164,34 @@ class AutoFocusHostComponent {
   value: string | null = null;
 }
 
+@Component({
+  imports: [AndesRadio],
+  template: `<andes-radio [(checked)]="checked" [disabled]="disabled()"
+      >Standalone</andes-radio
+    >
+    <andes-radio value="seeded" [checked]="true">Seeded</andes-radio>`,
+})
+class StandaloneHostComponent {
+  readonly checked = signal(false);
+  readonly disabled = signal(false);
+}
+
+@Component({
+  imports: [AndesRadioGroup],
+  template: `<andes-radio-group [options]="options" />`,
+})
+class StyledOptionsHostComponent {
+  readonly options: AndesRadioOptionInput[] = [
+    { label: 'Plain', value: 'plain' },
+    {
+      label: 'Styled',
+      value: 'styled',
+      class: 'option-extra',
+      style: { 'margin-inline-start': '12px' },
+    },
+  ];
+}
+
 describe('AndesRadioGroup / AndesRadio', () => {
   function createPlainHost() {
     const fixture = TestBed.createComponent(PlainHostComponent);
@@ -182,6 +210,28 @@ describe('AndesRadioGroup / AndesRadio', () => {
     const names = new Set(inputs.map((input) => input.name));
     expect(names.size).toBe(1);
     expect([...names][0]).toMatch(/^andes-radio-group-\d+$/);
+  });
+
+  it('sizes the circle with its border included, like the checkbox box', () => {
+    const { fixture } = createPlainHost();
+    const control = fixture.nativeElement.querySelector(
+      '.andes-radio__control',
+    ) as HTMLElement;
+
+    // With the default content-box the 1rem circle rendered 18px outside.
+    expect(getComputedStyle(control).boxSizing).toBe('border-box');
+    expect(getComputedStyle(control).width).toBe('1rem');
+  });
+
+  it('starts the dot at half size and transparent, so selecting settles in softly', () => {
+    const { fixture } = createPlainHost();
+    const dot = fixture.nativeElement.querySelector(
+      'andes-radio:not([data-checked]) .andes-radio__dot',
+    ) as HTMLElement;
+    const style = getComputedStyle(dot);
+
+    expect(style.opacity).toBe('0');
+    expect(style.transform).toBe('scale(0.5)');
   });
 
   it('gives each group instance its own isolated name via DI-scoped state', () => {
@@ -812,5 +862,117 @@ describe('AndesRadioGroup / AndesRadio', () => {
       expect(fixture.componentInstance.control.touched).toBe(true);
       expect(fixture.componentInstance.control.value).toBeNull();
     });
+  });
+
+  describe('standalone radio', () => {
+    function createStandaloneHost() {
+      const fixture = TestBed.createComponent(StandaloneHostComponent);
+      fixture.detectChanges();
+      const items = Array.from(
+        fixture.nativeElement.querySelectorAll('andes-radio'),
+      ) as HTMLElement[];
+      const inputs = Array.from(
+        fixture.nativeElement.querySelectorAll('input[type=radio]'),
+      ) as HTMLInputElement[];
+      return { fixture, items, inputs };
+    }
+
+    it('renders outside a group without a name, required flag or group modifiers', () => {
+      const { items, inputs } = createStandaloneHost();
+
+      expect(inputs[0].hasAttribute('name')).toBe(false);
+      expect(inputs[0].required).toBe(false);
+      expect(inputs[0].value).toBe('on');
+      expect(inputs[1].value).toBe('seeded');
+      expect(items[0].className.trim()).toBe('andes-radio');
+    });
+
+    it('reflects [checked] onto the native input and the host', () => {
+      const { fixture, items, inputs } = createStandaloneHost();
+
+      expect(inputs[0].checked).toBe(false);
+      expect(inputs[1].checked).toBe(true);
+      expect(items[1].hasAttribute('data-checked')).toBe(true);
+
+      fixture.componentInstance.checked.set(true);
+      fixture.detectChanges();
+      expect(inputs[0].checked).toBe(true);
+      expect(items[0].classList).toContain('andes-radio--checked');
+    });
+
+    it('writes a user selection back through [(checked)]', () => {
+      const { fixture, inputs } = createStandaloneHost();
+      inputs[0].click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.checked()).toBe(true);
+      expect(inputs[0].checked).toBe(true);
+    });
+
+    it('can be unchecked again from the parent', () => {
+      const { fixture, inputs } = createStandaloneHost();
+      inputs[0].click();
+      fixture.detectChanges();
+
+      fixture.componentInstance.checked.set(false);
+      fixture.detectChanges();
+      expect(inputs[0].checked).toBe(false);
+    });
+
+    it('cannot be selected while disabled', () => {
+      const { fixture, items, inputs } = createStandaloneHost();
+      fixture.componentInstance.disabled.set(true);
+      fixture.detectChanges();
+
+      expect(inputs[0].disabled).toBe(true);
+      expect(items[0].hasAttribute('data-disabled')).toBe(true);
+      inputs[0].click();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.checked()).toBe(false);
+    });
+
+    it('exposes focus()/blur()', () => {
+      const fixture = TestBed.createComponent(StandaloneHostComponent);
+      document.body.appendChild(fixture.nativeElement);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector('input[type=radio]');
+      const radio = fixture.debugElement.children[0]
+        .componentInstance as AndesRadio;
+
+      radio.focus();
+      expect(document.activeElement).toBe(input);
+      radio.blur();
+      expect(document.activeElement).not.toBe(input);
+      fixture.nativeElement.remove();
+    });
+  });
+
+  it('applies per-option class and style to the generated item, keeping its own classes', () => {
+    const fixture = TestBed.createComponent(StyledOptionsHostComponent);
+    fixture.detectChanges();
+    const items = fixture.nativeElement.querySelectorAll(
+      'andes-radio',
+    ) as NodeListOf<HTMLElement>;
+
+    expect(items[1].classList).toContain('option-extra');
+    expect(items[1].classList).toContain('andes-radio');
+    expect(items[1].style.marginInlineStart).toBe('12px');
+    expect(items[0].classList).not.toContain('option-extra');
+    expect(items[0].classList).toContain('andes-radio');
+  });
+
+  it('blur() on the group removes focus from its focused item', () => {
+    const fixture = TestBed.createComponent(PlainHostComponent);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+    const inputs = fixture.nativeElement.querySelectorAll('input[type=radio]');
+    const group = fixture.debugElement.children[0]
+      .componentInstance as AndesRadioGroup;
+
+    group.focus();
+    expect(document.activeElement).toBe(inputs[0]);
+    group.blur();
+    expect(document.activeElement).not.toBe(inputs[0]);
+    fixture.nativeElement.remove();
   });
 });

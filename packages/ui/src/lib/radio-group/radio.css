@@ -12,7 +12,9 @@
 .andes-radio__label {
   position: relative;
   display: inline-flex;
-  align-items: center;
+  /* Top-aligned, with the circle centered on the first line of text (see the control's
+     margin below), so a wrapping label keeps the circle beside its first line. */
+  align-items: flex-start;
   gap: var(--andes-space-2);
   cursor: pointer;
   font-family: var(--andes-font-family), sans-serif;
@@ -56,11 +58,23 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  /* Border included, so the circle is 16px outside like AndesCheckbox's box (it rendered
+     18px with the default content-box). */
   box-sizing: border-box;
   width: 1rem;
   height: 1rem;
+  /* Centers the 16px circle on the label's 22px first line. */
+  margin-block: calc((1.375rem - 1rem) / 2);
   border-radius: var(--andes-radius-full);
-  border: 1px solid var(--andes-color-input);
+  /* The bare --andes-color-input border only reaches ~1.5:1 against the page in both
+     themes, and an unselected circle has nothing else to show it is there - mixed toward
+     the foreground it clears the 3:1 non-text contrast minimum in light and dark alike. */
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--andes-color-input),
+      var(--andes-color-foreground) 35%
+    );
   background-color: var(--andes-color-background);
   transition:
     border-color var(--andes-motion-duration-fast, 0.1s)
@@ -79,17 +93,33 @@
 }
 
 .andes-radio__dot {
+  /* 8px inside the 14px content box leaves a whole 3px on each side, so the dot sits on the
+     pixel grid, dead center, instead of blurring across a half-pixel offset. */
   width: 0.5rem;
   height: 0.5rem;
   border-radius: var(--andes-radius-full);
   background-color: var(--andes-color-primary);
-  transform: scale(0);
-  transition: transform var(--andes-motion-duration-mid, 0.2s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  /* Grows from half size while fading in, so selecting reads as a soft settle rather than a
+     dot popping out of nothing. */
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity var(--andes-motion-duration-mid, 0.2s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    transform var(--andes-motion-duration-mid, 0.2s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 :host(.andes-radio--checked) .andes-radio__dot {
+  opacity: 1;
   transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-radio__dot {
+    transform: none;
+    transition: opacity 0.15s ease;
+  }
 }
 
 .andes-radio__input:focus-visible ~ .andes-radio__control {
@@ -214,7 +244,7 @@
 }
 
 /* Sizes - the shared control scale (24/32/40px tall, 14/14/16px text, 4/6/8px outer corners)
-   with the button's inline padding (7px small, 15px otherwise), as Ant's Radio.Button. */
+   with the button's inline padding (7px small, 15px otherwise). */
 
 :host(.andes-radio--sm) {
   --andes-radio-button-radius: var(--andes-control-radius-sm, 0.25rem);
@@ -246,7 +276,7 @@
   height: var(--andes-control-height-lg, 2.5rem);
   padding-inline: 0.9375rem;
   font-size: var(--andes-control-font-size-lg, 1rem);
-  line-height: var(--andes-control-line-height, 1.375rem);
+  line-height: 1.5rem;
 }
 
 /* Hover (unchecked, enabled): tint the text, as outline buttons do. */
