@@ -209,6 +209,36 @@ describe('AndesButton', () => {
     expect(anchor.hasAttribute('href')).toBe(false);
   });
 
+  it('announces the disabled anchor via aria-disabled', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.href.set('https://andes-ng.dev');
+    fixture.detectChanges();
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(anchor.hasAttribute('aria-disabled')).toBe(false);
+
+    fixture.componentInstance.disabled.set(true);
+    fixture.detectChanges();
+
+    expect(anchor.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('marks the anchor aria-busy and aria-disabled while loading', () => {
+    const { fixture } = createHost();
+    fixture.componentInstance.href.set('https://andes-ng.dev');
+    fixture.detectChanges();
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(anchor.getAttribute('aria-busy')).toBeNull();
+
+    fixture.componentInstance.loading.set(true);
+    fixture.detectChanges();
+
+    expect(anchor.getAttribute('aria-busy')).toBe('true');
+    expect(anchor.getAttribute('aria-disabled')).toBe('true');
+    expect(anchor.hasAttribute('href')).toBe(false);
+  });
+
   it('projects icon-start and icon-end content', () => {
     @Component({
       imports: [AndesButton],

@@ -40,6 +40,14 @@ describe('AndesButtonPrimitive', () => {
       expect(button.getAttribute('data-disabled')).toBe('');
       expect(button.getAttribute('tabindex')).toBe('-1');
     });
+
+    it('never sets aria-disabled, since the native attribute already conveys it', () => {
+      const { fixture, button } = createHost();
+      fixture.componentInstance.disabled.set(true);
+      fixture.detectChanges();
+
+      expect(button.hasAttribute('aria-disabled')).toBe(false);
+    });
   });
 
   describe('on an anchor element', () => {
@@ -72,6 +80,18 @@ describe('AndesButtonPrimitive', () => {
 
       expect(anchor.hasAttribute('disabled')).toBe(false);
       expect(anchor.getAttribute('data-disabled')).toBe('');
+    });
+
+    it('marks aria-disabled only while disabled', () => {
+      const { fixture, anchor } = createHost();
+
+      expect(anchor.hasAttribute('aria-disabled')).toBe(false);
+
+      fixture.componentInstance.disabled.set(true);
+      fixture.detectChanges();
+
+      expect(anchor.getAttribute('aria-disabled')).toBe('true');
+      expect(anchor.getAttribute('tabindex')).toBe('-1');
     });
 
     it('prevents navigation when disabled', () => {
