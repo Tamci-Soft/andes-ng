@@ -96,6 +96,13 @@ export const ANDES_TOOLTIP_PRESET_COLORS = [
 export type AndesTooltipPresetColor =
   (typeof ANDES_TOOLTIP_PRESET_COLORS)[number];
 
+/**
+ * The tooltip's surface: `default` follows the theme's popover surface (light on a
+ * light page, dark on a dark one); `inverse` is always a dark surface with light
+ * text, for a hint that should stand apart from the surface it sits on.
+ */
+export type AndesTooltipVariant = 'default' | 'inverse';
+
 function isPresetColor(value: string): value is AndesTooltipPresetColor {
   return (ANDES_TOOLTIP_PRESET_COLORS as readonly string[]).includes(value);
 }
@@ -140,9 +147,10 @@ function isPresetColor(value: string): value is AndesTooltipPresetColor {
  *
  * The tooltip is portalled into the CDK overlay container, outside the
  * trigger's DOM, so it is styled through inputs (`color`, `maxWidth`,
- * `tooltipClass`) and three CSS custom properties that can be set on `:root`
+ * `tooltipClass`) and four CSS custom properties that can be set on `:root`
  * or on a `tooltipClass` selector: `--andes-tooltip-background`,
- * `--andes-tooltip-foreground` and `--andes-tooltip-max-width`.
+ * `--andes-tooltip-foreground`, `--andes-tooltip-border-color` and
+ * `--andes-tooltip-max-width`.
  */
 @Component({
   selector: 'andes-tooltip',
@@ -268,6 +276,13 @@ export class AndesTooltip {
    */
   readonly color = input<AndesTooltipPresetColor | (string & {}) | null>(null);
 
+  /**
+   * `'inverse'` renders a dark surface with light text in both themes (lifted a step
+   * off a dark page so it still reads as a layer); `'default'` follows the theme's
+   * popover surface. A `color` takes precedence over either. Default `'default'`.
+   */
+  readonly variant = input<AndesTooltipVariant>('default');
+
   /** Max width of the tooltip: px as a number, or any CSS length. Default `20rem`. */
   readonly maxWidth = input<number | string | null>(null);
 
@@ -375,6 +390,7 @@ export class AndesTooltip {
     const color = this.color();
     return clsx(
       'andes-tooltip',
+      this.variant() === 'inverse' && 'andes-tooltip--inverse',
       color && isPresetColor(color) && `andes-tooltip--${color}`,
       color && !isPresetColor(color) && 'andes-tooltip--custom-color',
       this.tooltipClass(),
@@ -401,6 +417,7 @@ export class AndesTooltip {
 
   private bodyView: EmbeddedViewRef<unknown> | null = null;
   private positionObserver: MutationObserver | null = null;
+  private layoutObserver: ResizeObserver | null = null;
 
   constructor() {
     this.overlay.configure(andesOverlayPreset('tooltip'));
@@ -419,6 +436,7 @@ export class AndesTooltip {
 
     inject(DestroyRef).onDestroy(() => {
       this.positionObserver?.disconnect();
+      this.layoutObserver?.disconnect();
       this.bodyView?.destroy();
       this.bodyView = null;
     });
@@ -499,6 +517,20 @@ export class AndesTooltip {
     });
   }
 
+  /**
+   * Re-aligns an open tooltip with its trigger. Size changes of the trigger
+   * or of the tooltip itself are already followed automatically; call this
+   * after a layout change that moves the trigger without resizing either,
+   * e.g. a sibling expanding above it. A no-op while closed.
+   */
+  updatePosition(): void {
+    if (!this.overlay.isOpen()) {
+      return;
+    }
+    this.overlay.updatePosition();
+    this.measure();
+  }
+
   protected onWrapperPointerUp(event: PointerEvent): void {
     if (this.intent.triggerDisabled()) {
       this.intent.pointerUp(event);
@@ -561,6 +593,7 @@ export class AndesTooltip {
     this.attachBody();
     this.configureOverlay({});
     this.observePosition();
+    this.observeLayout();
     if (!this.openState()) {
       this.open.set(true);
     }
@@ -569,6 +602,8 @@ export class AndesTooltip {
   private onClosed(): void {
     this.positionObserver?.disconnect();
     this.positionObserver = null;
+    this.layoutObserver?.disconnect();
+    this.layoutObserver = null;
 
     const view = this.bodyView;
     if (view) {
@@ -631,6 +666,29 @@ export class AndesTooltip {
     this.positionObserver.observe(pane, options);
     if (pane.parentElement) {
       this.positionObserver.observe(pane.parentElement, options);
+    }
+  }
+
+  /**
+   * Keeps an open tooltip glued to its trigger when either one changes size -
+   * a trigger whose label grows, or rich content that loads late. The CDK
+   * only repositions on scroll and viewport resize on its own.
+   */
+  private observeLayout(): void {
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const anchor = this.overlay.anchor();
+    const content = this.overlay.contentElement();
+    if (!anchor && !content) {
+      return;
+    }
+    this.layoutObserver = new ResizeObserver(() => this.updatePosition());
+    if (anchor) {
+      this.layoutObserver.observe(anchor);
+    }
+    if (content) {
+      this.layoutObserver.observe(content);
     }
   }
 

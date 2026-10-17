@@ -9,7 +9,10 @@ export {
   ANDES_TOOLTIP_DEFAULT_TRIGGERS,
   ANDES_TOOLTIP_PRESET_COLORS,
 } from './lib/tooltip/tooltip';
-export type { AndesTooltipPresetColor } from './lib/tooltip/tooltip';
+export type {
+  AndesTooltipPresetColor,
+  AndesTooltipVariant,
+} from './lib/tooltip/tooltip';
 export {
   ANDES_TOOLTIP_LONG_PRESS_DELAY,
   ANDES_TOOLTIP_TOUCH_HIDE_DELAY,

@@ -1,10 +1,11 @@
 import { AndesOverlayPrimitive } from '@andes-ng/primitives';
 import { Component, signal, type TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { readFileSync } from 'node:fs';
 import { By } from '@angular/platform-browser';
 
 import { AndesButton } from '../button/button';
-import { AndesTooltip } from './tooltip';
+import { AndesTooltip, type AndesTooltipVariant } from './tooltip';
 import { AndesTooltipContent } from './tooltip-content';
 import {
   ANDES_TOOLTIP_HOVERABLE_GRACE,
@@ -162,6 +163,37 @@ describe('AndesTooltip', () => {
     vi.advanceTimersByTime(1);
     fixture.detectChanges();
     expect(panel()?.textContent?.trim()).toBe('Helpful hint');
+  });
+
+  it('sets 12/20 caption text on the portalled panel', () => {
+    vi.useFakeTimers();
+    const { fixture, trigger, panel } = createHost();
+    hover(trigger);
+    vi.advanceTimersByTime(600);
+    fixture.detectChanges();
+
+    const style = getComputedStyle(panel() as Element);
+    expect(style.fontSize).toBe('0.75rem');
+    expect(style.lineHeight).toBe('1.25rem');
+  });
+
+  it('enters with a 150ms soft fade and a drift of at most 4px', () => {
+    // Read from the stylesheet source: jsdom runs no animations, and keyframes
+    // are not reflected in the computed style.
+    const css = readFileSync('packages/ui/src/lib/tooltip/tooltip.css', 'utf8');
+    expect(css).toContain(
+      'animation: andes-tooltip-in 0.15s cubic-bezier(0.2, 0, 0, 1);',
+    );
+    const keyframes =
+      /@keyframes andes-tooltip-in\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(keyframes).toContain(
+      'translate: var(--andes-tooltip-enter-from, 0 4px);',
+    );
+    const offsets = [...css.matchAll(/--andes-tooltip-enter-from: ([^;]+);/g)]
+      .flatMap((m) => m[1].match(/-?\d+px/g) ?? [])
+      .map((px) => Math.abs(Number.parseInt(px, 10)));
+    expect(offsets.length).toBeGreaterThan(0);
+    expect(Math.max(...offsets)).toBeLessThanOrEqual(4);
   });
 
   it('does not open before the delay if the pointer leaves first', () => {
@@ -507,6 +539,7 @@ describe('tooltip placement helpers', () => {
       [(open)]="open"
       (openChange)="changes.push($event)"
       [color]="color()"
+      [variant]="variant()"
       [maxWidth]="maxWidth()"
       [tooltipClass]="tooltipClass()"
       [zIndex]="zIndex()"
@@ -541,6 +574,7 @@ class FeatureHostComponent {
   readonly open = signal(false);
   readonly changes: boolean[] = [];
   readonly color = signal<string | null>(null);
+  readonly variant = signal<AndesTooltipVariant>('default');
   readonly maxWidth = signal<number | string | null>(null);
   readonly tooltipClass = signal<string | null>(null);
   readonly zIndex = signal<number | null>(null);
@@ -564,6 +598,161 @@ class FeatureHostComponent {
 class AndesButtonHostComponent {
   readonly disabled = signal(false);
 }
+
+/**
+ * The wrapper pattern for a disabled control: a disabled control cannot take focus,
+ * so a focusable wrapper is the trigger instead and keyboard users still reach the
+ * hint.
+ */
+@Component({
+  imports: [AndesTooltip, AndesTooltipTrigger, AndesButton],
+  template: `
+    <andes-tooltip content="You need edit rights to save" [openDelay]="0">
+      <span id="wrapper" tabindex="0" andesTooltipTrigger>
+        <andes-button disabled>Save</andes-button>
+      </span>
+    </andes-tooltip>
+  `,
+})
+class DisabledWrapperHostComponent {}
+
+/** Parses `--andes-color-*` hex values out of one theme block of theme.css. */
+function themeColors(block: string): Record<string, string> {
+  const colors: Record<string, string> = {};
+  for (const [, name, hex] of block.matchAll(
+    /(--andes-color-[a-z-]+):\s*(#[0-9a-f]{6});/gi,
+  )) {
+    colors[name] = hex;
+  }
+  return colors;
+}
+
+function rgb(hex: string): [number, number, number] {
+  const value = hex.replace('#', '');
+  const full =
+    value.length === 3
+      ? value
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : value;
+  return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+/**
+ * Resolves the small subset of CSS the preset rules use: `var(--token)` and
+ * `color-mix(in srgb, var(--token) N%, #hex)`.
+ */
+function resolveColor(
+  expression: string,
+  colors: Record<string, string>,
+): [number, number, number] {
+  const value = expression.replace(/\s+/g, ' ').trim();
+  const mix =
+    /^color-mix\( ?in srgb, var\((--[a-z-]+)\) (\d+)%, (#[0-9a-f]+) ?\)$/i.exec(
+      value,
+    );
+  if (mix) {
+    const base = rgb(colors[mix[1]]);
+    const other = rgb(mix[3]);
+    const share = Number(mix[2]) / 100;
+    return base.map((channel, i) =>
+      Math.round(channel * share + other[i] * (1 - share)),
+    ) as [number, number, number];
+  }
+  const token = /^var\((--[a-z-]+)\)$/.exec(value);
+  if (token) {
+    return rgb(colors[token[1]]);
+  }
+  throw new Error(`Unresolvable preset colour: ${value}`);
+}
+
+function contrast(
+  a: [number, number, number],
+  b: [number, number, number],
+): number {
+  const luminance = (color: [number, number, number]) => {
+    const [r, g, b] = color.map((channel) => {
+      const c = channel / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (high + 0.05) / (low + 0.05);
+}
+
+describe('AndesTooltip colour contrast', () => {
+  const css = readFileSync('packages/ui/src/lib/tooltip/tooltip.css', 'utf8');
+  const theme = readFileSync('packages/tokens/src/theme.css', 'utf8');
+  const darkStart = theme.indexOf("[data-andes-theme='dark']");
+  const light = themeColors(theme.slice(0, darkStart));
+  const dark = { ...light, ...themeColors(theme.slice(darkStart)) };
+
+  function presetRule(preset: string) {
+    const body =
+      new RegExp(`\\.andes-tooltip--${preset} \\{([^}]*)\\}`).exec(css)?.[1] ??
+      '';
+    const read = (prop: string) =>
+      new RegExp(`--andes-tooltip-${prop}:\\s*([^;]+);`).exec(body)?.[1] ?? '';
+    return { background: read('background'), foreground: read('foreground') };
+  }
+
+  // 12px caption text: the normal-text AA threshold applies.
+  it.each(['primary', 'secondary', 'success', 'warning', 'danger', 'info'])(
+    'gives the %s preset at least 4.5:1 in both themes',
+    (preset) => {
+      const rule = presetRule(preset);
+      for (const colors of [light, dark]) {
+        const ratio = contrast(
+          resolveColor(rule.background, colors),
+          resolveColor(rule.foreground, colors),
+        );
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+      }
+    },
+  );
+
+  it('keeps the inverse variant dark, with light text, in both themes', () => {
+    const body = /\.andes-tooltip--inverse \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const background = /--andes-tooltip-background:\s*([^;]+);/
+      .exec(body)?.[1]
+      ?.replace(/\s+/g, ' ');
+    expect(background).toBe(
+      'color-mix( in srgb, var(--andes-color-foreground) 15%, #1e293b )',
+    );
+    expect(body).toContain('--andes-tooltip-foreground: #f8fafc;');
+    for (const colors of [light, dark]) {
+      const fill = resolveColor(background ?? '', colors);
+      expect(contrast(fill, rgb('#f8fafc'))).toBeGreaterThanOrEqual(7);
+      // A dark surface: well below mid-grey in either theme.
+      expect(Math.max(...fill)).toBeLessThan(0x60);
+    }
+  });
+
+  it('leaves with a quicker, accelerating mirror of its entry', () => {
+    const rule =
+      /\.andes-tooltip\[data-andes-closing\] \{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rule).toMatch(
+      /animation: andes-tooltip-out var\(--andes-duration-fast, 120ms\)\s+var\(--andes-ease-in, [^)]+\)\) forwards;/,
+    );
+    const keyframes =
+      /@keyframes andes-tooltip-out\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(keyframes).toMatch(
+      /to \{\s*opacity: 0;\s*translate: var\(--andes-tooltip-enter-from, 0 4px\);/,
+    );
+    const reduced = css.slice(
+      css.indexOf('@media (prefers-reduced-motion: reduce)'),
+    );
+    expect(reduced).toMatch(
+      /\.andes-tooltip\[data-andes-closing\] \{\s*animation: none;/,
+    );
+  });
+});
 
 describe('AndesTooltip (extended options)', () => {
   withElementGeometry();
@@ -1034,6 +1223,72 @@ describe('AndesTooltip (extended options)', () => {
     });
   });
 
+  describe('layout changes', () => {
+    class FakeResizeObserver {
+      static instances: FakeResizeObserver[] = [];
+      readonly observed: Element[] = [];
+      disconnected = false;
+      constructor(readonly callback: ResizeObserverCallback) {
+        FakeResizeObserver.instances.push(this);
+      }
+      observe(target: Element): void {
+        this.observed.push(target);
+      }
+      unobserve(): void {
+        // Not used by the tooltip.
+      }
+      disconnect(): void {
+        this.disconnected = true;
+      }
+      fire(): void {
+        this.callback([], this as unknown as ResizeObserver);
+      }
+    }
+
+    beforeEach(() => {
+      FakeResizeObserver.instances = [];
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('repositions while open when the trigger or the tooltip resizes', () => {
+      const { fixture, host, trigger, overlay } = createHost();
+      host.open.set(true);
+      fixture.detectChanges();
+
+      const observer = FakeResizeObserver.instances.at(-1);
+      expect(observer?.observed).toContain(trigger);
+      expect(observer?.observed).toContain(overlay.contentElement());
+
+      const update = vi.spyOn(overlay, 'updatePosition');
+      observer?.fire();
+      expect(update).toHaveBeenCalledTimes(1);
+
+      host.open.set(false);
+      fixture.detectChanges();
+      expect(observer?.disconnected).toBe(true);
+    });
+
+    it('exposes updatePosition() for layout shifts that resize nothing', () => {
+      const { fixture, host, overlay } = createHost();
+      const tooltip = fixture.debugElement
+        .query(By.directive(AndesTooltip))
+        .injector.get(AndesTooltip);
+      const update = vi.spyOn(overlay, 'updatePosition');
+
+      tooltip.updatePosition();
+      expect(update).not.toHaveBeenCalled();
+
+      host.open.set(true);
+      fixture.detectChanges();
+      tooltip.updatePosition();
+      expect(update).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('content', () => {
     it('accepts a TemplateRef as content', () => {
       const { fixture, host, trigger, panel } = createHost();
@@ -1087,6 +1342,20 @@ describe('AndesTooltip (extended options)', () => {
       expect(
         panel()?.style.getPropertyValue('--andes-tooltip-background'),
       ).toBe('#7c3aed');
+    });
+
+    it('renders the inverse surface only when asked', () => {
+      const { fixture, host, trigger, panel } = createHost();
+      pointer(trigger, 'pointerenter');
+      fixture.detectChanges();
+      expect(panel()?.classList).not.toContain('andes-tooltip--inverse');
+
+      pointer(trigger, 'pointerleave');
+      host.variant.set('inverse');
+      fixture.detectChanges();
+      pointer(trigger, 'pointerenter');
+      fixture.detectChanges();
+      expect(panel()?.classList).toContain('andes-tooltip--inverse');
     });
 
     it('sets maxWidth and tooltipClass on the tooltip element', () => {
@@ -1242,6 +1511,32 @@ describe('AndesTooltip (extended options)', () => {
 
       expect(trigger.style.pointerEvents).toBe('');
       expect(tooltipHost.hasAttribute('data-disabled-trigger')).toBe(false);
+    });
+  });
+
+  describe('focusable wrapper around a disabled control', () => {
+    it('opens on keyboard focus of the wrapper and describes it', () => {
+      const fixture = TestBed.createComponent(DisabledWrapperHostComponent);
+      fixture.detectChanges();
+      const wrapper = fixture.nativeElement.querySelector(
+        '#wrapper',
+      ) as HTMLElement;
+      const overlay = fixture.debugElement
+        .query(By.directive(AndesTooltip))
+        .injector.get(AndesOverlayPrimitive);
+
+      wrapper.focus();
+      fixture.detectChanges();
+
+      expect(document.activeElement).toBe(wrapper);
+      expect(overlay.isOpen()).toBe(true);
+      expect(wrapper.getAttribute('aria-describedby')).toBe(overlay.contentId);
+      // The wrapper is not itself disabled, so it keeps its own pointer events.
+      expect(
+        fixture.nativeElement
+          .querySelector('andes-tooltip')
+          .hasAttribute('data-disabled-trigger'),
+      ).toBe(false);
     });
   });
 
