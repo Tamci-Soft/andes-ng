@@ -3,6 +3,10 @@
   class="andes-popover-content"
   [attr.data-side]="popover.resolvedSide()"
   [attr.data-align]="popover.resolvedAlign()"
+  [attr.data-color]="popover.colorAttribute()"
+  [style.--andes-popover-background]="popover.customColor()"
+  [style.--andes-popover-max-height]="popover.panelMaxHeight()"
+  [attr.data-scrollable]="popover.panelMaxHeight() ? '' : null"
   [attr.aria-labelledby]="popover.panelLabelledBy()"
   [attr.aria-describedby]="popover.panelDescribedBy()"
   (mouseenter)="popover.handlePanelEnter()"
@@ -35,16 +39,26 @@
     ></div>
     } @else { {{ title }} }
   </div>
-  } @if (popover.panelBody(); as body) {
-  <div class="andes-popover-body" [id]="popover.bodyId">
-    @if (isTemplate(body)) {
-    <div
-      class="andes-popover-slot"
-      [andesPopoverOutlet]="body"
-      andesPopoverOutletKey="content"
-    ></div>
-    } @else { {{ body }} }
-  </div>
   }
-  <ng-content />
+  <!-- Everything below the title. Its own box so that, with `maxHeight`, only this
+       region scrolls: the title stays in view and the surface - which the arrow
+       hangs off - keeps overflow visible, so the arrow is never clipped. -->
+  <div
+    class="andes-popover-scroll"
+    [class.andes-popover-scroll--flush-top]="!popover.panelTitle()"
+    [attr.tabindex]="popover.panelMaxHeight() ? 0 : null"
+  >
+    @if (popover.panelBody(); as body) {
+    <div class="andes-popover-body" [id]="popover.bodyId">
+      @if (isTemplate(body)) {
+      <div
+        class="andes-popover-slot"
+        [andesPopoverOutlet]="body"
+        andesPopoverOutletKey="content"
+      ></div>
+      } @else { {{ body }} }
+    </div>
+    }
+    <ng-content />
+  </div>
 </div>

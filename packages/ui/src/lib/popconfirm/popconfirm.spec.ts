@@ -6,6 +6,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 
 import type { AndesButtonVariant } from '../button/button';
 import { AndesPopconfirmTrigger } from '../popover/popover-trigger';
@@ -327,6 +328,24 @@ describe('AndesPopconfirm', () => {
     update();
     expect(okButton().disabled).toBe(true);
     expect(okButton().getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('emits popupClick for clicks inside the panel, before confirm', async () => {
+    const { fixture, host, panel, openIt, update } = setup();
+    fixture.debugElement
+      .query(By.directive(AndesPopconfirm))
+      .injector.get(AndesPopconfirm)
+      .popupClick.subscribe(() => host.events.push('popup-click'));
+    await openIt();
+
+    (panel()?.querySelector('.andes-popconfirm-text') as HTMLElement).click();
+    update();
+    expect(host.events).toEqual(['popup-click']);
+
+    host.events.length = 0;
+    (panel()?.querySelector('.andes-popconfirm-ok') as HTMLElement).click();
+    update();
+    expect(host.events).toEqual(['confirm', 'popup-click']);
   });
 
   it('never opens while disabled', () => {

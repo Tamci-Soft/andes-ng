@@ -16,10 +16,12 @@ import {
   Injector,
   input,
   output,
+  Renderer2,
   signal,
   TemplateRef,
   viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { AndesButton, type AndesButtonVariant } from '../button/button';
 import { AndesPopoverBase } from '../popover/popover-base';
@@ -130,6 +132,8 @@ export class AndesPopconfirm extends AndesPopoverBase {
   readonly confirm = output<void>();
   /** Cancel was pressed, or Escape dismissed the popconfirm. */
   readonly cancelled = output<void>();
+  /** Any click inside the panel, buttons included. */
+  readonly popupClick = output<MouseEvent>();
 
   protected readonly panelTemplate = viewChild<TemplateRef<unknown>>('panel');
 
@@ -147,6 +151,27 @@ export class AndesPopconfirm extends AndesPopoverBase {
 
   /** Invalidates an in-flight `onConfirm` once the panel has closed. */
   private confirmRun = 0;
+
+  constructor() {
+    super();
+    // The panel is portalled and has no interactive role of its own, so the
+    // click is observed on its element rather than bound in the template.
+    const renderer = inject(Renderer2);
+    let stopListening: (() => void) | null = null;
+    this.overlay.opened.pipe(takeUntilDestroyed()).subscribe(() => {
+      stopListening?.();
+      const panel = this.overlay.contentElement();
+      stopListening = panel
+        ? renderer.listen(panel, 'click', (event: MouseEvent) =>
+            this.popupClick.emit(event),
+          )
+        : null;
+    });
+    this.overlay.closed.pipe(takeUntilDestroyed()).subscribe(() => {
+      stopListening?.();
+      stopListening = null;
+    });
+  }
 
   protected isTemplate(value: unknown): value is TemplateRef<unknown> {
     return value instanceof TemplateRef;

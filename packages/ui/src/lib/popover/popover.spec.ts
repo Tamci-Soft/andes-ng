@@ -1,5 +1,6 @@
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { readFileSync } from 'node:fs';
 import { By } from '@angular/platform-browser';
 import { AndesOverlayPrimitive } from '@andes-ng/primitives';
 
@@ -345,6 +346,7 @@ describe('AndesPopover', () => {
       [showArrow]="showArrow()"
       [arrowPointAtCenter]="pointAtCenter()"
       [autoAdjustOverflow]="autoAdjust()"
+      [maxHeight]="maxHeight()"
       [(open)]="open"
       (openChange)="changes.push($event)"
     >
@@ -379,6 +381,7 @@ class FeatureHost {
   readonly showArrow = signal(false);
   readonly pointAtCenter = signal(false);
   readonly autoAdjust = signal(true);
+  readonly maxHeight = signal<number | string | undefined>(undefined);
   readonly triggerDisabled = signal(false);
   readonly open = signal(false);
   readonly changes: boolean[] = [];
@@ -441,6 +444,78 @@ describe('AndesPopover - extended features', () => {
     vi.restoreAllMocks();
   });
 
+  describe('maxHeight', () => {
+    it('leaves the panel uncapped by default', () => {
+      const { trigger, panel, update } = setup();
+      trigger().click();
+      update();
+
+      expect(panel()?.hasAttribute('data-scrollable')).toBe(false);
+      expect(
+        panel()?.style.getPropertyValue('--andes-popover-max-height'),
+      ).toBe('');
+      expect(
+        panel()
+          ?.querySelector('.andes-popover-scroll')
+          ?.hasAttribute('tabindex'),
+      ).toBe(false);
+    });
+
+    it('caps the panel at a px number and scrolls only the region below the title', () => {
+      const { host, trigger, panel, update } = setup();
+      host.maxHeight.set(240);
+      update();
+      trigger().click();
+      update();
+
+      const surface = panel() as HTMLElement;
+      expect(surface.hasAttribute('data-scrollable')).toBe(true);
+      expect(surface.style.getPropertyValue('--andes-popover-max-height')).toBe(
+        '240px',
+      );
+      const scroll = surface.querySelector('.andes-popover-scroll');
+      expect(scroll?.querySelector('.andes-popover-body')).not.toBeNull();
+      // The title stays outside the scrolling region, so it remains in view.
+      expect(scroll?.querySelector('.andes-popover-title')).toBeNull();
+      expect(
+        surface.querySelector(':scope > .andes-popover-title'),
+      ).not.toBeNull();
+      // A tab stop, so long text can be scrolled from the keyboard.
+      expect(scroll?.getAttribute('tabindex')).toBe('0');
+    });
+
+    it('passes a CSS length through unchanged', () => {
+      const { host, trigger, panel, update } = setup();
+      host.maxHeight.set('50vh');
+      update();
+      trigger().click();
+      update();
+
+      expect(
+        panel()?.style.getPropertyValue('--andes-popover-max-height'),
+      ).toBe('50vh');
+    });
+
+    it('scrolls the inner region, never the surface the arrow hangs off', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      const surface =
+        /\.andes-popover-content\[data-scrollable\] \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(surface).toContain('max-height: var(--andes-popover-max-height);');
+      expect(surface).not.toContain('overflow');
+      const region =
+        /\.andes-popover-content\[data-scrollable\] > \.andes-popover-scroll \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(region).toContain('overflow-y: auto;');
+      expect(region).toContain('min-height: 0;');
+    });
+  });
+
   describe('title and content', () => {
     it('renders string title and content as structured header/body parts', () => {
       const { trigger, panel, update } = setup();
@@ -453,6 +528,105 @@ describe('AndesPopover - extended features', () => {
       expect(body?.textContent?.trim()).toBe('Body');
       expect(panel()?.getAttribute('role')).toBe('dialog');
       expect(panel()?.getAttribute('aria-labelledby')).toBe(title?.id);
+    });
+
+    it('sets a 16/24 semibold title over the 14/22 panel text', () => {
+      const { trigger, panel, update } = setup();
+      trigger().click();
+      update();
+
+      const surface = getComputedStyle(panel() as Element);
+      expect(surface.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(surface.lineHeight).toBe(
+        'var(--andes-text-line-height, 1.375rem)',
+      );
+      const title = getComputedStyle(
+        panel()?.querySelector('.andes-popover-title') as Element,
+      );
+      expect(title.fontSize).toBe('1rem');
+      expect(title.lineHeight).toBe('1.5rem');
+      expect(title.fontWeight).toBe('600');
+    });
+
+    it('enters with a 150ms soft fade and a drift of at most 4px', () => {
+      // Read from the stylesheet source: jsdom runs no animations, and keyframes
+      // are not reflected in the computed style.
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      expect(css).toContain(
+        'animation: andes-popover-in 0.15s cubic-bezier(0.2, 0, 0, 1);',
+      );
+      const keyframes =
+        /@keyframes andes-popover-in\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+      expect(keyframes).toContain(
+        'translate: var(--andes-popover-enter-from, 0 -4px);',
+      );
+      const offsets = [...css.matchAll(/--andes-popover-enter-from: ([^;]+);/g)]
+        .flatMap((m) => m[1].match(/-?\d+px/g) ?? [])
+        .map((px) => Math.abs(Number.parseInt(px, 10)));
+      expect(offsets.length).toBeGreaterThan(0);
+      expect(Math.max(...offsets)).toBeLessThanOrEqual(4);
+    });
+
+    it('leaves with a quicker, accelerating mirror of its entry', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      const rule =
+        /:host-context\(\[data-andes-closing\]\) \.andes-popover-content \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(rule).toContain('pointer-events: none;');
+      expect(rule).toMatch(
+        /animation: andes-popover-out var\(--andes-duration-fast, 120ms\)\s+var\(--andes-ease-in, [^)]+\)\) forwards;/,
+      );
+      const keyframes =
+        /@keyframes andes-popover-out\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+      expect(keyframes).toMatch(
+        /to \{\s*opacity: 0;\s*translate: var\(--andes-popover-enter-from, 0 -4px\);/,
+      );
+      const reduced = css.slice(
+        css.indexOf('@media (prefers-reduced-motion: reduce)'),
+      );
+      expect(reduced).toMatch(
+        /:host-context\(\[data-andes-closing\]\) \.andes-popover-content \{\s*animation: none;/,
+      );
+    });
+
+    it('deepens the success and info fills and the warning text for 4.5:1', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      ).replace(/\s+/g, ' ');
+      const rule = (color: string) =>
+        new RegExp(
+          `\\.andes-popover-content\\[data-color='${color}'\\] \\{([^}]*)\\}`,
+        ).exec(css)?.[1] ?? '';
+      expect(rule('success')).toContain(
+        '--andes-popover-background: color-mix( in srgb, var(--andes-color-success) 80%, #000 );',
+      );
+      expect(rule('info')).toContain(
+        '--andes-popover-background: color-mix( in srgb, var(--andes-color-info) 85%, #000 );',
+      );
+      expect(rule('warning')).toContain(
+        '--andes-popover-foreground: color-mix( in srgb, var(--andes-color-warning-foreground) 70%, #000 );',
+      );
+    });
+
+    it('sets the body in the muted foreground under a title', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      const rule =
+        /\.andes-popover-title \+ \.andes-popover-scroll > \.andes-popover-body \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(rule).toContain('--andes-popover-muted-foreground');
+      expect(rule).toContain('var(--andes-color-muted-foreground)');
     });
 
     it('renders template title and content', () => {
@@ -728,6 +902,26 @@ describe('AndesPopover - extended features', () => {
 
       const arrow = panel()?.querySelector<HTMLElement>('.andes-popover-arrow');
       expect(arrow?.style.left).toBe('16px');
+    });
+
+    it('centers the arrow on the trigger without rounding to whole pixels', async () => {
+      const { fixture, host, trigger, panel, update } = setup();
+      host.showArrow.set(true);
+      update();
+      // An odd-width trigger puts its center on a half pixel.
+      mockGeometry({
+        trigger: { left: 100, top: 100, width: 81, height: 30 },
+        panel: { left: 20, top: 138, width: 240, height: 80 },
+      });
+
+      trigger().click();
+      update();
+      await fixture.whenStable();
+      update();
+
+      // Trigger center 140.5 - panel left 20 (no border in jsdom).
+      const arrow = panel()?.querySelector<HTMLElement>('.andes-popover-arrow');
+      expect(arrow?.style.left).toBe('120.5px');
     });
 
     it('arrowPointAtCenter shifts the panel so the arrow points at the trigger center', async () => {
@@ -1120,5 +1314,114 @@ describe('AndesPopover - legacy title/content inputs', () => {
     ).toBe('Legacy body');
     expect(panel?.getAttribute('aria-labelledby')).toBe(title?.id);
     expect(panel?.hasAttribute('aria-describedby')).toBe(false);
+  });
+});
+
+@Component({
+  imports: [
+    AndesPopover,
+    AndesPopoverTrigger,
+    AndesPopoverContent,
+    AndesPopoverClose,
+  ],
+  template: `
+    <andes-popover [color]="color()" [content]="body" [(open)]="open">
+      <button type="button" id="trigger" andesPopoverTrigger>Open</button>
+    </andes-popover>
+    <ng-template #body>
+      <button type="button" id="done" andesPopoverClose>Done</button>
+    </ng-template>
+    <andes-popover [(open)]="projectedOpen">
+      <button type="button" id="trigger2" andesPopoverTrigger>Open</button>
+      <andes-popover-content>
+        <button type="button" id="done2" andesPopoverClose>Done</button>
+      </andes-popover-content>
+    </andes-popover>
+  `,
+})
+class ColorAndCloseHostComponent {
+  readonly color = signal<string | null>(null);
+  readonly open = signal(false);
+  readonly projectedOpen = signal(false);
+}
+
+describe('AndesPopover - color and close-from-content', () => {
+  withElementGeometry();
+
+  function createHost() {
+    const fixture = TestBed.createComponent(ColorAndCloseHostComponent);
+    fixture.detectChanges();
+    const panel = () =>
+      document.querySelector('.andes-popover-content') as HTMLElement | null;
+    return { fixture, host: fixture.componentInstance, panel };
+  }
+
+  it('marks a preset color on the panel without an inline background', () => {
+    const { fixture, host, panel } = createHost();
+    host.color.set('success');
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()?.getAttribute('data-color')).toBe('success');
+    expect(panel()?.style.getPropertyValue('--andes-popover-background')).toBe(
+      '',
+    );
+  });
+
+  it('paints a custom color through --andes-popover-background', () => {
+    const { fixture, host, panel } = createHost();
+    host.color.set('#7c3aed');
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()?.getAttribute('data-color')).toBe('custom');
+    expect(panel()?.style.getPropertyValue('--andes-popover-background')).toBe(
+      '#7c3aed',
+    );
+  });
+
+  it('leaves the regular surface without a color', () => {
+    const { fixture, host, panel } = createHost();
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()?.hasAttribute('data-color')).toBe(false);
+  });
+
+  it('andesPopoverClose closes the popover from TemplateRef content', () => {
+    const { fixture, host, panel } = createHost();
+    host.open.set(true);
+    fixture.detectChanges();
+
+    (document.querySelector('#done') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(host.open()).toBe(false);
+    expect(panel()).toBeNull();
+  });
+
+  it('andesPopoverClose closes the popover from projected content', () => {
+    const { fixture, host } = createHost();
+    host.projectedOpen.set(true);
+    fixture.detectChanges();
+
+    (document.querySelector('#done2') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(host.projectedOpen()).toBe(false);
+  });
+
+  it('close() closes an open popover and reports it through openChange', () => {
+    const { fixture, host } = createHost();
+    host.open.set(true);
+    fixture.detectChanges();
+
+    const popover = fixture.debugElement
+      .query(By.directive(AndesPopover))
+      .injector.get(AndesPopover);
+    popover.close();
+    fixture.detectChanges();
+
+    expect(host.open()).toBe(false);
   });
 });
