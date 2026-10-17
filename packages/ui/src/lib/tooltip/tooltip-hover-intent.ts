@@ -74,8 +74,7 @@ export const ANDES_TOOLTIP_TOUCH_HIDE_DELAY = 1500;
 /**
  * Minimum delay, in ms, before a hoverable tooltip closes after the pointer
  * leaves the trigger or the tooltip - long enough to cross the `sideOffset`
- * gap between them, short enough to read as closing on leave. Ant Design's
- * `mouseLeaveDelay` defaults to the same `0.1s`.
+ * gap between them, short enough to read as closing on leave.
  */
 export const ANDES_TOOLTIP_HOVERABLE_GRACE = 100;
 
