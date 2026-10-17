@@ -23,7 +23,6 @@ import { NgTemplateOutlet } from '@angular/common';
 
 import { AndesDialogActions } from './dialog-actions';
 import {
-  ANDES_DIALOG_BACKDROP_CLASS,
   AndesDialogRoot,
   AndesDialogRootBase,
   AndesDialogSurface,
@@ -128,7 +127,6 @@ export class AndesDialog extends AndesDialogRootBase {
   protected override configOverrides(): Partial<AndesOverlayConfig> {
     return {
       closeOnOutsideClick: this.closeOnOutsideClick(),
-      backdropClass: ANDES_DIALOG_BACKDROP_CLASS,
     };
   }
 }
@@ -198,6 +196,12 @@ export class AndesDialogContent extends AndesDialogSurfaceBase {
   readonly showCloseButton = input(true, { transform: booleanAttribute });
   /** Accessible label for the built-in close control. */
   readonly closeLabel = input('Close');
+  /**
+   * Render the built-in close control but disable it, for a step the user must not
+   * abandon midway (a payment being captured). Escape and outside clicks are separate
+   * switches: turn off `closeOnEscape`/`closeOnOutsideClick` on the root as well.
+   */
+  readonly closeDisabled = input(false, { transform: booleanAttribute });
   /**
    * Replaces the built-in "x" glyph. The button, its
    * label and its hit area stay the component's, so the icon should be decorative

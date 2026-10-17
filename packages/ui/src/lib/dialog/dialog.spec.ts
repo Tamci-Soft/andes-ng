@@ -1,6 +1,7 @@
 import type { AndesOverlayCloseReason } from '@andes-ng/primitives';
 import { Component, signal, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { readFileSync } from 'node:fs';
 
 import { ANDES_ALERT_DIALOG_IMPORTS, AndesAlertDialog } from './alert-dialog';
 import { ANDES_DIALOG_IMPORTS, AndesDialog } from './dialog';
@@ -532,6 +533,19 @@ describe('AndesDialog', () => {
       );
     });
 
+    it('sets a 16/24 semibold title over a 14/22 body', async () => {
+      const { inDialog, surface, openViaTrigger } = createHost();
+      await openViaTrigger();
+
+      const title = getComputedStyle(inDialog('title'));
+      expect(title.fontSize).toBe('1rem');
+      expect(title.lineHeight).toBe('1.5rem');
+      expect(title.fontWeight).toBe('600');
+      const body = getComputedStyle(surface());
+      expect(body.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(body.lineHeight).toBe('var(--andes-text-line-height, 1.375rem)');
+    });
+
     it('stacks on the modal z-index layer', async () => {
       const { pane, openViaTrigger } = createHost();
       await openViaTrigger();
@@ -813,5 +827,85 @@ describe('AndesAlertDialog', () => {
         SCROLL_BLOCK_CLASS,
       );
     });
+  });
+});
+
+describe('dialog motion', () => {
+  // Asserted against the stylesheet source: jsdom runs no animations, and the pane rule
+  // relies on `:has()`, so the cascade cannot be read back here.
+  const css = readFileSync('packages/ui/src/lib/dialog/dialog.css', 'utf8');
+
+  it('enters with a short, soft scale-and-fade', () => {
+    const rule = /animation:\s*andes-dialog-enter\s+([\d.]+)s\s+([^;]+);/.exec(
+      css,
+    );
+    expect(rule).not.toBeNull();
+    const seconds = Number(rule?.[1]);
+    expect(seconds).toBeGreaterThanOrEqual(0.15);
+    expect(seconds).toBeLessThanOrEqual(0.18);
+    expect(rule?.[2]).toBe('cubic-bezier(0.2, 0, 0, 1)');
+
+    const keyframes =
+      /@keyframes andes-dialog-enter\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const scales = [...keyframes.matchAll(/scale\(([\d.]+)\)/g)].map((m) =>
+      Number(m[1]),
+    );
+    expect(scales.length).toBeGreaterThan(0);
+    for (const scale of scales) {
+      expect(scale).toBeGreaterThanOrEqual(0.95);
+      expect(scale).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('drops the entry animation under reduced motion', () => {
+    const reduced = css.slice(
+      css.indexOf('@media (prefers-reduced-motion: reduce)'),
+    );
+    expect(reduced).toMatch(/animation:\s*none/);
+  });
+
+  it('leaves with a quicker, accelerating mirror of its entry', () => {
+    const rule =
+      /\.andes-overlay-pane\[data-andes-closing\]:has\([^{]*\{([^}]*)\}/.exec(
+        css,
+      )?.[1] ?? '';
+    expect(rule).toContain('pointer-events: none');
+    const exit =
+      /animation:\s*andes-dialog-exit\s+var\(--andes-duration-fast,\s*([\d.]+)s\)\s+var\(--andes-ease-in,[^;]+\)\s+forwards;/.exec(
+        rule,
+      );
+    expect(exit).not.toBeNull();
+    const seconds = Number(exit?.[1]);
+    expect(seconds).toBeGreaterThanOrEqual(0.12);
+    expect(seconds).toBeLessThanOrEqual(0.15);
+
+    const keyframes =
+      /@keyframes andes-dialog-exit\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(keyframes).toMatch(
+      /to\s*\{\s*opacity:\s*0;\s*transform:\s*scale\(0\.97\);/,
+    );
+  });
+
+  it('fades the scrim out in the same window', () => {
+    const rule =
+      /\.andes-dialog-backdrop\[data-andes-closing\]\s*\{([^}]*)\}/.exec(
+        css,
+      )?.[1] ?? '';
+    expect(rule).toMatch(
+      /animation:\s*andes-dialog-scrim-exit\s+var\(--andes-duration-fast,\s*0\.13s\)/,
+    );
+    expect(rule).toContain('forwards');
+  });
+
+  it('closes instantly under reduced motion', () => {
+    const reduced = css.slice(
+      css.indexOf('@media (prefers-reduced-motion: reduce)'),
+    );
+    expect(reduced).toMatch(
+      /\[data-andes-closing\]:has\([^{]*\{\s*animation:\s*none;/,
+    );
+    expect(reduced).toMatch(
+      /\.andes-dialog-backdrop\[data-andes-closing\]\s*\{\s*animation:\s*none;/,
+    );
   });
 });

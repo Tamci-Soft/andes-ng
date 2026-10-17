@@ -196,6 +196,8 @@
 
 .andes-dialog__title {
   margin: 0;
+  /* 16px, like every other surface title (drawer, card, popover): at 18px the dialog
+     heading stood out as the one oversized title in the system. */
   font-size: 1rem;
   /* 600, not --andes-font-weight-medium: at 500 the title carried no more weight than a
      field label beside it. Both reference libraries set a dialog title in semibold, and
@@ -249,7 +251,8 @@
     var(--andes-color-foreground) 10%,
     transparent
   );
-  animation: andes-dialog-skeleton 1.4s ease-in-out infinite;
+  /* Slow and shallow, so the placeholder breathes rather than flashes. */
+  animation: andes-dialog-skeleton 1.8s ease-in-out infinite;
 }
 
 .andes-dialog__skeleton-line:first-child {
@@ -262,7 +265,7 @@
 
 @keyframes andes-dialog-skeleton {
   50% {
-    opacity: 0.45;
+    opacity: 0.6;
   }
 }
 
@@ -289,6 +292,8 @@
   border-radius: var(--andes-radius-sm);
   background-color: transparent;
   color: var(--andes-color-muted-foreground);
+  /* A native <button> takes the UA font, not the surface's. */
+  font-family: inherit;
   cursor: pointer;
   transition:
     background-color var(--andes-motion-duration-fast, 0.1s)
@@ -300,7 +305,7 @@
 /* Mixed from the foreground rather than taken from --andes-color-accent, which is the
    same value as --andes-color-popover in the dark theme (#1e293b) and so left the
    control with no visible hover state at all on a dark surface. */
-.andes-dialog__close:hover {
+.andes-dialog__close:hover:not(:disabled) {
   background-color: color-mix(
     in srgb,
     var(--andes-color-foreground) 8%,
@@ -309,12 +314,19 @@
   color: var(--andes-color-popover-foreground);
 }
 
-.andes-dialog__close:active {
+.andes-dialog__close:active:not(:disabled) {
   background-color: color-mix(
     in srgb,
     var(--andes-color-foreground) 14%,
     transparent
   );
+}
+
+/* `closeDisabled`: the same dimmed, not-allowed treatment AndesButton gives a disabled
+   control, so the "x" reads as present but unavailable. */
+.andes-dialog__close:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .andes-dialog__close:focus-visible {
@@ -421,11 +433,9 @@
   box-sizing: border-box;
   width: 100%;
   padding: var(--andes-space-5);
-  /* A short fade with a barely-there scale (0.96 -> 1) on the ease-out curve. Ant's
-     own modal zooms up from 0.2 over 0.3s, which reads as a lunge on a desktop-sized
-     surface; this keeps the "arriving" cue without the motion drawing the eye. */
-  animation: andes-dialog-enter var(--andes-motion-duration-mid, 0.2s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  /* A short fade with a barely-there scale (0.97 -> 1) on the shared entry curve: a quick
+     start that settles without overshoot, so the "arriving" cue never draws the eye. */
+  animation: andes-dialog-enter 0.16s cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* Parks a `[centered]="false"` surface near the top. The CDK wrapper centres the pane
@@ -446,21 +456,46 @@
 
 /* The CDK's prebuilt stylesheet fades every backdrop over 400ms, so the scrim kept
    darkening for well over a tenth of a second after the dialog had finished arriving.
-   Matching the pane's own duration (0.2s, also Ant's mask fade) lands the two together.
+   Matching the pane's own duration (0.16s) lands the two together.
    Scoped to the class the two dialog roots pass as `backdropClass`, so no other
    overlay's timing changes. */
 .andes-dialog-backdrop {
-  transition-duration: var(--andes-motion-duration-mid, 0.2s);
-  transition-timing-function: var(
-    --andes-motion-ease-out,
-    cubic-bezier(0.215, 0.61, 0.355, 1)
-  );
+  transition-duration: 0.16s;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Exit motion. While the overlay primitive plays a close it marks the pane, its
+   children and the scrim with `data-andes-closing` and waits for the animations below
+   before detaching (on a branch whose primitive does not do that yet, the attribute
+   never appears and the close stays instant). The surface mirrors its entry - a fade
+   and a settle back to 0.97 - only quicker and accelerating away, so a dismissal never
+   lingers. `forwards` holds the last frame until the pane is removed, so the surface
+   cannot flash back to full opacity for a frame in between. */
+/* prettier-ignore */
+.andes-overlay-pane[data-andes-closing]:has(> .andes-dialog, > .andes-dialog-keep-alive > .andes-dialog) {
+  pointer-events: none;
+  animation: andes-dialog-exit var(--andes-duration-fast, 0.13s)
+    var(--andes-ease-in, cubic-bezier(0.4, 0, 1, 1)) forwards;
+}
+
+/* The scrim lifts in the same window, so the page is never left dimmed behind a surface
+   that has already gone. */
+.andes-dialog-backdrop[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-dialog-scrim-exit var(--andes-duration-fast, 0.13s)
+    var(--andes-ease-in, cubic-bezier(0.4, 0, 1, 1)) forwards;
+}
+
+/* `maskBlur`: frosts the page behind the scrim as well as dimming it. 4px keeps the
+   page recognisable - the point is focus, not hiding what the dialog is about. */
+.andes-dialog-backdrop--blur {
+  backdrop-filter: blur(4px);
 }
 
 @keyframes andes-dialog-enter {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.97);
   }
 
   to {
@@ -469,9 +504,37 @@
   }
 }
 
+@keyframes andes-dialog-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes andes-dialog-scrim-exit {
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* prettier-ignore */
   .andes-overlay-pane:has(> .andes-dialog, > .andes-dialog-keep-alive > .andes-dialog) {
+    animation: none;
+  }
+
+  /* No exit either: with nothing running the primitive detaches at once. */
+  /* prettier-ignore */
+  .andes-overlay-pane[data-andes-closing]:has(> .andes-dialog, > .andes-dialog-keep-alive > .andes-dialog) {
+    animation: none;
+  }
+
+  .andes-dialog-backdrop[data-andes-closing] {
     animation: none;
   }
 

@@ -1,3 +1,5 @@
+import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
+import { NgTemplateOutlet } from '@angular/common';
 import { signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
 
@@ -22,7 +24,7 @@ const TRIGGER_STYLES = `
       align-items: center;
       justify-content: center;
       gap: var(--andes-space-2);
-      height: 2.5rem;
+      height: 2rem;
       padding: 0 var(--andes-space-4);
       border: 1px solid transparent;
       border-radius: var(--andes-radius-md);
@@ -30,7 +32,7 @@ const TRIGGER_STYLES = `
       color: var(--andes-color-primary-foreground);
       font-family: var(--andes-font-family), sans-serif;
       font-weight: var(--andes-font-weight-medium);
-      font-size: 1rem;
+      font-size: 0.875rem;
       cursor: pointer;
       transition: background-color 0.15s ease;
     }
@@ -47,22 +49,30 @@ const TRIGGER_STYLES = `
       font-size: 0.875rem;
       color: var(--andes-color-foreground);
     }
+    /* The library has no Input component yet, so this demo field is a native input styled
+       as one: a single focus indicator (primary border plus a soft 2px ring), never an
+       outline drawn around the border as a second frame. */
     .sb-field input {
-      height: 2.25rem;
-      padding: 0 var(--andes-space-3);
+      box-sizing: border-box;
+      height: 2rem;
+      padding: 0 0.6875rem;
       border: 1px solid var(--andes-color-input);
       border-radius: var(--andes-radius-md);
       background-color: var(--andes-color-background);
       color: var(--andes-color-foreground);
       font: inherit;
+      line-height: 1.375rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     }
-    /* The library has no Input component yet, so this demo field is a native input. It
-       still needs the design system's focus ring: without one the browser draws its own
-       default ring inside the border, which reads as a second, mismatched border. */
-    .sb-field input:focus-visible {
-      border-color: var(--andes-color-focus-ring);
-      outline: 2px solid var(--andes-color-focus-ring);
-      outline-offset: 2px;
+    .sb-field input::placeholder { color: var(--andes-color-muted-foreground); }
+    .sb-field input:hover {
+      border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+    }
+    .sb-field input:focus {
+      border-color: var(--andes-color-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+      outline: none;
     }
   </style>
 `;
@@ -78,7 +88,10 @@ const meta: Meta<AndesDialog> = {
     lockScroll: { control: 'boolean' },
     centered: { control: 'boolean' },
     mask: { control: 'boolean' },
+    maskBlur: { control: 'boolean' },
     loading: { control: 'boolean' },
+    restoreFocus: { control: 'boolean' },
+    trapFocus: { control: 'boolean' },
   },
   args: {
     size: 'md',
@@ -87,7 +100,10 @@ const meta: Meta<AndesDialog> = {
     lockScroll: true,
     centered: true,
     mask: true,
+    maskBlur: false,
     loading: false,
+    restoreFocus: true,
+    trapFocus: true,
   },
   render: (args) => ({
     moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS, AndesButton] },
@@ -101,7 +117,10 @@ const meta: Meta<AndesDialog> = {
         [lockScroll]="lockScroll"
         [centered]="centered"
         [mask]="mask"
+        [maskBlur]="maskBlur"
         [loading]="loading"
+        [restoreFocus]="restoreFocus"
+        [trapFocus]="trapFocus"
       >
         <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Edit profile</button>
 
@@ -505,4 +524,120 @@ export const LifecycleEvents: Story = {
       `,
     };
   },
+};
+
+/**
+ * A custom `footer` template also receives the built-in buttons as templates
+ * (`defaultButtons`, or `okButton` and `cancelButton` one by one), already labelled,
+ * styled and wired - so a footer can add an action beside the default pair instead of
+ * rebuilding it.
+ */
+export const ExtendDefaultFooter: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [ANDES_DIALOG_IMPORTS, AndesButton, NgTemplateOutlet],
+    },
+    props: { lastAction: '' },
+    template: `
+      ${TRIGGER_STYLES}
+      <andes-dialog
+        #dialog
+        [footer]="footer"
+        okText="Submit"
+        (ok)="lastAction = 'submit'; dialog.hide()"
+        (cancelled)="lastAction = 'cancel'"
+      >
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Submit expense</button>
+
+        <andes-dialog-content *andesDialogContent>
+          <div andesDialogHeader>
+            <h2 andesDialogTitle>Submit expense report</h2>
+            <p andesDialogDescription>Send it for approval, or come back to it later.</p>
+          </div>
+        </andes-dialog-content>
+      </andes-dialog>
+
+      <ng-template #footer let-buttons="defaultButtons">
+        <andes-button
+          variant="ghost"
+          style="margin-inline-end: auto"
+          (click)="lastAction = 'draft'; dialog.hide()"
+        >
+          Save draft
+        </andes-button>
+        <ng-container *ngTemplateOutlet="buttons" />
+      </ng-template>
+      <p style="${LOG_STYLE}">Last action: {{ lastAction || '-' }}</p>
+    `,
+  }),
+};
+
+/**
+ * `okButtonProps` and `cancelButtonProps` reach past the dedicated inputs: size,
+ * ghost, an accessible name or extra classes. `variant` wins over `okType`, while
+ * `disabled`/`loading` add to `okDisabled`/`confirmLoading`.
+ */
+export const FooterButtonProps: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [ANDES_DIALOG_IMPORTS] },
+    template: `
+      ${TRIGGER_STYLES}
+      <andes-dialog
+        #dialog
+        footer="default"
+        okText="Remove 3 users"
+        cancelText="Keep them"
+        [okButtonProps]="{ variant: 'danger', ariaLabel: 'Remove the 3 selected users' }"
+        [cancelButtonProps]="{ variant: 'ghost' }"
+        autoFocusButton="cancel"
+        (ok)="dialog.hide()"
+      >
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Remove users</button>
+
+        <andes-dialog-content *andesDialogContent>
+          <div andesDialogHeader>
+            <h2 andesDialogTitle>Remove selected users?</h2>
+            <p andesDialogDescription>They lose access to this workspace immediately.</p>
+          </div>
+        </andes-dialog-content>
+      </andes-dialog>
+    `,
+  }),
+};
+
+/**
+ * `maskBlur` frosts the page behind the scrim as well as dimming it; the dialog
+ * keeps its focus trap and scroll lock exactly as with the plain mask.
+ */
+export const BlurredMask: Story = {
+  args: { maskBlur: true },
+};
+
+/**
+ * The surface is ordinary markup, so the CDK's drag-and-drop directives make it
+ * movable without any dialog-specific API: `cdkDrag` on the surface and
+ * `cdkDragHandle` on the header, so text and controls in the body stay selectable.
+ */
+export const Draggable: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [ANDES_DIALOG_IMPORTS, AndesButton, CdkDrag, CdkDragHandle],
+    },
+    template: `
+      ${TRIGGER_STYLES}
+      <style>
+        .sb-drag-handle { cursor: move; user-select: none; }
+      </style>
+      <andes-dialog footer="default" okText="Done" [showCancel]="false" #dialog (ok)="dialog.hide()">
+        <button type="button" class="sb-dialog-trigger" andesDialogTrigger>Open movable dialog</button>
+
+        <andes-dialog-content *andesDialogContent cdkDrag>
+          <div andesDialogHeader class="sb-drag-handle" cdkDragHandle>
+            <h2 andesDialogTitle>Drag me by the header</h2>
+            <p andesDialogDescription>Move the dialog aside to compare with the page behind it.</p>
+          </div>
+        </andes-dialog-content>
+      </andes-dialog>
+    `,
+  }),
 };

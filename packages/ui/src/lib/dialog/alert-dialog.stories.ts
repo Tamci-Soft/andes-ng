@@ -19,7 +19,7 @@ const TRIGGER_STYLES = `
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      height: 2.5rem;
+      height: 2rem;
       padding: 0 var(--andes-space-4);
       border: 1px solid transparent;
       border-radius: var(--andes-radius-md);
@@ -27,7 +27,7 @@ const TRIGGER_STYLES = `
       color: var(--andes-color-danger-foreground);
       font-family: var(--andes-font-family), sans-serif;
       font-weight: var(--andes-font-weight-medium);
-      font-size: 1rem;
+      font-size: 0.875rem;
       cursor: pointer;
       transition: background-color 0.15s ease;
     }

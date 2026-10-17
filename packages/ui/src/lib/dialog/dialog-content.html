@@ -29,6 +29,8 @@
     [cancelLoading]="root.cancelLoading()"
     [showCancel]="root.showCancel()"
     [autoFocusButton]="root.autoFocusButton()"
+    [okButtonProps]="root.okButtonProps()"
+    [cancelButtonProps]="root.cancelButtonProps()"
     (okClick)="root.requestOk()"
     (cancelClick)="root.requestCancel()"
   />
@@ -45,6 +47,7 @@
   class="andes-dialog__close"
   data-slot="dialog-close-button"
   [attr.aria-label]="closeLabel()"
+  [disabled]="closeDisabled()"
   (click)="root.requestCancel()"
 >
   @if (closeIcon(); as icon) {

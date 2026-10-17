@@ -1,4 +1,5 @@
 import type { AndesOverlayCloseReason } from '@andes-ng/primitives';
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, Directive, signal, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
@@ -7,6 +8,7 @@ import { ANDES_ALERT_DIALOG_IMPORTS } from './alert-dialog';
 import { ANDES_DIALOG_IMPORTS, AndesDialog } from './dialog';
 import type {
   AndesDialogAutoFocusButton,
+  AndesDialogButtonProps,
   AndesDialogFooterOption,
   AndesDialogWidth,
 } from './dialog-base';
@@ -782,5 +784,224 @@ describe('AndesAlertDialog - extended behavior', () => {
       surface().querySelector('[data-slot="alert-dialog-skeleton"]'),
     ).toBeTruthy();
     expect(surface().querySelector('andes-dialog-actions')).toBeNull();
+  });
+});
+
+@Component({
+  imports: [ANDES_DIALOG_IMPORTS, NgTemplateOutlet],
+  template: `
+    <andes-dialog
+      [(open)]="open"
+      [footer]="extendFooter() ? extended : 'default'"
+      okType="primary"
+      [okButtonProps]="okProps()"
+      [cancelButtonProps]="cancelProps()"
+      [autoFocusButton]="autoFocusButton()"
+      [restoreFocus]="restoreFocus()"
+      [trapFocus]="trapFocus()"
+      [maskBlur]="maskBlur()"
+      (ok)="okCount = okCount + 1"
+      (cancelled)="cancelCount = cancelCount + 1"
+    >
+      <button type="button" id="trigger" andesDialogTrigger>Open</button>
+
+      <andes-dialog-content
+        *andesDialogContent
+        [closeDisabled]="closeDisabled()"
+      >
+        <div andesDialogHeader>
+          <h2 andesDialogTitle>Edit</h2>
+        </div>
+        <input id="field" />
+      </andes-dialog-content>
+    </andes-dialog>
+
+    <ng-template #extended let-buttons="defaultButtons">
+      <button type="button" id="draft">Save draft</button>
+      <ng-container *ngTemplateOutlet="buttons" />
+    </ng-template>
+  `,
+})
+class FeatureHost {
+  readonly open = signal(false);
+  readonly extendFooter = signal(false);
+  readonly okProps = signal<AndesDialogButtonProps | null>(null);
+  readonly cancelProps = signal<AndesDialogButtonProps | null>(null);
+  readonly autoFocusButton = signal<AndesDialogAutoFocusButton>(null);
+  readonly restoreFocus = signal(true);
+  readonly trapFocus = signal(true);
+  readonly maskBlur = signal(false);
+  readonly closeDisabled = signal(false);
+  okCount = 0;
+  cancelCount = 0;
+}
+
+describe('AndesDialog - footer button settings, focus and mask options', () => {
+  withElementGeometry();
+
+  function createHost(setup?: (host: FeatureHost) => void) {
+    const fixture = TestBed.createComponent(FeatureHost);
+    setup?.(fixture.componentInstance);
+    fixture.detectChanges();
+    const host = fixture.componentInstance;
+    const surface = () =>
+      document.querySelector('[data-slot="dialog-content"]') as HTMLElement;
+    const action = (which: 'ok' | 'cancel') =>
+      surface()?.querySelector(
+        `[data-slot="dialog-${which}"] button`,
+      ) as HTMLButtonElement;
+    return {
+      fixture,
+      host,
+      surface,
+      action,
+      async open() {
+        host.open.set(true);
+        fixture.detectChanges();
+        await fixture.whenStable();
+      },
+    };
+  }
+
+  it('applies okButtonProps/cancelButtonProps on top of the dedicated inputs', async () => {
+    const { surface, action, open } = createHost((h) => {
+      h.okProps.set({
+        variant: 'danger',
+        size: 'lg',
+        ariaLabel: 'Delete the record',
+        className: 'my-ok',
+      });
+      h.cancelProps.set({ disabled: true, ghost: true });
+    });
+    await open();
+
+    expect(action('ok').dataset['variant']).toBe('danger');
+    expect(action('ok').dataset['size']).toBe('lg');
+    expect(action('ok').getAttribute('aria-label')).toBe('Delete the record');
+    expect(
+      surface().querySelector('[data-slot="dialog-ok"]')?.classList,
+    ).toContain('my-ok');
+    expect(action('cancel').disabled).toBe(true);
+  });
+
+  it('ignores activation of a button its props disable or put in loading', async () => {
+    const { fixture, host, surface, action, open } = createHost((h) =>
+      h.okProps.set({ loading: true }),
+    );
+    await open();
+
+    (surface().querySelector('[data-slot="dialog-ok"]') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(action('ok').disabled).toBe(true);
+    expect(host.okCount).toBe(0);
+  });
+
+  it('hands a custom footer the built-in buttons, still wired to ok/cancel', async () => {
+    const { fixture, host, surface, action, open } = createHost((h) =>
+      h.extendFooter.set(true),
+    );
+    await open();
+
+    const footer = surface().querySelector('[data-slot="dialog-footer"]');
+    expect(
+      [...(footer?.querySelectorAll('button') ?? [])].map((b) =>
+        b.textContent?.trim(),
+      ),
+    ).toEqual(['Save draft', 'Cancel', 'OK']);
+
+    action('ok').click();
+    fixture.detectChanges();
+    expect(host.okCount).toBe(1);
+
+    action('cancel').click();
+    fixture.detectChanges();
+    expect(host.cancelCount).toBe(1);
+    expect(surface()).toBeNull();
+  });
+
+  it('honours autoFocusButton for built-in buttons inside a custom footer', async () => {
+    const { action, open } = createHost((h) => {
+      h.extendFooter.set(true);
+      h.autoFocusButton.set('ok');
+    });
+    await open();
+    await nextTask();
+
+    expect(document.activeElement).toBe(action('ok'));
+  });
+
+  it('returns focus to the trigger on close unless restoreFocus is off', async () => {
+    for (const restore of [true, false]) {
+      const { fixture, action, open } = createHost((h) =>
+        h.restoreFocus.set(restore),
+      );
+      const trigger = (fixture.nativeElement as HTMLElement).querySelector(
+        '#trigger',
+      ) as HTMLElement;
+      trigger.focus();
+      await open();
+      await nextTask();
+
+      action('cancel').click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      if (restore) {
+        expect(document.activeElement).toBe(trigger);
+      } else {
+        expect(document.activeElement).not.toBe(trigger);
+      }
+      fixture.destroy();
+    }
+  });
+
+  it('can release the focus trap while still moving focus into the surface', async () => {
+    const anchors = () =>
+      document.querySelectorAll('.cdk-focus-trap-anchor[tabindex="0"]').length;
+
+    const trapped = createHost();
+    await trapped.open();
+    expect(anchors()).toBeGreaterThan(0);
+    trapped.fixture.destroy();
+
+    const free = createHost((h) => h.trapFocus.set(false));
+    await free.open();
+    await nextTask();
+    expect(anchors()).toBe(0);
+    expect(free.surface().contains(document.activeElement)).toBe(true);
+  });
+
+  it('adds the blur class to the backdrop under maskBlur', async () => {
+    const { open } = createHost((h) => h.maskBlur.set(true));
+    await open();
+
+    expect(
+      document.querySelector('.andes-overlay-backdrop')?.classList,
+    ).toContain('andes-dialog-backdrop--blur');
+  });
+
+  it('keeps the backdrop unblurred by default', async () => {
+    const { open } = createHost();
+    await open();
+
+    const backdrop = document.querySelector('.andes-overlay-backdrop');
+    expect(backdrop?.classList).toContain('andes-dialog-backdrop');
+    expect(backdrop?.classList).not.toContain('andes-dialog-backdrop--blur');
+  });
+
+  it('renders a disabled close control under closeDisabled', async () => {
+    const { fixture, surface, open } = createHost((h) =>
+      h.closeDisabled.set(true),
+    );
+    await open();
+
+    const close = surface().querySelector(
+      '[data-slot="dialog-close-button"]',
+    ) as HTMLButtonElement;
+    expect(close.disabled).toBe(true);
+    close.click();
+    fixture.detectChanges();
+    expect(surface()).toBeTruthy();
   });
 });

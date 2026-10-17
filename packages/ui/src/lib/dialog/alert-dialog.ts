@@ -14,13 +14,14 @@ import {
   Directive,
   forwardRef,
   inject,
+  InjectionToken,
+  type Signal,
   TemplateRef,
   ViewEncapsulation,
 } from '@angular/core';
 
 import { AndesDialogActions } from './dialog-actions';
 import {
-  ANDES_DIALOG_BACKDROP_CLASS,
   AndesDialogRoot,
   AndesDialogRootBase,
   AndesDialogSurface,
@@ -29,6 +30,15 @@ import {
   dialogWidthStyles,
   registerDialogLabel,
 } from './dialog-base';
+
+/**
+ * Lets the service's own dialog opt an alert dialog back into outside-click dismissal,
+ * for its `maskClosable` option. Internal: not exported from the package, so the
+ * declarative alert dialog keeps refusing outside clicks for every consumer.
+ */
+export const ANDES_ALERT_DIALOG_OUTSIDE_CLICK = new InjectionToken<
+  Signal<boolean>
+>('AndesAlertDialogOutsideClick');
 
 /**
  * Marks the `<ng-template>` holding an alert dialog's surface. The alert-dialog
@@ -90,6 +100,10 @@ export class AndesAlertDialogContentTemplate {
   },
 })
 export class AndesAlertDialog extends AndesDialogRootBase {
+  private readonly outsideClickDismissal = inject(
+    ANDES_ALERT_DIALOG_OUTSIDE_CLICK,
+    { optional: true },
+  );
   private readonly contentTemplate = contentChild(
     AndesAlertDialogContentTemplate,
     { descendants: true },
@@ -104,7 +118,10 @@ export class AndesAlertDialog extends AndesDialogRootBase {
   }
 
   protected override configOverrides(): Partial<AndesOverlayConfig> {
-    return { backdropClass: ANDES_DIALOG_BACKDROP_CLASS };
+    // The one root that lets a caller re-open outside-click dismissal is the
+    // service's own dialog, through an internal token no consumer can reach.
+    const dismissal = this.outsideClickDismissal;
+    return dismissal ? { closeOnOutsideClick: dismissal() } : {};
   }
 }
 

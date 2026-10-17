@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ApplicationRef,
   Component,
@@ -70,6 +71,7 @@ function deferred() {
 }
 
 @Component({
+  imports: [NgTemplateOutlet],
   template: `
     <button type="button" id="launcher">Launch</button>
     <ng-template #rich let-ref>
@@ -82,6 +84,10 @@ function deferred() {
     <ng-template #icon>
       <svg id="custom-icon"></svg>
     </ng-template>
+    <ng-template #extended let-buttons="defaultButtons">
+      <button type="button" id="footer-extra">Details</button>
+      <ng-container *ngTemplateOutlet="buttons" />
+    </ng-template>
   `,
 })
 class LauncherHost {
@@ -92,6 +98,8 @@ class LauncherHost {
   readonly footer =
     viewChild.required<TemplateRef<AndesDialogFooterContext>>('footer');
   readonly icon = viewChild.required<TemplateRef<unknown>>('icon');
+  readonly extended =
+    viewChild.required<TemplateRef<AndesDialogFooterContext>>('extended');
 }
 
 describe('AndesDialogService', () => {
@@ -464,4 +472,168 @@ describe('AndesDialogService', () => {
     ).toBe('3000');
     expect(document.querySelector('.andes-overlay-backdrop')).toBeNull();
   });
+
+  it('applies okButtonProps and cancelButtonProps', async () => {
+    service.confirm({
+      title: 'Archive?',
+      okButtonProps: {
+        size: 'sm',
+        className: 'my-ok',
+        ariaLabel: 'Archive it',
+      },
+      cancelButtonProps: { disabled: true },
+    });
+    await settle();
+
+    expect(action('ok')?.dataset['size']).toBe('sm');
+    expect(action('ok')?.getAttribute('aria-label')).toBe('Archive it');
+    expect(
+      surface()?.querySelector('[data-slot="dialog-ok"]')?.classList,
+    ).toContain('my-ok');
+    expect(action('cancel')?.disabled).toBe(true);
+  });
+
+  it('renders a custom close icon on the "x"', async () => {
+    const fixture = TestBed.createComponent(LauncherHost);
+    fixture.detectChanges();
+
+    service.info({
+      title: 'Note',
+      closable: true,
+      closeIcon: fixture.componentInstance.icon(),
+    });
+    await settle();
+
+    const close = surface()?.querySelector('[data-slot="dialog-close-button"]');
+    expect(close?.querySelector('#custom-icon')).toBeTruthy();
+    expect(close?.querySelector('.andes-dialog__close-icon')).toBeNull();
+  });
+
+  it('ignores backdrop clicks by default', async () => {
+    service.info({ title: 'Saved' });
+    await settle();
+
+    clickBackdrop();
+    await settle();
+
+    expect(surface()).toBeTruthy();
+  });
+
+  it('closes from a backdrop click as a cancel under maskClosable', async () => {
+    const onCancel = vi.fn();
+    const ref = service.info({ title: 'Saved', maskClosable: true, onCancel });
+    await settle();
+
+    clickBackdrop();
+
+    await expect(ref.result).resolves.toBe(false);
+    await nextTask();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('blurs the backdrop under maskBlur', async () => {
+    service.info({ title: 'Saved', maskBlur: true });
+    await settle();
+
+    expect(
+      document.querySelector('.andes-overlay-backdrop')?.classList,
+    ).toContain('andes-dialog-backdrop--blur');
+  });
+
+  it('lets an onOk that takes close decide when to close', async () => {
+    let close!: () => void;
+    const ref = service.confirm({
+      title: 'Proceed?',
+      onOk: (done) => {
+        close = done;
+      },
+    });
+    await settle();
+
+    action('ok')?.click();
+    await settle();
+    expect(surface()).toBeTruthy();
+    expect(ref.closed()).toBe(false);
+
+    close();
+    await expect(ref.result).resolves.toBe(true);
+  });
+
+  it('lets an onCancel that takes close decide when to close, without a second call', async () => {
+    let close!: () => void;
+    const onCancel = vi.fn((done: () => void) => {
+      close = done;
+    });
+    const ref = service.confirm({ title: 'Leave?', onCancel });
+    await settle();
+
+    action('cancel')?.click();
+    await settle();
+    expect(surface()).toBeTruthy();
+
+    close();
+    await expect(ref.result).resolves.toBe(false);
+    await nextTask();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('still closes after an onOk without a close parameter returns', async () => {
+    const ref = service.confirm({ title: 'Go?', onOk: () => 'done' });
+    await settle();
+
+    action('ok')?.click();
+    await expect(ref.result).resolves.toBe(true);
+  });
+
+  it('hands a custom footer the built-in buttons', async () => {
+    const fixture = TestBed.createComponent(LauncherHost);
+    fixture.detectChanges();
+
+    const ref = service.confirm({
+      title: 'Sure?',
+      okText: 'Yes',
+      footer: fixture.componentInstance.extended(),
+    });
+    await settle();
+
+    const footer = surface()?.querySelector('andes-dialog-actions');
+    expect(
+      [...(footer?.querySelectorAll('button') ?? [])].map((b) =>
+        b.textContent?.trim(),
+      ),
+    ).toEqual(['Details', 'Cancel', 'Yes']);
+
+    action('ok')?.click();
+    await expect(ref.result).resolves.toBe(true);
+  });
+
+  it('can leave focus alone on close when restoreFocus is off', async () => {
+    const fixture = TestBed.createComponent(LauncherHost);
+    fixture.detectChanges();
+    const launcher = (fixture.nativeElement as HTMLElement).querySelector(
+      '#launcher',
+    ) as HTMLElement;
+    launcher.focus();
+
+    const ref = service.info({ title: 'Saved', restoreFocus: false });
+    await settle();
+    await nextTask();
+
+    action('ok')?.click();
+    await ref.result;
+
+    expect(document.activeElement).not.toBe(launcher);
+  });
 });
+
+function clickBackdrop() {
+  const backdrop = document.querySelector(
+    '.andes-overlay-backdrop',
+  ) as HTMLElement;
+  backdrop.dispatchEvent(
+    new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+  );
+  backdrop.dispatchEvent(
+    new MouseEvent('click', { bubbles: true, cancelable: true }),
+  );
+}
