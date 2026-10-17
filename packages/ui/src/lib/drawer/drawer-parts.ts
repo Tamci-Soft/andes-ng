@@ -85,7 +85,7 @@ export class AndesDrawerHeader {
 export class AndesDrawerFooter {}
 
 /**
- * The drawer's heading (`<h2>`, per shadcn's `DrawerTitle`). Registers itself
+ * The drawer's heading (`<h2>`). Registers itself
  * with the enclosing `AndesDrawer` so the panel's `aria-labelledby` points at it.
  */
 @Component({
@@ -120,7 +120,7 @@ export class AndesDrawerTitle {
 }
 
 /**
- * The drawer's description (`<p>`, per shadcn's `DrawerDescription`). Registers
+ * The drawer's description (`<p>`). Registers
  * itself with the enclosing `AndesDrawer` so the panel's `aria-describedby`
  * points at it.
  */

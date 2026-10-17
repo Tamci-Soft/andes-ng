@@ -98,7 +98,7 @@ export class AndesSheetHeader {
 export class AndesSheetFooter {}
 
 /**
- * The sheet's heading (`<h2>`, per shadcn's `SheetTitle`). Registers itself with
+ * The sheet's heading (`<h2>`). Registers itself with
  * the enclosing `AndesSheet` so the panel's `aria-labelledby` points at it.
  */
 @Component({
@@ -133,7 +133,7 @@ export class AndesSheetTitle {
 }
 
 /**
- * The sheet's description (`<p>`, per shadcn's `SheetDescription`). Registers
+ * The sheet's description (`<p>`). Registers
  * itself with the enclosing `AndesSheet` so the panel's `aria-describedby` points
  * at it.
  */
