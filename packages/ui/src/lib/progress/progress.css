@@ -177,11 +177,12 @@
   color: var(--andes-color-danger-foreground);
 }
 
-/* White on the success green (3.3:1) and the warning token's own brown on amber (4.2:1) both
-   miss AA for 12px text, so text on those fills uses a near-black shade of the fill itself
-   (>= 5.6:1 in both themes, since these fills don't change with the theme). */
+/* The success fill is dark enough for its white -foreground (5.02:1). The warning token's own
+   brown on amber is 4.2:1 - short of AA for 12px text - so text on that fill uses a near-black
+   shade of the fill itself (>= 5.6:1 in both themes, since the fill doesn't change with the
+   theme). */
 .andes-progress--inner.andes-progress--success .andes-progress__info {
-  color: color-mix(in srgb, var(--andes-color-success) 15%, black);
+  color: var(--andes-color-success-foreground);
 }
 
 .andes-progress--inner.andes-progress--warning .andes-progress__info {
