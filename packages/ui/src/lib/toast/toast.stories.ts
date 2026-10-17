@@ -24,7 +24,7 @@ import { AndesToastViewport } from './toast-viewport';
 const BAR_STYLE =
   'display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 2rem; font-family: system-ui, sans-serif;';
 const NOTE_STYLE =
-  'padding: 0 2rem; font-family: system-ui, sans-serif; color: #64748b;';
+  'padding: 0 2rem; font-family: system-ui, sans-serif; color: var(--andes-color-muted-foreground);';
 
 /**
  * Demo host: `AndesToastService`/`AndesToastViewport` are an imperative API with no visual
