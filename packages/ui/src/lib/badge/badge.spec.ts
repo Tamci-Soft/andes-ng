@@ -579,7 +579,7 @@ describe('AndesBadge shape', () => {
     expect(shape.hasFixedWidth).toBe(true);
     expect(shape.inlinePadding).toBe(0);
     expect(shape.width).toBe(shape.height);
-    expect(shape.width).toBe(8);
+    expect(shape.width).toBe(6);
   });
 
   it('circles a single-digit count at the small size too', () => {

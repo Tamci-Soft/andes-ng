@@ -5,14 +5,23 @@
   gap: var(--andes-space-1);
   border-radius: var(--andes-radius-sm);
   border: 1px solid transparent;
-  padding-block: 0.125rem;
-  padding-inline: var(--andes-space-2);
+  /* Ant Design's tag box: a 20px line inside the 1px border is 22px tall, with 7px inline
+     padding (8px less the border). */
+  padding-block: 0;
+  padding-inline: 0.4375rem;
   font-family: var(--andes-font-family), sans-serif;
   font-size: 0.75rem;
   font-weight: var(--andes-font-weight-medium);
-  line-height: 1.4;
+  line-height: 1.25rem;
   white-space: nowrap;
   text-decoration: none;
+  transition:
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 /* Projected icons keep their own encapsulation context - see button.css for why ::ng-deep
@@ -84,7 +93,9 @@ a.andes-tag:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-inline-start: var(--andes-space-1);
+  /* With the 4px gap, 7px between the label and the 10px icon (Ant's 3px icon margin plus its
+     glyph's own side bearing). */
+  margin-inline-start: 0.1875rem;
   padding: 0;
   border: none;
   background: none;
@@ -109,8 +120,8 @@ a.andes-tag:focus-visible {
 }
 
 .andes-tag__close svg {
-  width: 0.75em;
-  height: 0.75em;
+  width: 0.625rem;
+  height: 0.625rem;
 }
 
 /*
