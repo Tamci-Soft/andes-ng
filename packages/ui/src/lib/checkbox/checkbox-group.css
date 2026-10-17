@@ -5,7 +5,8 @@
    `.andes-checkbox-group { ... }` rule would never match it. */
 :host {
   display: flex;
-  gap: var(--andes-space-3);
+  /* 8px between items, as Ant's Checkbox.Group. */
+  gap: var(--andes-space-2);
 }
 
 :host(.andes-checkbox-group--vertical) {
