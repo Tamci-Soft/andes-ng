@@ -1,3 +1,7 @@
+import {
+  andesOverlayPreset,
+  AndesOverlayPrimitive,
+} from '@andes-ng/primitives';
 import { NgTemplateOutlet } from '@angular/common';
 import {
   afterRenderEffect,
@@ -8,6 +12,7 @@ import {
   computed,
   DestroyRef,
   Directive,
+  effect,
   ElementRef,
   type EmbeddedViewRef,
   forwardRef,
@@ -21,19 +26,26 @@ import {
   type Signal,
   TemplateRef,
   untracked,
+  viewChild,
   ViewEncapsulation,
 } from '@angular/core';
 
 import { AndesDropdownMenu } from '../dropdown-menu/dropdown-menu';
 import { AndesDropdownMenuContent } from '../dropdown-menu/dropdown-menu-content';
 import { AndesDropdownMenuItem } from '../dropdown-menu/dropdown-menu-item';
+import { AndesDropdownMenuLabel } from '../dropdown-menu/dropdown-menu-label';
+import { AndesDropdownMenuSeparator } from '../dropdown-menu/dropdown-menu-separator';
 import { AndesDropdownMenuTrigger } from '../dropdown-menu/dropdown-menu-trigger';
 import {
+  type AndesBreadcrumbDropdownAlign,
+  type AndesBreadcrumbDropdownSide,
   type AndesBreadcrumbItemClickEvent,
   type AndesBreadcrumbItemRenderContext,
   type AndesBreadcrumbItemType,
   type AndesBreadcrumbMenuClickEvent,
+  type AndesBreadcrumbMenuEntry,
   type AndesBreadcrumbMenuItem,
+  type AndesBreadcrumbMenuOpenChangeEvent,
   type AndesBreadcrumbParams,
   type AndesBreadcrumbResolvedCrumb,
   type AndesBreadcrumbSeparatorContent,
@@ -276,9 +288,31 @@ interface AndesBreadcrumbDropdownSelection {
   readonly event: MouseEvent;
 }
 
+/** @internal One row of the open dropdown: an entry, a divider, or a group heading. */
+type MenuRow =
+  | { readonly kind: 'item'; readonly item: AndesBreadcrumbMenuItem }
+  | { readonly kind: 'divider' }
+  | { readonly kind: 'label'; readonly label: string };
+
+function toMenuRows(entries: readonly AndesBreadcrumbMenuEntry[]): MenuRow[] {
+  return entries.flatMap((entry): MenuRow[] => {
+    switch (entry.type) {
+      case 'divider':
+        return [{ kind: 'divider' }];
+      case 'group':
+        return [
+          { kind: 'label', label: entry.label },
+          ...entry.children.map((item): MenuRow => ({ kind: 'item', item })),
+        ];
+      default:
+        return [{ kind: 'item', item: entry }];
+    }
+  });
+}
+
 /**
  * @internal A trigger `<button>` (whose content is projected) opening an `AndesDropdownMenu` of
- * `AndesBreadcrumbMenuItem`s. Shared by the ellipsis and by `[items]` crumbs that have a `menu`,
+ * `AndesBreadcrumbMenuEntry`s. Shared by the ellipsis and by `[items]` crumbs that have a `menu`,
  * so both get the same entry rendering and the same click/keyboard activation rules. Not exported
  * from the package: consumers compose `AndesDropdownMenu` themselves for anything bespoke.
  *
@@ -286,6 +320,8 @@ interface AndesBreadcrumbDropdownSelection {
  * bespoke popup: dismissal (Escape, outside click), positioning, focus return to the trigger and
  * arrow-key/typeahead navigation all come from the shared `@andes-ng/primitives` overlay + listbox
  * primitives that component already wires together, so Breadcrumb adds no behavior of its own.
+ * The one thing it tunes is that overlay's placement and panel class, by reading the
+ * `AndesOverlayPrimitive` the menu provides on its own element and patching its configuration.
  *
  * Every entry renders an inner element - an `<a>` for an `href` entry, a `<span>` otherwise - and
  * that element's `click` is the single place an activation is reported, so consumers always get a
@@ -294,10 +330,13 @@ interface AndesBreadcrumbDropdownSelection {
 @Component({
   selector: 'andes-breadcrumb-dropdown',
   imports: [
+    NgTemplateOutlet,
     AndesDropdownMenu,
     AndesDropdownMenuTrigger,
     AndesDropdownMenuContent,
     AndesDropdownMenuItem,
+    AndesDropdownMenuSeparator,
+    AndesDropdownMenuLabel,
     AndesBreadcrumbLink,
   ],
   template: `
@@ -306,20 +345,28 @@ interface AndesBreadcrumbDropdownSelection {
         type="button"
         andesDropdownMenuTrigger
         [class]="triggerClass()"
+        [disabled]="disabled()"
         [attr.aria-current]="current() ? 'page' : null"
       >
         <ng-content />
       </button>
       <andes-dropdown-menu-content>
-        @for (entry of items(); track $index) {
-          <!-- The two branches differ only by the inner element, but cannot be collapsed into
-               one item with a conditional child: a template reference variable declared inside
-               an @if block is scoped to that block, so #target would be out of scope for the
-               (activated) binding if that binding sat on a shared parent outside it. -->
-          @if (entry.href) {
+        @for (row of rows(); track $index) {
+          @if (row.kind === 'divider') {
+            <andes-dropdown-menu-separator />
+          } @else if (row.kind === 'label') {
+            <andes-dropdown-menu-label>{{
+              row.label
+            }}</andes-dropdown-menu-label>
+          } @else if (row.item.href) {
+            <!-- The two entry branches differ only by the inner element, but cannot be collapsed
+                 into one item with a conditional child: a template reference variable declared
+                 inside an @if block is scoped to that block, so #target would be out of scope for
+                 the (activated) binding if that binding sat on a shared parent outside it. -->
             <andes-dropdown-menu-item
-              [disabled]="entry.disabled ?? false"
-              [typeaheadLabel]="entry.label"
+              [disabled]="row.item.disabled ?? false"
+              [variant]="row.item.danger ? 'destructive' : 'default'"
+              [typeaheadLabel]="row.item.label"
               (activated)="onActivated(target)"
             >
               <a
@@ -327,15 +374,24 @@ interface AndesBreadcrumbDropdownSelection {
                 andesBreadcrumbLink
                 class="andes-breadcrumb-menu-entry"
                 tabindex="-1"
-                [href]="entry.href"
-                (click)="onEntryClick(entry, $event)"
-                >{{ entry.label }}</a
+                [href]="row.item.href"
+                [attr.target]="row.item.target ?? null"
+                [attr.rel]="
+                  row.item.target === '_blank' ? 'noopener noreferrer' : null
+                "
+                (click)="onEntryClick(row.item, $event)"
               >
+                <ng-container
+                  [ngTemplateOutlet]="entryContent"
+                  [ngTemplateOutletContext]="{ $implicit: row.item }"
+                />
+              </a>
             </andes-dropdown-menu-item>
           } @else {
             <andes-dropdown-menu-item
-              [disabled]="entry.disabled ?? false"
-              [typeaheadLabel]="entry.label"
+              [disabled]="row.item.disabled ?? false"
+              [variant]="row.item.danger ? 'destructive' : 'default'"
+              [typeaheadLabel]="row.item.label"
               (activated)="onActivated(target)"
             >
               <!-- Keyboard activation (and focus) belongs to the role="menuitem" parent, which
@@ -344,14 +400,27 @@ interface AndesBreadcrumbDropdownSelection {
               <span
                 #target
                 class="andes-breadcrumb-menu-entry"
-                (click)="onEntryClick(entry, $event)"
-                >{{ entry.label }}</span
+                (click)="onEntryClick(row.item, $event)"
               >
+                <ng-container
+                  [ngTemplateOutlet]="entryContent"
+                  [ngTemplateOutletContext]="{ $implicit: row.item }"
+                />
+              </span>
             </andes-dropdown-menu-item>
           }
         }
       </andes-dropdown-menu-content>
     </andes-dropdown-menu>
+
+    <ng-template #entryContent let-item>
+      @if (item.icon) {
+        <span class="andes-breadcrumb-menu-entry__icon" aria-hidden="true">
+          <ng-container [ngTemplateOutlet]="item.icon" />
+        </span>
+      }
+      <ng-container>{{ item.label }}</ng-container>
+    </ng-template>
   `,
   styleUrl: './breadcrumb.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -359,11 +428,31 @@ interface AndesBreadcrumbDropdownSelection {
   host: { class: 'andes-breadcrumb-dropdown' },
 })
 export class AndesBreadcrumbDropdown {
-  readonly items = input.required<readonly AndesBreadcrumbMenuItem[]>();
+  readonly items = input.required<readonly AndesBreadcrumbMenuEntry[]>();
   readonly triggerClass = input('');
   /** Marks the trigger as the current page (a last crumb that has a menu). */
   readonly current = input(false, { transform: booleanAttribute });
+  /** Side of the trigger the panel opens on. Unset keeps the menu's own default. */
+  readonly side = input<AndesBreadcrumbDropdownSide | undefined>(undefined);
+  /** Alignment of the panel along that side. Unset keeps the menu's own default. */
+  readonly align = input<AndesBreadcrumbDropdownAlign | undefined>(undefined);
+  /** Disables the trigger, so the menu cannot open. */
+  readonly disabled = input(false, { transform: booleanAttribute });
+  /** Extra class(es) for the floating panel. */
+  readonly panelClass = input('');
   readonly selected = output<AndesBreadcrumbDropdownSelection>();
+  /** Emits `true` when the menu opens and `false` when it closes. */
+  readonly openChange = output<boolean>();
+
+  protected readonly rows = computed(() => toMenuRows(this.items()));
+
+  /**
+   * The overlay `AndesDropdownMenu` provides on its own element - a component's `providers` are
+   * resolvable from its host node, which is what `read` queries.
+   */
+  private readonly overlay = viewChild(AndesDropdownMenu, {
+    read: AndesOverlayPrimitive,
+  });
 
   /**
    * A real pointer click lands on the inner element first; the SAME click then bubbles to the
@@ -372,6 +461,50 @@ export class AndesBreadcrumbDropdown {
    * following (which a router directive would see as a duplicate navigation).
    */
   private clickHandled = false;
+
+  constructor() {
+    effect(() => {
+      const overlay = this.overlay();
+      const side = this.side();
+      const align = this.align();
+      const panelClass = this.panelClass();
+      if (!overlay) {
+        return;
+      }
+      untracked(() => {
+        const base = andesOverlayPreset('menu').positioning;
+        overlay.configure({
+          positioning:
+            base?.kind === 'anchored'
+              ? { ...base, side: side ?? base.side, align: align ?? base.align }
+              : base,
+          // The panel renders at the end of <body>, outside every Breadcrumb ancestor, so its own
+          // class carries the typography (see breadcrumb.css).
+          panelClass: [
+            'andes-breadcrumb-dropdown-panel',
+            ...panelClass.split(/\s+/).filter(Boolean),
+          ],
+        });
+      });
+    });
+
+    // Subscribed rather than derived from `isOpen` in an effect, so an open immediately followed
+    // by a close (both within one change detection pass) still reports both transitions.
+    effect((onCleanup) => {
+      const overlay = this.overlay();
+      if (!overlay) {
+        return;
+      }
+      const opened = overlay.opened.subscribe(() => this.openChange.emit(true));
+      const closed = overlay.closed.subscribe(() =>
+        this.openChange.emit(false),
+      );
+      onCleanup(() => {
+        opened.unsubscribe();
+        closed.unsubscribe();
+      });
+    });
+  }
 
   protected onEntryClick(
     entry: AndesBreadcrumbMenuItem,
@@ -495,7 +628,7 @@ export class AndesBreadcrumbEllipsis {
 
 /** @internal A resolved crumb plus what the root template needs to render it. */
 interface CrumbView extends AndesBreadcrumbResolvedCrumb {
-  readonly menuItems: readonly AndesBreadcrumbMenuItem[] | undefined;
+  readonly menuItems: readonly AndesBreadcrumbMenuEntry[] | undefined;
   readonly context: AndesBreadcrumbItemRenderContext;
 }
 
@@ -527,8 +660,8 @@ function optionalNumberAttribute(value: unknown): number | undefined {
  *
  * - **Projected parts** - author the `<ol andesBreadcrumbList>` yourself (full control, e.g.
  *   `routerLink` on each `<a andesBreadcrumbLink>`).
- * - **`[items]`** - data-driven API: pass an array of crumbs (`title`, `href`/`path`,
- *   `menu`, `onClick`, `className`) and separator entries, and the root renders the list, marks
+ * - **`[items]`** - data-driven API: pass an array of crumbs (`title`, `icon`, `href`/`path`,
+ *   `menu`, `dropdownProps`, `onClick`, `className`) and separator entries, and the root renders the list, marks
  *   the last crumb as the current page, and collapses long trails into an ellipsis dropdown when
  *   `maxItems` is set. Projected content is ignored while `items` is set.
  *
@@ -581,9 +714,18 @@ function optionalNumberAttribute(value: unknown): number | undefined {
                     triggerClass="andes-breadcrumb-menu-trigger"
                     [current]="node.crumb.last"
                     [items]="node.crumb.menuItems"
+                    [side]="node.crumb.item.dropdownProps?.side"
+                    [align]="node.crumb.item.dropdownProps?.align"
+                    [disabled]="
+                      node.crumb.item.dropdownProps?.disabled ?? false
+                    "
+                    [panelClass]="
+                      node.crumb.item.dropdownProps?.panelClass ?? ''
+                    "
                     (selected)="
                       onMenuSelected(node.crumb, $event.item, $event.event)
                     "
+                    (openChange)="onMenuOpenChange(node.crumb, $event)"
                   >
                     <ng-container
                       [ngTemplateOutlet]="crumbText"
@@ -614,26 +756,49 @@ function optionalNumberAttribute(value: unknown): number | undefined {
                     [ngTemplateOutletContext]="{ $implicit: node.crumb }"
                   />
                 } @else if (node.crumb.last) {
-                  <span andesBreadcrumbPage>{{ node.crumb.title }}</span>
+                  <span
+                    andesBreadcrumbPage
+                    [class.andes-breadcrumb-has-icon]="!!node.crumb.item.icon"
+                  >
+                    <ng-container
+                      [ngTemplateOutlet]="crumbLabel"
+                      [ngTemplateOutletContext]="{ $implicit: node.crumb }"
+                    />
+                  </span>
                 } @else if (node.crumb.href !== undefined) {
                   <a
                     andesBreadcrumbLink
+                    [class.andes-breadcrumb-has-icon]="!!node.crumb.item.icon"
                     [href]="node.crumb.href"
                     (click)="onCrumbClick(node.crumb, $event)"
-                    >{{ node.crumb.title }}</a
                   >
+                    <ng-container
+                      [ngTemplateOutlet]="crumbLabel"
+                      [ngTemplateOutletContext]="{ $implicit: node.crumb }"
+                    />
+                  </a>
                 } @else if (node.crumb.item.onClick) {
                   <button
                     type="button"
                     class="andes-breadcrumb-link andes-breadcrumb-link--button"
+                    [class.andes-breadcrumb-has-icon]="!!node.crumb.item.icon"
                     (click)="onCrumbClick(node.crumb, $event)"
                   >
-                    {{ node.crumb.title }}
+                    <ng-container
+                      [ngTemplateOutlet]="crumbLabel"
+                      [ngTemplateOutletContext]="{ $implicit: node.crumb }"
+                    />
                   </button>
                 } @else {
-                  <span class="andes-breadcrumb-text">{{
-                    node.crumb.title
-                  }}</span>
+                  <span
+                    class="andes-breadcrumb-text"
+                    [class.andes-breadcrumb-has-icon]="!!node.crumb.item.icon"
+                  >
+                    <ng-container
+                      [ngTemplateOutlet]="crumbLabel"
+                      [ngTemplateOutletContext]="{ $implicit: node.crumb }"
+                    />
+                  </span>
                 }
               </li>
             }
@@ -644,7 +809,7 @@ function optionalNumberAttribute(value: unknown): number | undefined {
       }
     </nav>
 
-    <!-- A crumb's content: the consumer's itemRender template, or its interpolated title. -->
+    <!-- A crumb's content: the consumer's itemRender template, or its default label. -->
     <ng-template #crumbText let-crumb>
       @if (itemRender(); as render) {
         <ng-container
@@ -652,7 +817,25 @@ function optionalNumberAttribute(value: unknown): number | undefined {
           [ngTemplateOutletContext]="crumb.context"
         />
       } @else {
-        {{ crumb.title }}
+        <ng-container
+          [ngTemplateOutlet]="crumbLabel"
+          [ngTemplateOutletContext]="{ $implicit: crumb }"
+        />
+      }
+    </ng-template>
+
+    <!-- The default label: the item's icon, then its interpolated title - or, for an icon-only
+         crumb, its ariaLabel as visually hidden text. -->
+    <ng-template #crumbLabel let-crumb>
+      @if (crumb.item.icon) {
+        <span class="andes-breadcrumb-icon" aria-hidden="true">
+          <ng-container [ngTemplateOutlet]="crumb.item.icon" />
+        </span>
+      }
+      @if (crumb.title) {
+        <ng-container>{{ crumb.title }}</ng-container>
+      } @else if (crumb.item.ariaLabel) {
+        <span class="andes-breadcrumb-sr-only">{{ crumb.item.ariaLabel }}</span>
       }
     </ng-template>
   `,
@@ -738,6 +921,12 @@ export class AndesBreadcrumb implements AndesBreadcrumbContext {
   /** Emits when an entry of a crumb's `menu` is activated. Fires after the entry's `onClick`. */
   readonly menuClick = output<AndesBreadcrumbMenuClickEvent>();
 
+  /**
+   * Emits when a crumb's `menu` opens or closes. Fires after the item's
+   * `dropdownProps.onOpenChange`.
+   */
+  readonly menuOpenChange = output<AndesBreadcrumbMenuOpenChangeEvent>();
+
   protected readonly nodes = computed<NodeView[]>(() => {
     const items = this.items() ?? [];
     const params = this.params();
@@ -772,8 +961,10 @@ export class AndesBreadcrumb implements AndesBreadcrumbContext {
             kind: 'ellipsis',
             key: node.key,
             entries: node.hidden.map((crumb) => ({
-              label: crumb.title,
+              key: crumb.key,
+              label: crumb.title || (crumb.item.ariaLabel ?? ''),
               href: crumb.href,
+              icon: crumb.item.icon,
               onClick: (event: MouseEvent) => this.onCrumbClick(crumb, event),
             })),
           };
@@ -797,5 +988,13 @@ export class AndesBreadcrumb implements AndesBreadcrumbContext {
     event: MouseEvent,
   ): void {
     this.menuClick.emit({ item: crumb.item, menuItem, event });
+  }
+
+  protected onMenuOpenChange(
+    crumb: AndesBreadcrumbResolvedCrumb,
+    open: boolean,
+  ): void {
+    crumb.item.dropdownProps?.onOpenChange?.(open);
+    this.menuOpenChange.emit({ item: crumb.item, open });
   }
 }

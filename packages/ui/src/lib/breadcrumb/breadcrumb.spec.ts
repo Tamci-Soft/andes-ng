@@ -1,6 +1,9 @@
+import { AndesOverlayPrimitive } from '@andes-ng/primitives';
 import { Component, signal, type TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 
+import { AndesDropdownMenu } from '../dropdown-menu/dropdown-menu';
 import {
   AndesBreadcrumb,
   AndesBreadcrumbEllipsis,
@@ -16,6 +19,7 @@ import type {
   AndesBreadcrumbItemRenderContext,
   AndesBreadcrumbItemType,
   AndesBreadcrumbMenuClickEvent,
+  AndesBreadcrumbMenuOpenChangeEvent,
   AndesBreadcrumbSeparatorContent,
 } from './breadcrumb-items';
 
@@ -372,6 +376,14 @@ describe('Breadcrumb', () => {
       expect(style.gap).not.toBe('normal');
       expect(style.margin).toBe('0px');
       expect(style.getPropertyValue('list-style')).toBe('none');
+    });
+
+    it('sets the trail in 14/22 body text', () => {
+      const { list } = renderStyledTrail();
+      const style = getComputedStyle(list);
+
+      expect(style.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(style.lineHeight).toBe('var(--andes-text-line-height, 1.375rem)');
     });
 
     it('lays each <li> item out as a centered inline-flex group', () => {
@@ -856,6 +868,7 @@ describe('Breadcrumb', () => {
         </ng-template>
         <ng-template #caret><i class="custom-caret">v</i></ng-template>
         <ng-template #dot><i class="dot">•</i></ng-template>
+        <ng-template #icon><svg class="test-icon"></svg></ng-template>
         <andes-breadcrumb
           [items]="items()"
           [params]="params()"
@@ -868,6 +881,7 @@ describe('Breadcrumb', () => {
           ellipsisLabel="Más"
           (itemClick)="clicks.push($event)"
           (menuClick)="menuClicks.push($event)"
+          (menuOpenChange)="openChanges.push($event)"
         >
           <p id="projected">projected</p>
         </andes-breadcrumb>
@@ -875,6 +889,7 @@ describe('Breadcrumb', () => {
     })
     class ItemsHost {
       readonly dot = viewChild.required<TemplateRef<unknown>>('dot');
+      readonly icon = viewChild.required<TemplateRef<unknown>>('icon');
       readonly render =
         viewChild.required<TemplateRef<AndesBreadcrumbItemRenderContext>>(
           'render',
@@ -895,6 +910,7 @@ describe('Breadcrumb', () => {
       readonly after = signal(1);
       readonly clicks: AndesBreadcrumbItemClickEvent[] = [];
       readonly menuClicks: AndesBreadcrumbMenuClickEvent[] = [];
+      readonly openChanges: AndesBreadcrumbMenuOpenChangeEvent[] = [];
     }
 
     async function render(setup?: (host: ItemsHost) => void) {
@@ -1075,6 +1091,102 @@ describe('Breadcrumb', () => {
       expect(root.querySelector('a')).toBeNull();
     });
 
+    describe('icons', () => {
+      async function renderIcons() {
+        const result = await render();
+        const icon = result.host.icon();
+        result.host.items.set([
+          { icon, ariaLabel: 'Home', href: '/' },
+          { icon, title: 'Users', href: '/users' },
+          { icon, title: 'Reports', onClick: () => undefined },
+          { icon, title: 'Archive' },
+          { icon, title: 'Profile' },
+        ]);
+        await result.update();
+        return result;
+      }
+
+      it('renders an item icon before the title in links, buttons, text and the page', async () => {
+        const { root } = await renderIcons();
+        const holders = Array.from(
+          root.querySelectorAll('.andes-breadcrumb-has-icon'),
+        ) as HTMLElement[];
+
+        expect(holders.map((el) => el.tagName)).toEqual([
+          'A',
+          'A',
+          'BUTTON',
+          'SPAN',
+          'SPAN',
+        ]);
+        for (const holder of holders) {
+          const icon = holder.querySelector('.andes-breadcrumb-icon');
+          expect(icon?.getAttribute('aria-hidden')).toBe('true');
+          expect(icon?.querySelector('svg.test-icon')).toBeTruthy();
+          expect(holder.firstElementChild).toBe(icon);
+        }
+        expect(holders[1].textContent?.trim()).toBe('Users');
+        expect(holders[4].classList).toContain('andes-breadcrumb-page');
+      });
+
+      it('names an icon-only crumb with visually hidden ariaLabel text', async () => {
+        const { root } = await renderIcons();
+        const home = root.querySelector('a') as HTMLAnchorElement;
+
+        expect(
+          home.querySelector('.andes-breadcrumb-sr-only')?.textContent,
+        ).toBe('Home');
+        // A titled crumb never gets the hidden text.
+        expect(root.querySelectorAll('.andes-breadcrumb-sr-only')).toHaveLength(
+          1,
+        );
+      });
+
+      it('shows a hidden crumb’s icon and ariaLabel in the ellipsis dropdown', async () => {
+        const { root, host, update, menuItems: entries } = await renderIcons();
+        host.maxItems.set(2);
+        await update();
+        (
+          root.querySelector(
+            '.andes-breadcrumb-ellipsis__trigger',
+          ) as HTMLElement
+        ).click();
+        await update();
+
+        expect(entries().map((el) => el.textContent?.trim())).toEqual([
+          'Users',
+          'Reports',
+          'Archive',
+        ]);
+        expect(
+          entries().every((el) =>
+            el.querySelector(
+              '.andes-breadcrumb-menu-entry__icon svg.test-icon',
+            ),
+          ),
+        ).toBe(true);
+      });
+
+      it('labels a hidden icon-only crumb with its ariaLabel in the ellipsis dropdown', async () => {
+        const { root, host, update, menuItems: entries } = await render();
+        host.items.set([
+          { title: 'Root', href: '/' },
+          { icon: host.icon(), ariaLabel: 'Settings', href: '/settings' },
+          { title: 'A', href: '/a' },
+          { title: 'Here' },
+        ]);
+        host.maxItems.set(2);
+        await update();
+        (
+          root.querySelector(
+            '.andes-breadcrumb-ellipsis__trigger',
+          ) as HTMLElement
+        ).click();
+        await update();
+        expect(entries()[0].textContent?.trim()).toBe('Settings');
+      });
+    });
+
     describe('per-item menu', () => {
       const menuItems = [
         { label: 'General', href: '/general' },
@@ -1194,6 +1306,177 @@ describe('Breadcrumb', () => {
 
         expect(click.defaultPrevented).toBe(true);
         expect(host.menuClicks).toHaveLength(0);
+      });
+
+      it('renders dividers, group headings, icons, danger and target on entries', async () => {
+        const result = await render();
+        const icon = result.host.icon();
+        const onEntry = vi.fn();
+        result.host.items.set([
+          { title: 'Home', href: '/' },
+          {
+            title: 'Component',
+            menu: {
+              items: [
+                { key: 'general', label: 'General', icon, onClick: onEntry },
+                { type: 'divider' },
+                {
+                  type: 'group',
+                  label: 'Data',
+                  children: [
+                    { key: 'table', label: 'Table', href: '/table' },
+                    {
+                      key: 'docs',
+                      label: 'Docs',
+                      href: 'https://example.com',
+                      target: '_blank',
+                    },
+                  ],
+                },
+                { key: 'delete', label: 'Delete', danger: true },
+              ],
+            },
+          },
+          { title: 'Button' },
+        ]);
+        await result.update();
+        (
+          result.root.querySelector(
+            '.andes-breadcrumb-menu-trigger',
+          ) as HTMLElement
+        ).click();
+        await result.update();
+
+        const menu = document.querySelector('[role="menu"]') as HTMLElement;
+        expect(
+          Array.from(menu.children).map((el) => el.tagName.toLowerCase()),
+        ).toEqual([
+          'andes-dropdown-menu-item',
+          'andes-dropdown-menu-separator',
+          'andes-dropdown-menu-label',
+          'andes-dropdown-menu-item',
+          'andes-dropdown-menu-item',
+          'andes-dropdown-menu-item',
+        ]);
+        expect(
+          menu.querySelector('andes-dropdown-menu-label')?.textContent?.trim(),
+        ).toBe('Data');
+
+        const entries = result.menuItems();
+        expect(entries.map((el) => el.textContent?.trim())).toEqual([
+          'General',
+          'Table',
+          'Docs',
+          'Delete',
+        ]);
+        expect(
+          entries[0].querySelector(
+            '.andes-breadcrumb-menu-entry__icon[aria-hidden="true"] svg.test-icon',
+          ),
+        ).toBeTruthy();
+        expect(entries[3].getAttribute('data-variant')).toBe('destructive');
+        expect(entries[0].getAttribute('data-variant')).toBe('default');
+
+        const table = entries[1].querySelector('a') as HTMLAnchorElement;
+        expect(table.hasAttribute('target')).toBe(false);
+        expect(table.hasAttribute('rel')).toBe(false);
+        const docs = entries[2].querySelector('a') as HTMLAnchorElement;
+        expect(docs.getAttribute('target')).toBe('_blank');
+        expect(docs.getAttribute('rel')).toBe('noopener noreferrer');
+
+        entries[0].click();
+        await result.update();
+        expect(onEntry).toHaveBeenCalledTimes(1);
+        expect(result.host.menuClicks[0].menuItem.key).toBe('general');
+      });
+
+      it('disables the trigger through dropdownProps.disabled', async () => {
+        const { root, update } = await render((h) =>
+          h.items.set([
+            { title: 'Home', href: '/' },
+            {
+              title: 'Component',
+              menu: { items: [{ label: 'General' }] },
+              dropdownProps: { disabled: true },
+            },
+            { title: 'Button' },
+          ]),
+        );
+        const trigger = root.querySelector(
+          '.andes-breadcrumb-menu-trigger',
+        ) as HTMLButtonElement;
+
+        expect(trigger.disabled).toBe(true);
+        expect(trigger.querySelector('svg')).toBeTruthy();
+        trigger.click();
+        await update();
+        expect(document.querySelector('[role="menu"]')).toBeNull();
+      });
+
+      it('reports open and close through onOpenChange and (menuOpenChange)', async () => {
+        const onOpenChange = vi.fn();
+        const { root, host, update } = await render((h) =>
+          h.items.set([
+            { title: 'Home', href: '/' },
+            {
+              title: 'Component',
+              menu: { items: [{ label: 'General' }] },
+              dropdownProps: { onOpenChange },
+            },
+            { title: 'Button' },
+          ]),
+        );
+        const trigger = root.querySelector(
+          '.andes-breadcrumb-menu-trigger',
+        ) as HTMLButtonElement;
+
+        trigger.click();
+        await update();
+        pressKey(document.querySelector('[role="menu"]') as Element, 'Escape');
+        await update();
+
+        expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+        expect(host.openChanges.map((e) => [e.item.title, e.open])).toEqual([
+          ['Component', true],
+          ['Component', false],
+        ]);
+      });
+
+      it('applies dropdownProps placement and panelClass to the floating panel', async () => {
+        const { root, fixture, update } = await render((h) =>
+          h.items.set([
+            { title: 'Home', href: '/' },
+            {
+              title: 'Component',
+              menu: { items: [{ label: 'General' }] },
+              dropdownProps: {
+                side: 'top',
+                align: 'end',
+                panelClass: 'my-panel  other-panel',
+              },
+            },
+            { title: 'Button' },
+          ]),
+        );
+        const overlay = fixture.debugElement
+          .query(By.directive(AndesDropdownMenu))
+          .injector.get(AndesOverlayPrimitive);
+
+        expect(overlay.config().positioning).toMatchObject({
+          kind: 'anchored',
+          side: 'top',
+          align: 'end',
+        });
+
+        (
+          root.querySelector('.andes-breadcrumb-menu-trigger') as HTMLElement
+        ).click();
+        await update();
+        expect(
+          document.querySelector(
+            '.cdk-overlay-pane.andes-breadcrumb-dropdown-panel.my-panel.other-panel',
+          ),
+        ).toBeTruthy();
       });
 
       it('marks a last crumb with a menu as the current page', async () => {

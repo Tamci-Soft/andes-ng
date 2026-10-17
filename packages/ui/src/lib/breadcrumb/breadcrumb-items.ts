@@ -15,13 +15,17 @@ export type AndesBreadcrumbParams = Readonly<
 >;
 
 /**
- * One entry of a crumb's dropdown menu, and of the ellipsis dropdown that lists collapsed crumbs.
+ * One selectable entry of a crumb's dropdown menu, and of the ellipsis dropdown that lists
+ * collapsed crumbs.
  *
  * A plain data shape rather than projected markup: the caller already holds these as data (a route
  * array, a `menu.items` list from a config) and would otherwise have to re-author each of them
  * as a `<andes-dropdown-menu-item>` by hand.
  */
 export interface AndesBreadcrumbMenuItem {
+  readonly type?: 'item';
+  /** Stable identity for `@for` tracking, also handy to tell entries apart in `(menuClick)`. */
+  readonly key?: string | number;
   /** Visible text of the entry, also used for typeahead. */
   readonly label: string;
   /**
@@ -30,6 +34,15 @@ export interface AndesBreadcrumbMenuItem {
    * and navigation is left to `onClick` / the outputs.
    */
   readonly href?: string;
+  /**
+   * Browsing context of an `href` entry (e.g. `'_blank'`). A `'_blank'` entry also gets
+   * `rel="noopener noreferrer"`, so the opened page cannot reach back into this one.
+   */
+  readonly target?: string;
+  /** A leading icon. Decorative: the `label` stays the entry's accessible name. */
+  readonly icon?: TemplateRef<unknown>;
+  /** Styles the entry as a destructive action (danger color). */
+  readonly danger?: boolean;
   /** Whether the entry is present but not selectable. */
   readonly disabled?: boolean;
   /**
@@ -41,11 +54,63 @@ export interface AndesBreadcrumbMenuItem {
   readonly onClick?: (event: MouseEvent) => void;
 }
 
+/** A horizontal rule between entries of a crumb's dropdown menu. */
+export interface AndesBreadcrumbMenuDivider {
+  readonly type: 'divider';
+  readonly key?: string | number;
+}
+
+/** A labelled run of entries in a crumb's dropdown menu. The heading itself is not selectable. */
+export interface AndesBreadcrumbMenuGroup {
+  readonly type: 'group';
+  readonly key?: string | number;
+  /** Heading rendered above the group's entries. */
+  readonly label: string;
+  readonly children: readonly AndesBreadcrumbMenuItem[];
+}
+
+/** Anything a crumb's `menu.items` can hold. */
+export type AndesBreadcrumbMenuEntry =
+  | AndesBreadcrumbMenuItem
+  | AndesBreadcrumbMenuDivider
+  | AndesBreadcrumbMenuGroup;
+
+/** Side of the crumb a dropdown panel opens on. */
+export type AndesBreadcrumbDropdownSide = 'top' | 'bottom' | 'left' | 'right';
+
+/** Alignment of a dropdown panel along the crumb's edge. */
+export type AndesBreadcrumbDropdownAlign = 'start' | 'center' | 'end';
+
+/** How a crumb's dropdown menu opens and where its panel sits. */
+export interface AndesBreadcrumbDropdownProps {
+  /** Side of the crumb the panel opens on. Default `'bottom'`. */
+  readonly side?: AndesBreadcrumbDropdownSide;
+  /** Alignment along that side. Default `'start'`. */
+  readonly align?: AndesBreadcrumbDropdownAlign;
+  /** Keeps the caret but stops the menu from opening (the trigger is a disabled button). */
+  readonly disabled?: boolean;
+  /** Extra class(es) for the floating panel, which renders at the end of `<body>`. */
+  readonly panelClass?: string;
+  /** Called with `true` when the menu opens and `false` when it closes. */
+  readonly onOpenChange?: (open: boolean) => void;
+}
+
 /** A crumb of the `[items]` input. */
 export interface AndesBreadcrumbRouteItem {
   readonly type?: 'item';
   /** Visible text. `:param` placeholders are replaced from the root's `params`. */
   readonly title?: string;
+  /**
+   * A leading icon (a template, e.g. an `<svg>`), rendered before `title` inside the crumb's link,
+   * page or text. Decorative - pair an icon-only crumb with `ariaLabel`.
+   */
+  readonly icon?: TemplateRef<unknown>;
+  /**
+   * Accessible name of a crumb without a `title` (typically an icon-only "home" crumb), rendered
+   * as visually hidden text so it is read out wherever the crumb is - also used as its label in
+   * the collapse ellipsis' dropdown. Ignored when `title` is set.
+   */
+  readonly ariaLabel?: string;
   /** Target of the crumb's link. Ignored when `path` is set. */
   readonly href?: string;
   /**
@@ -54,8 +119,13 @@ export interface AndesBreadcrumbRouteItem {
    * replaced from `params`. Takes precedence over `href`.
    */
   readonly path?: string;
-  /** Turns the crumb into a dropdown trigger (label + caret) listing `menu.items`. */
-  readonly menu?: { readonly items: readonly AndesBreadcrumbMenuItem[] };
+  /**
+   * Turns the crumb into a dropdown trigger (label + caret) listing `menu.items` - entries,
+   * dividers and labelled groups.
+   */
+  readonly menu?: { readonly items: readonly AndesBreadcrumbMenuEntry[] };
+  /** Placement, panel class, disabled state and open/close callback of the crumb's `menu`. */
+  readonly dropdownProps?: AndesBreadcrumbDropdownProps;
   /** Called when the crumb (or its entry in the collapsed ellipsis menu) is clicked. */
   readonly onClick?: (event: MouseEvent) => void;
   /** Extra class(es) for the crumb's `<li>`. */
@@ -118,6 +188,13 @@ export interface AndesBreadcrumbMenuClickEvent {
   readonly item: AndesBreadcrumbRouteItem;
   readonly menuItem: AndesBreadcrumbMenuItem;
   readonly event: MouseEvent;
+}
+
+/** Payload of the root's `(menuOpenChange)` output. */
+export interface AndesBreadcrumbMenuOpenChangeEvent {
+  /** The crumb whose menu opened or closed. */
+  readonly item: AndesBreadcrumbRouteItem;
+  readonly open: boolean;
 }
 
 /** @internal One crumb after path/params resolution. */
