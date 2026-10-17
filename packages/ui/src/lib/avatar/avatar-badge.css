@@ -14,7 +14,8 @@
   /* Ring in the page background, mirroring the separator AndesAvatarGroup
      draws between overlapping avatars - it keeps the dot readable against a
      photo of any colour. */
-  box-shadow: 0 0 0 0.125em var(--andes-color-background);
+  box-shadow: 0 0 0 0.125em
+    var(--andes-avatar-ring-color, var(--andes-color-background));
 }
 
 /* Placement - a corner of the avatar's box. For a circle, `0` on both axes
@@ -44,7 +45,12 @@
 
 /* Status colours. Colour is never the only channel: `label` is a required
    input and is exposed as the host's accessible name (see avatar-badge.ts),
-   which is what keeps this out of WCAG 1.4.1 territory. */
+   which is what keeps this out of WCAG 1.4.1 territory.
+
+   The same severity accents AndesAlert and AndesBadge's status dots use, so
+   "online" reads as the same green everywhere. Away is warning's `-hover`
+   shade: the base amber is only ~2:1 against a light page, under the 3:1 a
+   meaningful graphic needs (WCAG 1.4.11). */
 
 :host(.andes-avatar-badge--online) {
   background-color: var(--andes-color-success);
@@ -55,7 +61,7 @@
 }
 
 :host(.andes-avatar-badge--away) {
-  background-color: var(--andes-color-warning);
+  background-color: var(--andes-color-warning-hover);
 }
 
 :host(.andes-avatar-badge--offline) {

@@ -29,6 +29,7 @@
   [attr.role]="isClick() ? null : 'tooltip'"
   [attr.tabindex]="isClick() ? -1 : null"
   class="andes-avatar-group-count__panel"
+  animate.leave="andes-avatar-group-count__panel--leave"
   (focusout)="onFocusLeave($event)"
   (keydown.escape)="onEscape(triggerButton)"
 >

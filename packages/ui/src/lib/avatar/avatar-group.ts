@@ -26,7 +26,10 @@ import type { AndesAvatarSizeInput } from './avatar-size';
 export interface AndesAvatarGroupPopover {
   /** Default `top`. */
   readonly placement?: AndesAvatarGroupCountPlacement;
-  /** Default `hover` (which also opens on keyboard focus and tap). */
+  /**
+   * Default `hover` (which also opens on keyboard focus and tap); `focus`
+   * opens on keyboard focus and tap only; `click` toggles a disclosure.
+   */
   readonly trigger?: AndesAvatarGroupCountTrigger;
   /** Heading above the names, e.g. "Also in this project". */
   readonly label?: string;

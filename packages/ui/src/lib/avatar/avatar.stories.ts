@@ -1,5 +1,6 @@
 import { type Meta, moduleMetadata, type StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesAvatar } from './avatar';
 import { AndesAvatarBadge } from './avatar-badge';
 import { AndesAvatarFallback } from './avatar-fallback';
@@ -274,6 +275,34 @@ export const Group: Story = {
   }),
 };
 
+export const GroupOnCard: Story = {
+  name: 'Group on a card surface',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'The ring between overlapping avatars is drawn in `--andes-avatar-ring-color` (the page background by default). On a card or any other surface, set it to that surface so the separator reads as a cut-out - compare the two groups in the dark theme.',
+      },
+    },
+  },
+  render: () => ({
+    template: `<div style="display: flex; flex-direction: column; gap: 1rem; padding: 1rem; border: 1px solid var(--andes-color-border); border-radius: var(--andes-radius-lg); background: var(--andes-color-card);">
+      <andes-avatar-group>
+        <andes-avatar><andes-avatar-fallback>AM</andes-avatar-fallback></andes-avatar>
+        <andes-avatar><andes-avatar-fallback>BC</andes-avatar-fallback></andes-avatar>
+        <andes-avatar><andes-avatar-fallback>CA</andes-avatar-fallback></andes-avatar>
+        <andes-avatar-group-count [count]="4" />
+      </andes-avatar-group>
+      <andes-avatar-group style="--andes-avatar-ring-color: var(--andes-color-card)">
+        <andes-avatar><andes-avatar-fallback>AM</andes-avatar-fallback></andes-avatar>
+        <andes-avatar><andes-avatar-fallback>BC</andes-avatar-fallback></andes-avatar>
+        <andes-avatar><andes-avatar-fallback>CA</andes-avatar-fallback></andes-avatar>
+        <andes-avatar-group-count [count]="4" />
+      </andes-avatar-group>
+    </div>`,
+  }),
+};
+
 export const GroupWithOverflowReveal: Story = {
   name: 'Group with a revealing +N overflow',
   parameters: {
@@ -323,7 +352,7 @@ export const PixelSizes: Story = {
     docs: {
       description: {
         story:
-          'Besides the `xs`-`xl` presets, `size` takes any pixel number (e.g. `[size]="64"`). The box is sized inline and the font size follows at ~35% of the box, with a 10px floor.',
+          'Besides the `xs`-`xl` presets, `size` takes any pixel number (e.g. `[size]="64"`). The box is sized inline and the font size follows at ~40% of the box, with a 10px floor.',
       },
     },
   },
@@ -474,7 +503,7 @@ export const GroupMax: Story = {
     docs: {
       description: {
         story:
-          "`[max]=\"{ count: 3 }\"` keeps the first three avatars and collapses the rest into a generated `+N` chip that lists who is hidden (each avatar's image `alt`, icon `label` or fallback text) on hover, focus or tap. `max.popover` takes `{ label, placement: 'top' | 'bottom', trigger: 'hover' | 'click', template }` or `false`; `max.class` / `max.style` style the chip.",
+          "`[max]=\"{ count: 3 }\"` keeps the first three avatars and collapses the rest into a generated `+N` chip that lists who is hidden (each avatar's image `alt`, icon `label` or fallback text) on hover, focus or tap. `max.popover` takes `{ label, placement: 'top' | 'bottom', trigger: 'hover' | 'focus' | 'click', template }` or `false`; `max.class` / `max.style` style the chip.",
       },
     },
   },
@@ -525,6 +554,85 @@ export const GroupMaxCustomPanel: Story = {
         </span>
       }
     </ng-template>`,
+  }),
+};
+
+export const GroupMaxFocusTrigger: Story = {
+  name: 'Group: max with a focus trigger',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "`trigger: 'focus'` opens the panel on keyboard focus and tap only - sweeping the pointer across a dense row doesn't pop it up. Tab to the `+N` chip to reveal who is hidden.",
+      },
+    },
+  },
+  render: () => ({
+    template: `<andes-avatar-group
+      [max]="{ count: 3, popover: { trigger: 'focus', label: 'Also in this project' } }"
+    >
+      ${teamAvatars()}
+    </andes-avatar-group>`,
+  }),
+};
+
+export const CustomColors: Story = {
+  name: 'Custom colors',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Set `--andes-avatar-background` and `--andes-avatar-foreground` on an avatar, or once on a group (they inherit), to recolor initials and icon avatars and the `+N` chip. Keep the pair at 4.5:1 contrast for initials.',
+      },
+    },
+  },
+  render: () => ({
+    template: `<div style="display: flex; align-items: center; gap: 1rem;">
+      <andes-avatar style="--andes-avatar-background: var(--andes-color-primary); --andes-avatar-foreground: var(--andes-color-primary-foreground);">
+        <andes-avatar-fallback>AN</andes-avatar-fallback>
+      </andes-avatar>
+      <andes-avatar style="--andes-avatar-background: #15803d; --andes-avatar-foreground: #ffffff;">
+        <andes-avatar-fallback>OK</andes-avatar-fallback>
+      </andes-avatar>
+      <andes-avatar style="--andes-avatar-background: var(--andes-color-danger); --andes-avatar-foreground: var(--andes-color-danger-foreground);">
+        <andes-avatar-fallback>ER</andes-avatar-fallback>
+      </andes-avatar>
+      <andes-avatar shape="rounded" style="--andes-avatar-background: #7c3aed; --andes-avatar-foreground: #ffffff;">
+        <andes-avatar-fallback>VI</andes-avatar-fallback>
+      </andes-avatar>
+      <andes-avatar-group
+        [max]="{ count: 2 }"
+        style="--andes-avatar-background: #0f766e; --andes-avatar-foreground: #ffffff;"
+      >
+        <andes-avatar><andes-avatar-fallback>TA</andes-avatar-fallback></andes-avatar>
+        <andes-avatar><andes-avatar-fallback>TB</andes-avatar-fallback></andes-avatar>
+        <andes-avatar><andes-avatar-fallback>TC</andes-avatar-fallback></andes-avatar>
+        <andes-avatar><andes-avatar-fallback>TD</andes-avatar-fallback></andes-avatar>
+      </andes-avatar-group>
+    </div>`,
+  }),
+};
+
+export const DynamicFallbackText: Story = {
+  name: 'Fallback text that changes at runtime',
+  decorators: [moduleMetadata({ imports: [AndesButton] })],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'The text re-fits whenever it or `gap` changes - cycle through names of different lengths and toggle the gap.',
+      },
+    },
+  },
+  render: () => ({
+    props: { names: ['U', 'Lucy', 'Tom', 'Edward'], index: 0, gap: 4 },
+    template: `<div style="display: flex; align-items: center; gap: 1rem;">
+      <andes-avatar size="lg">
+        <andes-avatar-fallback [gap]="gap">{{ names[index] }}</andes-avatar-fallback>
+      </andes-avatar>
+      <andes-button variant="secondary" size="sm" (click)="index = (index + 1) % names.length">Change user</andes-button>
+      <andes-button variant="secondary" size="sm" (click)="gap = gap === 4 ? 8 : gap === 8 ? 2 : 4">Gap: {{ gap }}</andes-button>
+    </div>`,
   }),
 };
 

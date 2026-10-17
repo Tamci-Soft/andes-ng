@@ -526,6 +526,38 @@ describe('AndesAvatarGroupCount click trigger', () => {
     expect(panel()).toBeNull();
   });
 
+  it('opens the panel with a short fade on a whole-pixel body line', () => {
+    const { fixture, trigger, panel } = create();
+
+    trigger.click();
+    fixture.detectChanges();
+    const style = getComputedStyle(panel() as HTMLElement);
+
+    // Angular scopes the keyframes name to the component, so match its tail.
+    expect(style.animation).toContain(
+      'andes-avatar-panel-in 0.15s cubic-bezier(0.2, 0, 0, 1)',
+    );
+    expect(style.fontSize).toBe('0.875rem');
+    expect(style.lineHeight).toBe('1.375rem');
+  });
+
+  it('leaves with a quicker fade that drifts back the way it came in', () => {
+    const { fixture, trigger, panel } = create();
+
+    trigger.click();
+    fixture.detectChanges();
+    const el = panel() as HTMLElement;
+    // The class `animate.leave` applies while the panel is on its way out.
+    el.classList.add('andes-avatar-group-count__panel--leave');
+    const style = getComputedStyle(el);
+
+    expect(style.animation).toContain('andes-avatar-panel-out');
+    expect(style.animation).toContain('var(--andes-duration-fast, 120ms)');
+    expect(style.animation).toContain('var(--andes-ease-in, ease-in)');
+    expect(style.animation).toContain('forwards');
+    expect(style.pointerEvents).toBe('none');
+  });
+
   it('closes on a pointerdown outside the chip, but not inside it', () => {
     const { fixture, el, trigger, panel } = create();
     trigger.click();
@@ -811,8 +843,9 @@ describe('AndesAvatarFallback text auto-scaling', () => {
 // --- Contrast --------------------------------------------------------------
 
 describe('AndesAvatar fallback text contrast', () => {
-  // `--andes-color-muted-foreground` on `--andes-color-muted` is 4.34:1 in the
-  // light theme - under WCAG 1.4.3's 4.5:1 for the fallback initials. jsdom
+  // `--andes-color-muted-foreground` on the avatar's `--andes-color-secondary`
+  // fill is 3.83:1 in the light theme - under WCAG 1.4.3's 4.5:1 for the
+  // fallback initials. jsdom
   // doesn't resolve custom properties, so this reads the declared `var()`.
   it('uses the foreground token for avatar and +N text, not muted-foreground', () => {
     @Component({
@@ -834,5 +867,120 @@ describe('AndesAvatar fallback text contrast', () => {
       ).color;
       expect(color).toContain('--andes-color-foreground');
     }
+  });
+});
+
+// --- Custom colors ---------------------------------------------------------
+
+describe('AndesAvatar color hooks', () => {
+  // jsdom doesn't resolve custom properties, so this reads the declared
+  // `var()` - enough to prove the hook sits in front of the theme default.
+  it('reads --andes-avatar-background/-foreground before the theme tokens', () => {
+    @Component({
+      imports: [AndesAvatar, AndesAvatarFallback, AndesAvatarGroupCount],
+      template: `<andes-avatar
+          ><andes-avatar-fallback>JD</andes-avatar-fallback></andes-avatar
+        >
+        <andes-avatar-group-count [count]="2" />`,
+    })
+    class ColorHost {}
+
+    const fixture = TestBed.createComponent(ColorHost);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    for (const selector of ['andes-avatar', 'andes-avatar-group-count']) {
+      const style = getComputedStyle(el.querySelector(selector) as HTMLElement);
+      expect(style.backgroundColor).toContain('--andes-avatar-background');
+      expect(style.backgroundColor).toContain('--andes-color-secondary');
+      expect(style.color).toContain('--andes-avatar-foreground');
+    }
+  });
+});
+
+// --- Group count focus trigger ---------------------------------------------
+
+describe('AndesAvatarGroupCount focus trigger', () => {
+  @Component({
+    imports: [AndesAvatarGroupCount],
+    template: `<andes-avatar-group-count
+      [count]="2"
+      [hiddenNames]="['Dana', 'Elliot']"
+      trigger="focus"
+    />`,
+  })
+  class FocusHost {}
+
+  function create() {
+    const fixture = TestBed.createComponent(FocusHost);
+    fixture.detectChanges();
+    const chip = (fixture.nativeElement as HTMLElement).querySelector(
+      'andes-avatar-group-count',
+    ) as HTMLElement;
+    const trigger = chip.querySelector('button') as HTMLButtonElement;
+    const panel = () => chip.querySelector('.andes-avatar-group-count__panel');
+    return { fixture, chip, trigger, panel };
+  }
+
+  it('ignores pointer hover', () => {
+    const { fixture, chip, panel } = create();
+
+    chip.dispatchEvent(new Event('mouseenter'));
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('opens a tooltip panel on focus and closes it on blur', () => {
+    const { fixture, chip, trigger, panel } = create();
+
+    trigger.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    expect(panel()?.getAttribute('role')).toBe('tooltip');
+    expect(panel()?.textContent).toContain('Elliot');
+    expect(trigger.getAttribute('aria-describedby')).toBe(panel()?.id);
+    expect(trigger.getAttribute('aria-expanded')).toBeNull();
+
+    // A pointer leaving doesn't close what focus opened.
+    chip.dispatchEvent(new Event('mouseleave'));
+    fixture.detectChanges();
+    expect(panel()).not.toBeNull();
+
+    trigger.dispatchEvent(new FocusEvent('blur', { relatedTarget: null }));
+    fixture.detectChanges();
+    expect(panel()).toBeNull();
+  });
+
+  it('is reachable from the group max.popover config', () => {
+    @Component({
+      imports: [AndesAvatarGroup, AndesAvatar, AndesAvatarFallback],
+      template: `<andes-avatar-group
+        [max]="{ count: 1, popover: { trigger: 'focus' } }"
+      >
+        <andes-avatar
+          ><andes-avatar-fallback>A</andes-avatar-fallback></andes-avatar
+        >
+        <andes-avatar
+          ><andes-avatar-fallback>B</andes-avatar-fallback></andes-avatar
+        >
+      </andes-avatar-group>`,
+    })
+    class GroupHost {}
+
+    const fixture = TestBed.createComponent(GroupHost);
+    fixture.detectChanges();
+    const chip = (fixture.nativeElement as HTMLElement).querySelector(
+      'andes-avatar-group-count',
+    ) as HTMLElement;
+
+    chip.dispatchEvent(new Event('mouseenter'));
+    fixture.detectChanges();
+    expect(chip.querySelector('.andes-avatar-group-count__panel')).toBeNull();
+
+    chip.querySelector('button')?.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    expect(
+      chip.querySelector('.andes-avatar-group-count__panel')?.textContent,
+    ).toContain('B');
   });
 });

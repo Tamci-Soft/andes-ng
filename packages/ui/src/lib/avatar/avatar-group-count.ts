@@ -29,12 +29,15 @@ export type AndesAvatarGroupCountPlacement = 'top' | 'bottom';
  * - `hover` (default): pointer hover, plus keyboard focus and tap - a
  *   hover-only trigger would lock keyboard and touch users out. The panel is a
  *   WAI-ARIA tooltip: read-only text, described by the trigger.
+ * - `focus`: keyboard focus and tap only, never pointer hover - for dense
+ *   rows where a panel popping up as the pointer sweeps past is noise. Same
+ *   read-only tooltip panel as `hover`.
  * - `click`: toggles on click/Enter/Space and stays open until Escape, a
  *   click outside or focus leaving the chip. The panel is a disclosure
  *   (`aria-expanded` + `aria-controls`) and can hold interactive content,
  *   e.g. a custom `panelTemplate` with links.
  */
-export type AndesAvatarGroupCountTrigger = 'hover' | 'click';
+export type AndesAvatarGroupCountTrigger = 'hover' | 'focus' | 'click';
 
 /** Template context of `panelTemplate`. */
 export interface AndesAvatarGroupCountPanelContext {
@@ -157,13 +160,13 @@ export class AndesAvatarGroupCount {
   });
 
   protected onPointerEnter(): void {
-    if (this.interactive() && !this.isClick()) {
+    if (this.interactive() && this.trigger() === 'hover') {
       this._open.set(true);
     }
   }
 
   protected onPointerLeave(): void {
-    if (!this.isClick()) {
+    if (this.trigger() === 'hover') {
       this._open.set(false);
     }
   }

@@ -6,14 +6,22 @@
   justify-content: center;
   overflow: hidden;
   vertical-align: middle;
-  background-color: var(--andes-color-muted);
+  /* `secondary`, not `muted`: in the dark theme muted is the exact color of
+     --andes-color-card (#1e293b), so an initials or icon avatar inside a card
+     vanished into it. secondary stays distinct from both the page and a card
+     in either theme, and is the same fill AndesSkeleton draws its avatar
+     placeholder in, so nothing changes tone when the real avatar loads. */
+  /* `--andes-avatar-background` / `--andes-avatar-foreground` recolor one
+     avatar or a whole group (they inherit), e.g. a brand color per team. */
+  background-color: var(
+    --andes-avatar-background,
+    var(--andes-color-secondary)
+  );
   /* `foreground`, not `muted-foreground`: the fallback initials are text and
-     need 4.5:1 (WCAG 1.4.3), but the light theme's muted-foreground on muted
-     is only 4.34:1 (#64748b on #f1f5f9). Foreground on muted is ~16:1 light
-     and ~14:1 dark, and matches shadcn, whose AvatarFallback also leaves the
-     text at the inherited foreground over `bg-muted`. AndesAvatarIcon keeps
-     muted-foreground: an icon is a graphic (WCAG 1.4.11, 3:1). */
-  color: var(--andes-color-foreground);
+     need 4.5:1 (WCAG 1.4.3). Foreground on secondary is ~14:1 light and
+     ~10:1 dark. AndesAvatarIcon keeps muted-foreground: an icon is a graphic
+     (WCAG 1.4.11, 3:1), and it clears that on secondary in both themes. */
+  color: var(--andes-avatar-foreground, var(--andes-color-foreground));
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
   line-height: 1;

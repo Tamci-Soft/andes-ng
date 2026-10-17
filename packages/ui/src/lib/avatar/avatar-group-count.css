@@ -15,10 +15,13 @@
      gives the shape - so nothing is lost by dropping it. */
   overflow: visible;
   vertical-align: middle;
-  background-color: var(--andes-color-muted);
-  /* `foreground`, not `muted-foreground`, for the same 4.5:1 text-contrast
-     reason as avatar.css. */
-  color: var(--andes-color-foreground);
+  /* `secondary` and `foreground` for the same card-surface and 4.5:1
+     text-contrast reasons as avatar.css. */
+  background-color: var(
+    --andes-avatar-background,
+    var(--andes-color-secondary)
+  );
+  color: var(--andes-avatar-foreground, var(--andes-color-foreground));
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
   line-height: 1;
@@ -129,10 +132,45 @@
      `line-height: 1` and `text-transform`. */
   font-size: 0.875rem;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.375rem;
   text-align: start;
   text-transform: none;
   white-space: nowrap;
+  /* Fades in while drifting the last few pixels toward the chip, then leaves the same way, a
+     little faster.
+     `translate` composes with the centering `transform` above instead of replacing it. */
+  --_andes-avatar-panel-nudge: 0.25rem;
+  animation: andes-avatar-panel-in 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-avatar-group-count__panel--leave {
+  animation: andes-avatar-panel-out var(--andes-duration-fast, 120ms)
+    var(--andes-ease-in, ease-in) forwards;
+  /* A panel on its way out must not catch the pointer it is fading under. */
+  pointer-events: none;
+}
+
+@keyframes andes-avatar-panel-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--_andes-avatar-panel-nudge);
+  }
+}
+
+/* The exit mirrors the enter: it fades while drifting the same few pixels
+   back the way it came. */
+@keyframes andes-avatar-panel-out {
+  to {
+    opacity: 0;
+    translate: 0 var(--_andes-avatar-panel-nudge);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-avatar-group-count__panel,
+  .andes-avatar-group-count__panel--leave {
+    animation: none;
+  }
 }
 
 /* `placement="bottom"` (`max.popover.placement`) - for a group near
@@ -140,12 +178,14 @@
 :host(.andes-avatar-group-count--bottom) .andes-avatar-group-count__panel {
   inset-block-start: calc(100% + var(--andes-space-2));
   inset-block-end: auto;
+  --_andes-avatar-panel-nudge: -0.25rem;
 }
 
 .andes-avatar-group-count__panel-label {
   margin: 0;
   color: var(--andes-color-muted-foreground);
   font-size: 0.75rem;
+  line-height: 1.25rem;
 }
 
 .andes-avatar-group-count__name {
