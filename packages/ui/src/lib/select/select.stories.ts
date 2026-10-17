@@ -24,9 +24,9 @@ const SELECT_IMPORTS = [
 ];
 
 /**
- * Every story sets `aria-label`: `role="combobox"` takes no accessible name from its own
- * content, so a select without a label (or an `aria-labelledby` pointing at a visible
- * one) is unnamed for a screen reader.
+ * Every story sets `aria-label` or an `id` for a `<label for>`: `role="combobox"` takes no
+ * accessible name from its own content, so a select without a label (or an
+ * `aria-labelledby` pointing at a visible one) is unnamed for a screen reader.
  */
 const meta: Meta<AndesSelect> = {
   title: 'Select',
@@ -159,6 +159,33 @@ export const Disabled: Story = {
 
 export const Required: Story = {
   args: { required: true },
+};
+
+/**
+ * `id` lands on the focusable combobox - the button, or the search input with
+ * `showSearch` - so the `<label for>` names it and focuses it when clicked.
+ */
+export const WithLabel: Story = {
+  render: (args) => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: args,
+    template: `
+      <div style="width: 260px;">
+        <label for="fruit-select" style="display: block; font-size: 0.875rem; margin-bottom: 0.25rem;">Fruit</label>
+        <andes-select id="fruit-select" placeholder="Select a fruit" [showSearch]="showSearch">
+          <andes-select-trigger>
+            <andes-select-value />
+          </andes-select-trigger>
+          <andes-select-content>
+            <andes-select-item value="apple">Apple</andes-select-item>
+            <andes-select-item value="banana">Banana</andes-select-item>
+            <andes-select-item value="cherry">Cherry</andes-select-item>
+          </andes-select-content>
+        </andes-select>
+      </div>
+    `,
+  }),
+  args: { showSearch: false },
 };
 
 export const Invalid: Story = {

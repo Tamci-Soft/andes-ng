@@ -33,6 +33,9 @@ import { AndesSelectState, type AndesSelectTag } from './select-state';
   templateUrl: './select-trigger.html',
   styleUrl: './select-trigger.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+  },
 })
 export class AndesSelectTrigger {
   protected readonly select = inject(AndesSelectState);
@@ -117,6 +120,38 @@ export class AndesSelectTrigger {
       return;
     }
     this.select.toggle();
+  }
+
+  /**
+   * A click on a `<label>` naming the combobox only focuses it, as it does a native
+   * `<select>`. Left alone, the browser would re-dispatch that click onto the combobox,
+   * where {@link onBoxClick} opens the panel. Clicks inside the box, or on a link or
+   * control inside the label, are not the label's own and pass through untouched.
+   */
+  protected onDocumentClick(event: MouseEvent): void {
+    const combobox = this.comboboxRef()?.nativeElement;
+    const target = event.target instanceof Element ? event.target : null;
+    const label = target?.closest('label');
+    if (
+      !combobox ||
+      !target ||
+      !label ||
+      label.control !== combobox ||
+      event.defaultPrevented ||
+      this.boxRef().nativeElement.contains(target)
+    ) {
+      return;
+    }
+    const interactive = target.closest(
+      'a[href], button, input, select, textarea',
+    );
+    if (interactive && label.contains(interactive)) {
+      return;
+    }
+    event.preventDefault();
+    if (!this.select.isDisabled()) {
+      this.select.focus();
+    }
   }
 
   /** Keeps focus in the search input when the box around it is pressed. */

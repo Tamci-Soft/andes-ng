@@ -925,3 +925,98 @@ describe('AndesSelect resyncing a diverged value', () => {
     expect(trigger.textContent?.trim()).toBe('Banana');
   });
 });
+
+@Component({
+  imports: [
+    AndesSelect,
+    AndesSelectContent,
+    AndesSelectItem,
+    AndesSelectTrigger,
+    AndesSelectValue,
+  ],
+  template: `<label for="fruit">Fruit</label>
+    <andes-select id="fruit" [showSearch]="showSearch()">
+      <andes-select-trigger><andes-select-value /></andes-select-trigger>
+      <andes-select-content>
+        @for (fruit of fruits; track fruit.value) {
+          <andes-select-item [value]="fruit.value">{{
+            fruit.label
+          }}</andes-select-item>
+        }
+      </andes-select-content>
+    </andes-select>`,
+})
+class LabelledSelectHost {
+  readonly fruits = FRUITS;
+  readonly showSearch = signal(false);
+}
+
+describe('AndesSelect id', () => {
+  function create(showSearch = false) {
+    const fixture = TestBed.createComponent(LabelledSelectHost);
+    fixture.componentInstance.showSearch.set(showSearch);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    return {
+      fixture,
+      host: root.querySelector('andes-select') as HTMLElement,
+      label: root.querySelector('label') as HTMLLabelElement,
+      combobox: () => root.querySelector<HTMLElement>('[role="combobox"]'),
+    };
+  }
+
+  it('moves a static id to the trigger button without leaving a duplicate on the host', () => {
+    const { host, label, combobox } = create();
+
+    expect(combobox()?.tagName).toBe('BUTTON');
+    expect(combobox()?.id).toBe('fruit');
+    expect(host.hasAttribute('id')).toBe(false);
+    // The `for`/`id` pair is what gives the combobox the label's text as its name.
+    expect(label.control).toBe(combobox());
+    expect(Array.from((combobox() as HTMLButtonElement).labels)).toEqual([
+      label,
+    ]);
+  });
+
+  it('focuses the trigger without opening the panel when its label is clicked', () => {
+    const { fixture, label, combobox } = create();
+
+    label.click();
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(combobox());
+    expect(combobox()?.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('puts the id on the search input in search mode', () => {
+    const { fixture, host, label, combobox } = create(true);
+
+    expect(combobox()?.tagName).toBe('INPUT');
+    expect(combobox()?.id).toBe('fruit');
+    expect(host.hasAttribute('id')).toBe(false);
+    expect(label.control).toBe(combobox());
+
+    label.click();
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(combobox());
+    expect(combobox()?.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('moves the id along when the select switches in and out of search mode', () => {
+    const { fixture, label, combobox } = create();
+
+    fixture.componentInstance.showSearch.set(true);
+    fixture.detectChanges();
+
+    expect(combobox()?.tagName).toBe('INPUT');
+    expect(document.querySelectorAll('#fruit')).toHaveLength(1);
+    expect(label.control).toBe(combobox());
+
+    fixture.componentInstance.showSearch.set(false);
+    fixture.detectChanges();
+
+    expect(combobox()?.tagName).toBe('BUTTON');
+    expect(label.control).toBe(combobox());
+  });
+});
