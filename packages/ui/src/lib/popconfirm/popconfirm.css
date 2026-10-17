@@ -10,8 +10,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--andes-space-3);
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
 }
 
 .andes-popconfirm-message {
@@ -24,7 +24,8 @@
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  height: 1.5em;
+  /* One text line tall, so the glyph centres on the title's first line. */
+  height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-warning);
   font-size: 1rem;
   line-height: 1;

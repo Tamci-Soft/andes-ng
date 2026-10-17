@@ -7,7 +7,8 @@
   box-sizing: border-box;
   min-width: var(--andes-popover-min-width, 8rem);
   max-width: var(--andes-popover-max-width, min(24rem, calc(100vw - 1rem)));
-  padding: var(--andes-popover-padding, var(--andes-space-4));
+  /* 12px, Ant's popover inner padding: at the 14px text scale 16px read as padded-out. */
+  padding: var(--andes-popover-padding, var(--andes-space-3));
   border-radius: var(--andes-popover-radius, var(--andes-radius-lg));
   border: 1px solid var(--andes-popover-border-color, var(--andes-color-border));
   background-color: var(--andes-popover-background, var(--andes-color-popover));
@@ -18,18 +19,41 @@
     0 4px 6px -4px rgb(0 0 0 / 10%)
   );
   font-family: var(--andes-font-family), sans-serif;
+  /* Component text scale (14px/22px), so the panel does not inherit the page's size. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   outline: none;
-  animation: andes-popover-in 0.15s ease-out;
+  animation: andes-popover-in var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+/* Entry: a fade plus a 4px drift away from the trigger - the panel starts nudged
+   towards the side it is anchored to and settles into place. No scale, so text
+   never resamples mid-animation, and nothing overshoots. */
+.andes-popover-content[data-side='bottom'] {
+  --andes-popover-enter-from: 0 -4px;
+}
+
+.andes-popover-content[data-side='top'] {
+  --andes-popover-enter-from: 0 4px;
+}
+
+.andes-popover-content[data-side='left'] {
+  --andes-popover-enter-from: 4px 0;
+}
+
+.andes-popover-content[data-side='right'] {
+  --andes-popover-enter-from: -4px 0;
 }
 
 @keyframes andes-popover-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    translate: var(--andes-popover-enter-from, 0 -4px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    translate: 0 0;
   }
 }
 
@@ -57,13 +81,14 @@
 .andes-popover-title {
   margin: 0;
   font-size: inherit;
+  line-height: inherit;
   font-weight: var(--andes-font-weight-medium);
 }
 
 .andes-popover-description {
   margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  font-size: inherit;
+  line-height: inherit;
   color: var(--andes-color-muted-foreground);
 }
 
