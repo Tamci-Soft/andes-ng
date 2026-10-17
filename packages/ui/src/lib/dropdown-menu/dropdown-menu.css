@@ -20,6 +20,7 @@
   border: 1px solid var(--andes-color-border);
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
   box-shadow: var(--andes-shadow-md);
   outline: none;
 }
