@@ -347,12 +347,13 @@ export class AndesTable {
 
   /** Values currently filtering `columnId` (empty when it is not filtered). */
   filterValueFor(columnId: string): readonly AndesFilterValue[] {
-    return this.filters()[columnId] ?? [];
+    // `filters` may be bound to `null` (as `andesFilterRows` accepts), meaning none.
+    return this.filters()?.[columnId] ?? [];
   }
 
   /** Replaces `columnId`'s filter; an empty `values` removes it. */
   setFilter(columnId: string, values: readonly AndesFilterValue[]): void {
-    const next = { ...this.filters() };
+    const next = { ...(this.filters() ?? {}) };
     if (values.length === 0) {
       delete next[columnId];
     } else {

@@ -36,7 +36,9 @@
   outline-offset: 1px;
 }
 
-.andes-table-filter__trigger--active {
+/* Placed after, and as specific as, the hover/open rule: a filtered column keeps its
+   primary funnel while hovered or open instead of dropping back to the plain color. */
+.andes-table-filter__trigger.andes-table-filter__trigger--active {
   color: var(--andes-color-primary-text);
 }
 
