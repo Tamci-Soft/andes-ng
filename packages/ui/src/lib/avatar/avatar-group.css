@@ -9,7 +9,8 @@
    rule in the button component. (The `+N` chip that `max` generates lives in
    this component's own template, and `:host ::ng-deep` reaches it just the
    same.) A ring in the page background color keeps overlapping avatars
-   visually separated; the negative margin (-8px) pulls each avatar back over
+   visually separated; the negative margin (-8px, a quarter of the default
+   32px avatar) pulls each avatar back over
    the previous one.
 
    The overlap is read from `--andes-avatar-group-overlap`, a component-level
@@ -25,5 +26,5 @@
 
 :host ::ng-deep andes-avatar:not(:first-child),
 :host ::ng-deep andes-avatar-group-count {
-  margin-inline-start: var(--andes-avatar-group-overlap, -0.625rem);
+  margin-inline-start: var(--andes-avatar-group-overlap, -0.5rem);
 }

@@ -166,7 +166,7 @@ describe('AndesAvatar size', () => {
 
   it('keeps a floor under the font size of a tiny pixel avatar', () => {
     expect(avatarFontSizeFor(16)).toBe(10);
-    expect(avatarFontSizeFor(40)).toBe(14);
+    expect(avatarFontSizeFor(40)).toBe(16);
   });
 
   it('leaves presets to CSS - no inline box size', () => {

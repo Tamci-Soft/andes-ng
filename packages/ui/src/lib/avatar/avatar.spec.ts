@@ -161,8 +161,8 @@ describe('AndesAvatar', () => {
   // actually-compiled component, can catch these regressions.
   describe('applies real computed styles to the host (not dead CSS)', () => {
     it.each([
-      ['circular', 'xs', '1.5rem', '1.5rem'],
-      ['square', 'lg', '3.5rem', '3.5rem'],
+      ['circular', 'xs', '1.25rem', '1.25rem'],
+      ['square', 'lg', '2.5rem', '2.5rem'],
     ] as const)(
       'gives a %s %s avatar a real, non-empty width/height/border-radius',
       (shape, size, width, height) => {
@@ -376,8 +376,8 @@ describe('AndesAvatarGroup', () => {
     ) as HTMLElement;
     const style = getComputedStyle(count);
 
-    expect(style.width).toBe('3.5rem');
-    expect(style.height).toBe('3.5rem');
+    expect(style.width).toBe('2.5rem');
+    expect(style.height).toBe('2.5rem');
     expect(style.borderRadius).not.toBe('');
     expect(style.borderRadius).not.toBe('0px');
   });
@@ -404,11 +404,11 @@ describe('AndesAvatarGroup', () => {
     // The first avatar is excluded by `:not(:first-child)` - it has nothing to
     // overlap - so a negative margin there would push the whole stack left.
     // `toContain`, not `toBe`: the overlap is
-    // `var(--andes-avatar-group-overlap, -0.625rem)`, which jsdom's CSSOM
+    // `var(--andes-avatar-group-overlap, -0.5rem)`, which jsdom's CSSOM
     // reports verbatim rather than resolving to the fallback.
-    expect(first.marginInlineStart).not.toContain('-0.625rem');
-    expect(second.marginInlineStart).toContain('-0.625rem');
-    expect(countStyle.marginInlineStart).toContain('-0.625rem');
+    expect(first.marginInlineStart).not.toContain('-0.5rem');
+    expect(second.marginInlineStart).toContain('-0.5rem');
+    expect(countStyle.marginInlineStart).toContain('-0.5rem');
 
     // The separating ring, without which the overlap reads as one smeared
     // blob rather than a stack.

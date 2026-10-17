@@ -534,7 +534,7 @@ export const GroupSizeAndShape: Story = {
     docs: {
       description: {
         story:
-          "`size` and `shape` on the group apply to every avatar and to the `+N` chip; an avatar's own `size`/`shape` still wins. `size` takes presets, pixel numbers and responsive maps here too. Overlap is `--andes-avatar-group-overlap` (default `-0.625rem`); the last row sets it to `0.25rem` for a spaced-out group.",
+          "`size` and `shape` on the group apply to every avatar and to the `+N` chip; an avatar's own `size`/`shape` still wins. `size` takes presets, pixel numbers and responsive maps here too. Overlap is `--andes-avatar-group-overlap` (default `-0.5rem`); the last row sets it to `0.25rem` for a spaced-out group.",
       },
     },
   },
