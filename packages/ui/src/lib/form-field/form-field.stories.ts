@@ -38,7 +38,8 @@ const fieldModuleMetadata = {
 
 /**
  * Andes-look styling for the NATIVE controls these stories render (AndesInput/AndesSelect are
- * not on `develop` yet - see the docs below). Injected once as a real stylesheet rather than
+ * not on `develop` yet - see the docs below): the shared control scale (24/32/40px, 14px text)
+ * and the shared field focus (border + halo, never a ring outside the border). Injected once as a real stylesheet rather than
  * an inline `style` attribute: an inline border would outrank - and so hide - the field's own
  * status tint (`.andes-form-field--invalid :where(input)`), which is part of what these
  * stories demonstrate. Everything sits in zero-specificity `:where()` so any library rule wins.
@@ -48,26 +49,36 @@ export const DEMO_CONTROL_CSS = `
 :where(.andes-demo-control) {
   box-sizing: border-box;
   width: 100%;
-  padding: 0.5rem 0.625rem;
+  height: 2rem;
+  padding: 0.25rem 0.6875rem;
   border: 1px solid var(--andes-color-input);
-  border-radius: var(--andes-radius-md);
+  border-radius: 0.375rem;
   background: var(--andes-color-background);
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   font-size: 0.875rem;
-  line-height: 1.25rem;
+  line-height: 1.375rem;
+  transition:
+    border-color 0.1s cubic-bezier(0.215, 0.61, 0.355, 1),
+    box-shadow 0.1s cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 :where(.andes-demo-control):focus-visible {
-  outline: 2px solid var(--andes-color-focus-ring);
-  outline-offset: 1px;
+  border-color: var(--andes-color-focus-ring);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
 }
 :where([data-size='sm'] .andes-demo-control) {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8125rem;
+  height: 1.5rem;
+  padding: 0 0.4375rem;
+  border-radius: 0.25rem;
 }
 :where([data-size='lg'] .andes-demo-control) {
-  padding: 0.75rem 0.875rem;
+  height: 2.5rem;
+  padding: 0.4375rem 0.6875rem;
+  border-radius: 0.5rem;
   font-size: 1rem;
+  line-height: 1.5rem;
 }
 `;
 
