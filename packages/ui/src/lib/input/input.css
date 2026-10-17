@@ -39,7 +39,7 @@
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  /* Prefix/suffix/clear/count sit 4px from the text, like Ant's affix margins. */
+  /* Prefix/suffix/clear/count sit 4px from the text, kept tight. */
   gap: var(--andes-space-1);
   width: 100%;
   min-width: 0;
@@ -438,7 +438,7 @@
 
 /* The button is sized from the field, not from its own size scale: it stretches to the row's
    height, takes the field's font-size (the icon is 1em) and corner radius, and an icon-only
-   button is square. Ant Design's Input.Search joins its button the same way. */
+   button is square. */
 /* prettier-ignore */
 .andes-input__search-button ::ng-deep .andes-button {
   height: auto;
@@ -499,7 +499,7 @@
   background-color: transparent;
 }
 
-/* Sizes: Ant Design's control scale - 24/32/40px tall, 14px text on a 22px line (16px on 24px
+/* Sizes: the shared control scale - 24/32/40px tall, 14px text on a 22px line (16px on 24px
    for lg), 7px/11px inline padding, 4/6/8px corners. */
 
 .andes-input-wrapper--sm {
