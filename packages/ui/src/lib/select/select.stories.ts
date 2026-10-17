@@ -1,4 +1,5 @@
 import { JsonPipe } from '@angular/common';
+import { signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
 
@@ -388,7 +389,7 @@ const FRUIT_OPTIONS = [
 ];
 
 const note = (text: string) =>
-  `<p style="margin: 0.5rem 0 0; font: 0.8125rem var(--andes-font-family), sans-serif; color: var(--andes-color-muted-foreground);">${text}</p>`;
+  `<p style="margin: 0.5rem 0 0; font: 0.75rem/1.25rem var(--andes-font-family), sans-serif; color: var(--andes-color-muted-foreground);">${text}</p>`;
 
 /**
  * `mode="multiple"`: the value is an array, rendered as removable tags, and the panel
@@ -521,7 +522,26 @@ export const AllowClear: Story = {
     template: `
       <div style="width: 260px;">
         <andes-select aria-label="Fruit" allowClear value="banana" [options]="options" />
-        ${note('Hover the field to reveal the clear button; Backspace clears from the keyboard.')}
+        ${note('Hover or focus the field to swap the chevron for the clear button; Tab reaches it from the keyboard, and Backspace clears too.')}
+      </div>
+    `,
+  }),
+};
+
+/**
+ * The clear button is the same at every size and on every field: a small muted disc in the
+ * chevron's place, named by `clearLabel`.
+ */
+export const ClearButtonSizes: Story = {
+  render: () => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: { options: FRUIT_OPTIONS },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; width: 260px;">
+        <andes-select aria-label="Small" size="sm" allowClear value="banana" [options]="options" />
+        <andes-select aria-label="Medium" allowClear value="banana" [options]="options" />
+        <andes-select aria-label="Large" size="lg" allowClear value="banana" [options]="options" />
+        <andes-select aria-label="Localized" allowClear clearLabel="Borrar" value="banana" [options]="options" />
       </div>
     `,
   }),
@@ -665,8 +685,8 @@ export const CustomTags: Story = {
         <andes-select aria-label="Fruit" mode="multiple" [options]="options" [(value)]="picked" [tagTemplate]="tag" />
       </div>
       <ng-template #tag let-tag let-close="onClose">
-        <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.125rem 0.5rem; border-radius: 999px;
-          background: var(--andes-color-primary); color: var(--andes-color-primary-foreground); font-size: 0.8125rem;">
+        <span style="display: inline-flex; align-items: center; gap: 0.25rem; height: 1.25rem; padding: 0 0.5rem; border-radius: 999px;
+          background: var(--andes-color-primary); color: var(--andes-color-primary-foreground); font-size: 0.75rem; line-height: 1.25rem;">
           {{ tag.label }}
           <button type="button" tabindex="-1" [attr.aria-label]="'Remove ' + tag.label" (mousedown)="$event.preventDefault()"
             (click)="$event.stopPropagation(); close()"
@@ -710,4 +730,334 @@ export const ControlledOpen: Story = {
       </div>
     `,
   }),
+};
+
+const PEOPLE = [
+  { id: 1, name: 'Ada Lovelace', email: 'ada@example.com' },
+  { id: 2, name: 'Grace Hopper', email: 'grace@example.com' },
+  { id: 3, name: 'Alan Turing', email: 'alan@example.com' },
+  { id: 4, name: 'Katherine Johnson', email: 'katherine@example.com' },
+  { id: 5, name: 'Edsger Dijkstra', email: 'edsger@example.com' },
+];
+
+/**
+ * `fieldNames` reads rows as they come from an API - here `{ id, name, email }` - without
+ * mapping them first. Hover an option: an entry's `title` field becomes its tooltip.
+ */
+export const FieldNames: Story = {
+  render: () => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: {
+      people: PEOPLE.map((person) => ({ ...person, title: person.email })),
+      fieldNames: { value: 'id', label: 'name' },
+      picked: 2,
+    },
+    template: `
+      <div style="width: 260px;">
+        <andes-select aria-label="Owner" [options]="people" [fieldNames]="fieldNames" [(value)]="picked" />
+        ${note('value: {{ picked }}')}
+      </div>
+    `,
+  }),
+};
+
+/** `filterSort` ranks the matches: options starting with the search text come first. */
+export const SearchWithSort: Story = {
+  render: () => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: {
+      options: [
+        { value: 'pineapple', label: 'Pineapple' },
+        { value: 'apple', label: 'Apple' },
+        { value: 'grape', label: 'Grape' },
+        { value: 'apricot', label: 'Apricot' },
+        { value: 'custard-apple', label: 'Custard apple' },
+      ],
+      sort: (
+        a: { label: string },
+        b: { label: string },
+        info: { searchValue: string },
+      ) => {
+        const search = info.searchValue.toLowerCase();
+        const rank = (label: string) =>
+          search && label.toLowerCase().startsWith(search) ? 0 : 1;
+        return rank(a.label) - rank(b.label) || a.label.localeCompare(b.label);
+      },
+    },
+    template: `
+      <div style="width: 260px;">
+        <andes-select aria-label="Fruit" placeholder="Type 'ap'" showSearch [options]="options" [filterSort]="sort" />
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `maxTagCount="responsive"` keeps the tags on one row and shows as many as fit. Drag
+ * the container's bottom-right corner to resize it.
+ */
+export const ResponsiveTags: Story = {
+  render: () => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: {
+      options: FRUIT_OPTIONS,
+      picked: ['apple', 'apricot', 'banana', 'blueberry', 'cherry', 'grape'],
+    },
+    template: `
+      <div style="width: 320px; min-width: 120px; max-width: 100%; resize: horizontal; overflow: hidden; padding-bottom: 0.25rem;">
+        <andes-select aria-label="Fruit" mode="multiple" maxTagCount="responsive" [options]="options" [(value)]="picked" />
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `panelFooter` adds content below the options - here a field that adds a new option.
+ * Keys typed into it stay in it; the option list's keyboard handling leaves them alone.
+ */
+export const PanelFooter: Story = {
+  render: () => {
+    const options = signal(FRUIT_OPTIONS.slice(0, 4));
+    return {
+      moduleMetadata: { imports: SELECT_IMPORTS },
+      props: {
+        options,
+        add(input: HTMLInputElement) {
+          const label = input.value.trim();
+          if (!label) {
+            return;
+          }
+          options.update((current) => [
+            ...current,
+            { value: label.toLowerCase(), label },
+          ]);
+          input.value = '';
+        },
+      },
+      template: `
+        <div style="width: 260px;">
+          <andes-select aria-label="Fruit" placeholder="Pick or add a fruit" [options]="options()" [panelFooter]="footer" />
+        </div>
+        <ng-template #footer>
+          <div style="display: flex; gap: 0.5rem;">
+            <input #name class="demo-field" aria-label="New fruit" placeholder="New fruit" (keydown.enter)="add(name)" />
+            <button type="button" (click)="add(name)"
+              style="height: 1.5rem; padding: 0 0.625rem; border: none; border-radius: var(--andes-radius-sm); cursor: pointer;
+                background: var(--andes-color-primary); color: var(--andes-color-primary-foreground); font-family: inherit; font-size: 0.875rem;">
+              Add item
+            </button>
+          </div>
+        </ng-template>
+      `,
+      // A small field drawn like the select's own box: one border, and on focus a primary
+      // border with a soft ring instead of the browser's outline around it.
+      styles: [
+        `
+        .demo-field {
+          flex: 1;
+          min-width: 0;
+          height: 1.5rem;
+          box-sizing: border-box;
+          padding: 0 0.4375rem;
+          border: 1px solid var(--andes-color-input);
+          border-radius: var(--andes-radius-md);
+          background: var(--andes-color-background);
+          color: var(--andes-color-foreground);
+          font: 0.875rem/1.375rem var(--andes-font-family), sans-serif;
+          outline: none;
+          transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+        .demo-field::placeholder {
+          color: var(--andes-color-muted-foreground);
+        }
+        .demo-field:hover {
+          border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+        }
+        .demo-field:focus {
+          border-color: var(--andes-color-primary);
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+        }
+        `,
+      ],
+    };
+  },
+};
+
+/** `panelScroll` loads the next page as the list nears its end; `loading` shows meanwhile. */
+export const InfiniteScroll: Story = {
+  render: () => {
+    const page = (start: number) =>
+      Array.from({ length: 20 }, (_, index) => ({
+        value: start + index,
+        label: `Invoice #${String(start + index + 1).padStart(4, '0')}`,
+      }));
+    const options = signal(page(0));
+    const loading = signal(false);
+    return {
+      moduleMetadata: { imports: SELECT_IMPORTS },
+      props: {
+        options,
+        loading,
+        onScroll(event: Event) {
+          const list = event.target as HTMLElement;
+          const nearEnd =
+            list.scrollTop + list.clientHeight >= list.scrollHeight - 24;
+          if (!nearEnd || loading() || options().length >= 100) {
+            return;
+          }
+          loading.set(true);
+          setTimeout(() => {
+            options.update((current) => [...current, ...page(current.length)]);
+            loading.set(false);
+          }, 600);
+        },
+      },
+      template: `
+        <div style="width: 260px;">
+          <andes-select aria-label="Invoice" placeholder="Scroll to load more" [options]="options()" [loading]="loading()"
+            (panelScroll)="onScroll($event)" />
+          ${note('{{ options().length }} of 100 loaded')}
+        </div>
+      `,
+    };
+  },
+};
+
+/**
+ * Options fetched from a server as the user types: `searchInput` starts the request,
+ * `filterOption` is off because the server already filtered, and `loading` covers the wait.
+ */
+export const RemoteSearch: Story = {
+  render: () => {
+    const options = signal<{ value: number; label: string }[]>([]);
+    const loading = signal(false);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    return {
+      moduleMetadata: { imports: SELECT_IMPORTS },
+      props: {
+        options,
+        loading,
+        onSearch(text: string) {
+          clearTimeout(timer);
+          if (!text.trim()) {
+            options.set([]);
+            loading.set(false);
+            return;
+          }
+          loading.set(true);
+          timer = setTimeout(() => {
+            const needle = text.toLowerCase();
+            options.set(
+              PEOPLE.filter((person) =>
+                person.name.toLowerCase().includes(needle),
+              ).map((person) => ({ value: person.id, label: person.name })),
+            );
+            loading.set(false);
+          }, 400);
+        },
+      },
+      template: `
+        <div style="width: 280px;">
+          <andes-select aria-label="People" mode="multiple" placeholder="Search people" notFoundContent="Type to search"
+            [filterOption]="false" [options]="options()" [loading]="loading()" (searchInput)="onSearch($event)" />
+        </div>
+      `,
+    };
+  },
+};
+
+/** `defaultActiveFirstOption` off: in `tags` mode, Enter adds exactly what was typed. */
+export const FreeTextTags: Story = {
+  render: () => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: { options: FRUIT_OPTIONS, picked: [] as string[] },
+    template: `
+      <div style="width: 300px;">
+        <andes-select aria-label="Labels" mode="tags" placeholder="Type 'app' and press Enter" [defaultActiveFirstOption]="false"
+          [options]="options" [(value)]="picked" />
+        ${note('value: {{ picked | json }}')}
+      </div>
+    `,
+  }),
+};
+
+/** `optionSelectedIcon` and `loadingIcon` replace the check mark and the spinner. */
+export const CustomIcons: Story = {
+  render: () => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: { options: FRUIT_OPTIONS, picked: ['apple', 'banana'] },
+    template: `
+      <div style="width: 300px; display: flex; flex-direction: column; gap: 0.75rem;">
+        <andes-select aria-label="Fruit" mode="multiple" [options]="options" [(value)]="picked" [optionSelectedIcon]="selected" />
+        <andes-select aria-label="Loading fruit" placeholder="Loading" loading [options]="options" [loadingIcon]="hourglass" />
+        <andes-select aria-label="Fruit, no check mark" mode="multiple" [options]="options" [(value)]="picked" [optionSelectedIcon]="null" />
+      </div>
+      <ng-template #selected>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="12" r="5" />
+        </svg>
+      </ng-template>
+      <ng-template #hourglass>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M6 2h12M6 22h12M7 2c0 6 10 6 10 10S7 16 7 22M17 2c0 6-10 6-10 10s10 4 10 10" stroke-linecap="round" />
+        </svg>
+      </ng-template>
+    `,
+  }),
+};
+
+/**
+ * `matchTriggerWidth` sizes the panel: `false` fits it to its content, a number sets
+ * it in px.
+ */
+export const PanelWidth: Story = {
+  render: () => ({
+    moduleMetadata: { imports: SELECT_IMPORTS },
+    props: {
+      options: [
+        {
+          value: 'net30',
+          label: 'Net 30 - payment due thirty days after invoice',
+        },
+        {
+          value: 'net60',
+          label: 'Net 60 - payment due sixty days after invoice',
+        },
+        { value: 'cod', label: 'Cash on delivery' },
+      ],
+    },
+    template: `
+      <div style="display: flex; gap: 1rem; align-items: flex-start;">
+        <div style="width: 140px;">
+          <andes-select aria-label="Terms, sized to content" placeholder="Content" [options]="options" [matchTriggerWidth]="false" />
+        </div>
+        <div style="width: 140px;">
+          <andes-select aria-label="Terms, 360px" placeholder="360px" [options]="options" [matchTriggerWidth]="360" />
+        </div>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `focused`/`blurred` fire as focus enters and leaves the select as a whole (moving into
+ * the panel does not count), and `activeOptionChange` follows the keyboard cursor.
+ */
+export const FocusAndActiveEvents: Story = {
+  render: () => {
+    const log = signal<string[]>([]);
+    const push = (entry: string) =>
+      log.update((entries) => [entry, ...entries].slice(0, 6));
+    return {
+      moduleMetadata: { imports: SELECT_IMPORTS },
+      props: { options: FRUIT_OPTIONS, log, push },
+      template: `
+        <div style="width: 260px;">
+          <andes-select aria-label="Fruit" [options]="options" (focused)="push('focused')" (blurred)="push('blurred')"
+            (activeOptionChange)="push('active: ' + $event)" />
+          ${note('{{ log().join(" · ") || "Focus the select and use the arrow keys" }}')}
+        </div>
+      `,
+    };
+  },
 };

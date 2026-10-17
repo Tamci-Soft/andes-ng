@@ -2,6 +2,7 @@ import { AndesOverlayTriggerPrimitive } from '@andes-ng/primitives';
 import { NgTemplateOutlet } from '@angular/common';
 import {
   afterNextRender,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   DestroyRef,
   Component,
@@ -9,11 +10,15 @@ import {
   effect,
   ElementRef,
   inject,
+  untracked,
   viewChild,
 } from '@angular/core';
 import clsx from 'clsx';
 
 import { AndesSelectState, type AndesSelectTag } from './select-state';
+
+/** Room kept free for the search input when tags are fitted to one row, in px. */
+const RESPONSIVE_SEARCH_RESERVE = 20;
 
 /**
  * The closed-state control: a trigger box holding the selection (a value, or removable
@@ -43,6 +48,14 @@ export class AndesSelectTrigger {
 
   private readonly boxRef = viewChild.required<ElementRef<HTMLElement>>('box');
   private readonly comboboxRef = viewChild<ElementRef<HTMLElement>>('combobox');
+  private readonly selectionRef =
+    viewChild.required<ElementRef<HTMLElement>>('selection');
+  private readonly measureRef = viewChild<ElementRef<HTMLElement>>('measure');
+
+  /** Whether tags are fitted to a single row (`maxTagCount="responsive"`). */
+  protected readonly responsive = computed(
+    () => this.select.responsiveTags() && this.select.isMultiple(),
+  );
 
   protected readonly classes = computed(() =>
     clsx(
@@ -80,17 +93,80 @@ export class AndesSelectTrigger {
     );
 
     // Tags wrapping onto a new row grow the box; an open panel has to follow it rather
-    // than stay where the box's bottom edge used to be.
+    // than stay where the box's bottom edge used to be. The same observer re-fits
+    // responsive tags when the box is resized.
     afterNextRender(() => {
       if (typeof ResizeObserver === 'undefined') {
         return;
       }
-      const observer = new ResizeObserver(() =>
-        this.select.overlay.updatePosition(),
-      );
+      const observer = new ResizeObserver(() => {
+        this.select.repositionPanel();
+        this.fitTags();
+      });
       observer.observe(this.boxRef().nativeElement);
       this.destroyRef.onDestroy(() => observer.disconnect());
     });
+
+    // Re-fit once the measuring row has rendered a changed set of tags.
+    afterRenderEffect(() => {
+      this.select.tags();
+      this.select.searchEnabled();
+      if (!this.responsive()) {
+        untracked(() => this.select.setResponsiveTagCount(null));
+        return;
+      }
+      this.measureRef();
+      untracked(() => this.fitTags());
+    });
+  }
+
+  /**
+   * Counts how many tags fit on the selection row next to the `+ N ...` tag (and the
+   * search input), from the widths in the measuring row. At least one tag stays visible;
+   * it shrinks and ellipsises when even that one is too wide. A row that has not been
+   * laid out (zero width) leaves every tag visible.
+   */
+  private fitTags(): void {
+    const measure = this.measureRef()?.nativeElement;
+    const selection = this.selectionRef().nativeElement;
+    if (!this.responsive() || !measure || selection.clientWidth === 0) {
+      return;
+    }
+
+    const widths = Array.from(
+      measure.querySelectorAll<HTMLElement>('[data-measure="tag"]'),
+      (element) => element.offsetWidth,
+    );
+    const rest =
+      measure.querySelector<HTMLElement>('[data-measure="rest"]')
+        ?.offsetWidth ?? 0;
+    const gap = parseFloat(getComputedStyle(selection).columnGap) || 0;
+    const reserve = this.select.searchEnabled()
+      ? RESPONSIVE_SEARCH_RESERVE + gap
+      : 0;
+    const available = selection.clientWidth - reserve;
+
+    const total = widths.reduce(
+      (sum, width, index) => sum + width + (index > 0 ? gap : 0),
+      0,
+    );
+    if (total <= available) {
+      this.select.setResponsiveTagCount(widths.length);
+      return;
+    }
+
+    let used = rest;
+    let count = 0;
+    for (const width of widths) {
+      if (used + gap + width > available) {
+        break;
+      }
+      used += gap + width;
+      count++;
+    }
+    this.select.setResponsiveTagCount(
+      Math.max(count, Math.min(1, widths.length)),
+    );
   }
 
   protected tagText(tag: AndesSelectTag): string {

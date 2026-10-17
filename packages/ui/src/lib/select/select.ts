@@ -14,7 +14,9 @@ import {
   Component,
   computed,
   contentChild,
+  DestroyRef,
   effect,
+  ElementRef,
   forwardRef,
   inject,
   input,
@@ -34,21 +36,26 @@ import {
   AndesSelectState,
   type AndesSelectCompareWith,
   type AndesSelectDisplayWith,
+  type AndesSelectFieldNames,
   type AndesSelectFilterFn,
+  type AndesSelectFilterSort,
   type AndesSelectItemRef,
   type AndesSelectLabelContext,
+  type AndesSelectMaxTagCount,
   type AndesSelectMaxTagPlaceholder,
   type AndesSelectMode,
   type AndesSelectOption,
   type AndesSelectOptionContext,
   type AndesSelectOptionEntry,
   type AndesSelectOptions,
+  type AndesSelectPanelContext,
   type AndesSelectPlacement,
   type AndesSelectSize,
   type AndesSelectStatus,
   type AndesSelectTag,
   type AndesSelectTagContext,
   type AndesSelectVariant,
+  matchTriggerWidthAttribute,
 } from './select-state';
 import { AndesSelectTrigger } from './select-trigger';
 import { AndesSelectValue } from './select-value';
@@ -67,6 +74,13 @@ function optionalNumber(value: unknown): number | undefined {
   return value === undefined || value === null || value === ''
     ? undefined
     : numberAttribute(value);
+}
+
+/** `'responsive'` stays as is; anything else goes through {@link optionalNumber}. */
+function maxTagCountAttribute(
+  value: unknown,
+): AndesSelectMaxTagCount | undefined {
+  return value === 'responsive' ? value : optionalNumber(value);
 }
 
 function isEmptyValue(value: unknown): boolean {
@@ -161,7 +175,8 @@ export class AndesSelect
   readonly navigation = inject(AndesListNavigation);
 
   readonly listboxId = `andes-select-listbox-${nextUniqueId}`;
-  readonly summaryId = `andes-select-summary-${nextUniqueId++}`;
+  readonly summaryId = `andes-select-summary-${nextUniqueId}`;
+  readonly panelId = `andes-select-panel-${nextUniqueId++}`;
 
   /**
    * The selected value: a single value (or `null`) in `single` mode, an array in
@@ -196,7 +211,7 @@ export class AndesSelect
   readonly disabled = input(false, { transform: booleanAttribute });
   /** Marks the field required; surfaces as `aria-required` on the combobox. */
   readonly required = input(false, { transform: booleanAttribute });
-  /** Control height. */
+  /** Control height: 24px (`sm`), 32px (`md`) or 40px (`lg`); grows as tags wrap. */
   readonly size = input<AndesSelectSize>('md');
   /** Visual treatment of the trigger box. */
   readonly variant = input<AndesSelectVariant>('outlined');
@@ -204,8 +219,17 @@ export class AndesSelect
   readonly status = input<AndesSelectStatus | undefined>(undefined);
   /** Where the panel opens. `side`/`align` on `<andes-select-content>` take precedence. */
   readonly placement = input<AndesSelectPlacement>('bottomLeft');
-  /** Maximum height of the panel, in px. */
+  /** Maximum height of the option list, in px. */
   readonly listHeight = input(256, { transform: numberAttribute });
+  /**
+   * Panel width: `true` sizes it to the trigger, `false` to its own content, and a
+   * number sets it in px. `matchTriggerWidth` on `<andes-select-content>` takes
+   * precedence. Unset behaves as `true`.
+   */
+  readonly matchTriggerWidth = input<boolean | number | undefined, unknown>(
+    undefined,
+    { transform: matchTriggerWidthAttribute },
+  );
   /** Whether typing characters moves the active option while the panel is open. */
   readonly typeahead = input(true, { transform: booleanAttribute });
   /** Compares an option's value with the selected value. Defaults to strict equality. */
@@ -239,6 +263,21 @@ export class AndesSelect
   readonly autoClearSearchValue = input(true, { transform: booleanAttribute });
   /** Characters that split typed or pasted text into separate values (`multiple`/`tags`). */
   readonly tokenSeparators = input<readonly string[]>([]);
+  /**
+   * Orders the `options` entries in the panel, within their group. Projected items keep
+   * the order they are written in.
+   */
+  readonly filterSort = input<AndesSelectFilterSort | undefined>(undefined);
+  /**
+   * With search on, makes the first matching option active as the user types (and on
+   * open, when nothing is selected), so `Enter` picks it straight away. Turn it off for
+   * free-text entry - in `tags` mode, say - where `Enter` should not pick an option the
+   * user never pointed at. Without search, focus has to land on an option, so the first
+   * one is always activated.
+   */
+  readonly defaultActiveFirstOption = input(true, {
+    transform: booleanAttribute,
+  });
 
   /** Shows a button that clears the selection. */
   readonly allowClear = input(false, { transform: booleanAttribute });
@@ -248,10 +287,14 @@ export class AndesSelect
   readonly maxCount = input<number | undefined, unknown>(undefined, {
     transform: optionalNumber,
   });
-  /** Maximum number of tags rendered before the rest collapse into `+ N ...`. */
-  readonly maxTagCount = input<number | undefined, unknown>(undefined, {
-    transform: optionalNumber,
-  });
+  /**
+   * Maximum number of tags rendered before the rest collapse into `+ N ...`.
+   * `'responsive'` keeps the tags on one row and shows as many as fit.
+   */
+  readonly maxTagCount = input<AndesSelectMaxTagCount | undefined, unknown>(
+    undefined,
+    { transform: maxTagCountAttribute },
+  );
   /** Replaces the `+ N ...` text: a string, a function of the hidden tags, or a template. */
   readonly maxTagPlaceholder = input<AndesSelectMaxTagPlaceholder | undefined>(
     undefined,
@@ -265,8 +308,16 @@ export class AndesSelect
     'No data',
   );
 
-  /** Options as data - an alternative (or an addition) to projected items. */
-  readonly options = input<AndesSelectOptions | undefined>(undefined);
+  /**
+   * Options as data - an alternative (or an addition) to projected items. Entries are
+   * `{ value, label }` objects (and `{ label, options }` groups), or any shape described by
+   * {@link fieldNames}.
+   */
+  readonly options = input<AndesSelectOptions | readonly object[] | undefined>(
+    undefined,
+  );
+  /** The fields of an `options` entry holding its value, label and child options. */
+  readonly fieldNames = input<AndesSelectFieldNames | undefined>(undefined);
   /** Renders each `options` entry. Context: the option, and whether it is selected. */
   readonly optionTemplate = input<
     TemplateRef<AndesSelectOptionContext> | undefined
@@ -287,8 +338,31 @@ export class AndesSelect
   );
   /** Replaces the clear button's icon. */
   readonly clearIcon = input<TemplateRef<unknown> | undefined>(undefined);
+  /** The clear button's accessible name - translate it with the rest of the form. */
+  readonly clearLabel = input('Clear');
   /** Replaces each tag's remove icon. */
   readonly removeIcon = input<TemplateRef<unknown> | undefined>(undefined);
+  /** Replaces the spinner shown while `loading`. */
+  readonly loadingIcon = input<TemplateRef<unknown> | undefined>(undefined);
+  /** Replaces the check mark on selected options. `null` removes it. */
+  readonly optionSelectedIcon = input<TemplateRef<unknown> | null | undefined>(
+    undefined,
+  );
+  /**
+   * Content rendered above the option list, inside the panel - a hint, or filters.
+   * Context: the search text as `$implicit`, and a `close` callback.
+   */
+  readonly panelHeader = input<
+    TemplateRef<AndesSelectPanelContext> | undefined
+  >(undefined);
+  /**
+   * Content rendered below the option list, inside the panel - an "Add item" form, or a
+   * link to manage the options. Context as for {@link panelHeader}. Keys typed into
+   * fields here are left alone by the option list's keyboard handling.
+   */
+  readonly panelFooter = input<
+    TemplateRef<AndesSelectPanelContext> | undefined
+  >(undefined);
 
   /**
    * Whether the panel is open. Two-way bindable as `[(open)]`; `openChange` fires on every
@@ -327,6 +401,27 @@ export class AndesSelect
   readonly optionDeselect = output<unknown>();
   /** Emits when the user clears the selection. */
   readonly cleared = output<void>();
+  /**
+   * Emits the text as the user types into the search input - not when the select clears
+   * it itself. The hook for loading options from a server.
+   */
+  readonly searchInput = output<string>();
+  /** Emits when focus enters the select, from outside it. */
+  readonly focused = output<FocusEvent>();
+  /**
+   * Emits when focus leaves the select altogether. Moving between the trigger and the
+   * open panel does not count.
+   */
+  readonly blurred = output<FocusEvent>();
+  /** Emits the value of the option that becomes active while the panel is open. */
+  readonly activeOptionChange = output<unknown>();
+  /**
+   * Emits every `keydown` on the combobox before the select handles it. Calling
+   * `preventDefault()` on the event skips the built-in handling.
+   */
+  readonly inputKeydown = output<KeyboardEvent>();
+  /** Emits when the option list scrolls - the hook for loading more options at its end. */
+  readonly panelScroll = output<Event>();
 
   private readonly projectedContent = contentChild(AndesSelectContent, {
     descendants: true,
@@ -351,6 +446,10 @@ export class AndesSelect
   private readonly _items = signal<readonly AndesSelectItemRef[]>([]);
   private readonly _formDisabled = signal(false);
   private readonly _combobox = signal<HTMLElement | null>(null);
+  private readonly _responsiveTagCount = signal<number | null>(null);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private hasFocus = false;
+  private destroyed = false;
 
   /**
    * Labels of every option that has ever registered, keyed by value, so the trigger keeps
@@ -410,16 +509,59 @@ export class AndesSelect
     ),
   );
 
-  readonly optionEntries = computed<readonly AndesSelectOptionEntry[]>(() =>
-    (this.options() ?? []).map((entry) =>
-      'options' in entry && Array.isArray(entry.options)
+  readonly optionEntries = computed<readonly AndesSelectOptionEntry[]>(() => {
+    const names = this.fieldNames();
+    const valueKey = names?.value ?? 'value';
+    const labelKey = names?.label ?? 'label';
+    const optionsKey = names?.options ?? 'options';
+    const groupLabelKey = names?.groupLabel ?? labelKey;
+    const toOption = (raw: Record<string, unknown>): AndesSelectOption =>
+      names
         ? {
-            kind: 'group' as const,
-            label: entry.label,
-            options: entry.options,
+            ...raw,
+            value: raw[valueKey],
+            label: textOf(raw[labelKey]),
           }
-        : { kind: 'option' as const, option: entry as AndesSelectOption },
-    ),
+        : (raw as AndesSelectOption);
+
+    return (this.options() ?? []).map((value) => {
+      const entry = value as Record<string, unknown>;
+      const children = entry[optionsKey];
+      if (Array.isArray(children)) {
+        return {
+          kind: 'group' as const,
+          label: textOf(entry[groupLabelKey]),
+          title:
+            typeof entry['title'] === 'string' ? entry['title'] : undefined,
+          options: children.map((child) => toOption(child)),
+        };
+      }
+      return { kind: 'option' as const, option: toOption(entry) };
+    });
+  });
+
+  readonly renderedOptionEntries = computed<readonly AndesSelectOptionEntry[]>(
+    () => {
+      const entries = this.optionEntries();
+      const sort = this.filterSort();
+      if (!sort) {
+        return entries;
+      }
+      const info = { searchValue: this.searchValue() };
+      const compare = (a: AndesSelectOption, b: AndesSelectOption) =>
+        sort(a, b, info);
+      // Top-level options are sorted among themselves, into the slots they already
+      // occupy, so the groups between them stay where they were.
+      const sortedTop = entries
+        .flatMap((entry) => (entry.kind === 'option' ? [entry.option] : []))
+        .sort(compare);
+      let next = 0;
+      return entries.map((entry) =>
+        entry.kind === 'group'
+          ? { ...entry, options: [...entry.options].sort(compare) }
+          : { kind: 'option' as const, option: sortedTop[next++] },
+      );
+    },
   );
 
   /** The registered option carrying the (first) selected value. */
@@ -444,7 +586,7 @@ export class AndesSelect
     return this.labelFor(this.selectedValues()[0]);
   });
 
-  private readonly tags = computed<readonly AndesSelectTag[]>(() => {
+  readonly tags = computed<readonly AndesSelectTag[]>(() => {
     if (!this.isMultiple()) {
       return [];
     }
@@ -456,27 +598,35 @@ export class AndesSelect
     }));
   });
 
-  readonly visibleTags = computed(() => {
+  readonly responsiveTags = computed(() => this.maxTagCount() === 'responsive');
+
+  /** The number of tags to render, or `undefined` for all of them. */
+  private readonly tagLimit = computed<number | undefined>(() => {
     const max = this.maxTagCount();
+    if (max === 'responsive') {
+      return this._responsiveTagCount() ?? undefined;
+    }
+    return max;
+  });
+
+  readonly visibleTags = computed(() => {
+    const max = this.tagLimit();
     return max === undefined ? this.tags() : this.tags().slice(0, max);
   });
 
   readonly omittedTags = computed(() => {
-    const max = this.maxTagCount();
+    const max = this.tagLimit();
     return max === undefined ? [] : this.tags().slice(max);
   });
 
-  readonly maxTagPlaceholderText = computed(() => {
-    const placeholder = this.maxTagPlaceholder();
-    const omitted = this.omittedTags();
-    if (typeof placeholder === 'string') {
-      return placeholder;
-    }
-    if (typeof placeholder === 'function') {
-      return placeholder(omitted);
-    }
-    return `+ ${omitted.length} ...`;
-  });
+  readonly maxTagPlaceholderText = computed(() =>
+    this.maxTagPlaceholderTextFor(this.omittedTags()),
+  );
+
+  readonly panelContext = computed<AndesSelectPanelContext>(() => ({
+    $implicit: this.searchValue(),
+    close: () => this.close(),
+  }));
 
   readonly maxTagPlaceholderTemplate = computed(() => {
     const placeholder = this.maxTagPlaceholder();
@@ -557,6 +707,7 @@ export class AndesSelect
 
   constructor() {
     super();
+    inject(DestroyRef).onDestroy(() => (this.destroyed = true));
 
     this.overlay.configure({
       // `menu` is the closest preset: anchored to the trigger, click-opened, dismissed
@@ -608,6 +759,30 @@ export class AndesSelect
       ),
     );
 
+    // Reports the active option as it moves. Only while open: closing clears it, and
+    // that is not a move.
+    let lastActive: AndesListNavigationItemRef | null = null;
+    effect(() => {
+      const active = this.navigation.activeItem();
+      const open = this.overlay.isOpen();
+      untracked(() => {
+        if (!open || !active) {
+          lastActive = null;
+          return;
+        }
+        if (active === lastActive) {
+          return;
+        }
+        lastActive = active;
+        const item = this._items().find(
+          (entry) => entry.optionElement === active.element,
+        );
+        if (item) {
+          this.activeOptionChange.emit(this.toExternal(item.value()));
+        }
+      });
+    });
+
     effect(() => {
       if (this.isDisabled() && this.overlay.isOpen()) {
         this.overlay.close('imperative');
@@ -641,7 +816,11 @@ export class AndesSelect
           return;
         }
         if (search) {
-          this.navigation.focusFirst();
+          if (this.defaultActiveFirstOption()) {
+            this.navigation.focusFirst();
+          } else {
+            this.navigation.clearActive();
+          }
         } else {
           this.activateSelectedOption();
         }
@@ -693,6 +872,13 @@ export class AndesSelect
       restoreFocusTo: this._combobox(),
     });
     this.activateSelectedOption();
+  }
+
+  override repositionPanel(): void {
+    if (!this.overlay.isOpen()) {
+      return;
+    }
+    this.overlay.updatePosition();
   }
 
   override close(): void {
@@ -891,6 +1077,7 @@ export class AndesSelect
       return;
     }
 
+    this.searchInput.emit(text);
     const separators = this.tokenSeparators();
     if (
       this.isMultiple() &&
@@ -912,6 +1099,56 @@ export class AndesSelect
     this.onTouched();
   }
 
+  override onFocusIn(event: FocusEvent): void {
+    if (!this.hasFocus) {
+      this.hasFocus = true;
+      this.focused.emit(event);
+    }
+  }
+
+  /**
+   * Focus moving between the trigger and the panel is not a blur. When the new target
+   * is unknown (focus going nowhere, or an element being removed), the check waits a
+   * task for focus to settle - the overlay restores it to the combobox as it closes.
+   */
+  override onFocusOut(event: FocusEvent): void {
+    if (!this.hasFocus || this.ownsElement(event.relatedTarget)) {
+      return;
+    }
+    setTimeout(() => {
+      if (
+        this.destroyed ||
+        !this.hasFocus ||
+        this.ownsElement(document.activeElement)
+      ) {
+        return;
+      }
+      this.hasFocus = false;
+      this.blurred.emit(event);
+    });
+  }
+
+  override onPanelScroll(event: Event): void {
+    this.panelScroll.emit(event);
+  }
+
+  override maxTagPlaceholderTextFor(
+    omitted: readonly AndesSelectTag[],
+  ): string {
+    const placeholder = this.maxTagPlaceholder();
+    if (typeof placeholder === 'string') {
+      return placeholder;
+    }
+    if (typeof placeholder === 'function') {
+      return placeholder(omitted);
+    }
+    return `+ ${omitted.length} ...`;
+  }
+
+  override setResponsiveTagCount(count: number | null): void {
+    this._responsiveTagCount.set(count);
+  }
+
   /**
    * Keys on the combobox. With search on, this is the editable-combobox keyboard model
    * (see {@link onSearchKeydown}). Without it, it handles the closed button: every key
@@ -922,6 +1159,10 @@ export class AndesSelect
    */
   override onTriggerKeydown(event: KeyboardEvent): void {
     if (this.isDisabled()) {
+      return;
+    }
+    this.inputKeydown.emit(event);
+    if (event.defaultPrevented) {
       return;
     }
     if (this.searchEnabled()) {
@@ -1050,7 +1291,8 @@ export class AndesSelect
     if (
       !this.overlay.isOpen() ||
       event.defaultPrevented ||
-      this.searchEnabled()
+      this.searchEnabled() ||
+      isInPanelExtras(event.target)
     ) {
       return;
     }
@@ -1094,6 +1336,20 @@ export class AndesSelect
       this.selectItem(item);
       return;
     }
+    // With no option active (`defaultActiveFirstOption` off), Enter in `tags` mode adds
+    // the typed text itself.
+    const candidate = active
+      ? undefined
+      : this._items().find(
+          (entry) =>
+            entry.custom() &&
+            this.tagCandidate() !== null &&
+            entry.value() === this.tagCandidate(),
+        );
+    if (candidate) {
+      this.selectItem(candidate);
+      return;
+    }
     if (!this.isMultiple()) {
       this.close();
     }
@@ -1112,7 +1368,22 @@ export class AndesSelect
       this.navigation.focusItem(target);
       return;
     }
+    if (this.searchEnabled() && !this.defaultActiveFirstOption()) {
+      this.navigation.clearActive();
+      return;
+    }
     this.navigation.focusFirst();
+  }
+
+  private ownsElement(target: EventTarget | null): boolean {
+    if (!(target instanceof Node)) {
+      return false;
+    }
+    const panel = this.overlay.panelElement();
+    return (
+      this.host.nativeElement.contains(target) ||
+      (panel !== null && panel.contains(target))
+    );
   }
 
   private removeLastValue(): void {
@@ -1254,6 +1525,20 @@ function isPrintableCharacter(event: KeyboardEvent): boolean {
   return (
     event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey
   );
+}
+
+/** Whether a key event comes from the panel's header or footer content. */
+function isInPanelExtras(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest(
+      '[data-slot="select-panel-header"], [data-slot="select-panel-footer"]',
+    ) !== null
+  );
+}
+
+function textOf(value: unknown): string {
+  return isEmptyValue(value) ? '' : String(value);
 }
 
 function isLabeledValue(value: unknown): value is { value: unknown } {
