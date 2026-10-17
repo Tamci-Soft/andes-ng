@@ -50,8 +50,9 @@ export type AndesSheetSide = AndesOverlayEdge;
  *
  * Styling hooks, settable on the panel via `panelClass` or globally:
  * `--andes-sheet-size` (width for left/right, height for top/bottom; default
- * 378px), `--andes-sheet-padding` (header/body/footer padding) and
- * `--andes-sheet-push-distance`.
+ * 378px), `--andes-sheet-padding` (header/body/footer padding),
+ * `--andes-sheet-push-distance` and `--andes-sheet-gutter` (viewport space the
+ * panel always leaves uncovered on a small screen; default 40px).
  */
 @Component({
   selector: 'andes-sheet',

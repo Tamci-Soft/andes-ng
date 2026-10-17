@@ -327,6 +327,22 @@ describe('AndesDrawer', () => {
     expect(pane?.style.width).toBe('100%');
   });
 
+  it('sets a 16/24 semibold title over a 14/22 body', () => {
+    const { fixture, trigger, panel } = createHost();
+    clickOn(trigger());
+    fixture.detectChanges();
+
+    const title = getComputedStyle(
+      document.querySelector('#title h2') as Element,
+    );
+    expect(title.fontSize).toBe('1rem');
+    expect(title.lineHeight).toBe('1.5rem');
+    expect(title.fontWeight).toBe('600');
+    const body = getComputedStyle(panel() as Element);
+    expect(body.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+    expect(body.lineHeight).toBe('var(--andes-text-line-height, 1.375rem)');
+  });
+
   describe('accessibility', () => {
     it('renders role="dialog" and aria-modal="true"', () => {
       const { fixture, trigger, panel } = createHost();
@@ -452,7 +468,10 @@ describe('AndesDrawer', () => {
       [loading]="loading()"
       [push]="push()"
       [destroyOnHidden]="destroyOnHidden()"
+      [closePlacement]="closePlacement()"
+      [resizable]="resizable()"
       (afterOpenChange)="afterOpenChange.push($event)"
+      (resizeEnd)="resizeEnds.push($event)"
     >
       <button type="button" andesDrawerTrigger id="trigger">Open</button>
 
@@ -483,7 +502,10 @@ class DrawerFeatureHostComponent {
   readonly loading = signal(false);
   readonly push = signal<boolean | number | string>(false);
   readonly destroyOnHidden = signal(false);
+  readonly closePlacement = signal<'start' | 'end'>('end');
+  readonly resizable = signal(false);
   readonly afterOpenChange: boolean[] = [];
+  readonly resizeEnds: number[] = [];
 }
 
 describe('AndesDrawer (panel options)', () => {
@@ -606,5 +628,57 @@ describe('AndesDrawer (panel options)', () => {
     fixture.detectChanges();
 
     expect(panels()[0].hasAttribute('data-pushed')).toBe(false);
+  });
+
+  it('moves the close button to the leading corner with closePlacement="start"', () => {
+    const { fixture, host, openDrawer } = setup();
+    host.closePlacement.set('start');
+    fixture.detectChanges();
+    openDrawer();
+
+    expect(
+      document
+        .querySelector('.andes-drawer__close')
+        ?.getAttribute('data-placement'),
+    ).toBe('start');
+  });
+
+  it('resizes its height from the top-edge handle', () => {
+    const { fixture, host, openDrawer, panel } = setup();
+    host.resizable.set(true);
+    fixture.detectChanges();
+    openDrawer();
+    const spy = vi
+      .spyOn(panel(), 'getBoundingClientRect')
+      .mockReturnValue({ width: 1024, height: 378 } as DOMRect);
+
+    const handle = document.querySelector<HTMLElement>(
+      '.andes-drawer__resize-handle',
+    );
+    expect(handle?.getAttribute('aria-orientation')).toBe('horizontal');
+
+    handle?.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        button: 0,
+        clientY: 400,
+        bubbles: true,
+      }),
+    );
+    // A bottom panel grows as the pointer moves up.
+    handle?.dispatchEvent(
+      new PointerEvent('pointermove', { clientY: 300, bubbles: true }),
+    );
+    handle?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('478px');
+    expect(host.resizeEnds).toEqual([478]);
+
+    handle?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
+    );
+    fixture.detectChanges();
+    expect(panel().style.getPropertyValue('--andes-drawer-size')).toBe('362px');
+    spy.mockRestore();
   });
 });

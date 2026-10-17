@@ -32,6 +32,8 @@ let nextId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.andes-sheet-header--closable]': 'sheet.closable()',
+    '[class.andes-sheet-header--close-start]':
+      "sheet.closePlacement() === 'start'",
   },
   styles: `
     :host {
@@ -43,10 +45,21 @@ let nextId = 0;
         var(--andes-sheet-padding, var(--andes-space-4)) 0;
     }
 
+    /* Clears the close control (its box ends 0.375rem inside the padding, see
+       sheet.css) plus a visible gap, so a long title wraps before running
+       under it. */
     :host(.andes-sheet-header--closable) {
       padding-inline-end: calc(
-        var(--andes-space-3) + 1.75rem + var(--andes-space-2)
+        var(--andes-sheet-padding, var(--andes-space-4)) + 2rem
       );
+    }
+
+    /* closePlacement="start": the control moved to the leading corner. */
+    :host(.andes-sheet-header--closable.andes-sheet-header--close-start) {
+      padding-inline-start: calc(
+        var(--andes-sheet-padding, var(--andes-space-4)) + 2rem
+      );
+      padding-inline-end: var(--andes-sheet-padding, var(--andes-space-4));
     }
 
     .andes-sheet-header__text {
@@ -71,6 +84,9 @@ export class AndesSheetHeader {
     :host {
       display: flex;
       flex-direction: row;
+      /* Wraps rather than overflowing a narrow panel. */
+      flex-wrap: wrap;
+      align-items: center;
       justify-content: flex-end;
       gap: var(--andes-space-2);
       flex-shrink: 0;
@@ -90,13 +106,19 @@ export class AndesSheetFooter {}
   template: '<h2 [id]="id"><ng-content /></h2>',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    /* 16px/24px semibold, the same title step as AndesDialog and Ant's drawer. */
+    /* 16px/24px semibold, the same title step as AndesDialog. */
     h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      line-height: 1.5rem;
-      color: var(--andes-color-foreground);
       margin: 0;
+      /* 16px, the size every surface title shares (dialog, card, popover). */
+      font-size: 1rem;
+      /* Semibold, matching the dialog title: at 500 the title carried no more
+         weight than a field label in the body. */
+      font-weight: 600;
+      /* A fixed 24px line, which the close control is centred on. */
+      line-height: 1.5rem;
+      letter-spacing: -0.01em;
+      color: var(--andes-color-popover-foreground);
+      overflow-wrap: anywhere;
     }
   `,
 })
@@ -121,10 +143,11 @@ export class AndesSheetTitle {
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     p {
+      margin: 0;
       font-size: var(--andes-text-font-size, 0.875rem);
       line-height: var(--andes-text-line-height, 1.375rem);
       color: var(--andes-color-muted-foreground);
-      margin: 0;
+      overflow-wrap: anywhere;
     }
   `,
 })

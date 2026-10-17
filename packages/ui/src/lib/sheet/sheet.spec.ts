@@ -4,7 +4,11 @@ import { TestBed } from '@angular/core/testing';
 import { AndesSheet, type AndesSheetSide } from './sheet';
 import { AndesSheetClose } from './sheet-close';
 import { AndesSheetContent } from './sheet-content';
-import type { AndesEdgePanelAutoFocus, AndesEdgePanelSize } from './edge-panel';
+import type {
+  AndesEdgePanelAutoFocus,
+  AndesEdgePanelClosePlacement,
+  AndesEdgePanelSize,
+} from './edge-panel';
 import {
   AndesSheetDescription,
   AndesSheetFooter,
@@ -490,7 +494,18 @@ class LazyCounterComponent {
       [zIndex]="zIndex()"
       [autoFocus]="autoFocus()"
       [panelClass]="panelClass()"
+      [closePlacement]="closePlacement()"
+      [closeDisabled]="closeDisabled()"
+      [maskBlur]="maskBlur()"
+      [trapFocus]="trapFocus()"
+      [restoreFocus]="restoreFocus()"
+      [forceRender]="forceRender()"
+      [resizable]="resizable()"
+      [maxSize]="maxSize()"
       (afterOpenChange)="afterOpenChange.push($event)"
+      (resizeStart)="resizeEvents.push(['start', $event])"
+      (resizing)="resizeEvents.push(['resizing', $event])"
+      (resizeEnd)="resizeEvents.push(['end', $event])"
     >
       <button type="button" andesSheetTrigger id="trigger">Open</button>
 
@@ -529,7 +544,16 @@ class FeatureHostComponent {
   readonly autoFocus = signal<AndesEdgePanelAutoFocus>(true);
   readonly panelClass = signal<string | null>(null);
   readonly useLazy = signal(false);
+  readonly closePlacement = signal<AndesEdgePanelClosePlacement>('end');
+  readonly closeDisabled = signal(false);
+  readonly maskBlur = signal(false);
+  readonly trapFocus = signal<boolean | null>(null);
+  readonly restoreFocus = signal(true);
+  readonly forceRender = signal(false);
+  readonly resizable = signal(false);
+  readonly maxSize = signal<number | null>(null);
   readonly afterOpenChange: boolean[] = [];
+  readonly resizeEvents: [string, number][] = [];
 }
 
 @Component({
@@ -958,6 +982,390 @@ describe('AndesSheet (panel options)', () => {
         expect(openPanel?.hasAttribute('data-closing')).toBe(false);
         expect(host.open()).toBe(true);
       });
+    });
+
+    it('closes at once under reduced motion, where the slide-out is `none`', () => {
+      // `prefers-reduced-motion` sets `animation: none` on the closing panel, so
+      // no `animationend` will ever fire; the close must not wait for one.
+      const original = window.getComputedStyle.bind(window);
+      vi.spyOn(window, 'getComputedStyle').mockImplementation(
+        (element, pseudo) => {
+          const style = original(element, pseudo);
+          if (!(element as Element).classList.contains('andes-sheet__panel')) {
+            return style;
+          }
+          return {
+            ...style,
+            animationName: 'none',
+            animationDuration: '0.2s',
+            animationDelay: '0s',
+          } as CSSStyleDeclaration;
+        },
+      );
+      try {
+        const { fixture, host, openSheet, panel } = setup();
+        openSheet();
+        expect(host.afterOpenChange).toEqual([true]);
+
+        pressEscape();
+        fixture.detectChanges();
+
+        expect(panel()).toBeNull();
+        expect(host.afterOpenChange).toEqual([true, false]);
+      } finally {
+        vi.restoreAllMocks();
+      }
+    });
+  });
+
+  describe('closePlacement / closeDisabled', () => {
+    it('places the close button at the end by default', () => {
+      const { openSheet } = setup();
+      openSheet();
+
+      expect(
+        document
+          .querySelector('.andes-sheet__close')
+          ?.getAttribute('data-placement'),
+      ).toBe('end');
+      expect(
+        document
+          .querySelector('andes-sheet-header')
+          ?.classList.contains('andes-sheet-header--close-start'),
+      ).toBe(false);
+    });
+
+    it('moves the close button to the leading corner with closePlacement="start"', () => {
+      const { fixture, host, openSheet } = setup();
+      host.closePlacement.set('start');
+      fixture.detectChanges();
+      openSheet();
+
+      expect(
+        document
+          .querySelector('.andes-sheet__close')
+          ?.getAttribute('data-placement'),
+      ).toBe('start');
+      expect(
+        document
+          .querySelector('andes-sheet-header')
+          ?.classList.contains('andes-sheet-header--close-start'),
+      ).toBe(true);
+    });
+
+    it('disables only the close button with closeDisabled', () => {
+      const { fixture, host, openSheet } = setup();
+      host.closeDisabled.set(true);
+      fixture.detectChanges();
+      openSheet();
+
+      const close = document.querySelector<HTMLButtonElement>(
+        '.andes-sheet__close',
+      );
+      expect(close?.disabled).toBe(true);
+      close?.click();
+      fixture.detectChanges();
+      expect(host.open()).toBe(true);
+
+      pressEscape();
+      fixture.detectChanges();
+      expect(host.open()).toBe(false);
+    });
+  });
+
+  describe('typography', () => {
+    it('sets a 16/24 semibold title', () => {
+      const { openSheet } = setup();
+      openSheet();
+      const title = document.querySelector('andes-sheet-title h2') as Element;
+      const style = getComputedStyle(title);
+
+      expect(style.fontSize).toBe('1rem');
+      expect(style.lineHeight).toBe('1.5rem');
+      expect(style.fontWeight).toBe('600');
+    });
+  });
+
+  describe('maskBlur', () => {
+    const backdrop = () =>
+      document.querySelector<HTMLElement>('.andes-overlay-backdrop');
+
+    it('leaves the backdrop unblurred by default', () => {
+      const { openSheet } = setup();
+      openSheet();
+
+      expect(
+        backdrop()?.classList.contains('andes-edge-panel-backdrop--blur'),
+      ).toBe(false);
+    });
+
+    it('blurs the page behind the backdrop, and follows the input while open', () => {
+      const { fixture, host, openSheet } = setup();
+      host.maskBlur.set(true);
+      fixture.detectChanges();
+      openSheet();
+
+      expect(
+        backdrop()?.classList.contains('andes-edge-panel-backdrop--blur'),
+      ).toBe(true);
+
+      host.maskBlur.set(false);
+      fixture.detectChanges();
+      expect(
+        backdrop()?.classList.contains('andes-edge-panel-backdrop--blur'),
+      ).toBe(false);
+    });
+  });
+
+  describe('trapFocus / restoreFocus', () => {
+    it('drops aria-modal when a masked panel does not trap focus', () => {
+      const { fixture, host, openSheet, panel } = setup();
+      host.trapFocus.set(false);
+      fixture.detectChanges();
+      openSheet();
+
+      expect(document.querySelector('.andes-overlay-backdrop')).toBeTruthy();
+      expect(panel()?.hasAttribute('aria-modal')).toBe(false);
+    });
+
+    it('lets focus leave a masked panel when trapFocus is false', async () => {
+      const { fixture, host, openSheet } = setup();
+      host.trapFocus.set(false);
+      fixture.detectChanges();
+      openSheet();
+      await fixture.whenStable();
+
+      const outside = document.querySelector('#outside') as HTMLElement;
+      outside.focus();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(document.activeElement).toBe(outside);
+    });
+
+    it('traps focus in an unmasked panel when trapFocus is true', async () => {
+      const { fixture, host, openSheet, panel } = setup();
+      host.mask.set(false);
+      host.trapFocus.set(true);
+      fixture.detectChanges();
+      openSheet();
+      await fixture.whenStable();
+
+      (document.querySelector('#outside') as HTMLElement).focus();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(panel()?.contains(document.activeElement)).toBe(true);
+    });
+
+    it('leaves focus in place on close when restoreFocus is false', async () => {
+      const { fixture, host } = setup();
+      host.restoreFocus.set(false);
+      fixture.detectChanges();
+      const trigger = document.querySelector('#trigger') as HTMLElement;
+      trigger.focus();
+      clickOn(trigger);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      pressEscape();
+      fixture.detectChanges();
+
+      expect(document.activeElement).not.toBe(trigger);
+    });
+  });
+
+  describe('forceRender', () => {
+    it('creates lazy content before the first open', () => {
+      const { fixture, host, openSheet } = setup();
+      host.useLazy.set(true);
+      host.forceRender.set(true);
+      fixture.detectChanges();
+
+      expect(LazyCounterComponent.created).toBe(1);
+
+      openSheet();
+      expect(LazyCounterComponent.created).toBe(1);
+      expect(
+        document.querySelector('.andes-sheet__panel #lazy-input'),
+      ).toBeTruthy();
+    });
+
+    it('does not create lazy content early by default', () => {
+      const { fixture, host } = setup();
+      host.useLazy.set(true);
+      fixture.detectChanges();
+
+      expect(LazyCounterComponent.created).toBe(0);
+    });
+  });
+
+  describe('resizable', () => {
+    function setupResizable(side: AndesSheetSide = 'right') {
+      const context = setup();
+      context.host.side.set(side);
+      context.host.resizable.set(true);
+      context.fixture.detectChanges();
+      context.openSheet();
+      const panelEl = context.panel() as HTMLElement;
+      vi.spyOn(panelEl, 'getBoundingClientRect').mockReturnValue({
+        width: 400,
+        height: 300,
+      } as DOMRect);
+      const handle = () =>
+        document.querySelector<HTMLElement>('.andes-sheet__resize-handle');
+      const key = (key: string, shiftKey = false) => {
+        handle()?.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key,
+            shiftKey,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        context.fixture.detectChanges();
+      };
+      const size = () =>
+        context.panel()?.style.getPropertyValue('--andes-sheet-size');
+      return { ...context, handle, key, size };
+    }
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('renders no handle unless resizable', () => {
+      const { openSheet } = setup();
+      openSheet();
+
+      expect(document.querySelector('.andes-sheet__resize-handle')).toBeNull();
+    });
+
+    it('renders a focusable separator oriented to the side', () => {
+      const { fixture, host, handle } = setupResizable();
+
+      expect(handle()?.getAttribute('role')).toBe('separator');
+      expect(handle()?.getAttribute('tabindex')).toBe('0');
+      expect(handle()?.getAttribute('aria-orientation')).toBe('vertical');
+      expect(handle()?.getAttribute('aria-label')).toBe('Resize panel');
+
+      host.side.set('bottom');
+      fixture.detectChanges();
+      expect(handle()?.getAttribute('aria-orientation')).toBe('horizontal');
+    });
+
+    it('resizes with a pointer drag, emitting start/resizing/end', () => {
+      const { fixture, host, handle, size } = setupResizable('right');
+
+      handle()?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          button: 0,
+          clientX: 600,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      fixture.detectChanges();
+      expect(
+        document
+          .querySelector('.andes-sheet__panel')
+          ?.hasAttribute('data-resizing'),
+      ).toBe(true);
+
+      // A right sheet grows as the pointer moves left.
+      handle()?.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: 500, bubbles: true }),
+      );
+      handle()?.dispatchEvent(
+        new PointerEvent('pointerup', { clientX: 500, bubbles: true }),
+      );
+      fixture.detectChanges();
+
+      expect(size()).toBe('500px');
+      expect(host.resizeEvents).toEqual([
+        ['start', 400],
+        ['resizing', 500],
+        ['end', 500],
+      ]);
+      expect(
+        document
+          .querySelector('.andes-sheet__panel')
+          ?.hasAttribute('data-resizing'),
+      ).toBe(false);
+    });
+
+    it('grows a left sheet as the pointer moves right', () => {
+      const { fixture, handle, size } = setupResizable('left');
+
+      handle()?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          button: 0,
+          clientX: 400,
+          bubbles: true,
+        }),
+      );
+      handle()?.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: 450, bubbles: true }),
+      );
+      handle()?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+      fixture.detectChanges();
+
+      expect(size()).toBe('450px');
+    });
+
+    it('resizes with the arrow keys, Shift for larger steps', () => {
+      const { key, size, host } = setupResizable('right');
+
+      key('ArrowLeft');
+      expect(size()).toBe('416px');
+      expect(host.resizeEvents).toEqual([
+        ['start', 400],
+        ['resizing', 416],
+        ['end', 416],
+      ]);
+
+      key('ArrowRight', true);
+      expect(size()).toBe('336px');
+
+      key('ArrowUp');
+      expect(size()).toBe('336px');
+    });
+
+    it('maps the grow key to the side the panel slides from', () => {
+      const { key, size } = setupResizable('top');
+
+      key('ArrowDown');
+      expect(size()).toBe('316px');
+    });
+
+    it('clamps to maxSize and to the minimum', () => {
+      const { fixture, host, key, size, handle } = setupResizable('right');
+      host.maxSize.set(420);
+      fixture.detectChanges();
+
+      key('ArrowLeft', true);
+      expect(size()).toBe('420px');
+      expect(handle()?.getAttribute('aria-valuemax')).toBe('420');
+
+      handle()?.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          button: 0,
+          clientX: 0,
+          bubbles: true,
+        }),
+      );
+      handle()?.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: 5000, bubbles: true }),
+      );
+      handle()?.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+      fixture.detectChanges();
+      expect(size()).toBe('160px');
+    });
+
+    it('drops the resized size when the consumer sets a new size', () => {
+      const { fixture, host, key, size } = setupResizable('right');
+      key('ArrowLeft');
+      expect(size()).toBe('416px');
+
+      host.width.set(300);
+      fixture.detectChanges();
+      expect(size()).toBe('300px');
     });
   });
 

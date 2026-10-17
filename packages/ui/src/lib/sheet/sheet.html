@@ -7,6 +7,7 @@
     [class]="panelClass()"
     [attr.data-side]="side()"
     [attr.data-pushed]="pushed() ? '' : null"
+    [attr.data-resizing]="resizeActive() ? '' : null"
     [style.--andes-sheet-size]="panelSize()"
     [style.--andes-sheet-push-distance]="pushDistance()"
     [attr.aria-labelledby]="ariaLabelledBy()"
@@ -16,6 +17,8 @@
     <button
       type="button"
       class="andes-sheet__close"
+      [attr.data-placement]="closePlacement()"
+      [disabled]="closeDisabled()"
       [attr.aria-label]="closeLabel()"
       (click)="requestClose('close-button')"
     >
@@ -23,18 +26,12 @@
       <ng-container [ngTemplateOutlet]="icon" />
       } @else {
       <svg
+        class="andes-sheet__close-icon"
         viewBox="0 0 24 24"
-        width="16"
-        height="16"
         aria-hidden="true"
         focusable="false"
       >
-        <path
-          d="M6 6L18 18M18 6L6 18"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        />
+        <path d="M6 6 18 18M18 6 6 18" />
       </svg>
       }
     </button>
@@ -58,5 +55,19 @@
     </div>
 
     <ng-content select="andes-sheet-footer" />
+
+    @if (resizable()) {
+    <div
+      class="andes-sheet__resize-handle"
+      role="separator"
+      tabindex="0"
+      [attr.aria-orientation]="resizeOrientation()"
+      [attr.aria-label]="resizeLabel()"
+      [attr.aria-valuenow]="resizeValue()"
+      [attr.aria-valuemax]="maxSize()"
+      (pointerdown)="onResizePointerDown($event)"
+      (keydown)="onResizeKeydown($event)"
+    ></div>
+    }
   </div>
 </ng-template>

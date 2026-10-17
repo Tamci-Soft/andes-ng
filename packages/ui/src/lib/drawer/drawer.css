@@ -1,11 +1,15 @@
 /* Public styling hooks (set them on the panel via `panelClass`, or globally):
    --andes-drawer-size          panel height; 378px
    --andes-drawer-padding       header/body/footer padding; --andes-space-4
-   --andes-drawer-push-distance how far a `push` drawer moves for a nested one */
+   --andes-drawer-push-distance how far a `push` drawer moves for a nested one
+   --andes-drawer-gutter        viewport height always left uncovered; 40px
+                                (`0px` lets the panel fill a short screen) */
 
 /* The size is capped with viewport units, not `100%`: the CDK pane around the
    panel is sized by its content along the slide axis, so a percentage there
-   resolves against the content and silently shrinks the panel to fit it. */
+   resolves against the content and silently shrinks the panel to fit it. The cap
+   keeps a strip of the scrim visible on a short (landscape phone) screen, so the
+   panel still reads as a layer and that strip stays tappable to dismiss it. */
 
 .andes-drawer__panel {
   position: relative;
@@ -13,33 +17,39 @@
   flex-direction: column;
   box-sizing: border-box;
   width: 100%;
-  height: min(100dvh, var(--andes-drawer-size, 378px));
+  height: min(
+    100dvh - var(--andes-drawer-gutter, var(--andes-space-5) * 2),
+    var(--andes-drawer-size, 378px)
+  );
   border-top: 1px solid var(--andes-color-border);
   border-top-left-radius: var(--andes-radius-xl);
   border-top-right-radius: var(--andes-radius-xl);
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
   font-family: var(--andes-font-family), sans-serif;
-  /* Body copy at the component text scale (14px/22px) rather than the page's 16px. */
+  /* Set on the surface itself: the panel renders in the overlay container, so
+     projected content would otherwise inherit the page's 16px from <body>. */
   font-size: var(--andes-text-font-size, 0.875rem);
   line-height: var(--andes-text-line-height, 1.375rem);
-  box-shadow: 0 -10px 40px rgb(0 0 0 / 20%);
+  overflow-wrap: break-word;
+  /* A fixed slate ink, never one derived from the foreground (that turns into a
+     white halo in the dark theme). Larger blur than a dialog: the panel sits over
+     a scrim and spans the full viewport width. */
+  box-shadow: 0 -10px 40px rgb(15 23 42 / 20%);
   outline: none;
   overflow: hidden;
-  transition: transform var(--andes-motion-duration-slow, 0.3s)
-    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
-  animation: andes-drawer-slide-in var(--andes-motion-duration-slow, 0.3s)
-    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  /* Slide timings kept short and plain (ease-out in, ease-in out, no overshoot), so the
+     panel arrives without a lurch; edge-panel.ts fades the scrim over the same times. */
+  transition: transform 0.22s ease-out;
+  animation: andes-drawer-slide-in 0.22s ease-out;
 }
 
-/* Slide-in is 0.3s on the ease-out curve (Ant's drawer timing, minus its
-   opacity dip); the slide-out is shorter and eases in, so a dismissed panel
-   gets out of the way rather than lingering. `data-closing` is set by
+/* Slide-in is 0.22s on an ease-out curve; the slide-out is shorter and eases in, so a
+   dismissed panel gets out of the way rather than lingering. `data-closing` is set by
    AndesDrawer right before it removes the overlay, which waits for this
    animation to end. */
 .andes-drawer__panel[data-closing] {
-  animation: andes-drawer-slide-out var(--andes-motion-duration-mid, 0.2s)
-    var(--andes-motion-ease-in, cubic-bezier(0.55, 0.055, 0.675, 0.19)) forwards;
+  animation: andes-drawer-slide-out 0.18s ease-in forwards;
 }
 
 /* `push`: a nested drawer/sheet is open, so this one moves up to show the
@@ -58,6 +68,8 @@
   min-height: 0;
   padding: var(--andes-drawer-padding, var(--andes-space-4));
   overflow-y: auto;
+  /* Reaching the end of the body must not start scrolling the page behind it. */
+  overscroll-behavior: contain;
 }
 
 .andes-drawer__lazy {
@@ -75,7 +87,8 @@
   height: 0.875rem;
   border-radius: var(--andes-radius-sm);
   background-color: var(--andes-color-secondary);
-  animation: andes-drawer-skeleton-pulse 1.5s ease-in-out infinite;
+  /* Slow and shallow, so the placeholder breathes rather than flashes. */
+  animation: andes-drawer-skeleton-pulse 1.8s ease-in-out infinite;
 }
 
 .andes-drawer__skeleton-line:first-child {
@@ -89,8 +102,14 @@
 
 .andes-drawer__close {
   position: absolute;
-  top: var(--andes-space-3);
-  right: var(--andes-space-3);
+  /* Optically aligned rather than box-aligned: the 1rem glyph sits centred in a
+     1.75rem box, so insetting the box by its 0.375rem of glyph padding lands the
+     glyph on the content's right edge, and the 0.125rem offset centres it on the
+     title's 1.5rem first line. */
+  top: calc(var(--andes-drawer-padding, var(--andes-space-4)) - 0.125rem);
+  inset-inline-end: calc(
+    var(--andes-drawer-padding, var(--andes-space-4)) - 0.375rem
+  );
   z-index: 1;
   display: inline-flex;
   align-items: center;
@@ -102,17 +121,111 @@
   border-radius: var(--andes-radius-sm);
   background: transparent;
   color: var(--andes-color-muted-foreground);
+  font-family: inherit;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.andes-drawer__close:hover {
-  background-color: var(--andes-color-accent);
-  color: var(--andes-color-accent-foreground);
+/* Mixed from the foreground rather than taken from --andes-color-accent, which
+   equals the popover surface in the dark theme and left no visible hover. */
+.andes-drawer__close:hover:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 8%,
+    transparent
+  );
+  color: var(--andes-color-popover-foreground);
+}
+
+.andes-drawer__close:active:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 14%,
+    transparent
+  );
+}
+
+/* `closePlacement="start"`: the leading corner, before the title. */
+.andes-drawer__close[data-placement='start'] {
+  inset-inline-start: calc(
+    var(--andes-drawer-padding, var(--andes-space-4)) - 0.375rem
+  );
+  inset-inline-end: auto;
+}
+
+.andes-drawer__close:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .andes-drawer__close:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
+}
+
+/* A consumer's `closeIcon` gets the same box as the built-in glyph. */
+.andes-drawer__close > svg:not(.andes-drawer__close-icon) {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-drawer__close-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* `resizable`: a strip along the top edge with a grip, the familiar affordance
+   for pulling a bottom panel taller. */
+.andes-drawer__resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: 0.75rem;
+  cursor: ns-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.andes-drawer__resize-handle::after {
+  position: absolute;
+  top: 0.375rem;
+  left: 50%;
+  width: 2.5rem;
+  height: 0.25rem;
+  border-radius: var(--andes-radius-full);
+  background-color: var(--andes-color-border);
+  content: '';
+  transform: translateX(-50%);
+  transition: background-color 0.15s ease;
+}
+
+.andes-drawer__resize-handle:hover::after {
+  background-color: var(--andes-color-muted-foreground);
+}
+
+.andes-drawer__resize-handle:focus-visible::after,
+.andes-drawer__panel[data-resizing] .andes-drawer__resize-handle::after {
+  background-color: var(--andes-color-focus-ring);
+}
+
+.andes-drawer__resize-handle:focus-visible::after {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* While dragging: no push transition lagging behind the pointer, and no text
+   selection in the body. */
+.andes-drawer__panel[data-resizing] {
+  transition: none;
+  user-select: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -122,8 +235,11 @@
     transition: none;
   }
 
-  .andes-drawer__skeleton-line {
+  .andes-drawer__skeleton-line,
+  .andes-drawer__close,
+  .andes-drawer__resize-handle::after {
     animation: none;
+    transition: none;
   }
 }
 
@@ -144,6 +260,6 @@
 
 @keyframes andes-drawer-skeleton-pulse {
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
 }

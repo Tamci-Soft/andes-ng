@@ -47,7 +47,9 @@ import {
  *
  * Styling hooks, settable on the panel via `panelClass` or globally:
  * `--andes-drawer-size` (height; default 378px), `--andes-drawer-padding`
- * (header/body/footer padding) and `--andes-drawer-push-distance`.
+ * (header/body/footer padding), `--andes-drawer-push-distance` and
+ * `--andes-drawer-gutter` (viewport height the panel always leaves uncovered on
+ * a short screen; default 40px).
  */
 @Component({
   selector: 'andes-drawer',
