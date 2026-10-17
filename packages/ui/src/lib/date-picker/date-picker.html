@@ -19,6 +19,8 @@
     </span>
     }
 
+    <!-- In range mode only the start input takes `id` (label clicks land where
+         typing starts); describedby, required, name and invalid go on both. -->
     <input
       #startInput
       type="text"
@@ -27,11 +29,16 @@
       role="combobox"
       autocomplete="off"
       aria-haspopup="dialog"
+      [attr.id]="id()"
+      [attr.name]="name()"
       [attr.aria-expanded]="overlay.isOpen()"
       [attr.aria-controls]="overlay.isOpen() ? overlay.contentId : null"
       [attr.aria-label]="isRange() ? startInputLabel() : ariaLabel()"
       [attr.aria-labelledby]="isRange() ? null : ariaLabelledby()"
-      [attr.aria-invalid]="status() === 'error' || null"
+      [attr.aria-describedby]="ariaDescribedby()"
+      [attr.aria-invalid]="isInvalid() || null"
+      [attr.aria-required]="ariaRequired() || null"
+      [required]="required()"
       [attr.data-active]="
         isRange() && overlay.isOpen() && activeSide() === 'start' ? '' : null
       "
@@ -59,8 +66,12 @@
       aria-haspopup="dialog"
       [attr.aria-expanded]="overlay.isOpen()"
       [attr.aria-controls]="overlay.isOpen() ? overlay.contentId : null"
+      [attr.name]="name()"
       [attr.aria-label]="endInputLabel()"
-      [attr.aria-invalid]="status() === 'error' || null"
+      [attr.aria-describedby]="ariaDescribedby()"
+      [attr.aria-invalid]="isInvalid() || null"
+      [attr.aria-required]="ariaRequired() || null"
+      [required]="required()"
       [attr.data-active]="
         overlay.isOpen() && activeSide() === 'end' ? '' : null
       "

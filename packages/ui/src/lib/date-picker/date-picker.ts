@@ -213,9 +213,11 @@ function sameValue(a: AndesDatePickerValue, b: AndesDatePickerValue): boolean {
  * `range` mode renders two inputs in one field, grouped with `role="group"`; the
  * panel shows two months side by side and previews the range under the pointer.
  *
- * Because the accessible name lives on the inner input(s) rather than the host, a
- * consumer labels the picker with `aria-label`/`aria-labelledby` (pointing at a
- * visible label element) rather than a `<label for>`.
+ * Because the accessible name lives on the inner input(s) rather than the host,
+ * `id`, `name`, `aria-*` and `required` are forwarded onto the input(s) and
+ * nulled on the host, so `<label for>` reaches the real input and no id is ever
+ * on two elements. In `range` mode `id` goes on the start input only; the rest
+ * applies to both, since help or error text describes the whole range.
  *
  * ## Committing
  *
@@ -245,6 +247,14 @@ function sameValue(a: AndesDatePickerValue, b: AndesDatePickerValue): boolean {
   ],
   host: {
     'data-slot': 'date-picker',
+    // Forwarded to the real input(s) in the template instead (same rationale as AndesInput).
+    '[attr.id]': 'null',
+    '[attr.name]': 'null',
+    '[attr.aria-label]': 'null',
+    '[attr.aria-labelledby]': 'null',
+    '[attr.aria-describedby]': 'null',
+    '[attr.aria-invalid]': 'null',
+    '[attr.aria-required]': 'null',
     '[attr.data-mode]': 'mode()',
     '[attr.data-picker]': 'picker()',
     '[attr.data-size]': 'size()',
@@ -417,6 +427,32 @@ export class AndesDatePicker implements ControlValueAccessor {
   /** Points the input (single) or group (range) at an external label element. */
   readonly ariaLabelledby = input<string | undefined>(undefined, {
     alias: 'aria-labelledby',
+  });
+
+  /** `id` of the input (the start input in `range` mode), for a `<label for>`. */
+  readonly id = input<string | undefined>(undefined);
+
+  /** Native `name` of the input(s). */
+  readonly name = input<string | undefined>(undefined);
+
+  /** Puts the native `required` attribute on the input(s). */
+  readonly required = input(false, { transform: booleanAttribute });
+
+  /** Points the input(s) at help or error text. */
+  readonly ariaDescribedby = input<string | undefined>(undefined, {
+    alias: 'aria-describedby',
+  });
+
+  /** Marks the input(s) invalid. `status="error"` does the same. */
+  readonly ariaInvalid = input(false, {
+    alias: 'aria-invalid',
+    transform: booleanAttribute,
+  });
+
+  /** Sets `aria-required` on the input(s), e.g. from a form field's validators. */
+  readonly ariaRequired = input(false, {
+    alias: 'aria-required',
+    transform: booleanAttribute,
   });
 
   /** Accessible name for the calendar panel. */
@@ -624,6 +660,11 @@ export class AndesDatePicker implements ControlValueAccessor {
 
   protected readonly endText = computed(
     () => this.endDraft() ?? this.formatSide(this.endDate(), this.endTime()),
+  );
+
+  /** `status="error"` is announced too (via `aria-invalid`), not just painted. */
+  protected readonly isInvalid = computed(
+    () => this.ariaInvalid() || this.status() === 'error',
   );
 
   protected readonly hasValue = computed(
