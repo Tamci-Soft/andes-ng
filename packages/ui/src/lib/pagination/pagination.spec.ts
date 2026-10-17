@@ -6,6 +6,7 @@ import {
   AndesPagination,
   AndesPaginationAlign,
   AndesPaginationChange,
+  AndesPaginationShowTotalFn,
   AndesPaginationSize,
   AndesPaginationSizeChange,
 } from './pagination';
@@ -32,14 +33,43 @@ import {
       [responsive]="responsive()"
       [size]="size()"
       [align]="align()"
-      [showTotal]="withTotal() ? totalTpl : null"
+      [showTotal]="totalFn() ?? (withTotal() ? totalTpl : null)"
       [itemRender]="withItemRender() ? itemTpl : null"
+      [sizeChangerRender]="withSizeChangerRender() ? sizeChangerTpl : null"
+      [jumpToSuffixLabel]="jumpToSuffixLabel()"
       (pageChange)="changes.push($event)"
       (showSizeChange)="sizeChanges.push($event)"
     />
     <ng-template #totalTpl let-total let-range="range"
       >{{ range[0] }}-{{ range[1] }} of {{ total }} items</ng-template
     >
+    <ng-template
+      #sizeChangerTpl
+      let-pageSize
+      let-options="options"
+      let-disabled="disabled"
+      let-size="size"
+      let-label="label"
+      let-change="change"
+    >
+      <span
+        class="custom-sizes"
+        [attr.data-size]="size"
+        [attr.aria-label]="label"
+      >
+        @for (option of options; track option) {
+          <button
+            type="button"
+            class="custom-size"
+            [disabled]="disabled"
+            [attr.aria-pressed]="option === pageSize"
+            (click)="change(option)"
+          >
+            {{ option }}
+          </button>
+        }
+      </span>
+    </ng-template>
     <ng-template
       #itemTpl
       let-page
@@ -73,7 +103,7 @@ class HostComponent {
   readonly showTitle = signal(true);
   readonly hideOnSinglePage = signal(false);
   readonly showSizeChanger = signal<boolean | undefined>(undefined);
-  readonly pageSizeOptions = signal<number[]>([10, 20, 50, 100]);
+  readonly pageSizeOptions = signal<(number | string)[]>([10, 20, 50, 100]);
   readonly showQuickJumper = signal(false);
   readonly goButton = signal<boolean | string>(false);
   readonly simple = signal<boolean | { readOnly?: boolean }>(false);
@@ -82,6 +112,9 @@ class HostComponent {
   readonly align = signal<AndesPaginationAlign>('start');
   readonly withTotal = signal(false);
   readonly withItemRender = signal(false);
+  readonly withSizeChangerRender = signal(false);
+  readonly totalFn = signal<AndesPaginationShowTotalFn | null>(null);
+  readonly jumpToSuffixLabel = signal('');
   readonly changes: AndesPaginationChange[] = [];
   readonly sizeChanges: AndesPaginationSizeChange[] = [];
 }
@@ -475,6 +508,73 @@ describe('AndesPagination', () => {
       expect(host.current()).toBe(2);
       expect(host.sizeChanges).toEqual([{ current: 2, pageSize: 20 }]);
     });
+
+    it('accepts numeric strings as options', () => {
+      const { q } = createHost((h) => {
+        h.showSizeChanger.set(true);
+        h.pageSizeOptions.set(['25', '5', 'x']);
+      });
+      const options = Array.from(required(select(q)).options);
+      expect(options.map((option) => option.value)).toEqual(['5', '10', '25']);
+    });
+
+    describe('sizeChangerRender', () => {
+      const customButtons = (root: HTMLElement) =>
+        Array.from(root.querySelectorAll<HTMLButtonElement>('.custom-size'));
+
+      it('replaces the native select and receives the options and state', () => {
+        const { root, q } = createHost((h) => {
+          h.showSizeChanger.set(true);
+          h.withSizeChangerRender.set(true);
+          h.pageSize.set(20);
+          h.size.set('large');
+        });
+        expect(select(q)).toBeNull();
+        expect(customButtons(root).map((b) => b.textContent?.trim())).toEqual([
+          '10',
+          '20',
+          '50',
+          '100',
+        ]);
+        expect(
+          customButtons(root).map((b) => b.getAttribute('aria-pressed')),
+        ).toEqual(['false', 'true', 'false', 'false']);
+        const wrapper = required(q('.custom-sizes'));
+        expect(wrapper.getAttribute('data-size')).toBe('large');
+        expect(wrapper.getAttribute('aria-label')).toBe('Items per page');
+      });
+
+      it('applies a new size through change(), like the built-in control', () => {
+        const { fixture, host, root } = createHost((h) => {
+          h.totalPages.set(undefined);
+          h.total.set(95);
+          h.current.set(8);
+          h.showSizeChanger.set(true);
+          h.withSizeChangerRender.set(true);
+        });
+        customButtons(root)[2].click();
+        fixture.detectChanges();
+
+        expect(host.pageSize()).toBe(50);
+        expect(host.current()).toBe(2);
+        expect(host.sizeChanges).toEqual([{ current: 2, pageSize: 50 }]);
+        expect(host.changes).toEqual([{ page: 2, pageSize: 50 }]);
+      });
+
+      it('still follows the visibility rules and the disabled state', () => {
+        const { root, update } = createHost((h) => {
+          h.withSizeChangerRender.set(true);
+          h.showSizeChanger.set(false);
+        });
+        expect(customButtons(root).length).toBe(0);
+
+        update((h) => {
+          h.showSizeChanger.set(true);
+          h.disabled.set(true);
+        });
+        expect(customButtons(root).every((b) => b.disabled)).toBe(true);
+      });
+    });
   });
 
   describe('quick jumper', () => {
@@ -524,6 +624,21 @@ describe('AndesPagination', () => {
       expect(host.current()).toBe(10);
     });
 
+    it('shows a suffix after the input inside the label', () => {
+      const { q } = createHost((h) => {
+        h.showQuickJumper.set(true);
+        h.jumpToSuffixLabel.set('page');
+      });
+      expect(q('.andes-pagination__jump-label')?.textContent?.trim()).toMatch(
+        /^Go to\s+page$/,
+      );
+    });
+
+    it('renders no suffix by default', () => {
+      const { q } = createHost((h) => h.showQuickJumper.set(true));
+      expect(q('.andes-pagination__jump-suffix')).toBeNull();
+    });
+
     it('waits for the go button instead of jumping on blur', () => {
       const { fixture, host, q } = createHost((h) => {
         h.showQuickJumper.set(true);
@@ -546,6 +661,21 @@ describe('AndesPagination', () => {
         h.goButton.set(true);
       });
       expect(q('.andes-pagination__go button')?.textContent?.trim()).toBe('Go');
+    });
+
+    it('sizes the go button like the page items and fields beside it', () => {
+      const { q, update } = createHost((h) => {
+        h.showQuickJumper.set(true);
+        h.goButton.set(true);
+      });
+      const go = () => required(q('.andes-pagination__go button'));
+      expect(go().classList).toContain('andes-button--md');
+
+      update((h) => h.size.set('small'));
+      expect(go().classList).toContain('andes-button--sm');
+
+      update((h) => h.size.set('large'));
+      expect(go().classList).toContain('andes-button--lg');
     });
 
     it('renders a goButton template and jumps when its button is clicked', () => {
@@ -587,6 +717,27 @@ describe('AndesPagination', () => {
       expect(q('.andes-pagination__total')?.textContent?.trim()).toBe(
         '0-0 of 0 items',
       );
+    });
+  });
+
+  describe('showTotal as a function', () => {
+    it('renders the returned text, recomputed on page change', () => {
+      const calls: [number, [number, number]][] = [];
+      const { q, update } = createHost((h) => {
+        h.totalPages.set(undefined);
+        h.total.set(85);
+        h.current.set(2);
+        h.totalFn.set((total, range) => {
+          calls.push([total, range]);
+          return `Total ${total} (${range[0]}-${range[1]})`;
+        });
+      });
+      const total = () => q('.andes-pagination__total')?.textContent?.trim();
+      expect(total()).toBe('Total 85 (11-20)');
+      expect(calls.at(-1)).toEqual([85, [11, 20]]);
+
+      update((h) => h.current.set(9));
+      expect(total()).toBe('Total 85 (81-85)');
     });
   });
 
@@ -662,6 +813,58 @@ describe('AndesPagination', () => {
       });
       expect(q('.andes-pagination__jump-input')).toBeNull();
     });
+
+    describe('with a go button', () => {
+      const go = (q: <T extends Element>(s: string) => T | null) =>
+        q<HTMLButtonElement>(
+          '.andes-pagination__simple .andes-pagination__go button',
+        );
+
+      it('confirms the typed page with the go button, not on blur', () => {
+        const { fixture, host, q } = createHost((h) => {
+          h.simple.set(true);
+          h.showQuickJumper.set(true);
+          h.goButton.set(true);
+        });
+        type(input(q), '7');
+        input(q).dispatchEvent(new Event('blur'));
+        fixture.detectChanges();
+        expect(host.current()).toBe(1);
+        expect(input(q).value).toBe('7');
+
+        required(go(q)).click();
+        fixture.detectChanges();
+        expect(host.current()).toBe(7);
+        expect(host.changes).toEqual([{ page: 7, pageSize: 10 }]);
+      });
+
+      it('still commits on Enter', () => {
+        const { fixture, host, q } = createHost((h) => {
+          h.simple.set(true);
+          h.showQuickJumper.set(true);
+          h.goButton.set('OK');
+        });
+        expect(required(go(q)).textContent?.trim()).toBe('OK');
+        type(input(q), '4');
+        key(input(q), 'Enter');
+        fixture.detectChanges();
+        expect(host.current()).toBe(4);
+      });
+
+      it('needs showQuickJumper and is never shown in readOnly mode', () => {
+        const { q, update } = createHost((h) => {
+          h.simple.set(true);
+          h.goButton.set(true);
+        });
+        expect(go(q)).toBeNull();
+
+        update((h) => {
+          h.showQuickJumper.set(true);
+          h.simple.set({ readOnly: true });
+        });
+        expect(q('.andes-pagination__go')).toBeNull();
+      });
+    });
   });
 
   describe('size / align', () => {
@@ -670,6 +873,16 @@ describe('AndesPagination', () => {
       expect(nav()?.classList).not.toContain('andes-pagination--small');
       update((h) => h.size.set('small'));
       expect(nav()?.classList).toContain('andes-pagination--small');
+    });
+
+    it('applies the large modifier and treats medium as the default', () => {
+      const { update, nav } = createHost((h) => h.size.set('large'));
+      expect(nav()?.classList).toContain('andes-pagination--large');
+      expect(nav()?.classList).not.toContain('andes-pagination--small');
+
+      update((h) => h.size.set('medium'));
+      expect(nav()?.classList).not.toContain('andes-pagination--large');
+      expect(nav()?.classList).not.toContain('andes-pagination--small');
     });
 
     it('exposes the alignment', () => {
@@ -702,6 +915,15 @@ describe('AndesPagination', () => {
       const { nav, q } = createHost((h) => h.responsive.set(true));
       expect(nav()?.classList).toContain('andes-pagination--small');
       expect(q('.andes-pagination__simple-input')).not.toBeNull();
+    });
+
+    it('overrides a large size on narrow viewports', () => {
+      const { nav } = createHost((h) => {
+        h.responsive.set(true);
+        h.size.set('large');
+      });
+      expect(nav()?.classList).toContain('andes-pagination--small');
+      expect(nav()?.classList).not.toContain('andes-pagination--large');
     });
 
     it('stays expanded without responsive', () => {

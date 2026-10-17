@@ -15,6 +15,7 @@ import {
   output,
   signal,
   TemplateRef,
+  viewChild,
 } from '@angular/core';
 
 import { AndesButton } from '../button/button';
@@ -26,7 +27,11 @@ import {
 export type { AndesPaginationItem } from './pagination-range';
 
 export type AndesPaginationAlign = 'start' | 'center' | 'end';
-export type AndesPaginationSize = 'default' | 'small';
+/**
+ * Control height: `small` 24px, `default` 32px, `large` 40px. `medium` is the same
+ * as `default`, for symmetry with the other two names.
+ */
+export type AndesPaginationSize = 'small' | 'default' | 'medium' | 'large';
 
 /** Which control an `itemRender` template is being asked to render. */
 export type AndesPaginationItemType =
@@ -63,6 +68,37 @@ export interface AndesPaginationTotalContext {
   total: number;
   /** 1-indexed `[from, to]` item range of the current page (`[0, 0]` when empty). */
   range: [number, number];
+}
+
+/**
+ * Plain-text form of `showTotal`: receives the total item count and the 1-indexed
+ * `[from, to]` range of the current page and returns the text to show.
+ */
+export type AndesPaginationShowTotalFn = (
+  total: number,
+  range: [number, number],
+) => string;
+
+/**
+ * Context of a `sizeChangerRender` template, which replaces the built-in page-size
+ * `<select>` with any control (e.g. a searchable select). Call `change(size)` to
+ * apply a new page size: it clamps the current page and emits `showSizeChange` and
+ * `pageChange` exactly like the built-in control.
+ */
+export interface AndesPaginationSizeChangerContext {
+  /** The current page size. */
+  $implicit: number;
+  pageSize: number;
+  /** The sorted page-size options, including the current size. */
+  options: readonly number[];
+  disabled: boolean;
+  /** The resolved size of the pagination, so the control can match its height. */
+  size: 'small' | 'default' | 'large';
+  /** Accessible name for the control (`pageSizeLabel`). */
+  label: string;
+  /** Suffix shown after each option (`itemsPerPageLabel`). */
+  itemsPerPageLabel: string;
+  change: (pageSize: number) => void;
 }
 
 /** Emitted by `pageChange` whenever the page or the page size changes. */
@@ -189,7 +225,18 @@ export class AndesPagination {
     transform: numberAttribute,
   });
 
-  readonly pageSizeOptions = input<readonly number[]>([10, 20, 50, 100]);
+  /** Page sizes offered by the size changer. Numeric strings are accepted too. */
+  readonly pageSizeOptions = input<readonly (number | string)[]>([
+    10, 20, 50, 100,
+  ]);
+
+  /**
+   * Template that replaces the built-in size changer, e.g. to plug in a searchable
+   * select. Context: `AndesPaginationSizeChangerContext`. Visibility still follows
+   * `showSizeChanger` / `totalBoundaryShowSizeChanger`.
+   */
+  readonly sizeChangerRender =
+    input<TemplateRef<AndesPaginationSizeChangerContext> | null>(null);
 
   /** Shows a "Go to [ ]" page input. */
   readonly showQuickJumper = input(false, { transform: booleanAttribute });
@@ -197,14 +244,18 @@ export class AndesPagination {
   /**
    * Adds a confirm button to the quick jumper: `true` for the default
    * (`jumpToConfirmLabel`), a string for a custom label, or a template for custom
-   * content. Without it, the jumper commits on Enter or blur.
+   * content. Without it, the jumper commits on Enter or blur. In editable simple mode
+   * (with `showQuickJumper` on) the button confirms the page input instead.
    */
   readonly goButton = input<boolean | string | TemplateRef<void>>(false);
 
-  /** Template for the "x-y of z items" text. Context: `AndesPaginationTotalContext`. */
-  readonly showTotal = input<TemplateRef<AndesPaginationTotalContext> | null>(
-    null,
-  );
+  /**
+   * The "x-y of z items" text: a template (context: `AndesPaginationTotalContext`)
+   * or a function `(total, range) => string` for plain text.
+   */
+  readonly showTotal = input<
+    TemplateRef<AndesPaginationTotalContext> | AndesPaginationShowTotalFn | null
+  >(null);
 
   /** Template that replaces the content of page/prev/next/jumper items. */
   readonly itemRender =
@@ -226,6 +277,11 @@ export class AndesPagination {
   readonly pageSizeLabel = input('Items per page');
   readonly jumpToLabel = input('Go to');
   readonly jumpToConfirmLabel = input('Go');
+  /**
+   * Text after the quick jumper's input, for languages that wrap the number
+   * ("Go to [ ] page"). Empty by default.
+   */
+  readonly jumpToSuffixLabel = input('');
   /** Accessible name of the simple-mode page input. */
   readonly currentPageLabel = input('Current page');
 
@@ -239,6 +295,9 @@ export class AndesPagination {
   private readonly document = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
+
+  private readonly simpleInput =
+    viewChild<ElementRef<HTMLInputElement>>('simpleInput');
 
   constructor() {
     const view = this.document.defaultView;
@@ -296,6 +355,19 @@ export class AndesPagination {
     () => this.size() === 'small' || this.isCollapsed(),
   );
 
+  protected readonly isLarge = computed(
+    () => this.size() === 'large' && !this.isCollapsed(),
+  );
+
+  protected readonly resolvedSize = computed<'small' | 'default' | 'large'>(
+    () => (this.isSmall() ? 'small' : this.isLarge() ? 'large' : 'default'),
+  );
+
+  protected readonly controlButtonSize = computed(() => {
+    const size = this.resolvedSize();
+    return size === 'small' ? 'sm' : size === 'large' ? 'lg' : 'md';
+  });
+
   protected readonly jumpSize = computed(() => (this.showLessItems() ? 3 : 5));
 
   protected readonly items = computed(() =>
@@ -329,6 +401,18 @@ export class AndesPagination {
     ];
   });
 
+  protected readonly totalTemplate = computed(() => {
+    const showTotal = this.showTotal();
+    return showTotal instanceof TemplateRef ? showTotal : null;
+  });
+
+  protected readonly totalText = computed(() => {
+    const showTotal = this.showTotal();
+    return typeof showTotal === 'function'
+      ? showTotal(this.resolvedTotal(), this.totalRange())
+      : null;
+  });
+
   protected readonly totalContext = computed<AndesPaginationTotalContext>(
     () => ({
       $implicit: this.resolvedTotal(),
@@ -353,6 +437,18 @@ export class AndesPagination {
     options.add(this.resolvedPageSize());
     return [...options].sort((a, b) => a - b);
   });
+
+  protected readonly sizeChangerContext =
+    computed<AndesPaginationSizeChangerContext>(() => ({
+      $implicit: this.resolvedPageSize(),
+      pageSize: this.resolvedPageSize(),
+      options: this.sizeOptions(),
+      disabled: this.disabled(),
+      size: this.resolvedSize(),
+      label: this.pageSizeLabel(),
+      itemsPerPageLabel: this.itemsPerPageLabel(),
+      change: this.changePageSize,
+    }));
 
   protected readonly isQuickJumperVisible = computed(
     () => this.showQuickJumper() && !this.isSimple(),
@@ -380,6 +476,15 @@ export class AndesPagination {
 
   protected readonly hasGoButton = computed(
     () => this.goButtonTemplate() !== null || this.goButtonText() !== null,
+  );
+
+  /** Editable simple mode confirms through the go button when the jumper has one. */
+  protected readonly hasSimpleGoButton = computed(
+    () =>
+      this.isSimple() &&
+      !this.simple().readOnly &&
+      this.showQuickJumper() &&
+      this.hasGoButton(),
   );
 
   protected isEllipsis(
@@ -474,7 +579,11 @@ export class AndesPagination {
     }
   }
 
-  protected onSizeSelected(value: string): void {
+  /** Stable reference handed to `sizeChangerRender` templates. */
+  private readonly changePageSize = (pageSize: number): void =>
+    this.onSizeSelected(pageSize);
+
+  protected onSizeSelected(value: string | number): void {
     const size = Math.trunc(Number(value));
     if (this.disabled() || !(size > 0) || size === this.resolvedPageSize()) {
       return;
@@ -550,6 +659,21 @@ export class AndesPagination {
         return;
     }
     field.value = this.simpleInputValue();
+  }
+
+  protected onSimpleBlur(field: HTMLInputElement): void {
+    // With a go button, blurring (e.g. tabbing to that button) must not jump yet.
+    if (!this.hasSimpleGoButton()) {
+      this.commitSimple(field);
+    }
+  }
+
+  /** Go-button click in simple mode, which lives outside the input's template scope. */
+  protected commitSimpleInput(): void {
+    const field = this.simpleInput()?.nativeElement;
+    if (field) {
+      this.commitSimple(field);
+    }
   }
 
   protected commitSimple(field: HTMLInputElement): void {
