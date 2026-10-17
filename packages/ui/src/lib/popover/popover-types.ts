@@ -47,5 +47,22 @@ export const ANDES_POPOVER_PLACEMENTS: Readonly<
   rightBottom: { side: 'right', align: 'end' },
 };
 
+/**
+ * Semantic color presets for the panel's `color` input, each backed by an
+ * existing `--andes-color-*` / `--andes-color-*-foreground` token pair.
+ */
+export const ANDES_POPOVER_PRESET_COLORS = [
+  'primary',
+  'secondary',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+
+/** One of {@link ANDES_POPOVER_PRESET_COLORS}. */
+export type AndesPopoverPresetColor =
+  (typeof ANDES_POPOVER_PRESET_COLORS)[number];
+
 /** Default hover open/close delay, in ms (0.1s). */
 export const ANDES_POPOVER_DEFAULT_HOVER_DELAY = 100;

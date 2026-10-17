@@ -34,7 +34,9 @@ import {
 import {
   ANDES_POPOVER_DEFAULT_HOVER_DELAY,
   ANDES_POPOVER_PLACEMENTS,
+  ANDES_POPOVER_PRESET_COLORS,
   type AndesPopoverPlacement,
+  type AndesPopoverPresetColor,
   type AndesPopoverRenderable,
   type AndesPopoverTriggerAction,
 } from './popover-types';
@@ -147,6 +149,49 @@ export abstract class AndesPopoverBase {
    * `--andes-popover-*` custom properties to one instance.
    */
   readonly panelClass = input<string | readonly string[] | null>(null);
+  /**
+   * Panel background: a semantic preset (`primary`, `success`, `danger`, ...)
+   * or any CSS color. Text follows automatically - the preset's `-foreground`
+   * token, or black/white by lightness for a custom color - and the border and
+   * arrow match the background. Default: the regular popover surface.
+   */
+  readonly color = input<
+    AndesPopoverPresetColor | (string & {}) | null | undefined
+  >(undefined);
+
+  /**
+   * Caps the panel's height and scrolls what lies below the title once the content
+   * outgrows it: a number is taken as px, a string as any CSS length
+   * (`'50vh'`, `'20rem'`). The title stays pinned and the arrow is never clipped,
+   * because only the inner body region scrolls - the surface itself keeps
+   * `overflow: visible`. Default: no cap, the panel grows with its content.
+   */
+  readonly maxHeight = input<number | string | null | undefined>(undefined);
+
+  /** {@link maxHeight} as a CSS length, or `null` when the panel is uncapped. */
+  readonly panelMaxHeight = computed(() => {
+    const value = this.maxHeight();
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    return typeof value === 'number' ? `${value}px` : value;
+  });
+
+  /** `data-color` of the panel: the preset name, `'custom'`, or `null`. */
+  readonly colorAttribute = computed(() => {
+    const color = this.color();
+    if (!color) {
+      return null;
+    }
+    return (ANDES_POPOVER_PRESET_COLORS as readonly string[]).includes(color)
+      ? color
+      : 'custom';
+  });
+
+  /** The custom (non-preset) background, written to `--andes-popover-background`. */
+  readonly customColor = computed(() =>
+    this.colorAttribute() === 'custom' ? (this.color() ?? null) : null,
+  );
 
   /**
    * Open state. Two-way bindable for controlled usage; uncontrolled otherwise.
@@ -262,6 +307,14 @@ export abstract class AndesPopoverBase {
       this.clearTimers();
       this.stopTracking();
     });
+  }
+
+  /**
+   * Closes the panel (reported through `openChange`). What `[andesPopoverClose]`
+   * calls; handy from a `TemplateRef` handler or a parent holding the instance.
+   */
+  close(): void {
+    this.requestClose();
   }
 
   /** Opens if closed, closes if open. */
@@ -411,9 +464,14 @@ export abstract class AndesPopoverBase {
       entry = undefined;
     }
     if (!entry) {
+      // The injector lets content declared outside the popover (a
+      // `TemplateRef` passed to an input) still reach it - e.g. for
+      // `[andesPopoverClose]`.
       entry = {
         template,
-        view: this.viewContainerRef.createEmbeddedView(template),
+        view: this.viewContainerRef.createEmbeddedView(template, undefined, {
+          injector: this.injector,
+        }),
       };
       this.cachedViews.set(key, entry);
     }
@@ -770,7 +828,10 @@ export abstract class AndesPopoverBase {
     const border = horizontal
       ? panelElement.clientLeft
       : panelElement.clientTop;
-    return Math.round(target - panelStart - border);
+    // Not rounded: the panel itself often sits on a fractional x/y (centered
+    // on a fractional-width trigger), so a whole-pixel offset from its edge
+    // would push the arrow up to half a pixel off the trigger's center.
+    return target - panelStart - border;
   }
 
   /** Extra align offset that puts a `start`/`end` arrow over the trigger's center. */

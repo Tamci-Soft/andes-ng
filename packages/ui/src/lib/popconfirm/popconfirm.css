@@ -4,7 +4,7 @@
   display: contents;
 }
 
-/* The surface itself (background, border, radius, shadow, font-family, arrow)
+/* The surface itself (background, border, radius, shadow, type, arrow)
    is `andes-popover-content`; this is only the confirmation layout inside it. */
 .andes-popconfirm {
   display: flex;
@@ -20,13 +20,21 @@
   gap: var(--andes-space-2);
 }
 
+/* The box is one text line tall (the surface's 1.375rem line-height), so the
+   icon centers on the title's first line however many lines follow. Plain
+   amber is ~2.2:1 on the light surface; mixing in a quarter of the surface's
+   foreground darkens it past 3:1 there and lightens it in dark. */
 .andes-popconfirm-icon {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   /* One text line tall, so the glyph centres on the title's first line. */
   height: var(--andes-text-line-height, 1.375rem);
-  color: var(--andes-color-warning);
+  color: color-mix(
+    in srgb,
+    var(--andes-color-warning) 75%,
+    var(--andes-popover-foreground, var(--andes-color-popover-foreground))
+  );
   font-size: 1rem;
   line-height: 1;
 }
@@ -39,11 +47,16 @@
 }
 
 .andes-popconfirm-title {
-  font-weight: var(--andes-font-weight-medium);
+  /* Semibold like the other surface titles, but kept at the 14/22 body size: it is
+     a one-line question set beside the icon, which is centred on that 22px line. */
+  font-weight: 600;
 }
 
 .andes-popconfirm-description {
-  color: var(--andes-color-muted-foreground);
+  color: var(
+    --andes-popover-muted-foreground,
+    var(--andes-color-muted-foreground)
+  );
 }
 
 .andes-popconfirm-slot {
@@ -52,6 +65,7 @@
 
 .andes-popconfirm-buttons {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--andes-space-2);
 }

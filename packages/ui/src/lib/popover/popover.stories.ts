@@ -10,7 +10,10 @@ import {
   AndesPopoverTitle,
 } from './popover-parts';
 import { AndesPopoverTrigger } from './popover-trigger';
-import { ANDES_POPOVER_PLACEMENTS } from './popover-types';
+import {
+  ANDES_POPOVER_PLACEMENTS,
+  ANDES_POPOVER_PRESET_COLORS,
+} from './popover-types';
 
 const PLACEMENTS = Object.keys(ANDES_POPOVER_PLACEMENTS);
 
@@ -23,6 +26,37 @@ const imports = [
   AndesPopoverDescription,
   AndesPopoverClose,
 ];
+
+/**
+ * Demo text field styled like the library's own fields: one focus indicator (primary
+ * border plus a soft 2px ring), never the browser's outline drawn as a second frame.
+ */
+const FIELD_STYLES = `
+  <style>
+    .sb-field-input {
+      box-sizing: border-box;
+      height: 2rem;
+      padding: 0 0.6875rem;
+      border: 1px solid var(--andes-color-input);
+      border-radius: var(--andes-radius-md);
+      background-color: var(--andes-color-background);
+      color: var(--andes-color-foreground);
+      font: inherit;
+      line-height: 1.375rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    .sb-field-input::placeholder { color: var(--andes-color-muted-foreground); }
+    .sb-field-input:hover {
+      border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+    }
+    .sb-field-input:focus {
+      border-color: var(--andes-color-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+      outline: none;
+    }
+  </style>
+`;
 
 const meta: Meta<AndesPopover> = {
   title: 'Popover',
@@ -46,6 +80,8 @@ const meta: Meta<AndesPopover> = {
     disabled: { control: 'boolean' },
     destroyOnHidden: { control: 'boolean' },
     zIndex: { control: 'number' },
+    color: { control: 'text' },
+    maxHeight: { control: 'text' },
   },
   args: {
     side: 'bottom',
@@ -85,7 +121,7 @@ const meta: Meta<AndesPopover> = {
         >
           <andes-button andesPopoverTrigger>Open popover</andes-button>
           <andes-popover-content>
-            <p style="margin: 0 0 0.5rem; font-weight: 600;">Popover title</p>
+            <p style="margin: 0 0 0.5rem; font-size: 1rem; line-height: 1.5rem; font-weight: 600;">Popover title</p>
             <p style="margin: 0; font-size: 0.875rem;">This is the popover body content.</p>
           </andes-popover-content>
         </andes-popover>
@@ -372,7 +408,7 @@ export const OpenChange: Story = {
 export const DestroyOnHidden: Story = {
   render: () => ({
     moduleMetadata: { imports },
-    template: `
+    template: `${FIELD_STYLES}
       <div style="display: flex; gap: 2rem; padding: 8rem 2rem;">
         <andes-popover title="Kept" [content]="form">
           <andes-button variant="outline" andesPopoverTrigger>Keeps state</andes-button>
@@ -383,7 +419,7 @@ export const DestroyOnHidden: Story = {
         <ng-template #form>
           <label style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem;">
             Note
-            <input placeholder="Type, close, reopen" style="font: inherit; padding: 0.25rem 0.5rem; border: 1px solid var(--andes-color-input); border-radius: var(--andes-radius-sm); background: var(--andes-color-background); color: var(--andes-color-foreground);" />
+            <input class="sb-field-input" placeholder="Type, close, reopen" />
           </label>
         </ng-template>
       </div>
@@ -438,6 +474,102 @@ export const Disabled: Story = {
             <button type="button" disabled style="pointer-events: none; font: inherit;">Publish</button>
           </span>
         </andes-popover>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `color`: the six semantic presets, then arbitrary CSS colors - the text
+ * switches to black or white by the background's lightness, and the border and
+ * arrow follow the background.
+ */
+export const Colors: Story = {
+  render: () => ({
+    moduleMetadata: { imports },
+    props: {
+      presets: ANDES_POPOVER_PRESET_COLORS,
+      custom: ['#7c3aed', '#fde68a', 'rgb(15 118 110)'],
+    },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1.5rem; padding: 2rem 2rem 8rem;">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+          @for (color of presets; track color) {
+            <andes-popover [color]="color" [title]="color" content="Preset background." trigger="hover" [showArrow]="true">
+              <andes-button variant="outline" andesPopoverTrigger>{{ color }}</andes-button>
+            </andes-popover>
+          }
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+          @for (color of custom; track color) {
+            <andes-popover [color]="color" [title]="color" content="Custom background." trigger="hover" [showArrow]="true">
+              <andes-button variant="outline" andesPopoverTrigger>{{ color }}</andes-button>
+            </andes-popover>
+          }
+        </div>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `[andesPopoverClose]` closes the panel from inside its own content - here
+ * from a `TemplateRef` passed to `content` - without wiring `[(open)]`.
+ */
+export const CloseFromContent: Story = {
+  render: () => ({
+    moduleMetadata: { imports },
+    template: `
+      <div style="padding: 8rem;">
+        <andes-popover title="Column settings" [content]="body" [showArrow]="true">
+          <andes-button andesPopoverTrigger>Settings</andes-button>
+        </andes-popover>
+        <ng-template #body>
+          <p style="margin: 0 0 0.75rem;">Pick the columns to show, then close.</p>
+          <div style="display: flex; justify-content: flex-end;">
+            <andes-button size="sm" andesPopoverClose>Done</andes-button>
+          </div>
+        </ng-template>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `maxHeight` caps a panel holding long content: the title stays pinned, only the
+ * region below it scrolls (its scrollbar on the panel's edge), and the arrow keeps
+ * hanging off the surface instead of being clipped. The scrolling region is a tab
+ * stop, so the text can be scrolled from the keyboard too. Under a title the body
+ * text is set in the muted foreground, so the title leads.
+ */
+export const ScrollableBody: Story = {
+  render: () => ({
+    moduleMetadata: { imports },
+    props: {
+      paragraphs: Array.from(
+        { length: 8 },
+        (_, index) =>
+          `Clause ${index + 1}. Changes to the billing cycle take effect at the start of the next period; anything already invoiced keeps its original terms.`,
+      ),
+    },
+    template: `
+      <div style="padding: 8rem; display: flex; gap: 1rem;">
+        <andes-popover title="Terms of the change" [content]="body" [showArrow]="true" [maxHeight]="240">
+          <andes-button andesPopoverTrigger>Long content (240px)</andes-button>
+        </andes-popover>
+        <andes-popover [showArrow]="true" side="right" maxHeight="12rem">
+          <andes-button andesPopoverTrigger variant="outline">Projected, no title</andes-button>
+          <andes-popover-content>
+            @for (paragraph of paragraphs; track $index) {
+              <p style="margin: 0 0 0.5rem;">{{ paragraph }}</p>
+            }
+          </andes-popover-content>
+        </andes-popover>
+        <ng-template #body>
+          @for (paragraph of paragraphs; track $index) {
+            <p style="margin: 0 0 0.5rem;">{{ paragraph }}</p>
+          }
+        </ng-template>
       </div>
     `,
   }),

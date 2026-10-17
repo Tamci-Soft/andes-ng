@@ -14,9 +14,13 @@ export {
   AndesPopoverTrigger,
 } from './lib/popover/popover-trigger';
 export { AndesPopoverBase } from './lib/popover/popover-base';
-export { ANDES_POPOVER_PLACEMENTS } from './lib/popover/popover-types';
+export {
+  ANDES_POPOVER_PLACEMENTS,
+  ANDES_POPOVER_PRESET_COLORS,
+} from './lib/popover/popover-types';
 export type {
   AndesPopoverPlacement,
+  AndesPopoverPresetColor,
   AndesPopoverRenderable,
   AndesPopoverTriggerAction,
 } from './lib/popover/popover-types';

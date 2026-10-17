@@ -29,6 +29,7 @@ const meta: Meta<AndesPopconfirm> = {
       options: [undefined, ...Object.keys(ANDES_POPOVER_PLACEMENTS)],
     },
     showArrow: { control: 'boolean' },
+    color: { control: 'text' },
   },
   args: {
     title: 'Delete the task',
@@ -60,6 +61,7 @@ const meta: Meta<AndesPopconfirm> = {
           [disabled]="disabled"
           [placement]="placement"
           [showArrow]="showArrow"
+          [color]="color"
           (confirm)="result = 'Confirmed'"
           (cancelled)="result = 'Cancelled'"
         >
@@ -182,4 +184,47 @@ export const Controlled: Story = {
       </div>
     `,
   }),
+};
+
+/**
+ * Asking only when it matters: while "Ask before deleting" is off the
+ * popconfirm is `disabled`, so the button's own click handler runs the action
+ * straight away; when it is on, the click opens the confirmation instead.
+ */
+export const ConditionalConfirm: Story = {
+  render: () => ({
+    moduleMetadata: { imports },
+    props: { ask: true, result: '' },
+    template: `
+      <div style="padding: 10rem 4rem 4rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; color: var(--andes-color-foreground);">
+        <label style="display: inline-flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" [checked]="ask" (change)="ask = !ask; result = ''" />
+          Ask before deleting
+        </label>
+        <andes-popconfirm
+          title="Delete the task"
+          description="Are you sure to delete this task?"
+          okType="danger"
+          okText="Delete"
+          [disabled]="!ask"
+          (confirm)="result = 'Deleted after confirming'"
+          (cancelled)="result = 'Kept'"
+        >
+          <andes-button
+            variant="danger"
+            andesPopconfirmTrigger
+            (click)="ask ? null : (result = 'Deleted without asking')"
+          >
+            Delete
+          </andes-button>
+        </andes-popconfirm>
+        <span role="status" style="min-height: 1.25rem;">{{ result }}</span>
+      </div>
+    `,
+  }),
+};
+
+/** `color` applies to the confirmation panel too. */
+export const Colored: Story = {
+  args: { color: 'info', okType: 'secondary' },
 };
