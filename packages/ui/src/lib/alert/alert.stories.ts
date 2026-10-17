@@ -12,7 +12,11 @@ const meta: Meta<AndesAlert> = {
       control: 'select',
       options: [undefined, 'success', 'info', 'warning', 'danger'],
     },
-    variant: { control: 'inline-radio', options: ['tinted', 'outlined'] },
+    variant: {
+      control: 'inline-radio',
+      options: ['tinted', 'filled', 'outlined'],
+    },
+    actionPlacement: { control: 'inline-radio', options: ['bottom', 'end'] },
     closable: { control: 'boolean' },
     showIcon: { control: 'boolean' },
     banner: { control: 'boolean' },
@@ -20,6 +24,8 @@ const meta: Meta<AndesAlert> = {
     marqueeSpeed: { control: { type: 'number', min: 10, step: 10 } },
     role: { control: 'select', options: [undefined, 'alert', 'status'] },
     closeLabel: { control: 'text' },
+    closeText: { control: 'text' },
+    closeDisabled: { control: 'boolean' },
   },
   args: {
     severity: 'info',
@@ -28,12 +34,15 @@ const meta: Meta<AndesAlert> = {
     showIcon: true,
     banner: false,
     closeLabel: 'Close',
+    closeText: null,
+    closeDisabled: false,
+    actionPlacement: 'bottom',
     closing: fn(),
     afterClose: fn(),
   },
   render: (args) => ({
     props: args,
-    template: `<andes-alert [severity]="severity" [variant]="variant" [closable]="closable" [showIcon]="showIcon" [banner]="banner" [role]="role" [closeLabel]="closeLabel" (closing)="closing($event)" (afterClose)="afterClose()">
+    template: `<andes-alert [severity]="severity" [variant]="variant" [closable]="closable" [showIcon]="showIcon" [banner]="banner" [role]="role" [closeLabel]="closeLabel" [closeText]="closeText" [closeDisabled]="closeDisabled" (closing)="closing($event)" (afterClose)="afterClose()">
       <span slot="title">Heads up</span>
       This is an alert message with some more detail underneath the title.
     </andes-alert>`,
@@ -90,14 +99,14 @@ export const WithAction: Story = {
 };
 
 /**
- * Every severity in both variants. `tinted` (the default) fills the card with a wash of the
- * severity color; `outlined` keeps the neutral card and shows the severity only in the icon
- * and border.
+ * Every severity in every variant. `tinted` (the default) fills the card with a wash of the
+ * severity color; `filled` keeps the wash and drops the border; `outlined` keeps the neutral
+ * card and shows the severity only in the icon and border.
  */
 export const AllVariants: Story = {
   render: () => ({
     props: {
-      variants: ['tinted', 'outlined'],
+      variants: ['tinted', 'filled', 'outlined'],
       items: [
         ['success', 'Success', 'Your changes have been saved.'],
         ['info', 'Info', 'A new version of the app is available.'],
@@ -109,7 +118,7 @@ export const AllVariants: Story = {
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 2rem;">
         @for (variant of variants; track variant) {
           <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <strong style="font-family: var(--andes-font-family), sans-serif; font-size: 0.8125rem; color: var(--andes-color-muted-foreground);">{{ variant }}</strong>
+            <strong style="font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground);">{{ variant }}</strong>
             @for (item of items; track item[0]) {
               <andes-alert [severity]="item[0]" [variant]="variant" [title]="item[1]" [description]="item[2]" closable />
             }
@@ -117,6 +126,63 @@ export const AllVariants: Story = {
         }
       </div>
     `,
+  }),
+};
+
+/**
+ * `actionPlacement="end"` puts the action beside the text, centred on the first line, so a
+ * one-line notice with a short action stays one line tall. With a title and description the
+ * action still lines up with the title.
+ */
+export const ActionAtEnd: Story = {
+  args: { actionPlacement: 'end', closable: true },
+  render: (args) => ({
+    props: args,
+    template: `<div style="display: flex; flex-direction: column; gap: 1rem; max-width: 36rem;">
+      <andes-alert severity="success" [actionPlacement]="actionPlacement" [variant]="variant" [closable]="closable">
+        Invoice F001-000123 was voided.
+        <button slot="action" type="button" style="all: unset; cursor: pointer; font-weight: 500; text-decoration: underline;">Undo</button>
+      </andes-alert>
+      <andes-alert severity="danger" [actionPlacement]="actionPlacement" [variant]="variant" [closable]="closable" title="Sync failed" description="The tax authority service did not answer. Your documents are queued and will be sent again automatically.">
+        <button slot="action" type="button" style="all: unset; cursor: pointer; font-weight: 500; text-decoration: underline;">Retry now</button>
+      </andes-alert>
+      <andes-alert severity="info" [actionPlacement]="actionPlacement" [variant]="variant" [showIcon]="false">
+        3 rows selected.
+        <button slot="action" type="button" style="all: unset; cursor: pointer; font-weight: 500; text-decoration: underline;">Clear selection</button>
+      </andes-alert>
+    </div>`,
+  }),
+};
+
+/**
+ * `closeText` swaps the (x) glyph for a word. The text becomes the button's accessible name, so
+ * `closeLabel` is not used; a `closeIcon` template would still win over it.
+ */
+export const CloseText: Story = {
+  args: { closable: true, closeText: 'Got it', severity: 'info' },
+  render: (args) => ({
+    props: args,
+    template: `<div style="display: flex; flex-direction: column; gap: 1rem; max-width: 36rem;">
+      <andes-alert [severity]="severity" [variant]="variant" [closable]="closable" [closeText]="closeText" (closing)="closing($event)" (afterClose)="afterClose()">
+        Prices now include tax by default. You can change this in Settings.
+      </andes-alert>
+      <andes-alert severity="warning" [variant]="variant" [closable]="closable" closeText="Dismiss" title="Period closing on Friday" description="Entries dated in October can't be edited after the period is closed." />
+    </div>`,
+  }),
+};
+
+/**
+ * `closeDisabled` keeps the close button in place but inert - here, while the export the alert
+ * reports on is still running. Toggle the control to lift it.
+ */
+export const CloseDisabled: Story = {
+  args: { closable: true, closeDisabled: true, severity: 'info' },
+  render: (args) => ({
+    props: args,
+    template: `<andes-alert [severity]="severity" [variant]="variant" [closable]="closable" [closeDisabled]="closeDisabled" [closeLabel]="closeLabel" (closing)="closing($event)" (afterClose)="afterClose()">
+      <span slot="title">Exporting ledger</span>
+      This notice can be dismissed once the export has finished.
+    </andes-alert>`,
   }),
 };
 
@@ -165,7 +231,7 @@ export const LoopBanner: Story = {
   args: {
     banner: true,
     marquee: true,
-    marqueeSpeed: 60,
+    marqueeSpeed: 40,
     severity: undefined,
     closable: true,
   },
@@ -279,7 +345,7 @@ export const CloseLifecycle: Story = {
         <span slot="title">Second</span>
         Another dismissible alert.
       </andes-alert>
-      <ol aria-label="Close event log" style="margin: 0; padding-inline-start: 1.25rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.8125rem; color: var(--andes-color-muted-foreground);">
+      <ol aria-label="Close event log" style="margin: 0; padding-inline-start: 1.25rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground);">
         @for (entry of log; track $index) { <li>{{ entry }}</li> }
       </ol>
     </div>`,
