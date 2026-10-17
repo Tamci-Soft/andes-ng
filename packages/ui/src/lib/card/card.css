@@ -11,17 +11,24 @@
   /* Card-local density knob (mirrors shadcn's own `--card-spacing`) - not a global design
      token, so it lives here rather than in packages/tokens/src/theme.css. Only the root
      overrides it; descendants merely consume the cascaded value. */
-  --andes-card-spacing: var(--andes-space-4);
+  --andes-card-spacing: 1.5rem;
+  /* Head metrics (Ant Design's Card): a 56px minimum head with 12px block padding, so a
+     title-only head is exactly 56px and a 32px action button still fits inside it. */
+  --andes-card-head-min-height: 3.5rem;
+  --andes-card-head-padding-block: var(--andes-space-3);
   /* Card-local as well: reset on every card root so a nested card never inherits an inner
      card's smaller title. */
   --andes-card-title-font-size: 1rem;
-  gap: var(--andes-card-spacing);
+  --andes-card-title-line-height: 1.5rem;
   border-radius: var(--andes-radius-lg);
   background-color: var(--andes-color-card);
   color: var(--andes-color-card-foreground);
   font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   overflow: hidden;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 :host(.andes-card--outlined) {
@@ -34,10 +41,15 @@
 
 :host(.andes-card--sm) {
   --andes-card-spacing: var(--andes-space-3);
+  --andes-card-head-min-height: 2.375rem;
+  --andes-card-head-padding-block: var(--andes-space-2);
+  --andes-card-title-font-size: 0.875rem;
+  --andes-card-title-line-height: 1.375rem;
 }
 
 :host(.andes-card--inner) {
   --andes-card-title-font-size: 0.875rem;
+  --andes-card-title-line-height: 1.375rem;
 }
 
 :host(.andes-card--hoverable) {
@@ -60,9 +72,27 @@
      description the title row is only as tall as the title, so this is a no-op there and the
      action keeps its own top alignment. */
   align-items: center;
-  gap: var(--andes-space-1);
-  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
-  padding-block-start: var(--andes-card-spacing, var(--andes-space-4));
+  /* Centres the rows inside the minimum head height. */
+  align-content: center;
+  gap: var(--andes-space-1) var(--andes-space-2);
+  box-sizing: border-box;
+  min-height: var(--andes-card-head-min-height, 3.5rem);
+  padding-inline: var(--andes-card-spacing, 1.5rem);
+  padding-block: var(--andes-card-head-padding-block, var(--andes-space-3));
+  border-block-end: 1px solid var(--andes-color-border);
+}
+
+/* A header-only card: the card's own border already closes the head, so a divider there would
+   draw a second bottom edge. */
+:host(.andes-card__header:last-child) {
+  border-block-end: 0;
+}
+
+/* The tab strip below draws the head's bottom rule itself (and sits flush on it). */
+:host(.andes-card__header--tabbed) {
+  min-height: 0;
+  padding-block-end: 0;
+  border-block-end: 0;
 }
 
 :host(.andes-card__header--described) {
@@ -72,7 +102,6 @@
 /* type="inner" (nested-card style): a tinted head divided from the body, so a card inside a
    card reads as a sub-section rather than a second, competing surface. */
 :host(.andes-card__header--inner) {
-  padding-block: var(--andes-space-3);
   /* A foreground tint over the card surface rather than --andes-color-muted: in dark mode muted
      and card are the same colour, so a muted head would vanish. */
   background-color: color-mix(
@@ -80,7 +109,6 @@
     var(--andes-color-card-foreground) 5%,
     var(--andes-color-card)
   );
-  border-block-end: 1px solid var(--andes-color-border);
 }
 
 /* Header tab strip. Bleeds to the card's edges (negative inline margin + matching padding) so its
@@ -91,16 +119,16 @@
   display: flex;
   align-items: center;
   gap: var(--andes-space-3);
-  margin-block-start: var(--andes-space-2);
-  margin-inline: calc(-1 * var(--andes-card-spacing, var(--andes-space-4)));
-  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
+  margin-inline: calc(-1 * var(--andes-card-spacing, 1.5rem));
+  padding-inline: var(--andes-card-spacing, 1.5rem);
   box-shadow: inset 0 -1px 0 var(--andes-color-border);
 }
 
-/* The inner header already draws its own bottom rule and padding - sit the strip on that rule. */
-:host(.andes-card__header--inner) .andes-card__tabs {
-  margin-block-end: calc(-1 * var(--andes-space-3));
-  box-shadow: none;
+/* A tab strip without a title leads the head, so it drops the head's top padding as well. */
+.andes-card__tabs:first-child {
+  margin-block-start: calc(
+    -1 * var(--andes-card-head-padding-block, var(--andes-space-3))
+  );
 }
 
 .andes-card__tablist {
@@ -108,7 +136,7 @@
   flex: 1 1 auto;
   align-self: stretch;
   min-width: 0;
-  gap: var(--andes-space-5);
+  gap: 2rem;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -117,7 +145,8 @@
   flex: none;
   appearance: none;
   margin: 0;
-  padding-block: calc(var(--andes-card-spacing, var(--andes-space-4)) * 0.75);
+  /* 12px at the default size, 6px at size="sm" (the tab bar's 12px 0 tab padding). */
+  padding-block: calc(var(--andes-card-spacing, 1.5rem) * 0.5);
   padding-inline: 0;
   border: 0;
   /* The transparent top border balances the 2px indicator so the label stays vertically
@@ -126,13 +155,15 @@
   background: none;
   color: var(--andes-color-muted-foreground);
   font-family: inherit;
-  font-size: 0.875rem;
-  line-height: 1.25;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   white-space: nowrap;
   cursor: pointer;
   transition:
-    color 0.2s ease,
-    border-color 0.2s ease;
+    color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    border-color var(--andes-motion-duration-slow, 0.3s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-card__tab:hover {
@@ -170,17 +201,23 @@
   display: flex;
 }
 
+/* Every heading level renders identically: `level` only changes the document outline, never
+   the size, so each property a user-agent heading style sets (size, weight, margins, family) is
+   pinned here. */
 .andes-card__title {
   grid-column: 1;
   margin: 0;
+  font-family: inherit;
   font-size: var(--andes-card-title-font-size, 1rem);
   font-weight: var(--andes-font-weight-medium);
-  line-height: 1.2;
+  line-height: var(--andes-card-title-line-height, 1.5rem);
+  color: inherit;
 }
 
 :host(.andes-card__description) {
   grid-column: 1;
-  font-size: 0.875rem;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-muted-foreground);
 }
 
@@ -213,16 +250,16 @@
 }
 
 :host(.andes-card__content) {
-  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
-  padding-block: var(--andes-card-spacing, var(--andes-space-4));
+  padding: var(--andes-card-spacing, 1.5rem);
 }
 
 :host(.andes-card__content--grid) {
   display: flex;
   flex-wrap: wrap;
   padding: 0;
-  /* Draws the rule above the first row. Pulled up 1px so a header-less grid's rule tucks under
-     the card's own clipped edge instead of doubling the outlined border. */
+  /* Draws the rule above the first row. Pulled up 1px so it lands exactly on the head's own
+     divider, or tucks under the card's clipped edge when there is no header, instead of
+     doubling either line. */
   margin-block-start: -1px;
   border-block-start: 1px solid var(--andes-color-border);
 }
@@ -297,12 +334,13 @@
 :host(.andes-card__grid) {
   box-sizing: border-box;
   width: calc(100% / var(--andes-card-grid-columns, 3));
-  padding: var(--andes-card-spacing, var(--andes-space-4));
+  padding: var(--andes-card-spacing, 1.5rem);
   box-shadow:
     1px 0 0 0 var(--andes-color-border),
     0 1px 0 0 var(--andes-color-border),
     1px 1px 0 0 var(--andes-color-border);
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 :host(.andes-card__grid--hoverable:hover) {
@@ -322,9 +360,8 @@
 :host(.andes-card__actions) {
   display: flex;
   margin-block-start: auto;
-  /* Derived from the card's density knob (12px default, 9px at size="sm") so the bar follows
-     `size` without reading the card's classes from here. */
-  padding-block: calc(var(--andes-card-spacing, var(--andes-space-4)) * 0.75);
+  /* 12px at every size, as Ant's actions bar. */
+  padding-block: var(--andes-space-3);
   border-block-start: 1px solid var(--andes-color-border);
 }
 
@@ -344,6 +381,6 @@
   display: flex;
   align-items: center;
   gap: var(--andes-space-2);
-  padding-inline: var(--andes-card-spacing, var(--andes-space-4));
-  padding-block-end: var(--andes-card-spacing, var(--andes-space-4));
+  padding-inline: var(--andes-card-spacing, 1.5rem);
+  padding-block-end: var(--andes-card-spacing, 1.5rem);
 }
