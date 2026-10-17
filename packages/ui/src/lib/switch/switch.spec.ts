@@ -221,6 +221,54 @@ describe('AndesSwitch', () => {
     expect(host.hasAttribute('aria-invalid')).toBe(false);
   });
 
+  it('forwards id to the real button and nulls it on the host', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<andes-switch id="notifications" />`,
+    })
+    class IdHost {}
+
+    const fixture = TestBed.createComponent(IdHost);
+    fixture.detectChanges();
+    const host = fixture.nativeElement.querySelector('andes-switch');
+    const button = fixture.nativeElement.querySelector('button');
+
+    expect(button.getAttribute('id')).toBe('notifications');
+    expect(host.hasAttribute('id')).toBe(false);
+  });
+
+  it('renders no id on the button when none is given', () => {
+    const { button } = createHost();
+
+    expect(button.hasAttribute('id')).toBe(false);
+  });
+
+  it('is labelled by, and toggled from, a <label for> targeting its id', () => {
+    @Component({
+      imports: [AndesSwitch],
+      template: `<label for="notifications">Enable notifications</label>
+        <andes-switch id="notifications" />`,
+    })
+    class LabelHost {}
+
+    const fixture = TestBed.createComponent(LabelHost);
+    fixture.detectChanges();
+    const label = fixture.nativeElement.querySelector(
+      'label',
+    ) as HTMLLabelElement;
+    const button = fixture.nativeElement.querySelector(
+      'button',
+    ) as HTMLButtonElement;
+
+    expect(label.control).toBe(button);
+    expect(Array.from(button.labels ?? [])).toEqual([label]);
+
+    label.click();
+    fixture.detectChanges();
+
+    expect(button.getAttribute('aria-checked')).toBe('true');
+  });
+
   it('projects checked/unchecked slot content depending on state', () => {
     @Component({
       imports: [AndesSwitch],

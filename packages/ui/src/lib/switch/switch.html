@@ -3,6 +3,7 @@
   type="button"
   role="switch"
   data-slot="switch"
+  [attr.id]="id()"
   [attr.data-size]="size()"
   [attr.data-checked]="isChecked() ? '' : null"
   [attr.data-unchecked]="isChecked() ? null : ''"

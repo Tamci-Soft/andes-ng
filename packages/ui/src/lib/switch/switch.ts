@@ -42,7 +42,9 @@ export interface AndesSwitchChangeEvent {
   host: {
     // Forwarded to the real button in the template instead - a screen reader never sees
     // this non-interactive host element, so leaving these here would do nothing. Same
-    // class of bug already found and fixed in AndesButton.
+    // class of bug already found and fixed in AndesButton. `id` too: a `<label for>` must
+    // target the focusable button, and a duplicate id on the host would be invalid.
+    '[attr.id]': 'null',
     '[attr.aria-label]': 'null',
     '[attr.aria-labelledby]': 'null',
     '[attr.aria-describedby]': 'null',
@@ -89,6 +91,8 @@ export class AndesSwitch implements ControlValueAccessor {
    */
   readonly checkedChildren = input<string>('');
   readonly unCheckedChildren = input<string>('');
+  /** `id` of the rendered button, so a `<label for>` (or a form field) can target it. */
+  readonly id = input<string | undefined>(undefined);
   readonly ariaLabel = input<string | undefined>(undefined, {
     alias: 'aria-label',
   });
