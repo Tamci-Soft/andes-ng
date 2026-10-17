@@ -11,8 +11,8 @@ export type AndesAvatarBadgePlacement =
   'bottom-end' | 'bottom-start' | 'top-end' | 'top-start';
 
 /**
- * Small status dot pinned to a corner of an `AndesAvatar` (shadcn's
- * avatar-with-status-dot pattern).
+ * Small status dot pinned to a corner of an `AndesAvatar`, the usual
+ * avatar-with-status-dot pattern.
  *
  * Projected into `AndesAvatar` rather than driven by a `status` input on the
  * avatar itself, which keeps it consistent with the rest of this library's
