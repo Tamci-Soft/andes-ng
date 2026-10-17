@@ -81,7 +81,7 @@
 
 /* Sizes - fixed box dimensions, not the generic space scale, since these are
    avatar box dimensions rather than gaps between elements. `sm`/`md`/`lg` are
-   the shared control scale (24/32/40px, Ant Design's small/default/large), so
+   the shared control scale (24/32/40px small/default/large), so
    an avatar lines up with a button or input of the same size; `xs` (20px) and
    `xl` (56px) extend it either way. A pixel `size`
    (`andes-avatar--custom-size`) has no rule here: its width, height and
