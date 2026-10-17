@@ -4,6 +4,7 @@ import {
   Component,
   inject,
   TemplateRef,
+  ViewEncapsulation,
 } from '@angular/core';
 
 import { AndesPopoverBase } from './popover-base';
@@ -26,6 +27,11 @@ import { AndesPopoverOutlet } from './popover-outlet';
  * `data-side` reflects the side the panel actually renders on (after a collision
  * flip); `data-align` the requested alignment. Both are styling hooks.
  *
+ * Styles are unencapsulated on purpose: the composed parts (`[andesPopoverTitle]`,
+ * `[andesPopoverDescription]`, `[andesPopoverHeader]`) are consumer markup
+ * projected from the consumer's own view, which an encapsulated stylesheet could
+ * not reach. Every class is namespaced `andes-popover-*` to keep that safe.
+ *
  * Theming: every visual property reads an `--andes-popover-*` custom property
  * first (`padding`, `min-width`, `max-width`, `radius`, `background`,
  * `foreground`, `border-color`, `shadow`), falling back to the theme tokens. Set
@@ -37,6 +43,7 @@ import { AndesPopoverOutlet } from './popover-outlet';
   imports: [AndesOverlayContentPrimitive, AndesPopoverOutlet],
   templateUrl: './popover-content.html',
   styleUrl: './popover-content.css',
+  encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AndesPopoverContent {

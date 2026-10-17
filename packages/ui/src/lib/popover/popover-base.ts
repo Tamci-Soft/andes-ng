@@ -194,6 +194,13 @@ export abstract class AndesPopoverBase {
   readonly titleId = `${this.overlay.contentId}-title`;
   readonly bodyId = `${this.overlay.contentId}-body`;
 
+  private readonly _titlePartId = signal<string | null>(null);
+  private readonly _descriptionPartId = signal<string | null>(null);
+  /** Id of the registered `[andesPopoverTitle]` part, if any. */
+  readonly titlePartId = this._titlePartId.asReadonly();
+  /** Id of the registered `[andesPopoverDescription]` part, if any. */
+  readonly descriptionPartId = this._descriptionPartId.asReadonly();
+
   private readonly centerShift = signal(0);
   private readonly focusPolicy = signal<FocusPolicy>({
     autoFocus: 'first-tabbable',
@@ -269,6 +276,16 @@ export abstract class AndesPopoverBase {
   // ---------------------------------------------------------------------------
   // Trigger / panel event entry points (called by the trigger and panel shell).
   // ---------------------------------------------------------------------------
+
+  /** @internal Registers (or, with `null`, clears) the title part's id. */
+  registerTitleId(id: string | null): void {
+    this._titlePartId.set(id);
+  }
+
+  /** @internal Registers (or, with `null`, clears) the description part's id. */
+  registerDescriptionId(id: string | null): void {
+    this._descriptionPartId.set(id);
+  }
 
   /** @internal */
   registerTriggerHost(element: HTMLElement): void {

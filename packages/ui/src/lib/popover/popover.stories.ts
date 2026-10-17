@@ -3,12 +3,26 @@ import type { Meta, StoryObj } from '@storybook/angular';
 import { AndesButton } from '../button/button';
 import { AndesPopover } from './popover';
 import { AndesPopoverContent } from './popover-content';
+import {
+  AndesPopoverClose,
+  AndesPopoverDescription,
+  AndesPopoverHeader,
+  AndesPopoverTitle,
+} from './popover-parts';
 import { AndesPopoverTrigger } from './popover-trigger';
 import { ANDES_POPOVER_PLACEMENTS } from './popover-types';
 
 const PLACEMENTS = Object.keys(ANDES_POPOVER_PLACEMENTS);
 
-const imports = [AndesButton, AndesPopoverTrigger, AndesPopoverContent];
+const imports = [
+  AndesButton,
+  AndesPopoverTrigger,
+  AndesPopoverContent,
+  AndesPopoverHeader,
+  AndesPopoverTitle,
+  AndesPopoverDescription,
+  AndesPopoverClose,
+];
 
 const meta: Meta<AndesPopover> = {
   title: 'Popover',
@@ -144,6 +158,41 @@ export const TemplateContent: Story = {
           <p style="margin: 0 0 0.75rem; font-size: 0.875rem;">Last deploy <strong>12 minutes ago</strong> from <code>main</code>.</p>
           <andes-button size="sm" variant="outline">View logs</andes-button>
         </ng-template>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Composed from parts instead of the `title`/`content` inputs. The title and
+ * description label and describe the panel (`aria-labelledby` /
+ * `aria-describedby`) automatically; `andesPopoverClose` closes it and returns
+ * focus to the trigger.
+ */
+export const ComposedContent: Story = {
+  name: 'Composed content',
+  render: () => ({
+    moduleMetadata: { imports },
+    template: `
+      <div style="padding: 8rem;">
+        <andes-popover side="bottom" align="start">
+          <andes-button variant="outline" andesPopoverTrigger>Dimensions</andes-button>
+          <andes-popover-content style="--andes-popover-min-width: 16rem;">
+            <div andesPopoverHeader>
+              <h3 andesPopoverTitle>Dimensions</h3>
+              <p andesPopoverDescription>Set the dimensions for the layer.</p>
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 0.75rem; align-items: center; font-size: 0.875rem; margin-bottom: 0.75rem;">
+              <label for="composed-width">Width</label>
+              <input id="composed-width" value="100%" />
+              <label for="composed-height">Height</label>
+              <input id="composed-height" value="25px" />
+            </div>
+            <div style="display: flex; justify-content: flex-end;">
+              <andes-button size="sm" andesPopoverClose>Done</andes-button>
+            </div>
+          </andes-popover-content>
+        </andes-popover>
       </div>
     `,
   }),
