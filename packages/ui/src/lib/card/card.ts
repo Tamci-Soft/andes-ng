@@ -57,8 +57,8 @@ export abstract class AndesCardPanel {
 
 /**
  * Root container of a compound Card. Purely presentational - no interactive/behavioral
- * primitive is involved (mirrors shadcn/ui's plain-`<div>` Card), so there is nothing to
- * coordinate via `@andes-ng/primitives`.
+ * primitive is involved (a plain `<div>`), so there is nothing to coordinate via
+ * `@andes-ng/primitives`.
  *
  * Compose it with `AndesCardHeader`, `AndesCardContent`, `AndesCardActions` and
  * `AndesCardFooter` as direct children, in any combination - none are required. A cover image
@@ -184,7 +184,7 @@ export class AndesCardDescription {}
 /**
  * Groups the title, description and an optional header-corner action. Internally a two-column
  * grid so `AndesCardAction` can sit in the top-right regardless of where it appears in the
- * projected content, without extra markup juggling (mirrors shadcn's `CardHeader`).
+ * projected content, without extra markup juggling.
  *
  * When the parent card has a `tabList`, the tab strip renders here, spanning both columns beneath
  * the title, inside the card head. AndesTabs isn't available to this package yet, so this is a
@@ -357,8 +357,8 @@ export class AndesCardHeader {
 
 /**
  * The card's primary heading. Renders a real `h2`-`h6` element (default `h3`) rather than a
- * styled `div`, so cards compose correctly into a page's heading outline - shadcn leaves this
- * to the consumer, which is an easy accessibility gap to inherit by accident.
+ * styled `div`, so cards compose correctly into a page's heading outline without leaving the
+ * heading level to the consumer, which is an easy accessibility gap to inherit by accident.
  */
 @Component({
   selector: 'andes-card-title',
