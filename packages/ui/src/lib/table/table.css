@@ -122,6 +122,9 @@
   text-align: start;
   white-space: nowrap;
   vertical-align: middle;
+  /* A header's `width` (and a resized width) is the whole column, padding included,
+     like Ant Design's column width - and what a resize drag measures and sets. */
+  box-sizing: border-box;
 }
 
 /* Header content: the title takes the free width, then the sort indicator, then the
@@ -307,6 +310,64 @@
   color: var(--andes-color-primary-text);
 }
 
+/* Column resizing. `:where()` keeps `position: relative` below the sticky header and
+   fixed-column rules, whose `position: sticky` already anchors the handle. */
+.andes-table ::ng-deep :where(.andes-table__head--resizable) {
+  position: relative;
+}
+
+.andes-table ::ng-deep .andes-table__resize-handle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 0.5rem;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+/* Ant Design's header separator - a short hairline on the cell edge - which becomes a
+   full-height primary bar while the handle is hovered, focused or dragged. The bar is
+   the focus indicator; the transparent outline stands in for it in forced colors. */
+.andes-table ::ng-deep .andes-table__resize-handle::after {
+  content: '';
+  width: 1px;
+  height: 1.6em;
+  background-color: var(--andes-color-border);
+  transition:
+    height var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+.andes-table
+  ::ng-deep
+  .andes-table__head:last-child
+  > .andes-table__resize-handle::after {
+  background-color: transparent;
+}
+
+.andes-table ::ng-deep .andes-table__resize-handle:focus-visible {
+  outline: 2px solid transparent;
+}
+
+.andes-table ::ng-deep .andes-table__resize-handle:hover::after,
+.andes-table ::ng-deep .andes-table__resize-handle:focus-visible::after,
+.andes-table ::ng-deep .andes-table__resize-handle--active::after {
+  width: 2px;
+  height: 100%;
+  background-color: var(--andes-color-primary);
+}
+
+.andes-table--resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
 /* Control columns (selection, expand) shrink to their control instead of taking a
    share of the free width. */
 /* prettier-ignore */
@@ -457,6 +518,7 @@
 @media (prefers-reduced-motion: reduce) {
   .andes-table ::ng-deep .andes-table__row,
   .andes-table ::ng-deep .andes-table__sorter-caret,
+  .andes-table ::ng-deep .andes-table__resize-handle::after,
   .andes-table ::ng-deep .andes-table__fixed::before {
     transition: none;
   }
