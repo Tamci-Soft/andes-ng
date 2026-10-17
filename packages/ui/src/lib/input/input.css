@@ -198,8 +198,11 @@
   white-space: nowrap;
 }
 
+/* The over-limit count is TEXT, so it uses the danger *text* token: the `--andes-color-danger`
+   fill is 3.7:1 on the dark background. The token lands with bugfix/token-state-contrast;
+   until then the fill is the fallback. */
 .andes-input__count--exceeded {
-  color: var(--andes-color-danger);
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
 
 /* Addons (addonBefore / addonAfter): attached segments outside the field's own border, as
