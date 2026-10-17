@@ -47,6 +47,26 @@ describe('AndesMessageService', () => {
     ]);
   });
 
+  it('maps style, attributes and closeIcon: null onto the message', () => {
+    const service = createService();
+
+    service.open({
+      content: 'Styled',
+      dismissible: true,
+      closeIcon: null,
+      style: { marginTop: '4rem' },
+      attributes: { 'data-testid': 'copied' },
+    });
+
+    expect(service.toasts()[0]).toEqual(
+      expect.objectContaining({
+        dismissible: false,
+        style: { marginTop: '4rem' },
+        attributes: { 'data-testid': 'copied' },
+      }),
+    );
+  });
+
   it.each(['success', 'error', 'warning', 'info', 'loading'] as const)(
     '%s() sets the type',
     (type) => {

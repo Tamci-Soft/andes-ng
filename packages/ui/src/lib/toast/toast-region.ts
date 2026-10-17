@@ -13,28 +13,25 @@ import {
 import { AndesToastItem } from './toast-item';
 import type { AndesToastController } from './toast-queue';
 import {
+  ANDES_TOAST_DEFAULT_GAP,
   ANDES_TOAST_DEFAULT_STACK_THRESHOLD,
+  ANDES_TOAST_DEFAULT_VISIBLE_TOASTS,
   type AndesToast,
   type AndesToastAction,
   type AndesToastFlavor,
   type AndesToastPosition,
   type AndesToastStackConfig,
+  type AndesToastSwipeDirection,
 } from './toast.types';
 
-/** How many cards of a collapsed stack stay visible (the front one plus two peeking). */
-const STACK_VISIBLE_DEPTH = 3;
-
-/** Space between expanded toasts, in px (Sonner's 14px). */
-const TOAST_GAP = 14;
-/** Space between messages, in px. */
-const MESSAGE_GAP = 8;
-
+/** A toast plus where it sits in the stack, derived from the measured heights. */
 interface AndesToastSlot {
-  /** Position counted from the anchoring edge - 0 is the card against the edge. */
-  readonly index: number;
-  /** Distance from the edge when expanded: the heights of the cards before it plus the gaps. */
-  readonly offset: number;
-  /** Its measured natural height (`null` until the item reports one). */
+  readonly toast: AndesToast;
+  /** 0 for the newest (front) toast, counting up towards the oldest. */
+  readonly depth: number;
+  /** Distance from the anchoring edge while the stack is expanded, as a CSS length. */
+  readonly offset: string;
+  /** The toast's own natural height as a CSS length - `null` until it has been measured. */
   readonly height: string | null;
 }
 
@@ -49,17 +46,19 @@ function toCssLength(value: number | string | undefined): string | null {
  * One fixed-position stack of toasts at one placement - `AndesToastViewport` renders one per
  * placement in use (plus one for messages). Internal to `@andes-ng/ui`.
  *
- * Lays its toasts out the way Sonner does: every card is absolutely positioned against the
- * anchoring edge and moved into place with a transform computed from the measured heights
- * (`--_toast-offset`), so expanding, collapsing, adding and removing all animate as one
- * smooth transform/height transition instead of reflowing a flex column.
+ * Lays its toasts out itself rather than in normal flow: each card is absolutely positioned
+ * against the anchoring edge and moved into place with a transform computed from the
+ * measured heights of the cards in front of it, so adding, removing or resizing one slides
+ * the others smoothly instead of jumping. Newest is always against the edge.
  *
- * Owns the per-region interaction wiring: hover/focus pause of each toast's timer, close and
- * action buttons, swipes, body clicks, and the collapsed-stack mode (`stack`): once more than
- * `threshold` toasts are open, they collapse into a deck with the newest in front, and expand
- * back to a list while the pointer is over the region or focus is inside it. While a deck is
- * hovered, every toast in it holds its countdown (Sonner's behavior), so the expanded list
- * doesn't shift under the pointer; without stacking, hovering pauses just that toast.
+ * With `stack` on, the toasts collapse into a deck once there are more than `threshold`: the
+ * newest in front, up to `visibleToasts - 1` older ones peeking out behind it (each nudged
+ * `gap` px further back and scaled down 5%), expanding back into the list while the pointer
+ * is over the stack or focus is inside it. While a deck is hovered, every toast's countdown
+ * pauses; in a plain list only the hovered toast's does.
+ *
+ * Also owns the remaining interaction wiring: focus pause, close/action/cancel buttons,
+ * body clicks and swipe-to-dismiss.
  */
 @Component({
   selector: 'andes-toast-region',
@@ -73,12 +72,14 @@ function toCssLength(value: number | string | undefined): string | null {
     '[attr.data-flavor]': 'flavor()',
     '[attr.data-stack-enabled]': 'stackThreshold() !== null ? "" : null',
     '[attr.data-stacked]': 'stacked() ? "" : null',
+    '[attr.data-hovered]': 'hovered() && stackThreshold() !== null ? "" : null',
     '[style.top]': 'topOffset()',
     '[style.bottom]': 'bottomOffset()',
-    '[style.--_toast-gap.px]': 'gap()',
+    '[style.--_toast-offset-x]': 'inlineOffset()',
+    '[style.--_toast-gap]': 'gap() + "px"',
     '[style.--_toast-front-height]': 'frontHeight()',
-    '(mouseenter)': 'onRegionHover(true)',
-    '(mouseleave)': 'onRegionHover(false)',
+    '(mouseenter)': 'onMouseEnter()',
+    '(mouseleave)': 'onMouseLeave()',
     '(focusin)': 'focused.set(true)',
     '(focusout)': 'onRegionFocusOut($event)',
   },
@@ -91,16 +92,23 @@ export class AndesToastRegion {
   readonly flavor = input.required<AndesToastFlavor>();
   readonly controller = input.required<AndesToastController>();
   readonly stack = input<AndesToastStackConfig>(false);
+  readonly visibleToasts = input(ANDES_TOAST_DEFAULT_VISIBLE_TOASTS);
+  readonly gap = input(ANDES_TOAST_DEFAULT_GAP);
+  readonly swipeDirections = input<
+    readonly AndesToastSwipeDirection[] | undefined
+  >(undefined);
+  readonly offset = input<number | string | undefined>(undefined);
   readonly top = input<number | string | undefined>(undefined);
   readonly bottom = input<number | string | undefined>(undefined);
+  readonly rtl = input(false);
 
   protected readonly hovered = signal(false);
   protected readonly focused = signal(false);
 
-  /** Natural heights reported by each `andes-toast-item`, by toast id. */
+  /** Natural heights reported by each item, by toast id. */
   private readonly heights = signal<ReadonlyMap<string, number>>(new Map());
 
-  /** Ids whose timer this region paused for pointer hover, so un-hovering stays balanced. */
+  /** Ids whose timer this region paused because the stack is hovered. */
   private readonly hoverPaused = new Set<string>();
 
   protected readonly stackThreshold = computed(() => {
@@ -123,36 +131,39 @@ export class AndesToastRegion {
     );
   });
 
-  protected readonly gap = computed(() =>
-    this.flavor() === 'message' ? MESSAGE_GAP : TOAST_GAP,
+  protected readonly visibleDepth = computed(() =>
+    Math.max(1, Math.floor(this.visibleToasts())),
   );
 
   /**
-   * Each toast's slot, counted from the anchoring edge. With stacking on, the newest sits
-   * against the edge (it's the front of the deck, and stays put when the deck expands);
-   * without it, the oldest does and newer ones line up after it.
+   * Every toast with its depth and expanded offset, in DOM order (oldest first). With
+   * stacking on, the newest sits against the anchoring edge (it is the front of the deck,
+   * and stays put when the deck expands); without it, the oldest does and newer ones line up
+   * after it, as in a plain list.
    */
   protected readonly slots = computed(() => {
     const toasts = this.toasts();
-    const fromEdge =
-      this.stackThreshold() === null ? toasts : [...toasts].reverse();
     const heights = this.heights();
     const gap = this.gap();
-    const slots = new Map<string, AndesToastSlot>();
+    const fromEdge =
+      this.stackThreshold() === null ? toasts : [...toasts].reverse();
+    const byId = new Map<string, AndesToastSlot>();
     let offset = 0;
-    fromEdge.forEach((toast, index) => {
+    // Each card's offset is the stack of cards between it and the edge.
+    fromEdge.forEach((toast, depth) => {
       const height = heights.get(toast.id);
-      slots.set(toast.id, {
-        index,
-        offset,
+      byId.set(toast.id, {
+        toast,
+        depth,
+        offset: `${offset}px`,
         height: height === undefined ? null : `${height}px`,
       });
       offset += (height ?? 0) + gap;
     });
-    return slots;
+    return toasts.map((toast) => byId.get(toast.id) as AndesToastSlot);
   });
 
-  /** Height every card behind the front of a collapsed deck is pinned to. */
+  /** Height every card behind the front (newest) card of a collapsed deck is pinned to. */
   protected readonly frontHeight = computed(() => {
     const toasts = this.toasts();
     const front = toasts[toasts.length - 1];
@@ -161,54 +172,100 @@ export class AndesToastRegion {
   });
 
   protected readonly topOffset = computed(() =>
-    this.placement().startsWith('top') ? toCssLength(this.top()) : null,
+    this.placement().startsWith('top')
+      ? toCssLength(this.top() ?? this.offset())
+      : null,
   );
 
   protected readonly bottomOffset = computed(() =>
-    this.placement().startsWith('bottom') ? toCssLength(this.bottom()) : null,
+    this.placement().startsWith('bottom')
+      ? toCssLength(this.bottom() ?? this.offset())
+      : null,
   );
 
-  protected readonly stackVisibleDepth = STACK_VISIBLE_DEPTH;
+  protected readonly inlineOffset = computed(() => toCssLength(this.offset()));
+
+  /** Swipe directions every dismissible toast gets unless it sets its own. */
+  private readonly defaultSwipeDirections = computed(() => {
+    const configured = this.swipeDirections();
+    if (configured) {
+      return configured;
+    }
+    const placement = this.placement();
+    const directions: AndesToastSwipeDirection[] = [
+      placement.startsWith('top') ? 'top' : 'bottom',
+    ];
+    if (placement.endsWith('left')) {
+      directions.push('left');
+    } else if (placement.endsWith('right')) {
+      directions.push('right');
+    }
+    return directions;
+  });
 
   constructor() {
-    // A toast that arrives (or a deck that forms) while the pointer is already over it is held
-    // too; one that leaves is forgotten.
+    // A toast that arrives while the stack is already hovered must start paused too, and the
+    // bookkeeping for toasts that closed meanwhile is dropped (their timers are gone).
     effect(() => {
-      this.toasts();
-      this.stackThreshold();
-      this.hovered();
-      untracked(() => this.syncDeckHoverPause());
+      const toasts = this.toasts();
+      const hovered = this.hovered();
+      untracked(() => {
+        const ids = new Set(toasts.map((toast) => toast.id));
+        for (const id of [...this.hoverPaused]) {
+          if (!ids.has(id)) {
+            this.hoverPaused.delete(id);
+          }
+        }
+        if (hovered && this.stackThreshold() !== null) {
+          this.pauseHovered();
+        }
+      });
     });
   }
 
-  protected slotOf(toast: AndesToast): AndesToastSlot {
-    return this.slots().get(toast.id) ?? { index: 0, offset: 0, height: null };
+  protected swipeDirectionsFor(
+    toast: AndesToast,
+  ): readonly AndesToastSwipeDirection[] {
+    if (toast.swipeDirections) {
+      return toast.swipeDirections;
+    }
+    if (toast.swipeToDismiss === false) {
+      return [];
+    }
+    return toast.dismissible ? this.defaultSwipeDirections() : [];
   }
 
   protected onHeightChange(toast: AndesToast, height: number): void {
-    if (this.heights().get(toast.id) === height) {
-      return;
-    }
     this.heights.update((current) => {
-      const next = new Map<string, number>();
-      // Rebuild from the open toasts, which also drops the heights of ones that closed.
-      for (const open of this.toasts()) {
-        const known = open.id === toast.id ? height : current.get(open.id);
-        if (known !== undefined) {
-          next.set(open.id, known);
-        }
+      if (current.get(toast.id) === height) {
+        return current;
       }
+      const live = new Set(this.toasts().map((candidate) => candidate.id));
+      const next = new Map(
+        [...current].filter(([id]) => live.has(id) && id !== toast.id),
+      );
+      next.set(toast.id, height);
       return next;
     });
   }
 
-  protected onRegionHover(hovered: boolean): void {
-    this.hovered.set(hovered);
-    this.syncDeckHoverPause();
+  protected onMouseEnter(): void {
+    this.hovered.set(true);
+    if (this.stackThreshold() !== null) {
+      this.pauseHovered();
+    }
+  }
+
+  protected onMouseLeave(): void {
+    this.hovered.set(false);
+    for (const id of [...this.hoverPaused]) {
+      this.hoverPaused.delete(id);
+      this.controller().resume(id);
+    }
   }
 
   protected onHoverStart(toast: AndesToast): void {
-    // A deck pauses as a whole (see syncDeckHoverPause); only a plain list pauses per toast.
+    // A deck pauses as a whole (see `pauseHovered`); only a plain list pauses per toast.
     if (
       this.stackThreshold() !== null ||
       !toast.pauseOnHover ||
@@ -267,31 +324,11 @@ export class AndesToastRegion {
     }
   }
 
-  /**
-   * With stacking on, keeps every `pauseOnHover` toast of the region paused exactly while the
-   * pointer is over the region. A no-op for a plain list, whose toasts pause one by one.
-   */
-  private syncDeckHoverPause(): void {
-    if (this.stackThreshold() === null) {
-      return;
-    }
-    const controller = this.controller();
-    const open = new Set(this.toasts().map((toast) => toast.id));
-    for (const id of [...this.hoverPaused]) {
-      if (!open.has(id)) {
-        this.hoverPaused.delete(id);
-      } else if (!this.hovered()) {
-        this.hoverPaused.delete(id);
-        controller.resume(id);
-      }
-    }
-    if (!this.hovered()) {
-      return;
-    }
+  private pauseHovered(): void {
     for (const toast of this.toasts()) {
       if (toast.pauseOnHover && !this.hoverPaused.has(toast.id)) {
         this.hoverPaused.add(toast.id);
-        controller.pause(toast.id);
+        this.controller().pause(toast.id);
       }
     }
   }

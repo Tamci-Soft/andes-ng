@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   input,
+  linkedSignal,
 } from '@angular/core';
 
 import { AndesMessageService } from './message.service';
@@ -92,21 +93,12 @@ export class AndesToastViewport {
     () => this.position() ?? this.toastService.defaults().placement,
   );
 
-  /**
-   * Placements that have shown a toast at least once. Their regions stay mounted (empty ones
-   * are an invisible zero-height anchor) so the last toast to close still plays its exit
-   * animation instead of vanishing with its region. Grows only; there are at most six.
-   */
-  private readonly usedPlacements = new Set<AndesToastPosition>();
-  private messagesUsed = false;
-
-  /** Visible notifications grouped by resolved placement, in a stable placement order. */
-  protected readonly regions = computed(() => {
+  /** Visible notifications grouped by resolved placement. */
+  private readonly groups = computed(() => {
     const fallback = this.defaultPlacement();
     const groups = new Map<AndesToastPosition, AndesToast[]>();
     for (const toast of this.toastService.visibleToasts()) {
       const placement = toast.placement ?? fallback;
-      this.usedPlacements.add(placement);
       const group = groups.get(placement);
       if (group) {
         group.push(toast);
@@ -114,18 +106,44 @@ export class AndesToastViewport {
         groups.set(placement, [toast]);
       }
     }
-    return PLACEMENTS.filter((placement) =>
-      this.usedPlacements.has(placement),
-    ).map((placement) => ({ placement, toasts: groups.get(placement) ?? [] }));
+    return groups;
   });
 
-  /** Whether the messages region is mounted - from the first message on (see `usedPlacements`). */
-  protected readonly showMessages = computed(() => {
-    if (this.messageService.visibleToasts().length) {
-      this.messagesUsed = true;
-    }
-    return this.messagesUsed;
+  /**
+   * Every placement that has shown a toast so far. A region stays mounted (empty, and
+   * invisible) after its last toast closes: tearing it down at that moment would cut that
+   * toast's exit animation off.
+   */
+  private readonly usedPlacements = linkedSignal<
+    ReadonlyMap<AndesToastPosition, AndesToast[]>,
+    ReadonlySet<AndesToastPosition>
+  >({
+    source: this.groups,
+    computation: (groups, previous) => {
+      const used = previous?.value ?? new Set<AndesToastPosition>();
+      return [...groups.keys()].every((placement) => used.has(placement))
+        ? used
+        : new Set([...used, ...groups.keys()]);
+    },
   });
 
+  /** One entry per used placement, in a stable placement order. */
+  protected readonly regions = computed(() => {
+    const groups = this.groups();
+    const used = this.usedPlacements();
+    return PLACEMENTS.filter((placement) => used.has(placement)).map(
+      (placement) => ({ placement, toasts: groups.get(placement) ?? [] }),
+    );
+  });
+
+  protected readonly toastConfig = this.toastService.defaults;
+  protected readonly messageConfig = this.messageService.defaults;
   protected readonly messages = this.messageService.visibleToasts;
+
+  /** Same as `usedPlacements`, for the message region. */
+  protected readonly messagesUsed = linkedSignal<boolean, boolean>({
+    source: () => this.messages().length > 0,
+    computation: (hasMessages, previous) =>
+      hasMessages || (previous?.value ?? false),
+  });
 }

@@ -4,17 +4,27 @@
   [placement]="region.placement"
   [toasts]="region.toasts"
   [controller]="toastService"
-  [stack]="toastService.defaults().stack"
-  [top]="toastService.defaults().top"
-  [bottom]="toastService.defaults().bottom"
+  [stack]="toastConfig().stack"
+  [visibleToasts]="toastConfig().visibleToasts"
+  [gap]="toastConfig().gap"
+  [swipeDirections]="toastConfig().swipeDirections"
+  [offset]="toastConfig().offset"
+  [top]="toastConfig().top"
+  [bottom]="toastConfig().bottom"
+  [rtl]="toastConfig().rtl ?? false"
 />
-} @if (showMessages()) {
+} @if (messagesUsed()) {
 <andes-toast-region
   flavor="message"
   placement="top-center"
   [toasts]="messages()"
   [controller]="messageService"
-  [stack]="messageService.defaults().stack"
-  [top]="messageService.defaults().top"
+  [stack]="messageConfig().stack"
+  [visibleToasts]="messageConfig().visibleToasts"
+  [gap]="messageConfig().gap"
+  [swipeDirections]="messageConfig().swipeDirections"
+  [offset]="messageConfig().offset"
+  [top]="messageConfig().top"
+  [rtl]="messageConfig().rtl ?? false"
 />
 }

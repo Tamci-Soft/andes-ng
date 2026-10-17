@@ -1,6 +1,7 @@
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 
 import { AndesMessageService } from './message.service';
 import { provideAndesToastConfig } from './toast.config';
@@ -27,9 +28,19 @@ class HostComponent {
       ><b class="custom-icon">{{ toast.severity }}</b></ng-template
     >
     <ng-template #customClose><i class="custom-close">x</i></ng-template>
+    <ng-template #richTitle let-toast
+      ><em class="rich-title">{{ toast.title }}!</em></ng-template
+    >
+    <ng-template #richBody let-toast
+      ><a class="rich-body" href="#">{{ toast.message }} (link)</a></ng-template
+    >
   `,
 })
 class TemplateHostComponent {
+  readonly richTitle =
+    viewChild.required<TemplateRef<AndesToastTemplateContext>>('richTitle');
+  readonly richBody =
+    viewChild.required<TemplateRef<AndesToastTemplateContext>>('richBody');
   readonly customIcon =
     viewChild.required<TemplateRef<AndesToastTemplateContext>>('customIcon');
   readonly customClose =
@@ -164,6 +175,31 @@ describe('AndesToastViewport', () => {
     fixture.detectChanges();
 
     expect(items(fixture)[0].querySelector('.andes-toast__close')).toBeNull();
+  });
+
+  it('draws the default close icon as an SVG, not a text glyph', () => {
+    const { fixture, service } = createHost();
+
+    service.show({ message: 'Closable' });
+    fixture.detectChanges();
+
+    const close = items(fixture)[0].querySelector('.andes-toast__close');
+    expect(close?.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    expect(close?.textContent?.trim()).toBe('');
+  });
+
+  it('loads the visually-hidden rule the live announcer node relies on', () => {
+    const { fixture, service } = createHost();
+
+    service.show({ message: 'Announced' });
+    fixture.detectChanges();
+
+    const styles = [...document.querySelectorAll('style')].map(
+      (style) => style.textContent ?? '',
+    );
+    expect(styles.some((css) => css.includes('.cdk-visually-hidden'))).toBe(
+      true,
+    );
   });
 
   it('hovering a toast pauses its auto-dismiss and mouseleave resumes it', () => {
@@ -446,7 +482,7 @@ describe('AndesToastViewport', () => {
         'bottom-right',
       ]);
       expect(rendered[0].querySelectorAll('andes-toast-item')).toHaveLength(2);
-      // Notifications stack by default (Sonner-style deck from the second toast on).
+      // Notifications collapse into a deck by default.
       expect(rendered[0].hasAttribute('data-stack-enabled')).toBe(true);
       expect(rendered[0].hasAttribute('data-stacked')).toBe(true);
     });
@@ -551,9 +587,8 @@ describe('AndesToastViewport', () => {
       expect(
         stackItems.map((i) => i.hasAttribute('data-stack-overflow')),
       ).toEqual([true, true, false, false, false]);
-      expect(stackItems[4].style.getPropertyValue('--_toast-stack-depth')).toBe(
-        '0',
-      );
+      expect(stackItems[4].style.getPropertyValue('--_toast-depth')).toBe('0');
+      expect(stackItems[4].hasAttribute('data-front')).toBe(true);
 
       region.dispatchEvent(new MouseEvent('mouseenter'));
       fixture.detectChanges();
@@ -568,82 +603,242 @@ describe('AndesToastViewport', () => {
       expect(region.hasAttribute('data-stacked')).toBe(false);
     });
 
-    it('lays out slots from the anchoring edge: newest first with stacking, oldest first without', () => {
+    it('titleTemplate/messageTemplate render rich content, while the plain text stays the announcement', () => {
+      const announceSpy = vi.fn().mockResolvedValue(undefined);
+      const { fixture, host, toasts } = createTemplateHost([
+        { provide: LiveAnnouncer, useValue: { announce: announceSpy } },
+      ]);
+
+      toasts.show({
+        title: 'Export ready',
+        titleTemplate: host.richTitle(),
+        message: 'report.xlsx',
+        messageTemplate: host.richBody(),
+      });
+      fixture.detectChanges();
+
+      const item = fixture.nativeElement.querySelector(
+        'andes-toast-item',
+      ) as HTMLElement;
+      expect(
+        item.querySelector('.andes-toast__title .rich-title')?.textContent,
+      ).toBe('Export ready!');
+      expect(
+        item.querySelector('.andes-toast__message .rich-body')?.textContent,
+      ).toBe('report.xlsx (link)');
+      expect(announceSpy).toHaveBeenCalledWith(
+        'Export ready. report.xlsx',
+        'polite',
+      );
+    });
+
+    it('a message renders its contentTemplate in place of the content text', () => {
+      const { fixture, host, messages } = createTemplateHost();
+
+      messages.open({ content: 'Copied', contentTemplate: host.richBody() });
+      fixture.detectChanges();
+
+      const message = fixture.nativeElement.querySelector(
+        'andes-toast-item[data-flavor="message"]',
+      ) as HTMLElement;
+      expect(message.querySelector('.rich-body')?.textContent).toBe(
+        'Copied (link)',
+      );
+    });
+
+    it('applies style and attributes to the toast root, dropping stale attributes on update', () => {
+      const { fixture, toasts } = createTemplateHost();
+
+      const ref = toasts.show({
+        message: 'x',
+        style: { width: '30rem' },
+        attributes: {
+          'data-testid': 'save-toast',
+          'aria-describedby': 'help',
+          class: 'ignored',
+        },
+      });
+      fixture.detectChanges();
+
+      const item = fixture.nativeElement.querySelector(
+        'andes-toast-item',
+      ) as HTMLElement;
+      expect(item.style.width).toBe('30rem');
+      expect(item.getAttribute('data-testid')).toBe('save-toast');
+      expect(item.getAttribute('aria-describedby')).toBe('help');
+      expect(item.classList).not.toContain('ignored');
+      expect(item.classList).toContain('andes-toast');
+
+      ref.update({ attributes: { 'data-testid': 'saved-toast' } });
+      fixture.detectChanges();
+      expect(item.getAttribute('data-testid')).toBe('saved-toast');
+      expect(item.hasAttribute('aria-describedby')).toBe(false);
+    });
+
+    it('closeIcon: null hides the close button', () => {
+      const { fixture, toasts } = createTemplateHost();
+
+      toasts.show({ message: 'no close', closeIcon: null });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.andes-toast__close')).toBe(
+        null,
+      );
+    });
+
+    it('rtl lays each toast out right-to-left, per flavor', () => {
+      const { fixture, toasts, messages } = createTemplateHost([
+        provideAndesToastConfig({ rtl: true }),
+      ]);
+
+      toasts.info('notification');
+      messages.info('message');
+      fixture.detectChanges();
+
+      const notification = fixture.nativeElement.querySelector(
+        'andes-toast-item[data-flavor="notification"]',
+      ) as HTMLElement;
+      const message = fixture.nativeElement.querySelector(
+        'andes-toast-item[data-flavor="message"]',
+      ) as HTMLElement;
+      expect(notification.getAttribute('dir')).toBe('rtl');
+      expect(message.hasAttribute('dir')).toBe(false);
+
+      messages.config({ rtl: true });
+      fixture.detectChanges();
+      expect(message.getAttribute('dir')).toBe('rtl');
+    });
+
+    function pointer(
+      type: string,
+      clientX: number,
+      clientY: number,
+    ): MouseEvent {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        button: 0,
+        clientX,
+        clientY,
+      });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      return event;
+    }
+
+    function drag(item: HTMLElement, dx: number, dy: number): void {
+      item.dispatchEvent(pointer('pointerdown', 100, 100));
+      item.dispatchEvent(pointer('pointermove', 100 + dx / 2, 100 + dy / 2));
+      item.dispatchEvent(pointer('pointermove', 100 + dx, 100 + dy));
+      item.dispatchEvent(pointer('pointerup', 100 + dx, 100 + dy));
+    }
+
+    it('collapses notifications into a deck from two on by default; messages stay a list', () => {
+      const { fixture, toasts, messages } = createTemplateHost();
+
+      toasts.info('1');
+      messages.info('a');
+      messages.info('b');
+      fixture.detectChanges();
+      const [notificationRegion, messageRegion] = regions(
+        fixture.nativeElement,
+      );
+      expect(notificationRegion.hasAttribute('data-stacked')).toBe(false);
+
+      toasts.info('2');
+      fixture.detectChanges();
+      expect(notificationRegion.hasAttribute('data-stacked')).toBe(true);
+      expect(messageRegion.hasAttribute('data-stack-enabled')).toBe(false);
+    });
+
+    it('visibleToasts sets how many cards of a collapsed deck stay visible', () => {
+      const { fixture, toasts } = createTemplateHost([
+        provideAndesToastConfig({ visibleToasts: 2 }),
+      ]);
+
+      toasts.info('1');
+      toasts.info('2');
+      toasts.info('3');
+      fixture.detectChanges();
+
+      const stackItems = Array.from(
+        regions(fixture.nativeElement)[0].querySelectorAll<HTMLElement>(
+          'andes-toast-item',
+        ),
+      );
+      expect(
+        stackItems.map((i) => i.hasAttribute('data-stack-overflow')),
+      ).toEqual([true, false, false]);
+    });
+
+    it('lays expanded toasts out from their measured heights, from the anchoring edge', () => {
+      const { fixture, toasts } = createTemplateHost([
+        provideAndesToastConfig({ stack: false, gap: 10 }),
+      ]);
+
+      toasts.info('oldest');
+      toasts.info('middle');
+      toasts.info('newest');
+      fixture.detectChanges();
+
+      const debugItems = fixture.debugElement.queryAll(
+        By.css('andes-toast-item'),
+      );
+      debugItems[0].triggerEventHandler('heightChange', 80);
+      debugItems[1].triggerEventHandler('heightChange', 60);
+      debugItems[2].triggerEventHandler('heightChange', 54);
+      fixture.detectChanges();
+
+      const offsets = debugItems.map((d) =>
+        (d.nativeElement as HTMLElement).style.getPropertyValue(
+          '--_toast-offset',
+        ),
+      );
+      // Without stacking the oldest sits against the edge, newer ones after it:
+      // oldest: 0; middle: 80 + 10; newest: 80 + 10 + 60 + 10.
+      expect(offsets).toEqual(['0px', '90px', '160px']);
+      expect(
+        (debugItems[0].nativeElement as HTMLElement).style.getPropertyValue(
+          '--_toast-height',
+        ),
+      ).toBe('80px');
+      expect(
+        regions(fixture.nativeElement)[0].style.getPropertyValue(
+          '--_toast-front-height',
+        ),
+      ).toBe('54px');
+    });
+
+    it('numbers slots from the anchoring edge: newest first with stacking, oldest first without', () => {
       const { fixture, toasts } = createTemplateHost();
 
       toasts.info('1');
       toasts.info('2');
       toasts.info('3');
       fixture.detectChanges();
-      let indexes = Array.from(
-        fixture.nativeElement.querySelectorAll('andes-toast-item'),
-      ).map((i) => (i as HTMLElement).style.getPropertyValue('--_toast-index'));
-      expect(indexes).toEqual(['2', '1', '0']);
-      expect(
+      const depths = () =>
         Array.from(
           fixture.nativeElement.querySelectorAll('andes-toast-item'),
-        ).map((i) => (i as HTMLElement).hasAttribute('data-front')),
-      ).toEqual([false, false, true]);
+        ).map((i) =>
+          (i as HTMLElement).style.getPropertyValue('--_toast-depth'),
+        );
+      const fronts = () =>
+        Array.from(
+          fixture.nativeElement.querySelectorAll('andes-toast-item'),
+        ).map((i) => (i as HTMLElement).hasAttribute('data-front'));
+      expect(depths()).toEqual(['2', '1', '0']);
+      expect(fronts()).toEqual([false, false, true]);
 
       toasts.config({ stack: false });
       fixture.detectChanges();
-      indexes = Array.from(
-        fixture.nativeElement.querySelectorAll('andes-toast-item'),
-      ).map((i) => (i as HTMLElement).style.getPropertyValue('--_toast-index'));
-      expect(indexes).toEqual(['0', '1', '2']);
-    });
-
-    it('hovering a stacked deck holds every toast in it, and leaving resumes them all', () => {
-      vi.useFakeTimers();
-      const { fixture, toasts } = createTemplateHost();
-
-      toasts.info('a', { duration: 1000 });
-      toasts.info('b', { duration: 1000 });
-      toasts.info('no hover pause', { duration: 1000, pauseOnHover: false });
-      fixture.detectChanges();
-      const [region] = regions(fixture.nativeElement);
-
-      region.dispatchEvent(new MouseEvent('mouseenter'));
-      fixture.detectChanges();
-      vi.advanceTimersByTime(5000);
-      expect(toasts.toasts().map((t) => t.message)).toEqual(['a', 'b']);
-
-      // A toast that arrives while the deck is hovered is held too.
-      toasts.info('late', { duration: 1000 });
-      fixture.detectChanges();
-      vi.advanceTimersByTime(5000);
-      expect(toasts.toasts()).toHaveLength(3);
-
-      region.dispatchEvent(new MouseEvent('mouseleave'));
-      fixture.detectChanges();
-      vi.advanceTimersByTime(1000);
-      expect(toasts.toasts()).toHaveLength(0);
-    });
-
-    it('without stacking, hovering one toast pauses only that toast', () => {
-      vi.useFakeTimers();
-      const { fixture, toasts } = createTemplateHost();
-      toasts.config({ stack: false });
-
-      toasts.info('hovered', { duration: 1000 });
-      toasts.info('other', { duration: 1000 });
-      fixture.detectChanges();
-      const [first] = Array.from<HTMLElement>(
-        fixture.nativeElement.querySelectorAll('andes-toast-item'),
-      );
-      first.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-      fixture.detectChanges();
-
-      vi.advanceTimersByTime(1000);
-      expect(toasts.toasts().map((t) => t.message)).toEqual(['hovered']);
+      expect(depths()).toEqual(['0', '1', '2']);
+      expect(fronts()).toEqual([true, false, false]);
     });
 
     it('turns measured heights into slot offsets and pins cards behind the front to its height', async () => {
-      // jsdom has no layout: give each toast body a height its item can report.
+      // jsdom has no layout: give each toast row a height its item can report.
       const offsetHeight = vi
         .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
         .mockImplementation(function (this: HTMLElement) {
-          return this.classList.contains('andes-toast__body') ? 40 : 0;
+          return this.classList.contains('andes-toast__row') ? 40 : 0;
         });
       try {
         const { fixture, toasts } = createTemplateHost();
@@ -673,146 +868,220 @@ describe('AndesToastViewport', () => {
       }
     });
 
-    it('rich colors are off by default and can be turned on per toast or globally', () => {
+    it('hovering the stack pauses every toast in it, including ones that arrive meanwhile', () => {
+      vi.useFakeTimers();
       const { fixture, toasts } = createTemplateHost();
+
+      toasts.info('first', { duration: 1000 });
+      fixture.detectChanges();
+      const [region] = regions(fixture.nativeElement);
+      region.dispatchEvent(new MouseEvent('mouseenter'));
+      fixture.detectChanges();
+
+      toasts.info('second', { duration: 1000 });
+      toasts.info('keeps counting', { duration: 1000, pauseOnHover: false });
+      fixture.detectChanges();
+
+      vi.advanceTimersByTime(5000);
+      expect(toasts.toasts().map((t) => t.message)).toEqual([
+        'first',
+        'second',
+      ]);
+
+      region.dispatchEvent(new MouseEvent('mouseleave'));
+      fixture.detectChanges();
+      vi.advanceTimersByTime(1000);
+      expect(toasts.toasts()).toHaveLength(0);
+    });
+
+    it('without stacking, hovering one toast pauses only that toast', () => {
+      vi.useFakeTimers();
+      const { fixture, toasts } = createTemplateHost();
+      toasts.config({ stack: false });
+
+      toasts.info('hovered', { duration: 1000 });
+      toasts.info('other', { duration: 1000 });
+      fixture.detectChanges();
+      const [first] = Array.from<HTMLElement>(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      );
+      first.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      fixture.detectChanges();
+
+      vi.advanceTimersByTime(1000);
+      expect(toasts.toasts().map((t) => t.message)).toEqual(['hovered']);
+
+      first.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+      vi.advanceTimersByTime(1000);
+      expect(toasts.toasts()).toHaveLength(0);
+    });
+
+    it('renders cancel before action; each runs its callback and closes with reason action', async () => {
+      const { fixture, toasts } = createTemplateHost();
+      const onCancel = vi.fn();
+      const onConfirm = vi.fn();
+
+      const ref = toasts.show({
+        message: 'Discard draft?',
+        cancel: { label: 'Cancel', onClick: onCancel },
+        action: { label: 'Discard', onClick: onConfirm },
+      });
+      fixture.detectChanges();
+
+      const buttons = Array.from(
+        fixture.nativeElement.querySelectorAll(
+          '.andes-toast__row > button',
+        ) as NodeListOf<HTMLButtonElement>,
+      );
+      expect(buttons.map((b) => b.className)).toEqual([
+        'andes-toast__cancel',
+        'andes-toast__action',
+      ]);
+      buttons[0].click();
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      expect(onConfirm).not.toHaveBeenCalled();
+      await expect(ref.afterClosed).resolves.toBe('action');
+    });
+
+    it('richColors marks the toast for the tinted style, globally or per toast', () => {
+      const { fixture, toasts, messages } = createTemplateHost();
 
       toasts.success('plain');
       toasts.success('rich', { richColors: true });
+      messages.config({ richColors: true });
+      messages.error('rich message');
       fixture.detectChanges();
-      let rendered = Array.from<HTMLElement>(
+
+      const rendered = Array.from(
         fixture.nativeElement.querySelectorAll('andes-toast-item'),
-      );
+      ) as HTMLElement[];
       expect(rendered.map((i) => i.hasAttribute('data-rich-colors'))).toEqual([
         false,
         true,
+        true,
       ]);
-
-      toasts.config({ richColors: true });
-      toasts.error('global');
-      fixture.detectChanges();
-      rendered = Array.from<HTMLElement>(
-        fixture.nativeElement.querySelectorAll('andes-toast-item'),
-      );
-      expect(rendered[2].hasAttribute('data-rich-colors')).toBe(true);
     });
 
-    describe('swipe to dismiss', () => {
-      function pointer(
-        el: HTMLElement,
-        type: string,
-        clientX: number,
-        clientY = 0,
-      ): void {
-        const event = new MouseEvent(type, {
-          bubbles: true,
-          clientX,
-          clientY,
-          button: 0,
-        });
-        Object.defineProperty(event, 'pointerId', { value: 1 });
-        el.dispatchEvent(event);
-      }
+    it('offset moves the stack off the edges; top/bottom still win for their edge', () => {
+      const { fixture, toasts } = createTemplateHost([
+        provideAndesToastConfig({ offset: 40, bottom: '5rem' }),
+      ]);
 
-      function setup(placement: AndesToastPosition = 'bottom-right') {
-        const { fixture, toasts } = createTemplateHost();
-        const ref = toasts.info('Swipe me', { placement });
-        fixture.detectChanges();
-        const item = fixture.nativeElement.querySelector(
-          'andes-toast-item',
-        ) as HTMLElement;
-        return { fixture, toasts, ref, item };
-      }
+      toasts.info('bottom right');
+      toasts.info('top left', { placement: 'top-left' });
+      fixture.detectChanges();
 
-      it('a drag past the threshold toward the placement edge closes with reason swipe', async () => {
-        const { item, ref } = setup('bottom-right');
+      const [topLeft, bottomRight] = regions(fixture.nativeElement);
+      expect(topLeft.style.top).toBe('40px');
+      expect(topLeft.style.getPropertyValue('--_toast-offset-x')).toBe('40px');
+      expect(bottomRight.style.bottom).toBe('5rem');
+    });
 
-        pointer(item, 'pointerdown', 100);
-        pointer(item, 'pointermove', 130);
-        expect(item.hasAttribute('data-swiping')).toBe(true);
-        expect(item.style.getPropertyValue('--_toast-swipe-x')).toBe('30px');
-        pointer(item, 'pointermove', 160);
-        pointer(item, 'pointerup', 160);
+    it('dragging a toast past the threshold towards its edge dismisses it with reason swipe', async () => {
+      const { fixture, toasts } = createTemplateHost();
 
-        expect(item.getAttribute('data-swipe-out')).toBe('right');
-        await expect(ref.afterClosed).resolves.toBe('swipe');
+      const ref = toasts.info('swipe me');
+      fixture.detectChanges();
+      const item = fixture.nativeElement.querySelector(
+        'andes-toast-item',
+      ) as HTMLElement;
+      expect(item.hasAttribute('data-swipeable')).toBe(true);
+
+      // bottom-right: dragging up (away from the edge) only stretches, then snaps back.
+      drag(item, 0, -80);
+      fixture.detectChanges();
+      expect(toasts.toasts()).toHaveLength(1);
+      expect(item.style.getPropertyValue('--_toast-swipe-y')).toBe('');
+
+      drag(item, 60, 0);
+      fixture.detectChanges();
+      expect(item.getAttribute('data-swipe-out')).toBe('right');
+      await expect(ref.afterClosed).resolves.toBe('swipe');
+    });
+
+    it('a short, slow drag snaps back; a drag away from the edge is dampened and never dismisses', () => {
+      vi.useFakeTimers();
+      const { fixture, toasts } = createTemplateHost();
+      toasts.info('swipe me');
+      fixture.detectChanges();
+      const item = fixture.nativeElement.querySelector(
+        'andes-toast-item',
+      ) as HTMLElement;
+
+      item.dispatchEvent(pointer('pointerdown', 100, 100));
+      item.dispatchEvent(pointer('pointermove', 110, 100));
+      vi.advanceTimersByTime(500);
+      item.dispatchEvent(pointer('pointerup', 110, 100));
+      expect(toasts.toasts()).toHaveLength(1);
+      expect(item.hasAttribute('data-swiping')).toBe(false);
+      expect(item.style.getPropertyValue('--_toast-swipe-x')).toBe('');
+
+      // bottom-right: dragging left is away from the edge.
+      item.dispatchEvent(pointer('pointerdown', 100, 100));
+      item.dispatchEvent(pointer('pointermove', 0, 100));
+      const dampened = parseFloat(
+        item.style.getPropertyValue('--_toast-swipe-x'),
+      );
+      expect(dampened).toBeLessThan(0);
+      expect(dampened).toBeGreaterThan(-45);
+      item.dispatchEvent(pointer('pointerup', 0, 100));
+      expect(toasts.toasts()).toHaveLength(1);
+    });
+
+    it('swipeToDismiss: false turns swiping off, even for a dismissible toast', () => {
+      const { fixture, toasts } = createTemplateHost();
+      toasts.info('stays put', { swipeToDismiss: false });
+      fixture.detectChanges();
+      const item = fixture.nativeElement.querySelector(
+        'andes-toast-item',
+      ) as HTMLElement;
+
+      expect(item.hasAttribute('data-swipeable')).toBe(false);
+      drag(item, 120, 0);
+      expect(toasts.toasts()).toHaveLength(1);
+    });
+
+    it('a drag is not a body click, and buttons never start a drag', () => {
+      const { fixture, toasts } = createTemplateHost();
+      const onClick = vi.fn();
+
+      toasts.show({
+        message: 'drag but not click',
+        onClick,
+        swipeDirections: ['left'],
       });
+      fixture.detectChanges();
+      const item = fixture.nativeElement.querySelector(
+        'andes-toast-item',
+      ) as HTMLElement;
 
-      it('a short, slow drag snaps back; a drag away from the edge is dampened and never dismisses', () => {
-        vi.useFakeTimers();
-        const { item, toasts } = setup('bottom-right');
+      drag(item, 20, 0);
+      item.click();
+      expect(onClick).not.toHaveBeenCalled();
 
-        pointer(item, 'pointerdown', 100);
-        pointer(item, 'pointermove', 110);
-        vi.advanceTimersByTime(500);
-        pointer(item, 'pointerup', 110);
-        expect(toasts.toasts()).toHaveLength(1);
-        expect(item.hasAttribute('data-swiping')).toBe(false);
-        expect(item.style.getPropertyValue('--_toast-swipe-x')).toBe('');
+      const close = item.querySelector('.andes-toast__close') as HTMLElement;
+      close.dispatchEvent(pointer('pointerdown', 0, 0));
+      close.dispatchEvent(pointer('pointermove', -90, 0));
+      close.dispatchEvent(pointer('pointerup', -90, 0));
+      expect(item.hasAttribute('data-swipe-out')).toBe(false);
+    });
 
-        pointer(item, 'pointerdown', 100);
-        pointer(item, 'pointermove', 0);
-        const dampened = parseFloat(
-          item.style.getPropertyValue('--_toast-swipe-x'),
-        );
-        expect(dampened).toBeLessThan(0);
-        expect(dampened).toBeGreaterThan(-45);
-        pointer(item, 'pointerup', 0);
-        expect(toasts.toasts()).toHaveLength(1);
-      });
+    it('toasts that cannot be dismissed are not swipeable unless they opt in', () => {
+      const { fixture, toasts, messages } = createTemplateHost();
 
-      it('does not start from a button, and is off for non-dismissible toasts and messages', () => {
-        const { fixture, item, toasts } = setup();
+      toasts.loading('Saving', { dismissible: false });
+      messages.info('plain message');
+      messages.info('swipeable message', { swipeDirections: ['top'] });
+      fixture.detectChanges();
 
-        const close = item.querySelector('.andes-toast__close') as HTMLElement;
-        pointer(close, 'pointerdown', 100);
-        pointer(close, 'pointermove', 200);
-        pointer(close, 'pointerup', 200);
-        expect(item.hasAttribute('data-swiping')).toBe(false);
-        expect(toasts.toasts()).toHaveLength(1);
-
-        toasts.destroy();
-        toasts.info('sticky', { dismissible: false });
-        fixture.detectChanges();
-        const sticky = fixture.nativeElement.querySelector(
-          'andes-toast-item',
-        ) as HTMLElement;
-        expect(sticky.hasAttribute('data-swipeable')).toBe(false);
-        pointer(sticky, 'pointerdown', 100);
-        pointer(sticky, 'pointermove', 200);
-        pointer(sticky, 'pointerup', 200);
-        expect(toasts.toasts()).toHaveLength(1);
-
-        const messages = TestBed.inject(AndesMessageService);
-        messages.info('m', { dismissible: true });
-        fixture.detectChanges();
-        const message = fixture.nativeElement.querySelector(
-          'andes-toast-item[data-flavor="message"]',
-        ) as HTMLElement;
-        expect(message.hasAttribute('data-swipeable')).toBe(false);
-      });
-
-      it('a drag does not also count as a body click', () => {
-        vi.useFakeTimers();
-        const { fixture, toasts } = createTemplateHost();
-        const onClick = vi.fn();
-        toasts.info('clickable', { onClick });
-        fixture.detectChanges();
-        const item = fixture.nativeElement.querySelector(
-          'andes-toast-item',
-        ) as HTMLElement;
-
-        pointer(item, 'pointerdown', 100);
-        pointer(item, 'pointermove', 110);
-        // Released slowly, so it snaps back instead of counting as a flick.
-        vi.advanceTimersByTime(500);
-        pointer(item, 'pointerup', 110);
-        expect(toasts.toasts()).toHaveLength(1);
-        item.querySelector<HTMLElement>('.andes-toast__message')?.click();
-        expect(onClick).not.toHaveBeenCalled();
-
-        item.querySelector<HTMLElement>('.andes-toast__message')?.click();
-        expect(onClick).toHaveBeenCalledTimes(1);
-      });
+      const rendered = Array.from(
+        fixture.nativeElement.querySelectorAll('andes-toast-item'),
+      ) as HTMLElement[];
+      expect(rendered.map((i) => i.hasAttribute('data-swipeable'))).toEqual([
+        false,
+        false,
+        true,
+      ]);
     });
 
     it('applies className to the toast root', () => {

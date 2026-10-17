@@ -526,6 +526,43 @@ describe('AndesToastService', () => {
       );
     });
 
+    it('resolves cancel, richColors and swipeDirections from config and defaults', () => {
+      const service = createService([
+        provideAndesToastConfig({ richColors: true }),
+      ]);
+      const cancel = { label: 'Cancel', onClick: () => undefined };
+
+      service.show({ message: 'defaults' });
+      service.show({
+        message: 'custom',
+        cancel,
+        richColors: false,
+        swipeDirections: ['left'],
+      });
+
+      expect(service.toasts()[0]).toEqual(
+        expect.objectContaining({
+          richColors: true,
+          swipeDirections: undefined,
+          cancel: undefined,
+        }),
+      );
+      expect(service.toasts()[1]).toEqual(
+        expect.objectContaining({
+          richColors: false,
+          swipeDirections: ['left'],
+          cancel,
+        }),
+      );
+      expect(service.defaults()).toEqual(
+        expect.objectContaining({
+          stack: { threshold: 1 },
+          visibleToasts: 3,
+          gap: 14,
+        }),
+      );
+    });
+
     it('provideAndesToastConfig() sets app-wide defaults', () => {
       vi.useFakeTimers();
       const service = createService([

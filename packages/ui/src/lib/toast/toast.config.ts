@@ -7,7 +7,10 @@ import {
 import {
   ANDES_MESSAGE_DEFAULT_DURATION,
   ANDES_TOAST_DEFAULT_DURATION,
+  ANDES_TOAST_DEFAULT_GAP,
   ANDES_TOAST_DEFAULT_MAX_VISIBLE,
+  ANDES_TOAST_DEFAULT_STACK_THRESHOLD,
+  ANDES_TOAST_DEFAULT_VISIBLE_TOASTS,
   type AndesToastGlobalConfig,
 } from './toast.types';
 
@@ -19,10 +22,12 @@ export const ANDES_TOAST_BUILTIN_DEFAULTS: AndesToastGlobalConfig = {
   overflow: 'queue',
   pauseOnHover: true,
   showProgress: false,
-  richColors: false,
-  swipeToDismiss: true,
   dismissible: true,
-  stack: { threshold: 1 },
+  stack: { threshold: ANDES_TOAST_DEFAULT_STACK_THRESHOLD },
+  swipeToDismiss: true,
+  visibleToasts: ANDES_TOAST_DEFAULT_VISIBLE_TOASTS,
+  gap: ANDES_TOAST_DEFAULT_GAP,
+  richColors: false,
 };
 
 /** Built-in message defaults, before any `provideAndesMessageConfig()` override. */
@@ -33,10 +38,12 @@ export const ANDES_MESSAGE_BUILTIN_DEFAULTS: AndesToastGlobalConfig = {
   overflow: 'queue',
   pauseOnHover: true,
   showProgress: false,
-  richColors: false,
-  swipeToDismiss: false,
   dismissible: false,
   stack: false,
+  swipeToDismiss: false,
+  visibleToasts: ANDES_TOAST_DEFAULT_VISIBLE_TOASTS,
+  gap: 8,
+  richColors: false,
 };
 
 /**
