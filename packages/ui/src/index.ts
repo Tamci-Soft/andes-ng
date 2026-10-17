@@ -7,6 +7,7 @@ export { AndesDropdownMenuContent } from './lib/dropdown-menu/dropdown-menu-cont
 export { AndesDropdownMenuItem } from './lib/dropdown-menu/dropdown-menu-item';
 export type { AndesDropdownMenuItemVariant } from './lib/dropdown-menu/dropdown-menu-item';
 export { AndesDropdownMenuCheckboxItem } from './lib/dropdown-menu/dropdown-menu-checkbox-item';
+export { AndesDropdownMenuRadioGroup } from './lib/dropdown-menu/dropdown-menu-radio-group';
 export { AndesDropdownMenuRadioItem } from './lib/dropdown-menu/dropdown-menu-radio-item';
 export { AndesDropdownMenuSeparator } from './lib/dropdown-menu/dropdown-menu-separator';
 export { AndesDropdownMenuLabel } from './lib/dropdown-menu/dropdown-menu-label';

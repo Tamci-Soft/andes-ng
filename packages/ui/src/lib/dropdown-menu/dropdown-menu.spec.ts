@@ -1,11 +1,12 @@
 import { Component, signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { AndesDropdownMenu } from './dropdown-menu';
 import { AndesDropdownMenuCheckboxItem } from './dropdown-menu-checkbox-item';
 import { AndesDropdownMenuContent } from './dropdown-menu-content';
 import { AndesDropdownMenuItem } from './dropdown-menu-item';
 import { AndesDropdownMenuLabel } from './dropdown-menu-label';
+import { AndesDropdownMenuRadioGroup } from './dropdown-menu-radio-group';
 import { AndesDropdownMenuRadioItem } from './dropdown-menu-radio-item';
 import { AndesDropdownMenuSeparator } from './dropdown-menu-separator';
 import { AndesDropdownMenuShortcut } from './dropdown-menu-shortcut';
@@ -134,6 +135,54 @@ class HostComponent {
   readonly edited = signal(false);
 }
 
+@Component({
+  imports: [
+    AndesDropdownMenu,
+    AndesDropdownMenuTrigger,
+    AndesDropdownMenuContent,
+    AndesDropdownMenuLabel,
+    AndesDropdownMenuRadioGroup,
+    AndesDropdownMenuRadioItem,
+  ],
+  template: `
+    <andes-dropdown-menu>
+      <button type="button" id="trigger" andesDropdownMenuTrigger>
+        Options
+      </button>
+      <andes-dropdown-menu-content>
+        <andes-dropdown-menu-radio-group
+          id="sortGroup"
+          [(value)]="sort"
+          (valueChange)="changes.push($event)"
+        >
+          <andes-dropdown-menu-label>Sort by</andes-dropdown-menu-label>
+          <andes-dropdown-menu-radio-item id="sortName" value="name">
+            Name
+          </andes-dropdown-menu-radio-item>
+          <andes-dropdown-menu-radio-item id="sortDate" value="date">
+            Date
+          </andes-dropdown-menu-radio-item>
+        </andes-dropdown-menu-radio-group>
+        <andes-dropdown-menu-radio-item
+          id="viewList"
+          name="view"
+          value="list"
+          [defaultChecked]="true"
+        >
+          List
+        </andes-dropdown-menu-radio-item>
+        <andes-dropdown-menu-radio-item id="viewGrid" name="view" value="grid">
+          Grid
+        </andes-dropdown-menu-radio-item>
+      </andes-dropdown-menu-content>
+    </andes-dropdown-menu>
+  `,
+})
+class RadioGroupHostComponent {
+  readonly sort = signal<unknown>('date');
+  readonly changes: unknown[] = [];
+}
+
 describe('AndesDropdownMenu', () => {
   withElementGeometry();
 
@@ -156,7 +205,7 @@ describe('AndesDropdownMenu', () => {
     };
   }
 
-  async function open(fixture: ReturnType<typeof createHost>['fixture']) {
+  async function open(fixture: ComponentFixture<unknown>) {
     fixture.detectChanges();
     await fixture.whenStable();
     // Lets any deferred (setTimeout-based) focus overrides settle too.
@@ -359,6 +408,84 @@ describe('AndesDropdownMenu', () => {
       fixture.detectChanges();
       expect(item('sortName').getAttribute('aria-checked')).toBe('false');
       expect(item('sortDate').getAttribute('aria-checked')).toBe('true');
+    });
+  });
+
+  describe('radio group', () => {
+    async function openRadioGroupHost() {
+      const fixture = TestBed.createComponent(RadioGroupHostComponent);
+      fixture.detectChanges();
+      (fixture.nativeElement as HTMLElement)
+        .querySelector<HTMLElement>('#trigger')!
+        .click();
+      await open(fixture);
+      const item = (id: string) =>
+        document.querySelector(`#${id}`) as HTMLElement;
+      return { fixture, host: fixture.componentInstance, item };
+    }
+
+    it('is role="group", named by its label, with menuitemradio items', async () => {
+      const { item } = await openRadioGroupHost();
+      const group = item('sortGroup');
+      const label = group.querySelector('.andes-dropdown-menu__label')!;
+
+      expect(group.getAttribute('role')).toBe('group');
+      expect(group.getAttribute('aria-labelledby')).toBe(label.id);
+      expect(item('sortName').getAttribute('role')).toBe('menuitemradio');
+    });
+
+    it('checks the item matching the initial value', async () => {
+      const { item } = await openRadioGroupHost();
+
+      expect(item('sortName').getAttribute('aria-checked')).toBe('false');
+      expect(item('sortDate').getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('follows a value the parent sets later', async () => {
+      const { fixture, host, item } = await openRadioGroupHost();
+
+      host.sort.set('name');
+      fixture.detectChanges();
+      expect(item('sortName').getAttribute('aria-checked')).toBe('true');
+      expect(item('sortDate').getAttribute('aria-checked')).toBe('false');
+
+      host.sort.set(undefined);
+      fixture.detectChanges();
+      expect(item('sortName').getAttribute('aria-checked')).toBe('false');
+      expect(item('sortDate').getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('selecting an item emits (valueChange) and updates the bound value', async () => {
+      const { fixture, host, item } = await openRadioGroupHost();
+
+      item('sortName').click();
+      fixture.detectChanges();
+
+      expect(host.changes).toEqual(['name']);
+      expect(host.sort()).toBe('name');
+      expect(item('sortName').getAttribute('aria-checked')).toBe('true');
+      expect(item('sortDate').getAttribute('aria-checked')).toBe('false');
+
+      // Re-selecting the current value is not a change.
+      item('sortName').click();
+      fixture.detectChanges();
+      expect(host.changes).toEqual(['name']);
+    });
+
+    it('leaves name-grouped items outside the group working as before', async () => {
+      const { fixture, host, item } = await openRadioGroupHost();
+      expect(item('viewList').getAttribute('aria-checked')).toBe('true');
+
+      item('viewGrid').click();
+      fixture.detectChanges();
+      expect(item('viewList').getAttribute('aria-checked')).toBe('false');
+      expect(item('viewGrid').getAttribute('aria-checked')).toBe('true');
+      expect(host.changes).toEqual([]);
+      expect(item('sortDate').getAttribute('aria-checked')).toBe('true');
+
+      host.sort.set('name');
+      fixture.detectChanges();
+      expect(item('viewGrid').getAttribute('aria-checked')).toBe('true');
     });
   });
 

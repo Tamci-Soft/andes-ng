@@ -22,6 +22,7 @@ import { AndesDropdownMenuCheckboxItem } from './dropdown-menu-checkbox-item';
 import { AndesDropdownMenuContent } from './dropdown-menu-content';
 import { AndesDropdownMenuItem } from './dropdown-menu-item';
 import { AndesDropdownMenuLabel } from './dropdown-menu-label';
+import { AndesDropdownMenuRadioGroup } from './dropdown-menu-radio-group';
 import { AndesDropdownMenuRadioItem } from './dropdown-menu-radio-item';
 import { AndesDropdownMenuSeparator } from './dropdown-menu-separator';
 import { AndesDropdownMenuShortcut } from './dropdown-menu-shortcut';
@@ -505,6 +506,49 @@ export const Selectable: Story = {
         <andes-dropdown-menu selectable multiple [items]="styleItems" [(selectedKeys)]="many">
           <andes-button andesDropdownMenuTrigger variant="outline">Style: {{ many.join(', ') || 'none' }}</andes-button>
         </andes-dropdown-menu>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `AndesDropdownMenuRadioGroup` with two-way `[(value)]`: the buttons outside the menu
+ * change the selection, and picking an item updates `sort`.
+ */
+export const ControlledRadioGroup: Story = {
+  name: 'Controlled radio group',
+  render: () => ({
+    moduleMetadata: {
+      imports: [
+        AndesButton,
+        AndesDropdownMenu,
+        AndesDropdownMenuTrigger,
+        AndesDropdownMenuContent,
+        AndesDropdownMenuLabel,
+        AndesDropdownMenuRadioGroup,
+        AndesDropdownMenuRadioItem,
+      ],
+    },
+    props: { sort: 'date' },
+    template: `
+      <div>
+        <p style="${NOTE}">Sort: <strong>{{ sort ?? '-' }}</strong></p>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <andes-dropdown-menu>
+            <andes-button andesDropdownMenuTrigger variant="outline">Sort by</andes-button>
+            <andes-dropdown-menu-content>
+              <andes-dropdown-menu-radio-group [(value)]="sort">
+                <andes-dropdown-menu-label>Sort by</andes-dropdown-menu-label>
+                <andes-dropdown-menu-radio-item value="name">Name</andes-dropdown-menu-radio-item>
+                <andes-dropdown-menu-radio-item value="date">Date modified</andes-dropdown-menu-radio-item>
+                <andes-dropdown-menu-radio-item value="size">Size</andes-dropdown-menu-radio-item>
+              </andes-dropdown-menu-radio-group>
+            </andes-dropdown-menu-content>
+          </andes-dropdown-menu>
+          <andes-button variant="ghost" (click)="sort = 'name'">Set "name"</andes-button>
+          <andes-button variant="ghost" (click)="sort = 'size'">Set "size"</andes-button>
+          <andes-button variant="ghost" (click)="sort = undefined">Clear</andes-button>
+        </div>
       </div>
     `,
   }),
