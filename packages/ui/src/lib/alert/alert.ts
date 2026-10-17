@@ -68,6 +68,19 @@ const COLLAPSE_DURATION_MS = 180;
 /** Used until the marquee track has been measured, and wherever it can't be (SSR, jsdom). */
 const DEFAULT_MARQUEE_SPEED = 60;
 
+/** Natively keyboard-focusable elements, plus anything opted in with a tabindex. */
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'area[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'iframe',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]',
+].join(',');
+
 @Component({
   selector: 'andes-alert',
   imports: [NgTemplateOutlet],
@@ -290,6 +303,7 @@ export class AndesAlert {
   }
 
   private finishClose(animation?: Animation): void {
+    this.restoreFocus();
     this.visible.set(false);
     afterNextRender(
       () => {
@@ -300,6 +314,40 @@ export class AndesAlert {
       { injector: this.injector },
     );
   }
+
+  /**
+   * Hiding the alert removes the focused close button, which would drop focus to <body> and
+   * send keyboard and screen reader users back to the top of the page. If focus is still inside
+   * the alert, move it to the next tabbable element after the alert in DOM order, else the
+   * previous one, else the closest focusable ancestor (e.g. a container with tabindex="-1").
+   * Focus that has already moved elsewhere (the user tabbed away mid-collapse) is left alone.
+   */
+  private restoreFocus(): void {
+    const host = this.host.nativeElement;
+    if (!host.contains(this.document.activeElement)) return;
+
+    const candidates = Array.from(
+      this.document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    ).filter((el) => !host.contains(el) && isTabbable(el));
+    const next = candidates.find(
+      (el) =>
+        host.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    const previous = candidates
+      .filter(
+        (el) =>
+          host.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING,
+      )
+      .at(-1);
+    const ancestor = host.parentElement?.closest<HTMLElement>('[tabindex]');
+    (next ?? previous ?? ancestor)?.focus();
+  }
+}
+
+function isTabbable(el: HTMLElement): boolean {
+  if (el.tabIndex < 0 || el.closest('[hidden], [inert]')) return false;
+  // Catches `display: none` / `visibility: hidden` where layout exists (not in SSR or jsdom).
+  return typeof el.checkVisibility !== 'function' || el.checkVisibility();
 }
 
 function asTemplate(
