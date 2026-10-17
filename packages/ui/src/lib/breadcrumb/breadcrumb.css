@@ -1,7 +1,6 @@
 /* Shared by every Breadcrumb part - each one attaches to a different native element (nav, ol,
    li, a, span) via an attribute selector, so there's no single root to hang one stylesheet off
-   of. Text follows the shared body-text scale (14px / 22px, Ant Design's Breadcrumb) through the
-   `--andes-text-*` tokens, each written with its literal fallback so the component renders the
+   of. Text follows the shared body-text scale (14px / 22px) through the `--andes-text-*` tokens, each written with its literal fallback so the component renders the
    same before those tokens ship.
 
    Plain class selectors, not `:host(...)`: most of these classes live on `@Directive` hosts
