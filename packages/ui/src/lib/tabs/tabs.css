@@ -3,7 +3,7 @@
 :host {
   display: flex;
   flex-direction: column;
-  /* Ant Design's 16px between the tab bar and the panel. */
+  /* 16px between the tab bar and the panel. */
   gap: var(--andes-space-4);
   min-width: 0;
   font-family: var(--andes-font-family), sans-serif;

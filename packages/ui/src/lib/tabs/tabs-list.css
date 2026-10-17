@@ -5,7 +5,7 @@
   display: flex;
   flex: none;
   align-items: stretch;
-  /* 32px between line tabs (Ant Design's gutter); `tabBarGutter` overrides it inline. */
+  /* 32px between line tabs; `tabBarGutter` overrides it inline. */
   gap: 2rem;
 }
 
