@@ -1,4 +1,4 @@
-/* Ant Design's pagination: borderless 32px items (24px small) at 14px, the current
+/* Pagination: borderless 32px items (24px small) at 14px, the current
    page marked by a primary border and primary text rather than a solid fill, and
    the size changer / quick jumper drawn as regular 32px fields. */
 
@@ -41,8 +41,8 @@
   padding: 0;
 }
 
-/* Small items sit flush, as in Ant Design's mini pagination: they have no border to
-   separate, and the gap would double the row's width. */
+/* Small items sit flush: they have no border to separate, and the gap would double the
+   row's width. */
 .andes-pagination--small .andes-pagination__list {
   gap: 0;
 }
