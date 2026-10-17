@@ -74,6 +74,11 @@ export type AndesCalendarValue =
 export interface AndesDateDisabledInfo {
   /** The granularity the date is being offered at. */
   readonly type: AndesPickerType;
+  /**
+   * In `range` mode, while the end is being picked: the start already chosen.
+   * Lets a predicate cap a range's length ("at most 7 days from the start").
+   */
+  readonly from?: Date;
 }
 
 /**
@@ -131,6 +136,18 @@ export interface AndesCalendarHeaderContext {
   readonly setView: (view: AndesCalendarView) => void;
 }
 
+/** Emitted by `cellSelect` for every cell the user picks, in any grid. */
+export interface AndesCalendarSelectInfo {
+  /** The cell's date: the selected period's first day, or the period drilled into. */
+  readonly date: Date;
+  /**
+   * The grid the pick happened in. A pick in a coarser grid than `picker` (a year
+   * or month on the way down to a day) navigates rather than selects; `source`
+   * tells the two apart.
+   */
+  readonly source: AndesCalendarView;
+}
+
 /** Emitted by `panelChange` whenever the visible period or grid changes. */
 export interface AndesCalendarPanelChange {
   readonly date: Date;
@@ -165,6 +182,29 @@ const PERIOD_GRID: Readonly<
 };
 
 /** The grid one level up, reached by clicking the caption. */
+/** How coarse each grid is; a `panelView` finer than the picker's own grid is ignored. */
+const VIEW_RANK: Readonly<Record<AndesCalendarView, number>> = {
+  date: 0,
+  month: 1,
+  quarter: 1,
+  year: 2,
+};
+
+/** Whether `view` can be shown for `picker`. */
+function isViewReachable(
+  view: AndesCalendarView,
+  picker: AndesPickerType,
+): boolean {
+  const base = baseViewFor(picker);
+  if (view === 'quarter') {
+    return base === 'quarter';
+  }
+  if (base === 'quarter' && view === 'month') {
+    return false;
+  }
+  return VIEW_RANK[view] >= VIEW_RANK[base];
+}
+
 const PARENT_VIEW: Readonly<
   Record<AndesCalendarView, AndesCalendarView | null>
 > = {
@@ -314,6 +354,15 @@ export class AndesCalendar {
     null,
   );
 
+  /**
+   * Replaces the whole content of every cell, the day number included: the
+   * template draws the cell from its context alone. Rendered inside the cell's
+   * button, so it must not contain interactive elements. Takes precedence over
+   * `cellTemplate`.
+   */
+  readonly fullCellTemplate =
+    input<TemplateRef<AndesCalendarCellContext> | null>(null);
+
   /** Replaces the whole navigation header. */
   readonly headerTemplate =
     input<TemplateRef<AndesCalendarHeaderContext> | null>(null);
@@ -322,6 +371,29 @@ export class AndesCalendar {
   readonly defaultMonth = input<Date | null, unknown>(null, {
     transform: coerceDate,
   });
+
+  /**
+   * The grid to show: `date` (days), `month`, `quarter` or `year`. Changing it
+   * switches the grid; the user can still climb and drill from there, and
+   * `panelChange` reports where they went. A grid finer than `picker`'s own (days
+   * for a month picker) is ignored. Unset, the grid follows `picker`.
+   */
+  readonly panelView = input<AndesCalendarView | null>(null);
+
+  /** Replaces the single-step previous button's chevron. */
+  readonly previousIcon = input<TemplateRef<unknown> | null>(null);
+
+  /** Replaces the single-step next button's chevron. */
+  readonly nextIcon = input<TemplateRef<unknown> | null>(null);
+
+  /**
+   * Replaces the double chevron of the fast previous button: a year back in the
+   * day grid, a year or a decade back in the period grids.
+   */
+  readonly fastPreviousIcon = input<TemplateRef<unknown> | null>(null);
+
+  /** Replaces the double chevron of the fast next button. */
+  readonly fastNextIcon = input<TemplateRef<unknown> | null>(null);
 
   /** Move focus into the grid once rendered. Used by `AndesDatePicker` on open. */
   readonly autoFocus = input(false, { transform: booleanAttribute });
@@ -366,12 +438,29 @@ export class AndesCalendar {
   readonly panelChange = output<AndesCalendarPanelChange>();
 
   /**
+   * Emits every cell pick with the grid it happened in, including picks in a
+   * coarser grid that only navigate (a year on the way to a day).
+   */
+  readonly cellSelect = output<AndesCalendarSelectInfo>();
+
+  /**
+   * Emits the date under the pointer (or keyboard focus) as it moves over
+   * selectable cells, and `null` when it leaves the grid. `AndesDatePicker` uses
+   * it to preview a date in its input.
+   */
+  readonly cellHover = output<Date | null>();
+
+  /**
    * Which grid is showing. Follows `picker` until the user climbs to a coarser
    * grid through the caption.
    */
-  readonly view = linkedSignal<AndesCalendarView>(() =>
-    baseViewFor(this.picker()),
-  );
+  readonly view = linkedSignal<AndesCalendarView>(() => {
+    const requested = this.panelView();
+    const picker = this.picker();
+    return requested && isViewReachable(requested, picker)
+      ? requested
+      : baseViewFor(picker);
+  });
 
   /**
    * The month the user has navigated to. Keyed off a stable `YYYY-MM-DD` string so
@@ -720,7 +809,17 @@ export class AndesCalendar {
     if (view !== baseViewFor(this.picker())) {
       return true;
     }
-    return !this.dateDisabled()?.(date, { type: this.picker() });
+    const veto = this.dateDisabled();
+    if (!veto) {
+      return true;
+    }
+    const range = this.selectedRange();
+    return !veto(
+      date,
+      range && !range.end
+        ? { type: this.picker(), from: range.start }
+        : { type: this.picker() },
+    );
   }
 
   /** Moves the visible month by `amount`, clamping focus into the new span. */
@@ -795,13 +894,20 @@ export class AndesCalendar {
   }
 
   protected onCellHover(cell: AndesCalendarCell): void {
-    if (this.mode() === 'range' && !cell.disabled) {
+    if (cell.disabled) {
+      return;
+    }
+    if (this.mode() === 'range') {
       this.hoverDate.set(cell.date);
+    }
+    if (cell.view === baseViewFor(this.picker())) {
+      this.cellHover.emit(cell.date);
     }
   }
 
   protected clearHover(): void {
     this.hoverDate.set(null);
+    this.cellHover.emit(null);
   }
 
   protected selectCell(cell: AndesCalendarCell): void {
@@ -811,6 +917,7 @@ export class AndesCalendar {
 
     const base = baseViewFor(this.picker());
     if (cell.view !== base) {
+      this.cellSelect.emit({ date: cell.date, source: cell.view });
       this.drillDown(cell);
       return;
     }
@@ -840,6 +947,7 @@ export class AndesCalendar {
     }
 
     this.daySelected.emit(date);
+    this.cellSelect.emit({ date, source: cell.view });
   }
 
   /** A click in a coarser grid than `picker`: open the next finer grid on it. */

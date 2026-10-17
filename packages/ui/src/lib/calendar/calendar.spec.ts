@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
@@ -7,6 +11,7 @@ import {
   type AndesCalendarHeaderContext,
   type AndesCalendarMode,
   type AndesCalendarPanelChange,
+  type AndesCalendarSelectInfo,
   type AndesCalendarValue,
   type AndesDateDisabledFn,
   type AndesPickerType,
@@ -14,6 +19,7 @@ import {
 import {
   toDateKey,
   type AndesDateRange,
+  type AndesCalendarView,
   type AndesWeekday,
 } from './date-utils';
 
@@ -113,6 +119,50 @@ class FeatureHost {
   readonly useHeaderTemplate = signal(false);
   readonly jan2030 = d(2030, 1, 1);
   readonly panelChanges: AndesCalendarPanelChange[] = [];
+}
+
+/** Host for the cell, panel and navigation hooks. */
+@Component({
+  imports: [AndesCalendar],
+  template: `
+    <ng-template #full let-cell="cell">
+      <span class="full-cell">{{ cell.text }}!</span>
+    </ng-template>
+    <ng-template #previous><span class="custom-previous">p</span></ng-template>
+    <ng-template #fastNext><span class="custom-fast-next">N</span></ng-template>
+    <andes-calendar
+      [mode]="mode()"
+      [picker]="picker()"
+      [(value)]="value"
+      locale="en-US"
+      [defaultMonth]="defaultMonth"
+      [panelView]="panelView()"
+      [dateDisabled]="dateDisabled()"
+      [fullCellTemplate]="useTemplates() ? fullTemplate() : null"
+      [previousIcon]="useTemplates() ? previousTemplate() : null"
+      [fastNextIcon]="useTemplates() ? fastNextTemplate() : null"
+      (cellSelect)="selects.push($event)"
+      (cellHover)="hovers.push($event)"
+    />
+  `,
+})
+class HookHost {
+  readonly fullTemplate =
+    viewChild.required<TemplateRef<AndesCalendarCellContext>>('full');
+  readonly previousTemplate =
+    viewChild.required<TemplateRef<unknown>>('previous');
+  readonly fastNextTemplate =
+    viewChild.required<TemplateRef<unknown>>('fastNext');
+  readonly calendar = viewChild.required(AndesCalendar);
+  readonly mode = signal<AndesCalendarMode>('single');
+  readonly picker = signal<AndesPickerType>('date');
+  readonly value = signal<AndesCalendarValue>(null);
+  readonly defaultMonth = d(2024, 2, 1);
+  readonly panelView = signal<AndesCalendarView | null>(null);
+  readonly dateDisabled = signal<AndesDateDisabledFn | null>(null);
+  readonly useTemplates = signal(false);
+  readonly selects: AndesCalendarSelectInfo[] = [];
+  readonly hovers: (Date | null)[] = [];
 }
 
 describe('AndesCalendar', () => {
@@ -384,6 +434,14 @@ describe('AndesCalendar', () => {
 
       expect(previous().disabled).toBe(true);
       expect(next().disabled).toBe(true);
+    });
+
+    it('renders the nav buttons in the component font', () => {
+      const { previous, next } = createHost();
+
+      // A native button would otherwise fall back to the UA font.
+      expect(getComputedStyle(previous()).fontFamily).toBe('inherit');
+      expect(getComputedStyle(next()).fontFamily).toBe('inherit');
     });
   });
 
@@ -659,6 +717,22 @@ describe('AndesCalendar', () => {
       expect(day(d(2024, 2, 11)).getAttribute('data-in-range')).toBe('true');
       expect(day(d(2024, 2, 10)).getAttribute('data-in-range')).toBeNull();
       expect(day(d(2024, 2, 14)).getAttribute('data-in-range')).toBeNull();
+    });
+
+    it('paints the range band with a primary tint, not the accent that vanishes in dark', () => {
+      const css = readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'calendar.css'),
+        'utf-8',
+      )
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\s+/g, ' ');
+
+      expect(css).toMatch(
+        /--andes-calendar-band: color-mix\( in srgb, var\(--andes-color-primary\) \d+%, transparent \);/,
+      );
+      expect(css).toContain(
+        '.andes-calendar__day--in-range::before { background-color: var(--andes-calendar-band); }',
+      );
     });
 
     it('accepts a [start, end] tuple as the incoming value', () => {
@@ -1551,6 +1625,142 @@ describe('AndesCalendar', () => {
         click(root.querySelector<HTMLElement>('.to-years'));
         expect(host.calendar().view()).toBe('year');
       });
+    });
+  });
+
+  describe('cell, panel and navigation hooks', () => {
+    function createHooks(setup: (host: HookHost) => void = () => undefined) {
+      const fixture = TestBed.createComponent(HookHost);
+      setup(fixture.componentInstance);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const calendarElement = () =>
+        root.querySelector('andes-calendar') as HTMLElement;
+      const cell = (key: string) =>
+        root.querySelector<HTMLElement>(`[data-date="${key}"]`) as HTMLElement;
+      return {
+        fixture,
+        root,
+        host: fixture.componentInstance,
+        view: () => calendarElement().getAttribute('data-view'),
+        cell,
+        click: (key: string) => {
+          cell(key).click();
+          fixture.detectChanges();
+        },
+      };
+    }
+
+    it('opens on panelView and follows it when it changes', () => {
+      const { host, fixture, view } = createHooks((h) =>
+        h.panelView.set('year'),
+      );
+      expect(view()).toBe('year');
+
+      host.panelView.set('month');
+      fixture.detectChanges();
+      expect(view()).toBe('month');
+
+      host.panelView.set(null);
+      fixture.detectChanges();
+      expect(view()).toBe('date');
+    });
+
+    it('ignores a panelView finer than the picker', () => {
+      const { view } = createHooks((h) => {
+        h.picker.set('month');
+        h.panelView.set('date');
+      });
+
+      expect(view()).toBe('month');
+    });
+
+    it('reports every pick with the grid it came from', () => {
+      const { host, click, view } = createHooks((h) => h.panelView.set('year'));
+
+      click('2027-01-01');
+      expect(view()).toBe('month');
+      click('2027-05-01');
+      expect(view()).toBe('date');
+      click('2027-05-12');
+
+      expect(
+        host.selects.map(({ date, source }) => [toDateKey(date), source]),
+      ).toEqual([
+        ['2027-01-01', 'year'],
+        ['2027-05-01', 'month'],
+        ['2027-05-12', 'date'],
+      ]);
+      expect(toDateKey(host.value() as Date)).toBe('2027-05-12');
+    });
+
+    it('emits the hovered date, and null when the pointer leaves the grid', () => {
+      const { host, cell, root, fixture } = createHooks((h) =>
+        h.dateDisabled.set((date) => date.getDate() === 20),
+      );
+
+      cell('2024-02-15').dispatchEvent(new MouseEvent('mouseenter'));
+      // A disabled day is not a candidate, so it is not reported.
+      cell('2024-02-20').dispatchEvent(new MouseEvent('mouseenter'));
+      root
+        .querySelector('[role="grid"]')
+        ?.dispatchEvent(new MouseEvent('mouseleave'));
+      fixture.detectChanges();
+
+      expect(host.hovers.map((date) => date && toDateKey(date))).toEqual([
+        '2024-02-15',
+        null,
+      ]);
+    });
+
+    it('passes the chosen start to dateDisabled while a range end is picked', () => {
+      const seen: (string | null)[] = [];
+      const { click, cell } = createHooks((h) => {
+        h.mode.set('range');
+        h.dateDisabled.set((date, info) => {
+          seen.push(info.from ? toDateKey(info.from) : null);
+          // At most a week either side of the start.
+          return (
+            !!info.from &&
+            Math.abs(date.getTime() - info.from.getTime()) > 7 * 86_400_000
+          );
+        });
+      });
+      expect(cell('2024-02-25').getAttribute('aria-disabled')).toBeNull();
+
+      seen.length = 0;
+      click('2024-02-10');
+
+      expect(seen).toContain('2024-02-10');
+      expect(cell('2024-02-17').getAttribute('aria-disabled')).toBeNull();
+      expect(cell('2024-02-18').getAttribute('aria-disabled')).toBe('true');
+      expect(cell('2024-02-03').getAttribute('aria-disabled')).toBeNull();
+      expect(cell('2024-02-02').getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('lets fullCellTemplate draw the whole cell', () => {
+      const { cell } = createHooks((h) => h.useTemplates.set(true));
+
+      const day = cell('2024-02-15');
+      expect(day.querySelector('.andes-calendar__cell-text')).toBeNull();
+      expect(day.querySelector('.full-cell')?.textContent).toBe('15!');
+    });
+
+    it('swaps the navigation chevrons for icon templates', () => {
+      const { root } = createHooks((h) => h.useTemplates.set(true));
+
+      expect(
+        root.querySelector('[data-slot="calendar-previous"] .custom-previous'),
+      ).toBeTruthy();
+      expect(
+        root.querySelector(
+          '[data-slot="calendar-next-year"] .custom-fast-next',
+        ),
+      ).toBeTruthy();
+      // Untouched buttons keep their own chevrons.
+      expect(
+        root.querySelector('[data-slot="calendar-next"] svg'),
+      ).toBeTruthy();
     });
   });
 });

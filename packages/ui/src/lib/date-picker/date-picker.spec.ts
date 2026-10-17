@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
@@ -7,17 +8,25 @@ import {
   Validators,
 } from '@angular/forms';
 
-import type { AndesCalendarCellContext } from '../calendar/calendar';
+import type {
+  AndesCalendarCellContext,
+  AndesCalendarView,
+  AndesDateDisabledFn,
+} from '../calendar/calendar';
 import { toDateKey, type AndesPickerType } from '../calendar/date-utils';
 import type { AndesDateFormat } from '../calendar/date-format';
 import {
   AndesDatePicker,
+  type AndesDatePickerPanelContext,
   type AndesDatePickerPlacement,
   type AndesDatePickerPreset,
+  type AndesDatePickerPreview,
   type AndesDatePickerSize,
   type AndesDatePickerStatus,
+  type AndesDatePickerType,
   type AndesDatePickerValue,
   type AndesDatePickerVariant,
+  type AndesTimeDisabledFn,
   type AndesTimeOptions,
 } from './date-picker';
 
@@ -188,6 +197,7 @@ class NgModelHost {
       [format]="format()"
       [placeholder]="placeholder()"
       [allowClear]="allowClear()"
+      [clearLabel]="clearLabel()"
       [size]="size()"
       [status]="status()"
       [variant]="variant()"
@@ -227,6 +237,7 @@ class FeatureHost {
     undefined,
   );
   readonly allowClear = signal(true);
+  readonly clearLabel = signal('Clear');
   readonly size = signal<AndesDatePickerSize>('md');
   readonly status = signal<AndesDatePickerStatus | null>(null);
   readonly variant = signal<AndesDatePickerVariant>('outlined');
@@ -243,6 +254,65 @@ class FeatureHost {
   readonly calendarChanges: (readonly [Date | null, Date | null])[] = [];
   clears = 0;
   oks = 0;
+}
+
+/** Host for value binding, time-only picking and the panel hooks. */
+@Component({
+  imports: [AndesDatePicker, NgTemplateOutlet],
+  template: `
+    <button type="button" id="outside">Outside</button>
+    <ng-template #clear><span class="custom-clear">x</span></ng-template>
+    <ng-template #previous><span class="custom-previous">p</span></ng-template>
+    <ng-template #wrap let-content>
+      <div class="custom-wrap">
+        <p class="custom-heading">Pick one</p>
+        <ng-container [ngTemplateOutlet]="content" />
+      </div>
+    </ng-template>
+    <andes-date-picker
+      [(value)]="value"
+      [mode]="mode()"
+      [picker]="pickerType()"
+      locale="en-US"
+      [defaultMonth]="defaultMonth"
+      [showTime]="showTime()"
+      [needConfirm]="needConfirm()"
+      [timeDisabled]="timeDisabled()"
+      [dateDisabled]="dateDisabled()"
+      [order]="order()"
+      [preserveInvalidOnBlur]="preserveInvalidOnBlur()"
+      [previewValue]="previewValue()"
+      [presets]="presets()"
+      [panelView]="panelView()"
+      [clearIcon]="useTemplates() ? clearTemplate() : null"
+      [previousIcon]="useTemplates() ? previousTemplate() : null"
+      [panelTemplate]="useTemplates() ? wrapTemplate() : null"
+      (valueChange)="values.push($event)"
+    />
+  `,
+})
+class CompletenessHost {
+  readonly picker = viewChild.required(AndesDatePicker);
+  readonly clearTemplate = viewChild.required<TemplateRef<unknown>>('clear');
+  readonly previousTemplate =
+    viewChild.required<TemplateRef<unknown>>('previous');
+  readonly wrapTemplate =
+    viewChild.required<TemplateRef<AndesDatePickerPanelContext>>('wrap');
+  readonly value = signal<AndesDatePickerValue | undefined>(undefined);
+  readonly mode = signal<'single' | 'range'>('single');
+  readonly pickerType = signal<AndesDatePickerType>('date');
+  readonly defaultMonth = d(2024, 2, 1);
+  readonly showTime = signal<AndesTimeOptions | boolean | null>(null);
+  readonly needConfirm = signal<boolean | undefined>(undefined);
+  readonly timeDisabled = signal<AndesTimeDisabledFn | null>(null);
+  readonly dateDisabled = signal<AndesDateDisabledFn | null>(null);
+  readonly order = signal(true);
+  readonly preserveInvalidOnBlur = signal(false);
+  readonly previewValue = signal<AndesDatePickerPreview>('hover');
+  readonly presets = signal<readonly AndesDatePickerPreset[]>([]);
+  readonly panelView = signal<AndesCalendarView | null>(null);
+  readonly useTemplates = signal(false);
+  readonly values: AndesDatePickerValue[] = [];
 }
 
 describe('AndesDatePicker', () => {
@@ -1187,7 +1257,36 @@ describe('AndesDatePicker', () => {
         view.fixture.detectChanges();
 
         expect(clearButton()?.getAttribute('aria-label')).toBe('Clear');
-        expect(clearButton()?.tabIndex).toBe(-1);
+        // A Tab stop of its own, like the clear button of every other field.
+        expect(clearButton()?.hasAttribute('tabindex')).toBe(false);
+        expect(clearButton()?.tabIndex).toBe(0);
+
+        view.host.clearLabel.set('Borrar');
+        view.fixture.detectChanges();
+        expect(clearButton()?.getAttribute('aria-label')).toBe('Borrar');
+      });
+
+      it('keeps a mouse press from moving focus, and hands focus back to the text after clearing', () => {
+        const view = createFeature();
+        view.host.control.setValue(d(2024, 2, 15));
+        view.fixture.detectChanges();
+        const clearButton = view.root.querySelector<HTMLButtonElement>(
+          '[data-slot="date-picker-clear"]',
+        ) as HTMLButtonElement;
+
+        const press = new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+        });
+        clearButton.dispatchEvent(press);
+        expect(press.defaultPrevented).toBe(true);
+
+        clearButton.focus();
+        clearButton.click();
+        view.fixture.detectChanges();
+
+        expect(view.host.control.value).toBeNull();
+        expect(document.activeElement).toBe(view.trigger());
       });
 
       it('clears the value, emits clear and does not open the panel', () => {
@@ -1249,6 +1348,15 @@ describe('AndesDatePicker', () => {
           kind: 'anchored',
           side: 'top',
           align: 'end',
+        });
+      });
+
+      it('keeps the panel above or below the field, never beside it', () => {
+        const view = createFeature((host) => host.placement.set('bottomRight'));
+
+        expect(view.host.picker().overlay.config().positioning).toMatchObject({
+          side: 'bottom',
+          crossSideFallback: false,
         });
       });
 
@@ -1547,6 +1655,507 @@ describe('AndesDatePicker', () => {
         view.clickIn('[data-date="2024-10-01"]');
 
         expect(view.trigger().value).toBe('2024-Q4');
+      });
+    });
+  });
+
+  describe('feature completeness', () => {
+    function createComplete(
+      setup: (host: CompletenessHost) => void = () => undefined,
+    ) {
+      const fixture = TestBed.createComponent(CompletenessHost);
+      setup(fixture.componentInstance);
+      fixture.detectChanges();
+      const view = harness(fixture);
+      const panelQuery = <T extends HTMLElement>(selector: string) =>
+        view.panel()?.querySelector<T>(selector) ?? null;
+      return {
+        ...view,
+        host: fixture.componentInstance,
+        panelQuery,
+        typeInto: (input: HTMLInputElement, text: string) => {
+          input.value = text;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          fixture.detectChanges();
+        },
+        keydown: (element: HTMLElement, key: string) => {
+          element.dispatchEvent(
+            new KeyboardEvent('keydown', { key, bubbles: true }),
+          );
+          fixture.detectChanges();
+        },
+        press: (selector: string) => {
+          const element = panelQuery(selector);
+          if (!element) {
+            throw new Error(`Nothing in the panel matches ${selector}`);
+          }
+          element.dispatchEvent(
+            new MouseEvent('mousedown', { bubbles: true, button: 0 }),
+          );
+          fixture.detectChanges();
+        },
+        clickOk: () => {
+          panelQuery<HTMLElement>(
+            '[data-slot="date-picker-ok"] button',
+          )?.click();
+          fixture.detectChanges();
+        },
+        hover: (element: Element | null, type = 'mouseenter') => {
+          element?.dispatchEvent(new MouseEvent(type));
+          fixture.detectChanges();
+        },
+        blurTo: (element: HTMLElement | null) => {
+          view.root
+            .querySelector('[data-slot="date-picker-trigger"]')
+            ?.dispatchEvent(
+              new FocusEvent('focusout', {
+                bubbles: true,
+                relatedTarget: element,
+              }),
+            );
+          fixture.detectChanges();
+        },
+      };
+    }
+
+    const hm = (date: Date) => [date.getHours(), date.getMinutes()];
+
+    describe('[(value)]', () => {
+      it('shows a bound value and writes picks back to it', () => {
+        const view = createComplete((host) => host.value.set(d(2024, 2, 15)));
+        expect(view.trigger().value).toBe('Feb 15, 2024');
+
+        view.openPanel();
+        view.clickDay(d(2024, 2, 20));
+
+        expect(toDateKey(view.host.value() as Date)).toBe('2024-02-20');
+        expect(view.trigger().value).toBe('Feb 20, 2024');
+
+        view.host.value.set(d(2024, 2, 3));
+        view.fixture.detectChanges();
+        expect(view.trigger().value).toBe('Feb 3, 2024');
+      });
+
+      it('keeps a half-picked range while the bound value is still null', () => {
+        const view = createComplete((host) => {
+          host.mode.set('range');
+          host.value.set(null);
+        });
+        view.openPanel();
+
+        view.clickDay(d(2024, 2, 10));
+        expect(view.host.value()).toBeNull();
+        expect(view.inputs()[0].value).toBe('Feb 10, 2024');
+
+        view.clickDay(d(2024, 2, 14));
+        expect((view.host.value() as readonly Date[]).map(toDateKey)).toEqual([
+          '2024-02-10',
+          '2024-02-14',
+        ]);
+      });
+    });
+
+    describe('focus() and blur()', () => {
+      it('focuses the input and leaves the picker, closing the panel', () => {
+        const view = createComplete();
+
+        view.host.picker().focus();
+        expect(document.activeElement).toBe(view.trigger());
+
+        view.openPanel();
+        view.host.picker().blur();
+        view.fixture.detectChanges();
+
+        expect(document.activeElement).not.toBe(view.trigger());
+        expect(view.panel()).toBeFalsy();
+      });
+    });
+
+    describe('templates', () => {
+      it('renders clearIcon, calendar icons and a panelTemplate wrapper', () => {
+        const view = createComplete((host) => {
+          host.useTemplates.set(true);
+          host.value.set(d(2024, 2, 15));
+        });
+
+        expect(
+          view.root.querySelector(
+            '[data-slot="date-picker-clear"] .custom-clear',
+          ),
+        ).toBeTruthy();
+
+        view.openPanel();
+        // The wrapper sits inside the panel and renders the content it was given.
+        expect(view.panelQuery('.custom-wrap .custom-heading')).toBeTruthy();
+        expect(view.panelQuery('.custom-wrap andes-calendar')).toBeTruthy();
+        expect(
+          view.panelQuery('[data-slot="calendar-previous"] .custom-previous'),
+        ).toBeTruthy();
+
+        // Picking still works through the wrapper.
+        view.clickDay(d(2024, 2, 20));
+        expect(toDateKey(view.host.value() as Date)).toBe('2024-02-20');
+      });
+
+      it('opens the calendar on panelView', () => {
+        const view = createComplete((host) => host.panelView.set('month'));
+        view.openPanel();
+
+        expect(
+          view.panelQuery('andes-calendar')?.getAttribute('data-view'),
+        ).toBe('month');
+      });
+    });
+
+    describe('dateDisabled', () => {
+      it('receives the range start while the end is typed', () => {
+        const froms: (string | null)[] = [];
+        const view = createComplete((host) => {
+          host.mode.set('range');
+          host.dateDisabled.set((date, info) => {
+            froms.push(info.from ? toDateKey(info.from) : null);
+            return (
+              !!info.from &&
+              date.getTime() - info.from.getTime() > 7 * 86_400_000
+            );
+          });
+        });
+
+        view.typeInto(view.inputs()[0], '2024-02-10');
+        view.keydown(view.inputs()[0], 'Enter');
+        view.typeInto(view.inputs()[1], '2024-02-25');
+        view.keydown(view.inputs()[1], 'Enter');
+
+        expect(froms).toContain('2024-02-10');
+        // Too far from the start: rejected, so the range is still open.
+        expect(view.host.value() ?? null).toBeNull();
+      });
+    });
+
+    describe('timeDisabled', () => {
+      const officeHours: AndesTimeDisabledFn = () => ({
+        disabledHours: () => [
+          0, 1, 2, 3, 4, 5, 6, 7, 8, 18, 19, 20, 21, 22, 23,
+        ],
+        disabledMinutes: (hour) => (hour === 17 ? [45] : []),
+      });
+
+      it('lists ruled-out options as disabled and skips them', () => {
+        const view = createComplete((host) => {
+          host.showTime.set(true);
+          host.timeDisabled.set(officeHours);
+        });
+        view.openPanel();
+        view.clickDay(d(2024, 2, 15));
+
+        const hour = (value: number) =>
+          view.panelQuery(`[data-unit="hours"] [id$="-hours-${value}"]`);
+        expect(hour(8)?.getAttribute('aria-disabled')).toBe('true');
+        expect(hour(9)?.getAttribute('aria-disabled')).toBeNull();
+
+        // Midnight is ruled out, so OK waits for an allowed time.
+        const ok = () =>
+          view.panelQuery<HTMLButtonElement>(
+            '[data-slot="date-picker-ok"] button',
+          );
+        expect(ok()?.disabled).toBe(true);
+
+        view.press('[data-unit="hours"] [id$="-hours-8"]');
+        expect(hour(8)?.getAttribute('aria-selected')).toBe('false');
+
+        // From midnight, ArrowDown jumps over the ruled-out hours to 9.
+        view.keydown(
+          view.panelQuery('[data-unit="hours"]') as HTMLElement,
+          'ArrowDown',
+        );
+        expect(hour(9)?.getAttribute('aria-selected')).toBe('true');
+
+        view.press('[data-unit="hours"] [id$="-hours-17"]');
+        expect(
+          view
+            .panelQuery('[data-unit="minutes"] [id$="-minutes-45"]')
+            ?.getAttribute('aria-disabled'),
+        ).toBe('true');
+
+        view.clickOk();
+        expect(hm(view.host.value() as Date)).toEqual([17, 0]);
+      });
+
+      it('hides ruled-out options with hideDisabledOptions', () => {
+        const view = createComplete((host) => {
+          host.showTime.set({ hideDisabledOptions: true });
+          host.timeDisabled.set(officeHours);
+          host.value.set(new Date(2024, 1, 15, 10, 0));
+        });
+        view.openPanel();
+
+        const hours = Array.from(
+          view
+            .panel()
+            ?.querySelectorAll('[data-unit="hours"] [role="option"]') ?? [],
+        ).map((option) => option.textContent?.trim());
+        expect(hours).toEqual([
+          '09',
+          '10',
+          '11',
+          '12',
+          '13',
+          '14',
+          '15',
+          '16',
+          '17',
+        ]);
+      });
+
+      it('rejects a typed time it rules out', () => {
+        const view = createComplete((host) => {
+          host.showTime.set(true);
+          host.timeDisabled.set(officeHours);
+        });
+
+        view.typeInto(view.trigger(), '2024-02-15 07:00');
+        view.keydown(view.trigger(), 'Enter');
+        expect(view.host.value() ?? null).toBeNull();
+
+        view.typeInto(view.trigger(), '2024-02-15 10:00');
+        view.keydown(view.trigger(), 'Enter');
+        expect(hm(view.host.value() as Date)).toEqual([10, 0]);
+      });
+    });
+
+    describe('showTime options', () => {
+      it('uses a 12-hour clock with an AM/PM column', () => {
+        const view = createComplete((host) =>
+          host.showTime.set({ use12Hours: true }),
+        );
+        view.openPanel();
+        view.clickDay(d(2024, 2, 15));
+
+        const texts = (unit: string) =>
+          Array.from(
+            view
+              .panel()
+              ?.querySelectorAll(`[data-unit="${unit}"] [role="option"]`) ?? [],
+          ).map((option) => option.textContent?.trim());
+        expect(texts('hours').slice(0, 3)).toEqual(['12', '01', '02']);
+        expect(texts('hours')).toHaveLength(12);
+        expect(texts('meridiem')).toEqual(['AM', 'PM']);
+
+        view.press('[data-unit="hours"] [id$="-hours-3"]');
+        view.press('[data-unit="meridiem"] [id$="-meridiem-12"]');
+        view.clickOk();
+
+        expect(hm(view.host.value() as Date)).toEqual([15, 0]);
+        expect(view.trigger().value).toBe('Feb 15, 2024, 3:00 PM');
+      });
+
+      it('starts a picked date at defaultTime', () => {
+        const view = createComplete((host) =>
+          host.showTime.set({ defaultTime: new Date(2000, 0, 1, 9, 30) }),
+        );
+        view.openPanel();
+
+        view.clickDay(d(2024, 2, 15));
+        view.clickOk();
+
+        expect(hm(view.host.value() as Date)).toEqual([9, 30]);
+      });
+
+      it('starts each side of a range at its own defaultTime', () => {
+        const view = createComplete((host) => {
+          host.mode.set('range');
+          host.showTime.set({
+            defaultTime: [
+              new Date(2000, 0, 1, 9, 0),
+              new Date(2000, 0, 1, 18, 0),
+            ],
+          });
+        });
+        view.openPanel();
+
+        view.clickDay(d(2024, 2, 12));
+        view.clickDay(d(2024, 2, 16));
+        view.clickOk();
+
+        expect((view.host.value() as readonly Date[]).map(hm)).toEqual([
+          [9, 0],
+          [18, 0],
+        ]);
+      });
+    });
+
+    describe('picker="time"', () => {
+      it('shows time columns without a calendar and selects a time', () => {
+        const view = createComplete((host) => host.pickerType.set('time'));
+        expect(view.trigger().placeholder).toBe('Select a time');
+
+        view.openPanel();
+        expect(view.panelQuery('andes-calendar')).toBeNull();
+        expect(view.panel()?.getAttribute('aria-label')).toBe('Choose a time');
+
+        view.press('[data-unit="hours"] [id$="-hours-14"]');
+        view.press('[data-unit="minutes"] [id$="-minutes-30"]');
+        view.clickOk();
+
+        const value = view.host.value() as Date;
+        expect(hm(value)).toEqual([14, 30]);
+        expect(toDateKey(value)).toBe(toDateKey(new Date()));
+        expect(view.trigger().value).toBe('02:30 PM');
+      });
+
+      it('parses a typed time onto the day it already holds', () => {
+        const view = createComplete((host) => {
+          host.pickerType.set('time');
+          host.value.set(new Date(2024, 1, 15, 8, 0));
+        });
+
+        view.typeInto(view.trigger(), '14:45');
+        view.keydown(view.trigger(), 'Enter');
+
+        const value = view.host.value() as Date;
+        expect(toDateKey(value)).toBe('2024-02-15');
+        expect(hm(value)).toEqual([14, 45]);
+      });
+
+      it('confirms a time range side by side', () => {
+        const view = createComplete((host) => {
+          host.pickerType.set('time');
+          host.mode.set('range');
+        });
+        view.openPanel();
+
+        view.press('[data-unit="hours"] [id$="-hours-9"]');
+        view.clickOk();
+        // The first OK moves on to the end instead of closing.
+        expect(view.panel()).toBeTruthy();
+        expect(view.inputs()[1].hasAttribute('data-active')).toBe(true);
+
+        view.press('[data-unit="hours"] [id$="-hours-17"]');
+        view.clickOk();
+
+        expect((view.host.value() as readonly Date[]).map(hm)).toEqual([
+          [9, 0],
+          [17, 0],
+        ]);
+        expect(view.panel()).toBeFalsy();
+      });
+
+      it('keeps a range crossing midnight in its order with order off', () => {
+        const night = (hour: number) => new Date(2024, 1, 15, hour, 0);
+        const view = createComplete((host) => {
+          host.pickerType.set('time');
+          host.mode.set('range');
+          host.order.set(false);
+          host.value.set([night(22), night(6)]);
+        });
+        expect(view.inputs().map((input) => input.value)).toEqual([
+          '10:00 PM',
+          '06:00 AM',
+        ]);
+
+        view.typeInto(view.inputs()[1], '05:00');
+        view.keydown(view.inputs()[1], 'Enter');
+
+        expect((view.host.value() as readonly Date[]).map(hm)).toEqual([
+          [22, 0],
+          [5, 0],
+        ]);
+      });
+
+      it('orders a reversed time range by default', () => {
+        const view = createComplete((host) => {
+          host.pickerType.set('time');
+          host.mode.set('range');
+          host.value.set([
+            new Date(2024, 1, 15, 22, 0),
+            new Date(2024, 1, 15, 6, 0),
+          ]);
+        });
+
+        expect(view.inputs().map((input) => input.value)).toEqual([
+          '06:00 AM',
+          '10:00 PM',
+        ]);
+      });
+    });
+
+    describe('preserveInvalidOnBlur', () => {
+      it('restores the value on blur by default', () => {
+        const view = createComplete((host) => host.value.set(d(2024, 2, 15)));
+
+        view.typeInto(view.trigger(), 'not a date');
+        view.blurTo(view.root.querySelector<HTMLElement>('#outside'));
+
+        expect(view.trigger().value).toBe('Feb 15, 2024');
+      });
+
+      it('keeps unparseable text in the input, leaving the value alone', () => {
+        const view = createComplete((host) => {
+          host.value.set(d(2024, 2, 15));
+          host.preserveInvalidOnBlur.set(true);
+        });
+        view.openPanel();
+
+        view.typeInto(view.trigger(), 'Feb 31, 2024');
+        view.blurTo(view.root.querySelector<HTMLElement>('#outside'));
+
+        expect(view.panel()).toBeFalsy();
+        expect(view.trigger().value).toBe('Feb 31, 2024');
+        expect(toDateKey(view.host.value() as Date)).toBe('2024-02-15');
+        expect(view.host.values).toEqual([]);
+      });
+    });
+
+    describe('previewValue', () => {
+      const presets: readonly AndesDatePickerPreset[] = [
+        { label: 'Early Feb', value: [d(2024, 2, 1), d(2024, 2, 7)] },
+      ];
+
+      it('previews a hovered day and preset in the inputs', () => {
+        const view = createComplete((host) => {
+          host.mode.set('range');
+          host.presets.set(presets);
+        });
+        view.openPanel();
+
+        view.hover(view.day(d(2024, 2, 9)));
+        expect(view.inputs()[0].value).toBe('Feb 9, 2024');
+        expect(view.inputs()[0].hasAttribute('data-preview')).toBe(true);
+
+        view.hover(view.panelQuery('[role="grid"]'), 'mouseleave');
+        expect(view.inputs()[0].value).toBe('');
+
+        const preset = view.panelQuery('.andes-date-picker__preset');
+        view.hover(preset);
+        expect(view.inputs().map((input) => input.value)).toEqual([
+          'Feb 1, 2024',
+          'Feb 7, 2024',
+        ]);
+        view.hover(preset, 'mouseleave');
+        expect(view.inputs().map((input) => input.value)).toEqual(['', '']);
+        expect(view.host.value() ?? null).toBeNull();
+      });
+
+      it('previews the end once the start is picked', () => {
+        const view = createComplete((host) => host.mode.set('range'));
+        view.openPanel();
+        view.clickDay(d(2024, 2, 5));
+
+        view.hover(view.day(d(2024, 2, 9)));
+
+        expect(view.inputs().map((input) => input.value)).toEqual([
+          'Feb 5, 2024',
+          'Feb 9, 2024',
+        ]);
+      });
+
+      it('can be turned off', () => {
+        const view = createComplete((host) => host.previewValue.set(false));
+        view.openPanel();
+
+        view.hover(view.day(d(2024, 2, 9)));
+
+        expect(view.trigger().value).toBe('');
       });
     });
   });
