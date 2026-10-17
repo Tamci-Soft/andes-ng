@@ -83,8 +83,8 @@
 }
 
 .andes-ribbon--success {
-  --andes-ribbon-bg: var(--andes-color-success-active);
-  --andes-ribbon-fg: var(--andes-color-background);
+  --andes-ribbon-bg: var(--andes-color-success);
+  --andes-ribbon-fg: var(--andes-color-success-foreground);
 }
 
 .andes-ribbon--warning {
@@ -93,8 +93,8 @@
 }
 
 .andes-ribbon--info {
-  --andes-ribbon-bg: var(--andes-color-info-active);
-  --andes-ribbon-fg: var(--andes-color-background);
+  --andes-ribbon-bg: var(--andes-color-info);
+  --andes-ribbon-fg: var(--andes-color-info-foreground);
 }
 
 /* Arbitrary CSS color - black/white text via the CIE L* threshold explained in badge.css. */
