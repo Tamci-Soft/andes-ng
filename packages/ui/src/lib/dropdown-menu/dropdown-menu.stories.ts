@@ -176,7 +176,7 @@ export const KeyboardNavigation: Story = {
     },
     template: `
       <div>
-        <p style="font: 0.875rem system-ui; color: #64748b; margin-bottom: 0.5rem;">
+        <p style="font: 0.875rem system-ui; color: var(--andes-color-muted-foreground); margin-bottom: 0.5rem;">
           Open with Enter/Space/ArrowDown/ArrowUp, navigate with the arrow keys, type
           to jump to an item, Escape to close and return focus to the trigger.
         </p>
@@ -205,7 +205,7 @@ const ICONS = provideIcons({
 });
 
 const NOTE =
-  'font: 0.8125rem system-ui; color: #64748b; margin: 0 0 0.75rem; max-width: 34rem;';
+  'font: 0.8125rem system-ui; color: var(--andes-color-muted-foreground); margin: 0 0 0.75rem; max-width: 34rem;';
 
 /**
  * Nested submenus. Hover a "…" row (after a 100ms intent delay), click it, or focus it

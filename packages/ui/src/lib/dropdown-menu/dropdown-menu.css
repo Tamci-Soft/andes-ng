@@ -218,6 +218,20 @@
   font-weight: var(--andes-font-weight-medium);
 }
 
+/*
+ * On the darker accent-hover fill the plain primary text drops just under 4.5:1 in both
+ * themes (4.17:1 light, 4.07:1 dark), so a selected row that is also hovered/focused
+ * pulls its blue a step towards the foreground - still visibly "the selected one".
+ */
+.andes-dropdown-menu__item[data-selected]:hover:not([data-disabled]),
+.andes-dropdown-menu__item[data-selected][data-active]:not([data-disabled]) {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-primary-text) 75%,
+    var(--andes-color-foreground)
+  );
+}
+
 .andes-dropdown-menu__group {
   display: flex;
   flex-direction: column;
@@ -245,12 +259,28 @@
   color: var(--andes-color-muted-foreground);
 }
 
+/*
+ * Same reason as the ng-icon rule above, and the muted shortcut/extra hints hit it too:
+ * on the accent-hover fill they drop to ~3.8:1 (light) / ~4:1 (dark).
+ */
 .andes-dropdown-menu__item:hover:not([data-disabled])
-  .andes-dropdown-menu__item-icon,
+  :is(
+    .andes-dropdown-menu__item-icon,
+    .andes-dropdown-menu__shortcut,
+    .andes-dropdown-menu__extra
+  ),
 .andes-dropdown-menu__item[data-active]:not([data-disabled])
-  .andes-dropdown-menu__item-icon,
+  :is(
+    .andes-dropdown-menu__item-icon,
+    .andes-dropdown-menu__shortcut,
+    .andes-dropdown-menu__extra
+  ),
 .andes-dropdown-menu__item[data-variant='destructive']
-  .andes-dropdown-menu__item-icon {
+  :is(
+    .andes-dropdown-menu__item-icon,
+    .andes-dropdown-menu__shortcut,
+    .andes-dropdown-menu__extra
+  ) {
   color: inherit;
 }
 
