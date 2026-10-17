@@ -147,3 +147,31 @@ describe('AndesCheckableTagGroup', () => {
     ).toBe('true');
   });
 });
+
+describe('AndesCheckableTagGroup option icon and className', () => {
+  @Component({
+    imports: [AndesCheckableTagGroup],
+    template: `<ng-template #icon><i class="opt-icon">i</i></ng-template>
+      <andes-checkable-tag-group
+        aria-label="Categories"
+        [options]="[
+          { value: 'a', label: 'Alpha', icon: icon, className: 'is-alpha' },
+          { value: 'b', label: 'Beta' },
+        ]"
+      />`,
+  })
+  class OptionHost {}
+
+  it('passes each option icon to its tag and its className to the tag host', () => {
+    const fixture = TestBed.createComponent(OptionHost);
+    fixture.detectChanges();
+    const hosts = Array.from(
+      fixture.nativeElement.querySelectorAll('andes-tag'),
+    ) as HTMLElement[];
+
+    expect(hosts[0].classList).toContain('is-alpha');
+    expect(hosts[0].querySelector('.opt-icon')).toBeTruthy();
+    expect(hosts[1].querySelector('.opt-icon')).toBeNull();
+    expect(hosts[0].textContent?.trim()).toBe('iAlpha');
+  });
+});

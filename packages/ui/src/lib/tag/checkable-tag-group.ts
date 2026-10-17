@@ -5,6 +5,7 @@ import {
   computed,
   input,
   model,
+  TemplateRef,
 } from '@angular/core';
 
 import { AndesTag } from './tag';
@@ -15,6 +16,10 @@ export interface AndesCheckableTagOption {
   readonly value: AndesCheckableTagValue;
   readonly label: string;
   readonly disabled?: boolean;
+  /** Leading icon, passed through to the tag's `icon` input. */
+  readonly icon?: TemplateRef<unknown>;
+  /** Extra class(es) for this option's `andes-tag` host - a per-option styling hook. */
+  readonly className?: string;
 }
 
 /**
@@ -55,7 +60,7 @@ export class AndesCheckableTagGroup {
   readonly value = model<AndesCheckableTagGroupValue>(null);
 
   protected readonly normalizedOptions = computed(() =>
-    this.options().map((option) =>
+    this.options().map((option): AndesCheckableTagOption =>
       typeof option === 'object'
         ? option
         : { value: option, label: String(option) },

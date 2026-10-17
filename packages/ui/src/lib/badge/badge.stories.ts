@@ -1,7 +1,11 @@
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideBell, lucideClock } from '@ng-icons/lucide';
+import { lucideBell, lucideClock, lucideMinus } from '@ng-icons/lucide';
 import type { Meta, StoryObj } from '@storybook/angular';
 
+import { signal } from '@angular/core';
+
+import { AndesButton } from '../button/button';
+import { ANDES_PALETTE_COLORS } from '../palette/palette';
 import { AndesBadge } from './badge';
 
 const meta: Meta<AndesBadge> = {
@@ -238,5 +242,137 @@ export const CustomCountTemplate: Story = {
         <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div>
       </andes-badge>
     `,
+  }),
+};
+
+const box = `<div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div>`;
+
+/**
+ * Live updates: a changed count rolls into place, and the badge zooms in when it appears and
+ * out when it hides (count back to 0). Nothing animates on first render, and nothing at all
+ * under `prefers-reduced-motion`. The dot follows the same count: it hides at 0.
+ */
+export const Dynamic: Story = {
+  render: () => {
+    const count = signal(5);
+    const dot = signal(true);
+    return {
+      moduleMetadata: {
+        imports: [AndesButton, NgIcon],
+        providers: [provideIcons({ lucideMinus })],
+      },
+      props: {
+        count,
+        dot,
+        decrement: () => count.update((value) => Math.max(0, value - 1)),
+        increment: () => count.update((value) => value + 1),
+        random: () => count.set(Math.floor(Math.random() * 120)),
+      },
+      template: `
+        <div style="display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-start;">
+          <div style="display: flex; gap: 2rem; align-items: center;">
+            <andes-badge [count]="count()">${box}</andes-badge>
+            <andes-badge [count]="count()" [dot]="dot()">${box}</andes-badge>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <andes-button variant="outline" size="icon-sm" aria-label="Decrease" (click)="decrement()"><ng-icon name="lucideMinus" /></andes-button>
+            <andes-button variant="outline" size="icon-sm" aria-label="Increase" (click)="increment()"><ng-icon name="lucidePlus" /></andes-button>
+            <andes-button variant="outline" size="sm" (click)="random()">Random</andes-button>
+            <andes-button variant="ghost" size="sm" (click)="dot.set(!dot())">Toggle dot</andes-button>
+          </div>
+        </div>
+      `,
+    };
+  },
+};
+
+/**
+ * Named palette hues, themed for light and dark. Standalone with no count, a color renders a
+ * plain colored dot beside its `text`; with a count, the bubble takes the hue and picks black
+ * or white text from its lightness.
+ */
+export const PaletteColors: Story = {
+  render: () => ({
+    props: { palette: ANDES_PALETTE_COLORS },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(4, max-content); gap: 0.5rem 2rem;">
+          @for (color of palette; track color) {
+            <andes-badge standalone [color]="color" [text]="color" />
+          }
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+          @for (color of palette; track color) {
+            <andes-badge standalone [color]="color" [count]="12" />
+          }
+        </div>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `count` also takes a short string, shown as-is (a numeric string still counts as a number),
+ * and `standalone` renders the bubble inline - e.g. next to a menu label.
+ */
+export const StringAndStandaloneCounts: Story = {
+  render: () => ({
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div style="display: flex; gap: 2rem; align-items: center;">
+          <andes-badge count="new" color="green">${box}</andes-badge>
+          <andes-badge count="!" variant="warning">${box}</andes-badge>
+          <andes-badge count="250">${box}</andes-badge>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <andes-badge standalone [count]="25" />
+          <andes-badge standalone [count]="4" variant="secondary" />
+          <andes-badge standalone [count]="109" color="indigo" />
+          <andes-badge standalone [count]="0" showZero variant="success" />
+        </div>
+      </div>
+    `,
+  }),
+};
+
+/** A badge wraps any element - here a link, which stays fully clickable under the badge. */
+export const OnLink: Story = {
+  render: () => ({
+    template: `
+      <a href="#inbox" style="display: inline-block; border-radius: 0.5rem;" aria-label="Inbox, 5 unread">
+        <andes-badge [count]="5">${box}</andes-badge>
+      </a>
+    `,
+  }),
+};
+
+const severityRow = (
+  ['primary', 'danger', 'success', 'warning', 'info'] as const
+)
+  .map(
+    (variant) =>
+      `<andes-badge [count]="8" variant="${variant}"><div style="width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--andes-color-muted);"></div></andes-badge>`,
+  )
+  .join('');
+
+const themePanel = (theme: 'light' | 'dark') =>
+  `<div ${theme === 'dark' ? 'data-andes-theme="dark"' : ''} style="display: flex; flex-direction: column; gap: 1.25rem; padding: 1.5rem; border: 1px solid var(--andes-color-border); border-radius: var(--andes-radius-lg); background: var(--andes-color-background); color: var(--andes-color-foreground);">
+    <div style="display: flex; gap: 1.5rem;">${severityRow}</div>
+    <div style="display: flex; gap: 1.25rem; font-size: 0.875rem;">
+      <andes-badge status="default" text="Default" />
+      <andes-badge [dot]="true" variant="secondary" [standalone]="true" [count]="1" text="Secondary" />
+      <andes-badge status="success" text="Success" />
+      <andes-badge status="warning" text="Warning" />
+    </div>
+  </div>`;
+
+/**
+ * Severity counts keep one look across themes: a deep fill with light text (in the dark theme
+ * the base colour is sunk into the page instead of switching to a bright pill). The neutral
+ * dot - `status="default"` and a secondary dot - clears 3:1 on the page in both themes.
+ */
+export const SeverityCountsAcrossThemes: Story = {
+  render: () => ({
+    template: `<div style="display: flex; flex-wrap: wrap; gap: 1rem;">${themePanel('light')}${themePanel('dark')}</div>`,
   }),
 };

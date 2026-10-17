@@ -10,6 +10,11 @@
   selector in the whole component, so the ambiguity can't arise.
 -->
 <ng-template #content>
+  @if (icon(); as iconTemplate) {
+  <span class="andes-tag__icon"
+    ><ng-container [ngTemplateOutlet]="iconTemplate"
+  /></span>
+  }
   <ng-content select="[slot=icon]" />
   <ng-content />
 </ng-template>
@@ -17,11 +22,13 @@
 @if (dismissed()) {
 <!-- hideOnClose: closed and not vetoed - render nothing. -->
 } @else if (isClosable()) {
+<!-- Only this branch can dismiss itself, so only it carries the leave animation. -->
 <span
   #closableTag
   data-slot="tag"
   [class]="classes()"
   [style.--andes-tag-color]="customColor()"
+  animate.leave="andes-tag-leave"
 >
   <ng-container [ngTemplateOutlet]="content" />
   <button

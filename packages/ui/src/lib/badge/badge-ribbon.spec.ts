@@ -115,3 +115,83 @@ describe('AndesBadgeRibbon', () => {
     expect(css).not.toMatch(/font:\s*inherit/);
   });
 });
+
+describe('AndesBadgeRibbon palette colors', () => {
+  it('resolves a palette name to its themed custom property', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.color.set('teal');
+    fixture.detectChanges();
+    const ribbon = fixture.nativeElement.querySelector(
+      '[data-slot="ribbon"]',
+    ) as HTMLElement;
+
+    expect(ribbon.classList).toContain('andes-ribbon--custom');
+    expect(ribbon.style.getPropertyValue('--andes-ribbon-color')).toBe(
+      'var(--_andes-palette-teal)',
+    );
+  });
+});
+
+describe('AndesBadgeRibbon theme colours', () => {
+  const css = readFileSync(
+    join(process.cwd(), 'packages/ui/src/lib/badge/badge-ribbon.css'),
+    'utf8',
+  );
+
+  afterEach(() => document.documentElement.removeAttribute('data-andes-theme'));
+
+  it('shades the fold from theme tokens, never a fixed black', () => {
+    const fold = css.match(/\.andes-ribbon__corner\s*{([^}]*)}/)?.[1] ?? '';
+    expect(fold).not.toMatch(/#000\b|\bblack\b/);
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    const corner = fixture.nativeElement.querySelector(
+      '.andes-ribbon__corner',
+    ) as HTMLElement;
+
+    expect(getComputedStyle(corner).backgroundColor).toContain(
+      'var(--_andes-ribbon-shade)',
+    );
+    const ribbon = corner.parentElement as HTMLElement;
+    expect(
+      getComputedStyle(ribbon).getPropertyValue('--_andes-ribbon-shade'),
+    ).toBe('var(--andes-color-foreground)');
+  });
+
+  it('shades the fold into the dark page in the dark theme', () => {
+    document.documentElement.setAttribute('data-andes-theme', 'dark');
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    const ribbon = fixture.nativeElement.querySelector(
+      '[data-slot="ribbon"]',
+    ) as HTMLElement;
+
+    expect(
+      getComputedStyle(ribbon).getPropertyValue('--_andes-ribbon-shade'),
+    ).toBe('var(--andes-color-background)');
+  });
+
+  it.each(['success', 'warning', 'info'] as const)(
+    'gives a %s ribbon a deep fill with light text in the dark theme',
+    (color) => {
+      document.documentElement.setAttribute('data-andes-theme', 'dark');
+      const fixture = TestBed.createComponent(HostComponent);
+      fixture.componentInstance.color.set(color);
+      fixture.detectChanges();
+      const ribbon = fixture.nativeElement.querySelector(
+        '[data-slot="ribbon"]',
+      ) as HTMLElement;
+      const style = getComputedStyle(ribbon);
+
+      expect(style.getPropertyValue('--andes-ribbon-bg')).toContain(
+        `var(--andes-color-${color})`,
+      );
+      expect(style.getPropertyValue('--andes-ribbon-bg')).toContain(
+        'var(--andes-color-background)',
+      );
+      expect(style.getPropertyValue('--andes-ribbon-fg')).toBe(
+        'var(--andes-color-foreground)',
+      );
+    },
+  );
+});

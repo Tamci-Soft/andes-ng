@@ -822,3 +822,184 @@ describe('AndesTag solid warning variant contrast (WCAG 2.x AA, 4.5:1 for normal
     expect(rule).not.toContain('var(--andes-color-warning-foreground)');
   });
 });
+
+describe('AndesTag metrics and tints', () => {
+  function render(color: AndesTagColor, variant: AndesTagVariant) {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.color.set(color);
+    fixture.componentInstance.variant.set(variant);
+    fixture.detectChanges();
+    return getComputedStyle(
+      fixture.nativeElement.querySelector('[data-slot="tag"]') as HTMLElement,
+    );
+  }
+
+  it('sets its label as a 12px caption on a whole-pixel 20px line, landing on 22px', () => {
+    const style = render('default', 'outlined');
+
+    expect(style.fontSize).toBe('0.75rem');
+    expect(style.lineHeight).toBe('1.25rem');
+    expect(style.getPropertyValue('padding-block')).toBe('0');
+  });
+
+  it('eases its hover and checked colours instead of snapping them', () => {
+    expect(render('primary', 'filled').transition).toContain(
+      'background-color var(--andes-motion-duration-fast',
+    );
+  });
+
+  it('gives a filled tag the tinted border AndesAlert uses, mixed from the warning -hover accent', () => {
+    // jsdom doesn't parse color-mix() border colors, so this reads the declared rule.
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/tag/tag.css'),
+      'utf8',
+    );
+    const rule =
+      css.match(
+        /\.andes-tag--color-warning\.andes-tag--filled\s*{([^}]*)}/,
+      )?.[1] ?? '';
+
+    expect(rule).toMatch(
+      /border-color:\s*color-mix\([^;]*var\(--andes-color-warning-hover\) 35%/,
+    );
+  });
+});
+
+describe('AndesTag palette and status colors', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<andes-tag [color]="color()" [variant]="variant()"
+      >Tag</andes-tag
+    >`,
+  })
+  class PaletteHost {
+    readonly color = signal<AndesTagColor>('magenta');
+    readonly variant = signal<AndesTagVariant>('outlined');
+  }
+
+  function create(color: AndesTagColor, variant: AndesTagVariant) {
+    const fixture = TestBed.createComponent(PaletteHost);
+    fixture.componentInstance.color.set(color);
+    fixture.componentInstance.variant.set(variant);
+    fixture.detectChanges();
+    return fixture.nativeElement.querySelector(
+      '[data-slot="tag"]',
+    ) as HTMLElement;
+  }
+
+  it.each(['outlined', 'filled', 'solid'] as const)(
+    'feeds a palette name through the custom-color path as its themed custom property (%s)',
+    (variant) => {
+      const tag = create('magenta', variant);
+
+      expect(tag.classList).toContain('andes-tag--color-custom');
+      expect(tag.style.getPropertyValue('--andes-tag-color')).toBe(
+        'var(--_andes-palette-magenta)',
+      );
+      expect(tag.classList.contains('andes-tag--custom-tinted')).toBe(
+        variant !== 'solid',
+      );
+    },
+  );
+
+  it.each([
+    ['processing', 'info'],
+    ['error', 'danger'],
+  ] as const)(
+    'styles the %s status alias as the %s preset',
+    (alias, preset) => {
+      const tag = create(alias, 'filled');
+
+      expect(tag.classList).toContain(`andes-tag--color-${preset}`);
+      expect(tag.classList).not.toContain('andes-tag--color-custom');
+      expect(tag.style.getPropertyValue('--andes-tag-color')).toBe('');
+    },
+  );
+});
+
+describe('AndesTag icon input', () => {
+  @Component({
+    imports: [AndesTag],
+    template: `<ng-template #star><i class="tpl-icon">T</i></ng-template>
+      <andes-tag [icon]="star" [checkable]="checkable()"
+        ><span slot="icon" class="slot-icon">S</span>Label</andes-tag
+      >`,
+  })
+  class IconInputHost {
+    readonly checkable = signal(false);
+  }
+
+  it.each([false, true])(
+    'renders the template icon before any slot=icon content (checkable: %s)',
+    (checkable) => {
+      const fixture = TestBed.createComponent(IconInputHost);
+      fixture.componentInstance.checkable.set(checkable);
+      fixture.detectChanges();
+      const tag = fixture.nativeElement.querySelector(
+        '[data-slot="tag"]',
+      ) as HTMLElement;
+
+      expect(tag.querySelector('.andes-tag__icon .tpl-icon')).toBeTruthy();
+      expect(tag.textContent?.replace(/\s+/g, '')).toBe('TSLabel');
+    },
+  );
+});
+
+describe('AndesTag motion hooks', () => {
+  const css = () =>
+    readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/tag/tag.css'),
+      'utf8',
+    );
+
+  it('styles the enter/leave classes on the host for animate.enter/animate.leave', () => {
+    expect(css()).toContain(':host(.andes-tag-enter) {');
+    expect(css()).toMatch(
+      /:host\(\.andes-tag-leave\),\s*\.andes-tag\.andes-tag-leave {/,
+    );
+  });
+
+  it('enters and leaves as a near-pure fade, never scaling below 95%', () => {
+    const scales = [...css().matchAll(/scale: ([\d.]+);/g)].map((m) =>
+      Number(m[1]),
+    );
+
+    expect(scales.length).toBeGreaterThan(0);
+    expect(Math.min(...scales)).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it('plays the leave animation when hideOnClose dismisses the tag', () => {
+    const html = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/tag/tag.html'),
+      'utf8',
+    );
+
+    expect(html).toContain('animate.leave="andes-tag-leave"');
+  });
+
+  it('drops every tag animation under prefers-reduced-motion', () => {
+    const reduced = css().slice(
+      css().indexOf('@media (prefers-reduced-motion: reduce)'),
+    );
+
+    expect(reduced).toMatch(
+      /:host\(\.andes-tag-enter\),\s*:host\(\.andes-tag-leave\),\s*\.andes-tag\.andes-tag-leave {\s*animation: none;/,
+    );
+  });
+});
+
+describe('AndesTag custom-color tints', () => {
+  it('gives custom/palette colors the same border and wash strengths as the presets', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'packages/ui/src/lib/tag/tag.css'),
+      'utf8',
+    ).replace(/\s+/g, ' ');
+
+    expect(css).toContain(
+      '.andes-tag--color-custom.andes-tag--outlined { background-color: transparent; border-color: color-mix( in srgb, var(--andes-tag-color) 50%, var(--andes-color-background) );',
+    );
+    expect(css).toContain(
+      '.andes-tag--color-custom.andes-tag--filled { border-color: color-mix( in srgb, var(--andes-tag-color) 35%, var(--andes-color-background) ); background-color: color-mix( in srgb, var(--andes-tag-color) 10%, var(--andes-color-background) );',
+    );
+  });
+});
