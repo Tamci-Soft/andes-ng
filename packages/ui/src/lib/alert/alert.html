@@ -49,33 +49,45 @@
   </span>
   }
 
-  <!-- Each input takes precedence over its slot; every <ng-content> still appears exactly once
-       in this template, inside the @else branch. -->
-  <div class="andes-alert__title">
-    @if (titleTemplate(); as tpl) {
-    <ng-container
-      [ngTemplateOutlet]="tpl"
-      [ngTemplateOutletContext]="templateContext()"
-    />
-    } @else if (titleText(); as text) { {{ text }} } @else {
-    <ng-content select="[slot=title]" />
-    }
-  </div>
-  <div class="andes-alert__description">
-    @if (marquee()) {
-    <span
-      #marqueeTrack
-      class="andes-alert__marquee"
-      [style.animation-duration]="marqueeDuration()"
-    >
+  <!-- Each input takes precedence over its slot. Every <ng-content> still appears exactly once in
+       this template: the description and action ones live in the templates at the end, which
+       render in whichever spot is active (marquee or not, bottom or end). -->
+  <div class="andes-alert__content">
+    <div class="andes-alert__title">
+      @if (titleTemplate(); as tpl) {
+      <ng-container
+        [ngTemplateOutlet]="tpl"
+        [ngTemplateOutletContext]="templateContext()"
+      />
+      } @else if (titleText(); as text) { {{ text }} } @else {
+      <ng-content select="[slot=title]" />
+      }
+    </div>
+    <div class="andes-alert__description">
+      @if (marquee()) {
+      <span
+        #marqueeTrack
+        class="andes-alert__marquee"
+        [style.animation-duration]="marqueeDuration()"
+      >
+        <ng-container [ngTemplateOutlet]="descriptionContent" />
+      </span>
+      } @else {
       <ng-container [ngTemplateOutlet]="descriptionContent" />
-    </span>
-    } @else {
-    <ng-container [ngTemplateOutlet]="descriptionContent" />
+      }
+    </div>
+    @if (actionPlacement() !== 'end') {
+    <div class="andes-alert__action">
+      <ng-container [ngTemplateOutlet]="actionContent" />
+    </div>
     }
   </div>
-  <!-- Rendered from one template so the description's <ng-content> is declared once, whichever
-       of the two branches above is showing it. -->
+  @if (actionPlacement() === 'end') {
+  <div class="andes-alert__action andes-alert__action--end">
+    <ng-container [ngTemplateOutlet]="actionContent" />
+  </div>
+  }
+
   <ng-template #descriptionContent>
     @if (descriptionTemplate(); as tpl) {
     <ng-container
@@ -86,7 +98,7 @@
     <ng-content />
     }
   </ng-template>
-  <div class="andes-alert__action">
+  <ng-template #actionContent>
     @if (action(); as tpl) {
     <ng-container
       [ngTemplateOutlet]="tpl"
@@ -95,13 +107,15 @@
     } @else {
     <ng-content select="[slot=action]" />
     }
-  </div>
+  </ng-template>
 
   @if (closable()) {
   <button
     type="button"
     class="andes-alert__close"
-    [attr.aria-label]="closeLabel()"
+    [class.andes-alert__close--text]="showCloseText()"
+    [attr.aria-label]="closeAriaLabel()"
+    [disabled]="closeDisabled()"
     (click)="dismiss($event)"
   >
     @if (closeIcon(); as customCloseIcon) {
@@ -111,6 +125,8 @@
         [ngTemplateOutletContext]="templateContext()"
       />
     </span>
+    } @else if (showCloseText()) {
+    <span class="andes-alert__close-text">{{ closeText() }}</span>
     } @else {
     <svg
       viewBox="0 0 24 24"

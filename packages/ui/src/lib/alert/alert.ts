@@ -20,10 +20,18 @@ import clsx from 'clsx';
 export type AndesAlertSeverity = 'success' | 'info' | 'warning' | 'danger';
 export type AndesAlertRole = 'alert' | 'status';
 /**
- * `tinted` fills the card with a soft wash of the severity color; `outlined` keeps the neutral
- * card surface and carries the severity only in the icon and a tinted border.
+ * `tinted` fills the card with a soft wash of the severity color and draws a stronger tinted
+ * border; `filled` keeps the same wash but drops the border, for alerts sitting on a busy
+ * surface where an extra outline only adds noise; `outlined` keeps the neutral card surface
+ * and carries the severity only in the icon and a tinted border.
  */
-export type AndesAlertVariant = 'tinted' | 'outlined';
+export type AndesAlertVariant = 'tinted' | 'filled' | 'outlined';
+/**
+ * `bottom` stacks the action under the text, for messages with room to breathe; `end` puts it
+ * beside the text at the inline-end edge, lined up with the first line, so a one-line notice
+ * with a short action ("Undo", "Retry") stays one line tall.
+ */
+export type AndesAlertActionPlacement = 'bottom' | 'end';
 
 /** Context handed to every template input (`icon`, `title`, `description`, `action`, `closeIcon`). */
 export interface AndesAlertTemplateContext {
@@ -63,10 +71,13 @@ export class AndesAlertCloseEvent {
  * rather than in the stylesheet; it is short enough to read as a response to the click rather
  * than as a transition the user has to wait out.
  */
-const COLLAPSE_DURATION_MS = 180;
+const COLLAPSE_DURATION_MS = 200;
 
-/** Used until the marquee track has been measured, and wherever it can't be (SSR, jsdom). */
-const DEFAULT_MARQUEE_SPEED = 60;
+/**
+ * Used until the marquee track has been measured, and wherever it can't be (SSR, jsdom). Slow
+ * enough to read along without chasing the words.
+ */
+const DEFAULT_MARQUEE_SPEED = 40;
 
 /** Natively keyboard-focusable elements, plus anything opted in with a tabindex. */
 const FOCUSABLE_SELECTOR = [
@@ -135,6 +146,19 @@ export class AndesAlert {
    */
   readonly role = input<AndesAlertRole | undefined>(undefined);
   readonly closeLabel = input('Close');
+  /**
+   * Visible text for the close button instead of the (x) glyph, for a dismissal that reads as an
+   * acknowledgement ("Got it", "Dismiss"). The text is then the button's accessible name -
+   * `closeLabel` is dropped so the spoken name always matches what is on screen. A `closeIcon`
+   * template still wins over it.
+   */
+  readonly closeText = input<string | null>(null);
+  /**
+   * Keeps the close button visible but inert - e.g. while the request the alert reports on is
+   * still in flight. Native `disabled`, so the button also leaves the tab order.
+   */
+  readonly closeDisabled = input(false, { transform: booleanAttribute });
+  readonly actionPlacement = input<AndesAlertActionPlacement>('bottom');
 
   /** Replaces the built-in severity glyph. Still gated by `showIcon`, still severity-tinted. */
   readonly icon = input<TemplateRef<AndesAlertTemplateContext> | null>(null);
@@ -195,6 +219,14 @@ export class AndesAlert {
     });
   }
 
+  protected readonly showCloseText = computed(
+    () => !this.closeIcon() && !!this.closeText(),
+  );
+
+  protected readonly closeAriaLabel = computed(() =>
+    this.showCloseText() ? null : this.closeLabel(),
+  );
+
   protected readonly resolvedSeverity = computed<AndesAlertSeverity>(
     () => this.severity() ?? (this.banner() ? 'warning' : 'info'),
   );
@@ -234,10 +266,8 @@ export class AndesAlert {
   );
 
   /**
-   * `no-icon` / `closable` are layout facts the stylesheet can't otherwise derive: the grid
-   * has to collapse its icon gutter when no glyph is rendered, and has to reserve inline-end
-   * room for the out-of-flow close button. Driving both from a class rather than `:has()`
-   * keeps the two layouts assertable from a unit test.
+   * State modifiers on the card, so consumer styles (and unit tests) can key off the layout
+   * without having to inspect which parts happen to be rendered.
    */
   protected readonly classes = computed(() =>
     clsx(
@@ -249,12 +279,14 @@ export class AndesAlert {
         'andes-alert--closable': this.closable(),
         'andes-alert--banner': this.banner(),
         'andes-alert--marquee': this.marquee(),
+        'andes-alert--action-end': this.actionPlacement() === 'end',
       },
     ),
   );
 
   protected dismiss(event: MouseEvent): void {
-    if (this.leaving()) return;
+    // `disabled` already blocks real clicks; this also covers a synthetic `click()`.
+    if (this.leaving() || this.closeDisabled()) return;
 
     const closeEvent = new AndesAlertCloseEvent(this, event);
     this.closing.emit(closeEvent);
@@ -287,14 +319,17 @@ export class AndesAlert {
     }
 
     host.style.overflow = 'hidden';
+    // The content fades out over the first part of the collapse, so the text is gone before
+    // the card is short enough to squash it, and the height eases in and out - no snap shut.
     return host.animate(
       [
         { height: `${host.offsetHeight}px`, opacity: 1 },
+        { opacity: 0, offset: 0.6 },
         { height: '0px', opacity: 0 },
       ],
       {
         duration: COLLAPSE_DURATION_MS,
-        easing: 'cubic-bezier(0.2, 0, 0, 1)',
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
         // Hold the collapsed frame until `display: none` has actually been rendered, so the
         // card can't flash back to full height for one frame in between.
         fill: 'forwards',

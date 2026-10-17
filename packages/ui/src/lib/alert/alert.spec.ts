@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import {
   Component,
   ElementRef,
@@ -10,6 +13,7 @@ import { TestBed } from '@angular/core/testing';
 
 import {
   AndesAlert,
+  AndesAlertActionPlacement,
   AndesAlertCloseEvent,
   AndesAlertRole,
   AndesAlertSeverity,
@@ -281,7 +285,7 @@ describe('AndesAlert', () => {
       expect(alert.classList).toContain('andes-alert--no-icon');
     });
 
-    it('reserves room for the close button only when closable', () => {
+    it('flags a closable alert with a modifier class', () => {
       const { fixture, alert } = createHost();
 
       expect(alert.classList).not.toContain('andes-alert--closable');
@@ -477,6 +481,10 @@ describe('AndesAlert', () => {
         const [keyframes, options] = animate.mock.calls[0];
         expect(keyframes.at(-1)).toEqual({ height: '0px', opacity: 0 });
         expect(options.fill).toBe('forwards');
+        // A gentle collapse: within 150-200ms, eased at both ends, text faded out early.
+        expect(options.duration).toBe(200);
+        expect(options.easing).toBe('cubic-bezier(0.4, 0, 0.2, 1)');
+        expect(keyframes[1]).toEqual({ opacity: 0, offset: 0.6 });
         // Mid-collapse: still visible, afterClose not yet fired.
         expect(alert.hidden).toBe(false);
         expect(fixture.componentInstance.afterCloseCount).toBe(0);
@@ -718,6 +726,20 @@ describe('AndesAlert', () => {
       expect(alert.classList).not.toContain('andes-alert--tinted');
       expect(alert.classList).toContain('andes-alert--success');
     });
+
+    it('switches to the borderless filled variant', () => {
+      const fixture = TestBed.createComponent(VariantHost);
+      fixture.detectChanges();
+      fixture.componentInstance.variant.set('filled');
+      fixture.detectChanges();
+      const alert = fixture.nativeElement.querySelector(
+        '[data-slot="alert"]',
+      ) as HTMLElement;
+
+      expect(alert.classList).toContain('andes-alert--filled');
+      expect(alert.classList).not.toContain('andes-alert--tinted');
+      expect(alert.classList).not.toContain('andes-alert--outlined');
+    });
   });
 
   describe('marquee', () => {
@@ -819,6 +841,40 @@ describe('AndesAlert', () => {
         fixture.componentInstance.speed.set(90);
         fixture.detectChanges();
         expect(track.style.animationDuration).toBe('10s');
+      } finally {
+        window.ResizeObserver = original;
+      }
+    });
+
+    it('defaults to a calm 40px per second', () => {
+      let resize: (() => void) | undefined;
+      class FakeResizeObserver {
+        constructor(callback: () => void) {
+          resize = callback;
+        }
+        observe(): void {
+          /* measured on demand through `resize` */
+        }
+        disconnect(): void {
+          /* nothing to release */
+        }
+      }
+      const original = window.ResizeObserver;
+      window.ResizeObserver =
+        FakeResizeObserver as unknown as typeof ResizeObserver;
+      try {
+        const fixture = TestBed.createComponent(AndesAlert);
+        fixture.componentRef.setInput('marquee', true);
+        fixture.componentRef.setInput('description', 'Maintenance tonight');
+        fixture.detectChanges();
+        const track = fixture.nativeElement.querySelector(
+          '.andes-alert__marquee',
+        ) as HTMLElement;
+        Object.defineProperty(track, 'offsetWidth', { value: 900 });
+
+        resize?.();
+        fixture.detectChanges();
+        expect(track.style.animationDuration).toBe('22.5s');
       } finally {
         window.ResizeObserver = original;
       }
@@ -1015,4 +1071,199 @@ describe('AndesAlert', () => {
       expect(el.matches(':empty')).toBe(true);
     }
   });
+});
+
+describe('AndesAlert action placement', () => {
+  @Component({
+    imports: [AndesAlert],
+    template: `<ng-template #retryTpl
+        ><button type="button" class="tpl-action">Retry</button></ng-template
+      >
+      <andes-alert
+        [actionPlacement]="placement()"
+        [action]="useTemplate() ? retryTpl : null"
+        >Saved.<button slot="action" type="button" class="slot-action">
+          Undo
+        </button></andes-alert
+      >`,
+  })
+  class PlacementHost {
+    readonly placement = signal<AndesAlertActionPlacement>('bottom');
+    readonly useTemplate = signal(false);
+  }
+
+  function createPlacementHost() {
+    const fixture = TestBed.createComponent(PlacementHost);
+    fixture.detectChanges();
+    const alert = fixture.nativeElement.querySelector(
+      '[data-slot="alert"]',
+    ) as HTMLElement;
+    return { fixture, alert, host: fixture.componentInstance };
+  }
+
+  it('stacks the action under the text by default', () => {
+    const { alert } = createPlacementHost();
+
+    expect(
+      alert.querySelector('.andes-alert__content > .andes-alert__action'),
+    ).toBeTruthy();
+    expect(alert.querySelector('.andes-alert__action--end')).toBeFalsy();
+    expect(alert.classList).not.toContain('andes-alert--action-end');
+  });
+
+  it('moves the projected action beside the text with placement "end"', () => {
+    const { fixture, alert, host } = createPlacementHost();
+    host.placement.set('end');
+    fixture.detectChanges();
+
+    const end = alert.querySelector('.andes-alert__action--end') as HTMLElement;
+    expect(end.parentElement).toBe(alert);
+    expect(end.querySelector('.slot-action')).toBeTruthy();
+    expect(
+      alert.querySelector('.andes-alert__content .slot-action'),
+    ).toBeFalsy();
+    expect(alert.classList).toContain('andes-alert--action-end');
+  });
+
+  it('keeps the projected action when the placement flips back and forth', () => {
+    const { fixture, alert, host } = createPlacementHost();
+    host.placement.set('end');
+    fixture.detectChanges();
+    host.placement.set('bottom');
+    fixture.detectChanges();
+
+    expect(
+      alert.querySelector('.andes-alert__content .slot-action'),
+    ).toBeTruthy();
+    expect(alert.querySelectorAll('.slot-action').length).toBe(1);
+  });
+
+  it('places an action template at the end too', () => {
+    const { fixture, alert, host } = createPlacementHost();
+    host.useTemplate.set(true);
+    host.placement.set('end');
+    fixture.detectChanges();
+
+    expect(
+      alert.querySelector('.andes-alert__action--end .tpl-action'),
+    ).toBeTruthy();
+    expect(alert.querySelector('.slot-action')).toBeFalsy();
+  });
+});
+
+describe('AndesAlert close button options', () => {
+  @Component({
+    imports: [AndesAlert],
+    template: `<ng-template #closeTpl
+        ><i class="custom-close">x</i></ng-template
+      >
+      <andes-alert
+        closable
+        [closeText]="closeText()"
+        [closeDisabled]="closeDisabled()"
+        [closeIcon]="useCloseIcon() ? closeTpl : null"
+        (closing)="closingCount = closingCount + 1"
+        >Saved.</andes-alert
+      >`,
+  })
+  class CloseHost {
+    readonly closeText = signal<string | null>(null);
+    readonly closeDisabled = signal(false);
+    readonly useCloseIcon = signal(false);
+    closingCount = 0;
+  }
+
+  function createCloseHost() {
+    const fixture = TestBed.createComponent(CloseHost);
+    fixture.detectChanges();
+    const alert = fixture.nativeElement.querySelector(
+      '[data-slot="alert"]',
+    ) as HTMLElement;
+    const close = () =>
+      alert.querySelector('.andes-alert__close') as HTMLButtonElement;
+    return { fixture, alert, close, host: fixture.componentInstance };
+  }
+
+  it('shows closeText instead of the glyph and lets it name the button', () => {
+    const { fixture, close, host } = createCloseHost();
+    host.closeText.set('Got it');
+    fixture.detectChanges();
+
+    expect(close().textContent?.trim()).toBe('Got it');
+    expect(close().querySelector('svg')).toBeFalsy();
+    expect(close().classList).toContain('andes-alert__close--text');
+    // The visible text is the accessible name; a different aria-label would contradict it.
+    expect(close().hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('treats an empty closeText as unset', () => {
+    const { fixture, close, host } = createCloseHost();
+    host.closeText.set('');
+    fixture.detectChanges();
+
+    expect(close().querySelector('svg')).toBeTruthy();
+    expect(close().getAttribute('aria-label')).toBe('Close');
+  });
+
+  it('lets a closeIcon template win over closeText', () => {
+    const { fixture, close, host } = createCloseHost();
+    host.closeText.set('Got it');
+    host.useCloseIcon.set(true);
+    fixture.detectChanges();
+
+    expect(close().querySelector('.custom-close')).toBeTruthy();
+    expect(close().textContent).not.toContain('Got it');
+    expect(close().getAttribute('aria-label')).toBe('Close');
+  });
+
+  it('disables the close button and refuses to close with closeDisabled', () => {
+    const { fixture, alert, close, host } = createCloseHost();
+    host.closeDisabled.set(true);
+    fixture.detectChanges();
+
+    expect(close().disabled).toBe(true);
+    close().click();
+    // Programmatic dispatch bypasses the native disabled check.
+    close().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(alert.hidden).toBe(false);
+    expect(host.closingCount).toBe(0);
+  });
+
+  it('closes again once closeDisabled is lifted', () => {
+    const { fixture, alert, close, host } = createCloseHost();
+    host.closeDisabled.set(true);
+    fixture.detectChanges();
+    host.closeDisabled.set(false);
+    fixture.detectChanges();
+
+    close().click();
+    fixture.detectChanges();
+
+    expect(host.closingCount).toBe(1);
+    expect(alert.hidden).toBe(true);
+  });
+});
+
+describe('AndesAlert dark-theme accents', () => {
+  // On the dark theme the base danger red reaches only ~2.9:1 against its own tinted wash, under
+  // the 3:1 the severity glyph needs. jsdom can't evaluate :host-context, so this reads the rule.
+  it.each(['success', 'info', 'danger'] as const)(
+    'steps the %s accent up to its -hover shade on the dark theme',
+    (severity) => {
+      const css = readFileSync(
+        join(process.cwd(), 'packages/ui/src/lib/alert/alert.css'),
+        'utf8',
+      );
+      const rule =
+        css.match(
+          new RegExp(
+            `:host-context\\(\\[data-andes-theme='dark'\\]\\) \\.andes-alert--${severity}\\s*{([^}]*)}`,
+          ),
+        )?.[1] ?? '';
+
+      expect(rule).toContain(`var(--andes-color-${severity}-hover)`);
+    },
+  );
 });
