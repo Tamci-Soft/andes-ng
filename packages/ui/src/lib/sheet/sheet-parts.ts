@@ -90,9 +90,11 @@ export class AndesSheetFooter {}
   template: '<h2 [id]="id"><ng-content /></h2>',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
+    /* 16px/24px semibold, the same title step as AndesDialog and Ant's drawer. */
     h2 {
-      font-size: 1.125rem;
-      font-weight: var(--andes-font-weight-medium);
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.5rem;
       color: var(--andes-color-foreground);
       margin: 0;
     }
@@ -119,7 +121,8 @@ export class AndesSheetTitle {
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     p {
-      font-size: 0.875rem;
+      font-size: var(--andes-text-font-size, 0.875rem);
+      line-height: var(--andes-text-line-height, 1.375rem);
       color: var(--andes-color-muted-foreground);
       margin: 0;
     }

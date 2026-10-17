@@ -907,6 +907,22 @@ describe('AndesSheet (panel options)', () => {
         expect(host.afterOpenChange).toEqual([true, false]);
       });
 
+      it('times the backdrop fade to the panel slide, not the CDK default of 400ms', () => {
+        const { fixture, openSheet, panel } = setup();
+        openSheet();
+        const backdrop = document.querySelector<HTMLElement>(
+          '.andes-overlay-backdrop',
+        );
+        expect(backdrop?.style.transitionDuration).toBe('200ms');
+        endAnimation(panel());
+
+        pressEscape();
+        fixture.detectChanges();
+
+        expect(backdrop?.style.transitionDuration).toBe('200ms');
+        expect(backdrop?.style.opacity).toBe('0');
+      });
+
       it('falls back to a timer when animationend never fires', async () => {
         vi.useFakeTimers();
         try {

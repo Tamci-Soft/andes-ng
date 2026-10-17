@@ -15,56 +15,71 @@
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
   font-family: var(--andes-font-family), sans-serif;
+  /* Body copy at the component text scale (14px/22px) rather than the page's 16px. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   box-shadow: 0 10px 40px rgb(0 0 0 / 20%);
   outline: none;
   overflow: hidden;
-  transition: transform 0.3s ease;
+  transition: transform var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
 .andes-sheet__panel[data-side='right'] {
   width: min(100vw, var(--andes-sheet-size, 378px));
   height: 100%;
   border-left: 1px solid var(--andes-color-border);
-  animation: andes-sheet-slide-in-right 0.25s ease-out;
+  animation: andes-sheet-slide-in-right var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 .andes-sheet__panel[data-side='left'] {
   width: min(100vw, var(--andes-sheet-size, 378px));
   height: 100%;
   border-right: 1px solid var(--andes-color-border);
-  animation: andes-sheet-slide-in-left 0.25s ease-out;
+  animation: andes-sheet-slide-in-left var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 .andes-sheet__panel[data-side='top'] {
   width: 100%;
   height: min(100dvh, var(--andes-sheet-size, 378px));
   border-bottom: 1px solid var(--andes-color-border);
-  animation: andes-sheet-slide-in-top 0.25s ease-out;
+  animation: andes-sheet-slide-in-top var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 .andes-sheet__panel[data-side='bottom'] {
   width: 100%;
   height: min(100dvh, var(--andes-sheet-size, 378px));
   border-top: 1px solid var(--andes-color-border);
-  animation: andes-sheet-slide-in-bottom 0.25s ease-out;
+  animation: andes-sheet-slide-in-bottom var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
-/* Slide-out. `data-closing` is set by AndesSheet right before it removes the
-   overlay, which waits for this animation to end. */
+/* Slide-in is 0.3s on the ease-out curve (Ant's drawer timing, minus its
+   opacity dip); the slide-out is shorter and eases in, so a dismissed panel
+   gets out of the way rather than lingering. `data-closing` is set by
+   AndesSheet right before it removes the overlay, which waits for this
+   animation to end. */
 .andes-sheet__panel[data-side='right'][data-closing] {
-  animation: andes-sheet-slide-out-right 0.2s ease-in forwards;
+  animation: andes-sheet-slide-out-right var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in, cubic-bezier(0.55, 0.055, 0.675, 0.19)) forwards;
 }
 
 .andes-sheet__panel[data-side='left'][data-closing] {
-  animation: andes-sheet-slide-out-left 0.2s ease-in forwards;
+  animation: andes-sheet-slide-out-left var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in, cubic-bezier(0.55, 0.055, 0.675, 0.19)) forwards;
 }
 
 .andes-sheet__panel[data-side='top'][data-closing] {
-  animation: andes-sheet-slide-out-top 0.2s ease-in forwards;
+  animation: andes-sheet-slide-out-top var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in, cubic-bezier(0.55, 0.055, 0.675, 0.19)) forwards;
 }
 
 .andes-sheet__panel[data-side='bottom'][data-closing] {
-  animation: andes-sheet-slide-out-bottom 0.2s ease-in forwards;
+  animation: andes-sheet-slide-out-bottom var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in, cubic-bezier(0.55, 0.055, 0.675, 0.19)) forwards;
 }
 
 /* `push`: a nested sheet is open, so this one moves aside (away from its own
