@@ -8,6 +8,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
+  afterNextRender,
   afterRenderEffect,
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -17,6 +18,7 @@ import {
   ElementRef,
   forwardRef,
   inject,
+  Injector,
   input,
   model,
   numberAttribute,
@@ -36,6 +38,7 @@ import {
   type AndesCalendarMode,
   type AndesCalendarPanelChange,
   type AndesCalendarValue,
+  type AndesCalendarView,
   type AndesDateDisabledFn,
 } from '../calendar/calendar';
 import {
@@ -55,6 +58,7 @@ import {
   startOfDay,
   startOfPeriod,
   timeOf,
+  toDateKey,
   toDateRange,
   today,
   withTime,
@@ -70,7 +74,7 @@ import {
  */
 export type AndesDatePickerValue = Date | readonly [Date, Date] | null;
 
-/** Field height, matching `AndesButton`'s `sm`/`md`/`lg`. */
+/** Field height (24 / 32 / 40px), matching `AndesButton`'s `sm`/`md`/`lg`. */
 export type AndesDatePickerSize = 'sm' | 'md' | 'lg';
 
 /** Validation styling. `error` also sets `aria-invalid` on the input(s). */
@@ -84,6 +88,12 @@ export type AndesDatePickerVariant =
 export type AndesDatePickerPlacement =
   'bottomLeft' | 'bottomRight' | 'topLeft' | 'topRight';
 
+/**
+ * What the picker selects: one of the calendar granularities, or `time` for a
+ * time of day alone (time columns, no calendar).
+ */
+export type AndesDatePickerType = AndesPickerType | 'time';
+
 /** `showTime` options. */
 export interface AndesTimeOptions {
   /** Interval between hour options. Default `1`. */
@@ -94,7 +104,66 @@ export interface AndesTimeOptions {
   readonly secondStep?: number;
   /** Add a seconds column. Default `false`. */
   readonly showSecond?: boolean;
+  /**
+   * A 12-hour clock: hours run 12, 1-11 with an AM/PM column beside them, and
+   * the displayed value uses the locale's 12-hour form. Default `false`.
+   */
+  readonly use12Hours?: boolean;
+  /**
+   * Leave out the options `timeDisabled` rules out, instead of listing them as
+   * disabled. Default `false`.
+   */
+  readonly hideDisabledOptions?: boolean;
+  /**
+   * Time of day a freshly picked date starts at, instead of midnight. Only the
+   * time part of the `Date` is read; a `[start, end]` pair sets each side of a
+   * range (e.g. 09:00 to 18:00).
+   */
+  readonly defaultTime?: Date | readonly [Date, Date];
 }
+
+/** Which time options to rule out, returned by a `timeDisabled` function. */
+export interface AndesDisabledTime {
+  /** Hours (0-23) that cannot be picked. */
+  readonly disabledHours?: () => readonly number[];
+  /** Minutes that cannot be picked within `hour`. */
+  readonly disabledMinutes?: (hour: number) => readonly number[];
+  /** Seconds that cannot be picked within `hour:minute`. */
+  readonly disabledSeconds?: (
+    hour: number,
+    minute: number,
+  ) => readonly number[];
+}
+
+/** Extra information handed to a `timeDisabled` function. */
+export interface AndesTimeDisabledInfo {
+  /** The side being edited; always `start` in `single` mode. */
+  readonly side: 'start' | 'end';
+  /** While a range's end is edited: the start already chosen. */
+  readonly from?: Date;
+}
+
+/**
+ * Rules out time options for the date being edited (`null` before a date is
+ * picked), e.g. outside business hours or before the range's start.
+ */
+export type AndesTimeDisabledFn = (
+  date: Date | null,
+  info: AndesTimeDisabledInfo,
+) => AndesDisabledTime | null | undefined;
+
+/**
+ * Template context for `panelTemplate`: `$implicit` is the panel's own content,
+ * to render with `ngTemplateOutlet` wherever the wrapper wants it.
+ */
+export interface AndesDatePickerPanelContext {
+  readonly $implicit: TemplateRef<unknown>;
+}
+
+/**
+ * Whether hovering a day or a preset shows it in the input before it is picked.
+ */
+export type AndesDatePickerPreview = 'hover' | false;
 
 /** A one-click value in the panel's side list. */
 export interface AndesDatePickerPreset {
@@ -104,7 +173,7 @@ export interface AndesDatePickerPreset {
 }
 
 type Side = 'start' | 'end';
-type TimeUnit = 'hours' | 'minutes' | 'seconds';
+type TimeUnit = 'hours' | 'minutes' | 'seconds' | 'meridiem';
 
 interface TimeColumn {
   readonly unit: TimeUnit;
@@ -115,9 +184,14 @@ interface TimeColumn {
     readonly text: string;
     readonly id: string;
     readonly selected: boolean;
+    readonly disabled: boolean;
   }[];
 }
 
+/**
+ * The panel opens above or below the field, never beside it: when it fits on neither
+ * side it is shifted into view rather than moved next to the field.
+ */
 const PLACEMENTS: Readonly<
   Record<AndesDatePickerPlacement, AndesOverlayAnchoredPositioning>
 > = {
@@ -126,48 +200,67 @@ const PLACEMENTS: Readonly<
     side: 'bottom',
     align: 'start',
     sideOffset: 6,
+    crossSideFallback: false,
   },
   bottomRight: {
     kind: 'anchored',
     side: 'bottom',
     align: 'end',
     sideOffset: 6,
+    crossSideFallback: false,
   },
-  topLeft: { kind: 'anchored', side: 'top', align: 'start', sideOffset: 6 },
-  topRight: { kind: 'anchored', side: 'top', align: 'end', sideOffset: 6 },
+  topLeft: {
+    kind: 'anchored',
+    side: 'top',
+    align: 'start',
+    sideOffset: 6,
+    crossSideFallback: false,
+  },
+  topRight: {
+    kind: 'anchored',
+    side: 'top',
+    align: 'end',
+    sideOffset: 6,
+    crossSideFallback: false,
+  },
 };
 
 /** Token patterns for pickers `Intl` has no notion of. */
-const DEFAULT_PATTERNS: Partial<Record<AndesPickerType, string>> = {
+const DEFAULT_PATTERNS: Partial<Record<AndesDatePickerType, string>> = {
   week: 'YYYY-[W]ww',
   quarter: 'YYYY-[Q]Q',
 };
 
 /** `Intl` display options for the pickers that do have an `Intl` shape. */
 const DEFAULT_INTL: Partial<
-  Record<AndesPickerType, Intl.DateTimeFormatOptions>
+  Record<AndesDatePickerType, Intl.DateTimeFormatOptions>
 > = {
   date: { dateStyle: 'medium' },
   month: { month: 'short', year: 'numeric' },
   year: { year: 'numeric' },
+  // The time fields are added from `showTime`, like for a date with time.
+  time: {},
 };
 
 /** Machine formats always accepted when typing, whatever the display format. */
-const FALLBACK_PATTERNS: Readonly<Record<AndesPickerType, readonly string[]>> =
-  {
-    date: ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD'],
-    week: ['YYYY-[W]ww', 'YYYY-ww'],
-    month: ['YYYY-MM'],
-    quarter: ['YYYY-[Q]Q', 'YYYY-Q'],
-    year: ['YYYY'],
-  };
+const FALLBACK_PATTERNS: Readonly<
+  Record<AndesDatePickerType, readonly string[]>
+> = {
+  date: ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD'],
+  week: ['YYYY-[W]ww', 'YYYY-ww'],
+  month: ['YYYY-MM'],
+  quarter: ['YYYY-[Q]Q', 'YYYY-Q'],
+  year: ['YYYY'],
+  time: ['HH:mm:ss', 'HH:mm'],
+};
 
-const PLACEHOLDER_NOUNS: Readonly<Record<AndesPickerType, string>> = {
+const PLACEHOLDER_NOUNS: Readonly<Record<AndesDatePickerType, string>> = {
   date: 'date',
   week: 'week',
   month: 'month',
   quarter: 'quarter',
   year: 'year',
+  time: 'time',
 };
 
 let nextId = 0;
@@ -178,6 +271,17 @@ function coerceTimeOptions(value: unknown): AndesTimeOptions | null {
     return value as AndesTimeOptions;
   }
   return booleanAttribute(value) ? {} : null;
+}
+
+/** The locale's name for the morning (`hour` < 12) or afternoon day period. */
+function dayPeriodName(locale: string | undefined, hour: number): string {
+  const part = new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    hour12: true,
+  })
+    .formatToParts(new Date(2024, 0, 1, hour))
+    .find((candidate) => candidate.type === 'dayPeriod');
+  return part?.value ?? (hour < 12 ? 'AM' : 'PM');
 }
 
 function sameInstant(a: Date | null | undefined, b: Date | null | undefined) {
@@ -225,6 +329,12 @@ function sameValue(a: AndesDatePickerValue, b: AndesDatePickerValue): boolean {
  * (after the second day in `range` mode). With `needConfirm` — on by default with
  * `showTime` — picks are pending until the OK button (or Enter), and
  * closing the panel any other way discards them.
+ *
+ * ## Time of day alone
+ *
+ * `picker="time"` drops the calendar and keeps the time columns: the same
+ * field, forms integration, range mode, presets and OK flow, selecting a time.
+ * The value is still a `Date` — the time on the day already held, or today.
  */
 @Component({
   selector: 'andes-date-picker',
@@ -275,14 +385,26 @@ export class AndesDatePicker implements ControlValueAccessor {
   private readonly endInput =
     viewChild<ElementRef<HTMLInputElement>>('endInput');
   private readonly calendar = viewChild(AndesCalendar);
+  private readonly injector = inject(Injector);
 
   protected readonly idPrefix = `andes-date-picker-${nextId++}`;
 
   /** One date or a span of dates. */
   readonly mode = input<AndesCalendarMode>('single');
 
-  /** Selection granularity: `date`, `week`, `month`, `quarter` or `year`. */
-  readonly picker = input<AndesPickerType>('date');
+  /**
+   * Selection granularity: `date`, `week`, `month`, `quarter`, `year`, or
+   * `time` for a time of day without a calendar.
+   */
+  readonly picker = input<AndesDatePickerType>('date');
+
+  /**
+   * The value, for use without Angular forms: `[value]` sets it and
+   * `[(value)]` keeps a field or signal in sync through `valueChange`. Left
+   * `undefined`, the picker holds its own value (or the form's, with
+   * `formControl`/`ngModel`, which should not be combined with this input).
+   */
+  readonly value = input<AndesDatePickerValue | undefined>(undefined);
 
   /** Earliest selectable day, inclusive. */
   readonly min = input<Date | null, unknown>(null, { transform: coerceDate });
@@ -373,6 +495,31 @@ export class AndesDatePicker implements ControlValueAccessor {
   /** Show a clear button while there is a value. */
   readonly allowClear = input(true, { transform: booleanAttribute });
 
+  /** Replaces the clear button's icon. */
+  readonly clearIcon = input<TemplateRef<unknown> | null>(null);
+
+  /**
+   * Put a range's boundaries in order. Days are always ordered in the calendar;
+   * this governs the times: turn it off for a range that crosses midnight on
+   * the same day, such as a 22:00 to 06:00 shift in a time range.
+   */
+  readonly order = input(true, { transform: booleanAttribute });
+
+  /**
+   * Keep text that does not parse in the input when focus leaves, instead of
+   * restoring the value, so the user can correct it. The value is unchanged
+   * either way.
+   */
+  readonly preserveInvalidOnBlur = input(false, {
+    transform: booleanAttribute,
+  });
+
+  /**
+   * `hover` shows the day or preset under the pointer in the input, muted,
+   * before it is picked; `false` turns that off.
+   */
+  readonly previewValue = input<AndesDatePickerPreview>('hover');
+
   /** Field height. */
   readonly size = input<AndesDatePickerSize>('md');
 
@@ -392,6 +539,12 @@ export class AndesDatePicker implements ControlValueAccessor {
   readonly showTime = input<AndesTimeOptions | null, unknown>(null, {
     transform: coerceTimeOptions,
   });
+
+  /**
+   * Rules out hours, minutes or seconds of the time columns, per date (and per
+   * side of a range). A ruled-out time cannot be picked, typed or confirmed.
+   */
+  readonly timeDisabled = input<AndesTimeDisabledFn | null>(null);
 
   /**
    * Require the OK button to commit. Defaults to on with `showTime`, off without.
@@ -418,6 +571,33 @@ export class AndesDatePicker implements ControlValueAccessor {
 
   /** Extra footer content in the panel. */
   readonly extraFooter = input<TemplateRef<unknown> | null>(null);
+
+  /**
+   * Wraps the panel's content: the template receives that content as
+   * `$implicit` and renders it with `ngTemplateOutlet`, adding whatever it
+   * needs around it (a heading, a side note, a tabbed switch).
+   */
+  readonly panelTemplate =
+    input<TemplateRef<AndesDatePickerPanelContext> | null>(null);
+
+  /**
+   * The calendar grid to open on (`date`, `month`, `quarter` or `year`),
+   * passed to the calendar. Changing it switches the grid; `panelChange`
+   * reports the user's own moves.
+   */
+  readonly panelView = input<AndesCalendarView | null>(null);
+
+  /** Replaces the calendar's single-step previous chevron. */
+  readonly previousIcon = input<TemplateRef<unknown> | null>(null);
+
+  /** Replaces the calendar's single-step next chevron. */
+  readonly nextIcon = input<TemplateRef<unknown> | null>(null);
+
+  /** Replaces the calendar's fast (year or decade) previous chevron. */
+  readonly fastPreviousIcon = input<TemplateRef<unknown> | null>(null);
+
+  /** Replaces the calendar's fast (year or decade) next chevron. */
+  readonly fastNextIcon = input<TemplateRef<unknown> | null>(null);
 
   /** Accessible name for the input (single) or the input group (range). */
   readonly ariaLabel = input<string | undefined>(undefined, {
@@ -455,8 +635,11 @@ export class AndesDatePicker implements ControlValueAccessor {
     transform: booleanAttribute,
   });
 
-  /** Accessible name for the calendar panel. */
-  readonly panelLabel = input('Choose a date');
+  /**
+   * Accessible name for the panel. Defaults to "Choose a date", or "Choose a
+   * time" for `picker="time"`.
+   */
+  readonly panelLabel = input<string | undefined>(undefined);
 
   /** Accessible name of a range's start input. */
   readonly startInputLabel = input('Start date');
@@ -480,6 +663,7 @@ export class AndesDatePicker implements ControlValueAccessor {
   readonly hoursLabel = input('Hours');
   readonly minutesLabel = input('Minutes');
   readonly secondsLabel = input('Seconds');
+  readonly meridiemLabel = input('AM/PM');
 
   /**
    * Whether the panel is open. Two-way bindable (`[(open)]`); `openChange` fires
@@ -520,6 +704,11 @@ export class AndesDatePicker implements ControlValueAccessor {
   private readonly startDraft = signal<string | null>(null);
   private readonly endDraft = signal<string | null>(null);
 
+  /** A hovered day or preset, shown in the input(s) until the pointer leaves. */
+  protected readonly hoverText = signal<
+    readonly [string | null, string | null] | null
+  >(null);
+
   /** Which input (and which time) the user is editing. */
   protected readonly activeSide = signal<Side>('start');
 
@@ -538,14 +727,57 @@ export class AndesDatePicker implements ControlValueAccessor {
 
   protected readonly isRange = computed(() => this.mode() === 'range');
 
+  protected readonly isTimeOnly = computed(() => this.picker() === 'time');
+
+  /** The side the time columns edit. */
+  private readonly editedSide = computed<Side>(() =>
+    this.isRange() && this.activeSide() === 'end' ? 'end' : 'start',
+  );
+
+  /** The calendar's granularity; a time picker keeps whole days. */
+  protected readonly calendarPicker = computed<AndesPickerType>(() => {
+    const picker = this.picker();
+    return picker === 'time' ? 'date' : picker;
+  });
+
+  protected readonly panelName = computed(
+    () =>
+      this.panelLabel() ??
+      (this.isTimeOnly() ? 'Choose a time' : 'Choose a date'),
+  );
+
   private readonly openRequested = computed(() =>
     booleanAttribute(this.open()),
   );
 
-  /** `showTime`, when it applies (day pickers only). */
-  protected readonly timeOptions = computed(() =>
-    this.picker() === 'date' ? this.showTime() : null,
-  );
+  /** `showTime`, when it applies (day pickers, and always for `time`). */
+  protected readonly timeOptions = computed<AndesTimeOptions | null>(() => {
+    switch (this.picker()) {
+      case 'time':
+        return this.showTime() ?? {};
+      case 'date':
+        return this.showTime();
+      default:
+        return null;
+    }
+  });
+
+  /** The time each side starts at before one is picked (`showTime.defaultTime`). */
+  private readonly defaultTimes = computed<
+    readonly [AndesTimeOfDay, AndesTimeOfDay]
+  >(() => {
+    const value = this.timeOptions()?.defaultTime;
+    if (value instanceof Date) {
+      return [timeOf(value), timeOf(value)];
+    }
+    if (value) {
+      return [
+        timeOf(coerceDateTime(value[0])),
+        timeOf(coerceDateTime(value[1])),
+      ];
+    }
+    return [MIDNIGHT, MIDNIGHT];
+  });
 
   protected readonly confirmRequired = computed(
     () => this.needConfirm() ?? this.timeOptions() !== null,
@@ -556,7 +788,8 @@ export class AndesDatePicker implements ControlValueAccessor {
     if (explicit !== undefined) {
       return explicit;
     }
-    const dayGrid = this.picker() === 'date' || this.picker() === 'week';
+    const dayGrid =
+      this.calendarPicker() === 'date' || this.calendarPicker() === 'week';
     return this.isRange() && dayGrid ? 2 : 1;
   });
 
@@ -589,14 +822,20 @@ export class AndesDatePicker implements ControlValueAccessor {
     if (!time) {
       return base;
     }
+    const clock = time.use12Hours ? { hour12: true } : {};
     if (base.dateStyle) {
-      return { ...base, timeStyle: time.showSecond ? 'medium' : 'short' };
+      return {
+        ...base,
+        timeStyle: time.showSecond ? 'medium' : 'short',
+        ...clock,
+      };
     }
     return {
       ...base,
       hour: '2-digit',
       minute: '2-digit',
       ...(time.showSecond ? { second: '2-digit' } : {}),
+      ...clock,
     };
   });
 
@@ -650,16 +889,23 @@ export class AndesDatePicker implements ControlValueAccessor {
       return null;
     }
     const last = time ? withTime(end, this.endTime()) : end;
-    return last.getTime() < first.getTime() ? [last, first] : [first, last];
+    return this.order() && last.getTime() < first.getTime()
+      ? [last, first]
+      : [first, last];
   });
 
   protected readonly startText = computed(
     () =>
-      this.startDraft() ?? this.formatSide(this.startDate(), this.startTime()),
+      this.hoverText()?.[0] ??
+      this.startDraft() ??
+      this.formatSide(this.startDate(), this.startTime()),
   );
 
   protected readonly endText = computed(
-    () => this.endDraft() ?? this.formatSide(this.endDate(), this.endTime()),
+    () =>
+      this.hoverText()?.[1] ??
+      this.endDraft() ??
+      this.formatSide(this.endDate(), this.endTime()),
   );
 
   /** `status="error"` is announced too (via `aria-invalid`), not just painted. */
@@ -675,7 +921,37 @@ export class AndesDatePicker implements ControlValueAccessor {
     () => this.allowClear() && !this.isDisabled() && this.hasValue(),
   );
 
-  protected readonly canConfirm = computed(() => this.currentValue() !== null);
+  /** Whether every side's time passes `timeDisabled`. */
+  private readonly timesAllowed = computed(() => {
+    if (!this.timeOptions() || !this.timeDisabled()) {
+      return true;
+    }
+    const sides: readonly Side[] = this.isRange()
+      ? ['start', 'end']
+      : ['start'];
+    return sides.every((side) =>
+      this.isTimeAllowed(side, this.timeFor(side)()),
+    );
+  });
+
+  /**
+   * A time range's OK first confirms the start and moves on to the end, so it
+   * is live as soon as the start has a time.
+   */
+  private readonly confirmMovesToEnd = computed(
+    () =>
+      this.isTimeOnly() &&
+      this.isRange() &&
+      this.activeSide() === 'start' &&
+      !!this.startDate() &&
+      !this.endDate(),
+  );
+
+  protected readonly canConfirm = computed(
+    () =>
+      (this.currentValue() !== null && this.timesAllowed()) ||
+      this.confirmMovesToEnd(),
+  );
 
   protected readonly nowText = computed(
     () => this.nowLabel() ?? (this.timeOptions() ? 'Now' : 'Today'),
@@ -703,42 +979,118 @@ export class AndesDatePicker implements ControlValueAccessor {
     if (!options) {
       return [];
     }
-    const time =
-      this.isRange() && this.activeSide() === 'end'
-        ? this.endTime()
-        : this.startTime();
-    const column = (
-      unit: TimeUnit,
-      label: string,
-      count: number,
-      step: number | undefined,
-    ): TimeColumn => {
+    const side = this.editedSide();
+    const time = this.timeFor(side)();
+    const rules = this.timeRules(side);
+    const twelve = !!options.use12Hours;
+    const afternoon = time.hours >= 12 ? 12 : 0;
+
+    const steps = (count: number, step: number | undefined): number[] => {
       const interval = Math.max(1, Math.floor(step ?? 1));
       const values: number[] = [];
       for (let value = 0; value < count; value += interval) {
         values.push(value);
       }
-      const current = time[unit];
-      return {
-        unit,
-        label,
-        activeId: `${this.idPrefix}-${unit}-${current}`,
-        options: values.map((value) => ({
-          value,
-          text: String(value).padStart(2, '0'),
-          id: `${this.idPrefix}-${unit}-${value}`,
-          selected: value === current,
-        })),
-      };
+      return values;
     };
 
-    return [
-      column('hours', this.hoursLabel(), 24, options.hourStep),
-      column('minutes', this.minutesLabel(), 60, options.minuteStep),
-      ...(options.showSecond
-        ? [column('seconds', this.secondsLabel(), 60, options.secondStep)]
-        : []),
+    // Option values are what `setTimePart` stores: a 12-hour column still
+    // holds 0-23, on the half of the day currently selected.
+    const column = (
+      unit: TimeUnit,
+      label: string,
+      current: number,
+      entries: readonly {
+        readonly value: number;
+        readonly text: string;
+        readonly disabled: boolean;
+      }[],
+    ): TimeColumn => ({
+      unit,
+      label,
+      activeId: `${this.idPrefix}-${unit}-${current}`,
+      options: entries
+        .filter(
+          (entry) =>
+            !options.hideDisabledOptions ||
+            !entry.disabled ||
+            entry.value === current,
+        )
+        .map((entry) => ({
+          ...entry,
+          id: `${this.idPrefix}-${unit}-${entry.value}`,
+          selected: entry.value === current,
+        })),
+    });
+
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const disabledHours = new Set(rules.disabledHours?.() ?? []);
+    const disabledMinutes = new Set(rules.disabledMinutes?.(time.hours) ?? []);
+    const disabledSeconds = new Set(
+      rules.disabledSeconds?.(time.hours, time.minutes) ?? [],
+    );
+
+    const hours = twelve
+      ? steps(12, options.hourStep).map((value) => ({
+          value: value + afternoon,
+          text: pad(value === 0 ? 12 : value),
+          disabled: disabledHours.has(value + afternoon),
+        }))
+      : steps(24, options.hourStep).map((value) => ({
+          value,
+          text: pad(value),
+          disabled: disabledHours.has(value),
+        }));
+
+    const columns: TimeColumn[] = [
+      column('hours', this.hoursLabel(), time.hours, hours),
+      column(
+        'minutes',
+        this.minutesLabel(),
+        time.minutes,
+        steps(60, options.minuteStep).map((value) => ({
+          value,
+          text: pad(value),
+          disabled: disabledMinutes.has(value),
+        })),
+      ),
     ];
+    if (options.showSecond) {
+      columns.push(
+        column(
+          'seconds',
+          this.secondsLabel(),
+          time.seconds,
+          steps(60, options.secondStep).map((value) => ({
+            value,
+            text: pad(value),
+            disabled: disabledSeconds.has(value),
+          })),
+        ),
+      );
+    }
+    if (twelve) {
+      const locale = this.locale();
+      const halfDisabled = (offset: number) =>
+        Array.from({ length: 12 }, (_, hour) => hour + offset).every((hour) =>
+          disabledHours.has(hour),
+        );
+      columns.push(
+        column('meridiem', this.meridiemLabel(), afternoon, [
+          {
+            value: 0,
+            text: dayPeriodName(locale, 9),
+            disabled: halfDisabled(0),
+          },
+          {
+            value: 12,
+            text: dayPeriodName(locale, 15),
+            disabled: halfDisabled(12),
+          },
+        ]),
+      );
+    }
+    return columns;
   });
 
   private onChange: (value: AndesDatePickerValue) => void = () => undefined;
@@ -783,6 +1135,33 @@ export class AndesDatePicker implements ControlValueAccessor {
       });
     });
 
+    // `[value]` / `[(value)]`. The echo of the picker's own commit is skipped,
+    // or a half-finished range (published as `null`) would be wiped by it.
+    effect(() => {
+      const value = this.value();
+      if (value === undefined) {
+        return;
+      }
+      untracked(() => {
+        if (!sameValue(value, this.committed())) {
+          this.writeValue(value);
+        }
+      });
+    });
+
+    // A side with no date yet shows (and starts from) `showTime.defaultTime`.
+    effect(() => {
+      const [start, end] = this.defaultTimes();
+      untracked(() => {
+        if (!this.startDate()) {
+          this.startTime.set(start);
+        }
+        if (!this.endDate()) {
+          this.endTime.set(end);
+        }
+      });
+    });
+
     // A control disabled while its panel is open would otherwise leave an
     // interactive calendar floating over a disabled field.
     effect(() => {
@@ -819,13 +1198,37 @@ export class AndesDatePicker implements ControlValueAccessor {
     }
     if (this.overlay.isOpen()) {
       if (focusGrid) {
-        this.calendar()?.focusActiveDay();
+        this.focusPanel();
       }
       return;
     }
     this.focusGridOnOpen.set(focusGrid);
     this.overlay.registerAnchor(this.field().nativeElement);
     this.overlay.open(this.panel());
+    if (focusGrid && this.isTimeOnly()) {
+      // No calendar to take focus through `autoFocus`: the first time column does.
+      afterNextRender(() => this.focusPanel(), { injector: this.injector });
+    }
+  }
+
+  /** Focuses the input being edited (the start one, unless the end is active). */
+  focus(options?: FocusOptions): void {
+    this.inputFor(this.activeSide())?.focus(options);
+  }
+
+  /**
+   * Moves focus out of the picker, which resolves typed text and closes the
+   * panel just as tabbing away does.
+   */
+  blur(): void {
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      (this.field().nativeElement.contains(active) ||
+        this.overlay.panelElement()?.contains(active))
+    ) {
+      active.blur();
+    }
   }
 
   /** Opens the panel if closed, closes it if open. */
@@ -842,10 +1245,19 @@ export class AndesDatePicker implements ControlValueAccessor {
     this.overlay.close('imperative');
   }
 
-  /** Commits the pending value and closes the panel (the OK button). */
+  /**
+   * Commits the pending value and closes the panel (the OK button). In a time
+   * range with only the start set, it moves on to the end instead.
+   */
   confirm(): void {
+    if (this.confirmMovesToEnd()) {
+      this.ensureDay('end');
+      this.activeSide.set('end');
+      this.endInput()?.nativeElement.focus();
+      return;
+    }
     const value = this.currentValue();
-    if (value === null) {
+    if (value === null || !this.timesAllowed()) {
       return;
     }
     this.commit(value);
@@ -881,8 +1293,9 @@ export class AndesDatePicker implements ControlValueAccessor {
 
   protected onInput(side: Side, event: Event): void {
     const text = (event.target as HTMLInputElement).value;
+    this.hoverText.set(null);
     this.draftFor(side).set(text);
-    const parsed = this.parse(text);
+    const parsed = this.parse(text, side);
     if (parsed) {
       this.preview(side, parsed);
     }
@@ -962,7 +1375,8 @@ export class AndesDatePicker implements ControlValueAccessor {
     let changed = false;
     for (const side of ['start', 'end'] as const) {
       if (this.draftFor(side)() !== null) {
-        changed = this.resolveDraft(side) || changed;
+        changed =
+          this.resolveDraft(side, this.preserveInvalidOnBlur()) || changed;
       }
     }
     if (changed && !this.confirmRequired()) {
@@ -996,8 +1410,8 @@ export class AndesDatePicker implements ControlValueAccessor {
   protected clearValue(event: MouseEvent): void {
     event.stopPropagation();
     this.selection.set(null);
-    this.startTime.set(MIDNIGHT);
-    this.endTime.set(MIDNIGHT);
+    this.startTime.set(this.defaultTimes()[0]);
+    this.endTime.set(this.defaultTimes()[1]);
     this.startDraft.set(null);
     this.endDraft.set(null);
     this.activeSide.set('start');
@@ -1010,20 +1424,29 @@ export class AndesDatePicker implements ControlValueAccessor {
   // --- Panel --------------------------------------------------------------
 
   protected onCalendarValueChange(next: AndesCalendarValue): void {
+    const hadEnd = !!this.endDate();
     this.selection.set(next);
     this.startDraft.set(null);
     this.endDraft.set(null);
+    this.hoverText.set(null);
 
     const keepOpen = this.timeOptions() !== null;
 
     if (this.isRange()) {
       const range = toDateRange(next);
+      if (range?.end && !hadEnd) {
+        // A new end starts at the default time, not at the last range's end.
+        this.endTime.set(this.defaultTimes()[1]);
+      }
       this.calendarChange.emit([range?.start ?? null, range?.end ?? null]);
       this.activeSide.set(range?.end ? 'end' : 'start');
       if (this.confirmRequired()) {
         return;
       }
       if (range?.end) {
+        if (!this.timesAllowed()) {
+          return;
+        }
         this.commit(this.currentValue());
         if (!keepOpen) {
           this.close();
@@ -1036,7 +1459,7 @@ export class AndesDatePicker implements ControlValueAccessor {
       return;
     }
 
-    if (this.confirmRequired()) {
+    if (this.confirmRequired() || !this.timesAllowed()) {
       return;
     }
     this.commit(this.currentValue());
@@ -1045,15 +1468,54 @@ export class AndesDatePicker implements ControlValueAccessor {
     }
   }
 
+  /** The day under the pointer, previewed in the input it would fill. */
+  protected onCalendarHover(date: Date | null): void {
+    if (this.previewValue() !== 'hover' || !date) {
+      this.hoverText.set(null);
+      return;
+    }
+    const day = startOfPeriod(date, this.calendarPicker(), this.weekStartsOn());
+    const side: Side =
+      this.isRange() && this.startDate() && !this.endDate() ? 'end' : 'start';
+    const text = this.formatSide(day, this.timeFor(side)());
+    this.hoverText.set(side === 'end' ? [null, text] : [text, null]);
+  }
+
+  protected onPresetHover(preset: AndesDatePickerPreset | null): void {
+    if (this.previewValue() !== 'hover' || !preset) {
+      this.hoverText.set(null);
+      return;
+    }
+    const value =
+      typeof preset.value === 'function' ? preset.value() : preset.value;
+    if (Array.isArray(value)) {
+      const [start, end] = value as readonly Date[];
+      this.hoverText.set([
+        start ? this.formatValue(start) : '',
+        end ? this.formatValue(end) : '',
+      ]);
+    } else if (value) {
+      this.hoverText.set([this.formatValue(value as Date), null]);
+    }
+  }
+
   protected setTimePart(unit: TimeUnit, value: number): void {
-    const target =
-      this.isRange() && this.activeSide() === 'end'
-        ? this.endTime
-        : this.startTime;
-    target.update((time) => ({ ...time, [unit]: value }));
+    const side = this.editedSide();
+    if (this.isTimeOnly()) {
+      this.ensureDay(side);
+    }
+    this.timeFor(side).update((time) =>
+      unit === 'meridiem'
+        ? { ...time, hours: (time.hours % 12) + value }
+        : { ...time, [unit]: value },
+    );
     this.startDraft.set(null);
     this.endDraft.set(null);
-    if (!this.confirmRequired() && this.currentValue() !== null) {
+    if (
+      !this.confirmRequired() &&
+      this.currentValue() !== null &&
+      this.timesAllowed()
+    ) {
       this.commit(this.currentValue());
     }
   }
@@ -1065,28 +1527,38 @@ export class AndesDatePicker implements ControlValueAccessor {
   protected onTimeOptionMousedown(
     event: MouseEvent,
     unit: TimeUnit,
-    value: number,
+    option: TimeColumn['options'][number],
   ): void {
-    if (event.button === 0) {
-      this.setTimePart(unit, value);
+    if (event.button === 0 && !option.disabled) {
+      this.setTimePart(unit, option.value);
     }
   }
 
+  /** Arrow keys walk the enabled options; disabled ones are skipped. */
   protected onTimeKeydown(event: KeyboardEvent, column: TimeColumn): void {
-    const index = column.options.findIndex((option) => option.selected);
+    const options = column.options;
+    const index = options.findIndex((option) => option.selected);
+    const scan = (from: number, step: 1 | -1): number => {
+      for (let at = from; at >= 0 && at < options.length; at += step) {
+        if (!options[at].disabled) {
+          return at;
+        }
+      }
+      return -1;
+    };
     let next: number;
     switch (event.key) {
       case 'ArrowUp':
-        next = Math.max(0, index - 1);
+        next = scan(index - 1, -1);
         break;
       case 'ArrowDown':
-        next = Math.min(column.options.length - 1, index + 1);
+        next = scan(index + 1, 1);
         break;
       case 'Home':
-        next = 0;
+        next = scan(0, 1);
         break;
       case 'End':
-        next = column.options.length - 1;
+        next = scan(options.length - 1, -1);
         break;
       case 'Enter':
         event.preventDefault();
@@ -1098,12 +1570,14 @@ export class AndesDatePicker implements ControlValueAccessor {
         return;
     }
     event.preventDefault();
-    this.setTimePart(column.unit, column.options[Math.max(0, next)].value);
+    if (next >= 0) {
+      this.setTimePart(column.unit, options[next].value);
+    }
   }
 
   protected selectNow(): void {
     const now = this.timeOptions() ? new Date() : today();
-    if (!this.isAllowed(now)) {
+    if (!this.isAllowed(now, 'start')) {
       return;
     }
     this.applyValue(now);
@@ -1114,6 +1588,7 @@ export class AndesDatePicker implements ControlValueAccessor {
   protected applyPreset(preset: AndesDatePickerPreset): void {
     const value =
       typeof preset.value === 'function' ? preset.value() : preset.value;
+    this.hoverText.set(null);
     this.applyValue(value);
     this.commit(this.currentValue());
     this.close();
@@ -1132,8 +1607,12 @@ export class AndesDatePicker implements ControlValueAccessor {
     ) {
       this.applyValue(this.committed());
     }
-    this.startDraft.set(null);
-    this.endDraft.set(null);
+    this.hoverText.set(null);
+    // Text kept by `preserveInvalidOnBlur` outlives a close caused by leaving.
+    if (!(this.closingForBlur && this.preserveInvalidOnBlur())) {
+      this.startDraft.set(null);
+      this.endDraft.set(null);
+    }
     this.focusGridOnOpen.set(false);
     this.onTouched();
     if (untracked(this.open)) {
@@ -1171,25 +1650,38 @@ export class AndesDatePicker implements ControlValueAccessor {
     return formatWithIntl(date, this.locale(), this.intlOptions());
   }
 
-  /** Parses typed text into an allowed date, or `null`. */
-  private parse(text: string): Date | null {
-    const parsed = parseWithPatterns(
-      text,
-      this.parsePatterns(),
-      this.formatContext(),
-    );
+  /**
+   * Parses typed text into an allowed date, or `null`. A time picker parses the
+   * time onto the side's day (or today), by prefixing that day in ISO form.
+   */
+  private parse(text: string, side: Side): Date | null {
+    const day = this.isTimeOnly() ? this.baseDay(side) : null;
+    const parsed = day
+      ? parseWithPatterns(
+          `${toDateKey(day)} ${text}`,
+          this.parsePatterns().map((pattern) => `YYYY-MM-DD ${pattern}`),
+          this.formatContext(),
+        )
+      : parseWithPatterns(text, this.parsePatterns(), this.formatContext());
     if (!parsed) {
       return null;
     }
+    const unit = this.calendarPicker();
     const date =
-      this.picker() === 'date'
+      unit === 'date'
         ? parsed
-        : startOfPeriod(parsed, this.picker(), this.weekStartsOn());
-    return this.isAllowed(date) ? date : null;
+        : startOfPeriod(parsed, unit, this.weekStartsOn());
+    return this.isAllowed(date, side) ? date : null;
   }
 
-  private isAllowed(date: Date): boolean {
-    const unit = this.picker();
+  private isAllowed(date: Date, side: Side): boolean {
+    if (this.timeOptions() && !this.isTimeAllowed(side, timeOf(date), date)) {
+      return false;
+    }
+    if (this.isTimeOnly()) {
+      return true;
+    }
+    const unit = this.calendarPicker();
     const min = this.min();
     const max = this.max();
     if (
@@ -1204,17 +1696,96 @@ export class AndesDatePicker implements ControlValueAccessor {
     ) {
       return false;
     }
+    const from = side === 'end' ? this.startDate() : null;
     return !this.dateDisabled()?.(
       startOfPeriod(date, unit, this.weekStartsOn()),
-      { type: unit },
+      from ? { type: unit, from } : { type: unit },
     );
+  }
+
+  /** The time signal of one side. */
+  private timeFor(side: Side) {
+    return side === 'end' ? this.endTime : this.startTime;
+  }
+
+  /** One side's date and time, or `null` before it has a date. */
+  private sideValue(side: Side): Date | null {
+    const day = side === 'end' ? this.endDate() : this.startDate();
+    return day ? withTime(day, this.timeFor(side)()) : null;
+  }
+
+  /** `timeDisabled`'s rules for one side, for `date` or the side's own value. */
+  private timeRules(side: Side, date?: Date): AndesDisabledTime {
+    const rules = this.timeDisabled();
+    if (!rules) {
+      return {};
+    }
+    const from = side === 'end' ? this.sideValue('start') : null;
+    return (
+      rules(date ?? this.sideValue(side), from ? { side, from } : { side }) ??
+      {}
+    );
+  }
+
+  private isTimeAllowed(
+    side: Side,
+    time: AndesTimeOfDay,
+    date?: Date,
+  ): boolean {
+    const rules = this.timeRules(side, date);
+    if (rules.disabledHours?.().includes(time.hours)) {
+      return false;
+    }
+    if (rules.disabledMinutes?.(time.hours).includes(time.minutes)) {
+      return false;
+    }
+    return !(
+      this.timeOptions()?.showSecond &&
+      rules.disabledSeconds?.(time.hours, time.minutes).includes(time.seconds)
+    );
+  }
+
+  /** The day a time picker's side sits on: its own, the start's, or today. */
+  private baseDay(side: Side): Date {
+    const own = side === 'end' ? this.endDate() : this.startDate();
+    return own ?? this.startDate() ?? today();
+  }
+
+  /** Gives a time picker's side a day, so a time can be set on it. */
+  private ensureDay(side: Side): void {
+    if (!this.isRange()) {
+      if (!this.startDate()) {
+        this.selection.set(this.baseDay('start'));
+      }
+      return;
+    }
+    const range = toDateRange(this.selection());
+    if (!range) {
+      const day = today();
+      this.selection.set({ start: day, end: side === 'end' ? day : null });
+    } else if (side === 'end' && !range.end) {
+      this.selection.set({ start: range.start, end: range.start });
+    }
+  }
+
+  /** Moves focus into the panel: the calendar grid, or the first time column. */
+  private focusPanel(): void {
+    const calendar = this.calendar();
+    if (calendar) {
+      calendar.focusActiveDay();
+      return;
+    }
+    this.overlay
+      .panelElement()
+      ?.querySelector<HTMLElement>('.andes-date-picker__time-column')
+      ?.focus();
   }
 
   /** Shows a typed date in the calendar without committing it. */
   private preview(side: Side, date: Date): void {
     const day = startOfDay(date);
     if (this.timeOptions()) {
-      (side === 'end' ? this.endTime : this.startTime).set(timeOf(date));
+      this.timeFor(side).set(timeOf(date));
     }
     // Show the typed date even when `defaultMonth` pins the calendar's anchor.
     this.calendar()?.goTo(day);
@@ -1234,10 +1805,11 @@ export class AndesDatePicker implements ControlValueAccessor {
 
   /**
    * Resolves one side's typed text. Valid text is applied; empty text clears (when
-   * `allowClear`); anything else is discarded and the value restored. Returns
-   * whether the selection changed.
+   * `allowClear`); anything else is discarded and the value restored — or, with
+   * `keepInvalid`, left in the input over the restored value. Returns whether the
+   * selection changed.
    */
-  private resolveDraft(side: Side): boolean {
+  private resolveDraft(side: Side, keepInvalid = false): boolean {
     const text = this.draftFor(side)() ?? '';
     this.draftFor(side).set(null);
 
@@ -1255,9 +1827,12 @@ export class AndesDatePicker implements ControlValueAccessor {
       return true;
     }
 
-    const parsed = this.parse(text);
+    const parsed = this.parse(text, side);
     if (!parsed) {
       this.applyValue(this.committed());
+      if (keepInvalid) {
+        this.draftFor(side).set(text);
+      }
       return false;
     }
     this.preview(side, parsed);
@@ -1280,7 +1855,14 @@ export class AndesDatePicker implements ControlValueAccessor {
       }
       let start = coerceDateTime(raw[0]);
       let end = coerceDateTime(raw[1]);
-      if (start && end && start.getTime() > end.getTime()) {
+      // Days are always put in order (the calendar shows them so); with
+      // `order` off, two times on the same day keep the order they came in.
+      if (
+        start &&
+        end &&
+        start.getTime() > end.getTime() &&
+        (this.order() || compareDays(start, end) !== 0)
+      ) {
         [start, end] = [end, start];
       }
       this.selection.set(
@@ -1288,13 +1870,14 @@ export class AndesDatePicker implements ControlValueAccessor {
           ? { start: startOfDay(start), end: end ? startOfDay(end) : null }
           : null,
       );
-      this.startTime.set(timeOf(start));
-      this.endTime.set(timeOf(end));
+      const [startDefault, endDefault] = this.defaultTimes();
+      this.startTime.set(start ? timeOf(start) : startDefault);
+      this.endTime.set(end ? timeOf(end) : endDefault);
       return;
     }
     const date = coerceDateTime(value);
     this.selection.set(date ? startOfDay(date) : null);
-    this.startTime.set(timeOf(date));
+    this.startTime.set(date ? timeOf(date) : this.defaultTimes()[0]);
   }
 
   private commit(value: AndesDatePickerValue): void {

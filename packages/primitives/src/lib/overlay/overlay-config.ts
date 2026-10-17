@@ -60,6 +60,13 @@ export interface AndesOverlayAnchoredPositioning {
   readonly alignOffset?: number;
   /** Flip to the opposite side when the preferred one does not fit. Default `true`. */
   readonly flip?: boolean;
+  /**
+   * When flipping, also try the two perpendicular sides once neither the preferred side
+   * nor its opposite fits. Default `true`. A list dropping down from a field turns this
+   * off: placed beside the field it no longer reads as that field's list, so it stays
+   * above or below and is shifted into view instead.
+   */
+  readonly crossSideFallback?: boolean;
   /** Shift along the cross axis to stay on screen. Default `true`. */
   readonly shift?: boolean;
   /** Minimum px kept between the overlay and the viewport edge. Default `8`. */

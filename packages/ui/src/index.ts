@@ -8,6 +8,7 @@ export type {
   AndesCalendarHeaderContext,
   AndesCalendarMode,
   AndesCalendarPanelChange,
+  AndesCalendarSelectInfo,
   AndesCalendarValue,
   AndesDateDisabledFn,
   AndesDateDisabledInfo,
@@ -25,11 +26,17 @@ export type { AndesDateFormat } from './lib/calendar/date-format';
 
 export { AndesDatePicker } from './lib/date-picker/date-picker';
 export type {
+  AndesDatePickerPanelContext,
   AndesDatePickerPlacement,
   AndesDatePickerPreset,
+  AndesDatePickerPreview,
   AndesDatePickerSize,
   AndesDatePickerStatus,
+  AndesDatePickerType,
   AndesDatePickerValue,
   AndesDatePickerVariant,
+  AndesDisabledTime,
+  AndesTimeDisabledFn,
+  AndesTimeDisabledInfo,
   AndesTimeOptions,
 } from './lib/date-picker/date-picker';

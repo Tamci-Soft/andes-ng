@@ -287,15 +287,107 @@ export const CustomHeader: Story = {
     template: `
       <ng-template #header let-month let-goTo="goTo">
         <div style="display: flex; gap: 0.5rem; font: 0.875rem var(--andes-font-family), sans-serif;">
-          <select aria-label="Month" (change)="goTo(toDate(month.getFullYear(), $any($event.target).value))">
+          <select class="demo-field" aria-label="Month" (change)="goTo(toDate(month.getFullYear(), $any($event.target).value))">
             @for (name of months; track $index) { <option [value]="$index" [selected]="$index === month.getMonth()">{{ name }}</option> }
           </select>
-          <select aria-label="Year" (change)="goTo(toDate($any($event.target).value, month.getMonth()))">
+          <select class="demo-field" aria-label="Year" (change)="goTo(toDate($any($event.target).value, month.getMonth()))">
             @for (year of years; track year) { <option [value]="year" [selected]="year === month.getFullYear()">{{ year }}</option> }
           </select>
         </div>
       </ng-template>
       <andes-calendar locale="en-US" [defaultMonth]="defaultMonth" [headerTemplate]="header" />
+    `,
+    // Small fields drawn like the library's own: one border, and on focus a primary
+    // border with a soft ring instead of the browser's outline around it.
+    styles: [
+      `
+      .demo-field {
+        height: 1.5rem;
+        box-sizing: border-box;
+        padding: 0 0.4375rem;
+        border: 1px solid var(--andes-color-input);
+        border-radius: var(--andes-radius-md);
+        background: var(--andes-color-background);
+        color: var(--andes-color-foreground);
+        font: 0.875rem/1.375rem var(--andes-font-family), sans-serif;
+        outline: none;
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+      }
+      .demo-field:hover {
+        border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+      }
+      .demo-field:focus {
+        border-color: var(--andes-color-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+      }
+      `,
+    ],
+  }),
+};
+
+/**
+ * `fullCellTemplate` draws each cell from scratch, the day number included —
+ * here an availability board where the template owns the whole cell.
+ */
+export const FullCells: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => ({
+    props: {
+      defaultMonth: FEBRUARY_2024,
+      seats: (date: Date) => (date.getDate() * 7) % 13,
+    },
+    template: `
+      <ng-template #full let-date let-cell="cell">
+        <span style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+          <strong style="font-size: 1rem;">{{ cell.text }}</strong>
+          @if (!cell.outside) {
+            <span style="font-size: 0.75rem;" [style.color]="seats(date) ? 'var(--andes-color-muted-foreground)' : 'var(--andes-color-danger)'">
+              {{ seats(date) ? seats(date) + ' seats left' : 'Full' }}
+            </span>
+          }
+        </span>
+      </ng-template>
+      <div style="padding: 1rem;">
+        <andes-calendar fullscreen locale="en-US" [defaultMonth]="defaultMonth" [fullCellTemplate]="full" />
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `panelView` picks the grid to show (here the year grid of a day picker);
+ * `cellSelect` reports each pick with the grid it came from, so a year or
+ * month on the way down to a day can be told apart from the day itself.
+ */
+export const PanelViewAndSelectSource: Story = {
+  render: () => ({
+    props: {
+      defaultMonth: FEBRUARY_2024,
+      panelView: 'year',
+      log: [] as string[],
+      record(info: { date: Date; source: string }) {
+        this['log'] = [
+          ...(this['log'] as string[]),
+          `${info.source}: ${info.date.toDateString()}`,
+        ];
+      },
+    },
+    template: `
+      <div style="display: flex; gap: 1.5rem; align-items: flex-start;">
+        <andes-calendar locale="en-US" [defaultMonth]="defaultMonth" [panelView]="panelView" (cellSelect)="record($event)" aria-label="Pick a day" />
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" (click)="panelView = 'year'">Years</button>
+            <button type="button" (click)="panelView = 'month'">Months</button>
+            <button type="button" (click)="panelView = 'date'">Days</button>
+          </div>
+          <div style="font: 0.75rem/1.5 ui-monospace, monospace;">
+            @for (line of log; track $index) {
+              <div>{{ line }}</div>
+            }
+          </div>
+        </div>
+      </div>
     `,
   }),
 };

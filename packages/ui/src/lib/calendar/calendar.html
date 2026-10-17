@@ -27,7 +27,9 @@
           [disabled]="!canGoPreviousYear()"
           (click)="goToPreviousYear()"
         >
-          <ng-container [ngTemplateOutlet]="doubleChevronLeft" />
+          <ng-container
+            [ngTemplateOutlet]="fastPreviousIcon() ?? doubleChevronLeft"
+          />
         </button>
         <button
           type="button"
@@ -37,7 +39,7 @@
           [disabled]="!canGoPrevious()"
           (click)="goToPrevious()"
         >
-          <ng-container [ngTemplateOutlet]="chevronLeft" />
+          <ng-container [ngTemplateOutlet]="previousIcon() ?? chevronLeft" />
         </button>
         } @else {
         <span class="andes-calendar__nav-spacer" aria-hidden="true"></span>
@@ -57,7 +59,7 @@
           [disabled]="!canGoNext()"
           (click)="goToNext()"
         >
-          <ng-container [ngTemplateOutlet]="chevronRight" />
+          <ng-container [ngTemplateOutlet]="nextIcon() ?? chevronRight" />
         </button>
         <button
           type="button"
@@ -67,7 +69,9 @@
           [disabled]="!canGoNextYear()"
           (click)="goToNextYear()"
         >
-          <ng-container [ngTemplateOutlet]="doubleChevronRight" />
+          <ng-container
+            [ngTemplateOutlet]="fastNextIcon() ?? doubleChevronRight"
+          />
         </button>
         } @else {
         <span class="andes-calendar__nav-spacer" aria-hidden="true"></span>
@@ -143,7 +147,9 @@
         [disabled]="!canGoPrevious()"
         (click)="goToPrevious()"
       >
-        <ng-container [ngTemplateOutlet]="doubleChevronLeft" />
+        <ng-container
+          [ngTemplateOutlet]="fastPreviousIcon() ?? doubleChevronLeft"
+        />
       </button>
 
       <ng-container
@@ -159,7 +165,9 @@
         [disabled]="!canGoNext()"
         (click)="goToNext()"
       >
-        <ng-container [ngTemplateOutlet]="doubleChevronRight" />
+        <ng-container
+          [ngTemplateOutlet]="fastNextIcon() ?? doubleChevronRight"
+        />
       </button>
     </div>
     }
@@ -230,7 +238,20 @@
     (mouseenter)="onCellHover(cell)"
     (focus)="onCellHover(cell)"
   >
-    @if (cellTemplate(); as template) { @if (fullscreen()) {
+    @if (fullCellTemplate(); as fullTemplate) {
+    <span
+      class="andes-calendar__cell-content andes-calendar__cell-content--full"
+    >
+      <ng-container
+        [ngTemplateOutlet]="fullTemplate"
+        [ngTemplateOutletContext]="{
+          $implicit: cell.date,
+          cell: cell,
+          view: cell.view
+        }"
+      />
+    </span>
+    } @else if (cellTemplate(); as template) { @if (fullscreen()) {
     <span class="andes-calendar__cell-text" aria-hidden="true"
       >{{ cell.text }}</span
     >
