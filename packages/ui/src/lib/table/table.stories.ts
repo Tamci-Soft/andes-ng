@@ -584,18 +584,34 @@ const METHOD_OPTIONS: readonly AndesTableFilterOption[] = [
         padding: var(--andes-space-2);
       }
       .client-search__input {
-        padding-block: var(--andes-space-1);
-        padding-inline: var(--andes-space-2);
+        box-sizing: border-box;
+        height: var(--andes-control-height-md, 2rem);
+        padding-inline: var(--andes-control-padding-x-md, 0.6875rem);
         border: 1px solid var(--andes-color-input);
-        border-radius: var(--andes-radius-sm);
+        border-radius: var(--andes-control-radius-md, 0.375rem);
         background-color: var(--andes-color-background);
         color: var(--andes-color-foreground);
         font-family: var(--andes-font-family), sans-serif;
-        font-size: 0.875rem;
+        font-size: var(--andes-control-font-size-md, 0.875rem);
+      }
+      .client-search__input:focus-visible {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        border-color: var(--andes-color-focus-ring);
+        box-shadow: var(
+          --andes-focus-halo,
+          0 0 0 3px
+            color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent)
+        );
       }
       .client-search__actions {
         display: flex;
         justify-content: space-between;
+      }
+      .client-search__actions ::ng-deep .andes-button {
+        height: var(--andes-control-height-sm, 1.5rem);
+        padding-inline: var(--andes-control-padding-x-sm, 0.4375rem);
+        font-size: var(--andes-control-font-size-md, 0.875rem);
       }
     `,
   ],

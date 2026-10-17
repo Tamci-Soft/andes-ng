@@ -11,17 +11,24 @@ import {
   inject,
   input,
   model,
+  output,
   signal,
   viewChild,
 } from '@angular/core';
 import clsx from 'clsx';
 
 import {
+  ANDES_TABLE_FILTERABLE,
   ANDES_TABLE_SELECTABLE,
   andesCssLength,
   type AndesTableRowKey,
 } from './table-context';
-import type { AndesFilterValue, AndesTableFilters } from './table-data';
+import {
+  type AndesFilterPredicates,
+  andesFilterRows,
+  type AndesFilterValue,
+  type AndesTableFilters,
+} from './table-data';
 import {
   andesNextSortDirection,
   type AndesSortDirection,
@@ -45,6 +52,26 @@ export type AndesTableLayout = 'auto' | 'fixed';
 
 /** Aggregate state of the rendered, enabled row checkboxes, for "select all". */
 export type AndesTableSelectAllState = 'all' | 'some' | 'none';
+
+/** What a user interaction changed, as reported by `(tableChange)`. */
+export type AndesTableChangeAction = 'sort' | 'filter';
+
+/**
+ * The table's sort and filter state after a user interaction - Ant Design's
+ * `onChange(pagination, filters, sorter, extra)`, minus pagination, which this
+ * table does not own. For a controlled column filter (`filteredValue`) `filters`
+ * holds the *proposed* state, not yet applied.
+ */
+export interface AndesTableChange {
+  readonly action: AndesTableChangeAction;
+  /** Column whose header or filter the user operated. */
+  readonly columnId: string;
+  readonly filters: AndesTableFilters;
+  /** The single sort (`multiSort` off). */
+  readonly sort: AndesSortState | null;
+  /** Every active sort in priority order, whichever mode is on. */
+  readonly sorts: readonly AndesSortState[];
+}
 
 let nextTableId = 0;
 
@@ -176,6 +203,14 @@ export class AndesTable {
    */
   readonly filters = model<AndesTableFilters>({});
 
+  /**
+   * Fires after the user sorts a column or applies a column filter, with the whole
+   * resulting sort and filter state. Programmatic changes to the models do not fire
+   * it. (Named `tableChange` rather than `change` so the native `change` events of
+   * the checkboxes inside the table cannot be mistaken for it.)
+   */
+  readonly tableChange = output<AndesTableChange>();
+
   /** Whether row selection uses checkboxes (many) or radios (one). */
   readonly selectionType = input<AndesTableSelectionType>('checkbox');
 
@@ -196,6 +231,25 @@ export class AndesTable {
 
   private readonly selectables = contentChildren(ANDES_TABLE_SELECTABLE, {
     descendants: true,
+  });
+
+  private readonly filterables = contentChildren(ANDES_TABLE_FILTERABLE, {
+    descendants: true,
+  });
+
+  /** Column id -> `predicate` of each `andes-table-filter` that has one. */
+  readonly filterPredicates = computed(() => {
+    const predicates: Record<
+      string,
+      (value: AndesFilterValue, row: never) => boolean
+    > = {};
+    for (const filterable of this.filterables()) {
+      const predicate = filterable.predicate();
+      if (predicate) {
+        predicates[filterable.column()] = predicate;
+      }
+    }
+    return predicates;
   });
 
   private readonly container =
@@ -324,6 +378,7 @@ export class AndesTable {
 
     if (!this.multiSort()) {
       this.sort.set(next ? { columnId, direction: next } : null);
+      this.emitChange('sort', columnId);
       return;
     }
 
@@ -341,6 +396,7 @@ export class AndesTable {
         ),
       );
     }
+    this.emitChange('sort', columnId);
   }
 
   // Filtering
@@ -351,15 +407,81 @@ export class AndesTable {
     return this.filters()?.[columnId] ?? [];
   }
 
-  /** Replaces `columnId`'s filter; an empty `values` removes it. */
+  /**
+   * Replaces `columnId`'s filter as a user action: an empty `values` removes it,
+   * and `(tableChange)` reports the result.
+   */
   setFilter(columnId: string, values: readonly AndesFilterValue[]): void {
+    this.syncFilter(columnId, values);
+    this.emitChange('filter', columnId);
+  }
+
+  /**
+   * Replaces `columnId`'s filter without reporting a user change - how a filter
+   * seeds its `defaultFilteredValue` or follows its controlled `filteredValue`.
+   * A no-op when the values are already in place.
+   */
+  syncFilter(columnId: string, values: readonly AndesFilterValue[]): void {
+    const current = this.filterValueFor(columnId);
+    if (
+      current.length === values.length &&
+      values.every((value) => current.includes(value)) &&
+      (values.length > 0 || !(columnId in (this.filters() ?? {})))
+    ) {
+      return;
+    }
+    this.filters.set(this.withFilter(columnId, values));
+  }
+
+  /**
+   * Reports a user's filter choice for a controlled column without applying it:
+   * `(tableChange)` carries the filters as they would be.
+   */
+  notifyFilterChange(
+    columnId: string,
+    values: readonly AndesFilterValue[],
+  ): void {
+    this.emitChange('filter', columnId, this.withFilter(columnId, values));
+  }
+
+  /**
+   * The rows passing every active filter, judged by the `predicate` of each
+   * column's `andes-table-filter` - `andesFilterRows` with the predicates
+   * collected from the header. Columns without a predicate are not filtered.
+   */
+  filterRows<TRow>(rows: readonly TRow[]): readonly TRow[] {
+    return andesFilterRows(
+      rows,
+      this.filters(),
+      this.filterPredicates() as unknown as AndesFilterPredicates<TRow>,
+    );
+  }
+
+  private withFilter(
+    columnId: string,
+    values: readonly AndesFilterValue[],
+  ): AndesTableFilters {
     const next = { ...(this.filters() ?? {}) };
     if (values.length === 0) {
       delete next[columnId];
     } else {
       next[columnId] = [...values];
     }
-    this.filters.set(next);
+    return next;
+  }
+
+  private emitChange(
+    action: AndesTableChangeAction,
+    columnId: string,
+    filters: AndesTableFilters = this.filters() ?? {},
+  ): void {
+    this.tableChange.emit({
+      action,
+      columnId,
+      filters,
+      sort: this.sort(),
+      sorts: this.activeSorts(),
+    });
   }
 
   // Selection
