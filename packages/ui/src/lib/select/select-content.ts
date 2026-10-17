@@ -83,6 +83,8 @@ export class AndesSelectContent {
           align: this.align() ?? this.select.placementAlign(),
           sideOffset: this.sideOffset(),
           matchAnchorWidth: this.matchTriggerWidth(),
+          crossSideFallback: false,
+          flexibleDimensions: true,
         },
       });
     });

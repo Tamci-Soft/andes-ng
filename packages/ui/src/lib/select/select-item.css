@@ -9,13 +9,17 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--andes-space-2);
-  padding: var(--andes-space-2) var(--andes-space-2);
+  /* 32px rows: 5px + a 22px line + 5px, 12px from the panel's inner edge. */
+  min-height: var(--andes-control-height-md, 2rem);
+  padding: 0.3125rem 0.75rem;
   border: none;
-  border-radius: var(--andes-radius-sm);
+  border-radius: var(--andes-radius-sm, 0.25rem);
   background: none;
   color: inherit;
   font: inherit;
   text-align: start;
+  transition: background-color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
   cursor: pointer;
   user-select: none;
   outline: none;
@@ -32,8 +36,11 @@
   background-color: var(--andes-color-accent-hover);
 }
 
+/* The highlight above is the indicator, as in Ant's list: a ring drawn inside the row
+   on top of it read as a second border. Kept transparent for forced-colors mode, which
+   paints it in a system colour. */
 .andes-select__option:focus-visible {
-  outline: 2px solid var(--andes-color-focus-ring);
+  outline: 2px solid transparent;
   outline-offset: -2px;
 }
 

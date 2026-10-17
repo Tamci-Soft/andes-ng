@@ -4,6 +4,7 @@
     data-slot="select-panel"
     class="andes-select__panel"
     [attr.data-size]="select.size()"
+    [attr.data-side]="side() ?? select.placementSide()"
     [attr.data-match-trigger-width]="matchTriggerWidth() ? '' : null"
     [style.max-height.px]="select.listHeight()"
   >

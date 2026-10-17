@@ -12,12 +12,10 @@ import { AndesSelectGroup } from './select-group';
   styles: `
     :host {
       display: block;
-      padding: var(--andes-space-1) var(--andes-space-2);
+      padding: 0.3125rem 0.75rem;
       color: var(--andes-color-muted-foreground);
-      font-size: 0.75em;
-      font-weight: var(--andes-font-weight-medium);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      font-size: 0.75rem;
+      line-height: var(--andes-control-line-height, 1.375rem);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
