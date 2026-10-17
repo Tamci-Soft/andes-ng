@@ -1,4 +1,8 @@
 import { LiveAnnouncer, type AriaLivePoliteness } from '@angular/cdk/a11y';
+import {
+  _CdkPrivateStyleLoader,
+  _VisuallyHiddenLoader,
+} from '@angular/cdk/private';
 import { computed, inject, signal } from '@angular/core';
 
 import { ANDES_TOAST_BUILTIN_DEFAULTS } from './toast.config';
@@ -112,6 +116,10 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
     defaults: AndesToastGlobalConfig,
   ) {
     this._defaults.set(defaults);
+    // LiveAnnouncer's hidden node relies on the CDK's `.cdk-visually-hidden` rule, which it
+    // doesn't load itself (the CDK's focus trap and describer do). In an app with no other
+    // CDK a11y feature on screen, every announced toast text was painted onto the page.
+    inject(_CdkPrivateStyleLoader).load(_VisuallyHiddenLoader);
   }
 
   /** Maps the flavor's public config onto the shared internal shape. */
@@ -195,8 +203,8 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
 
   /**
    * Pauses a visible toast's auto-dismiss countdown, preserving whatever time is left.
-   * `AndesToastRegion` calls this on pointer hover (of the toast, or of the whole region for a
-   * stacked deck - unless the toast opted out with `pauseOnHover: false`) and `focusin` (keyboard focus anywhere within the toast, e.g.
+   * `AndesToastRegion` calls this while the pointer is over its stack (for every toast that
+   * didn't opt out with `pauseOnHover: false`) and on `focusin` (keyboard focus anywhere within the toast, e.g.
    * Tab-ing to its action button) - both are valid reasons a user needs the countdown to hold
    * still, per WCAG 2.2.1; focus always pauses. Reentrant: calling this while already paused
    * just increments the pause count, so hover and focus overlapping doesn't desync from
@@ -347,22 +355,32 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
       key: config.key,
       flavor: this.flavor,
       title: config.title,
+      titleTemplate: config.titleTemplate,
       message: config.message,
+      messageTemplate: config.messageTemplate,
       severity,
       duration:
         config.duration === undefined ? defaults.duration : config.duration,
       placement: config.placement,
       action: config.action,
+      cancel: config.cancel,
       actions: config.actions ?? [],
-      dismissible: config.dismissible ?? defaults.dismissible,
+      // `closeIcon: null` is the per-toast way to drop the close button.
+      dismissible:
+        config.closeIcon === null
+          ? false
+          : (config.dismissible ?? defaults.dismissible),
       icon: config.icon,
       closeIcon: config.closeIcon ?? defaults.closeIcon,
       pauseOnHover: config.pauseOnHover ?? defaults.pauseOnHover,
       showProgress: config.showProgress ?? defaults.showProgress,
       richColors: config.richColors ?? defaults.richColors,
       swipeToDismiss: config.swipeToDismiss ?? defaults.swipeToDismiss,
+      swipeDirections: config.swipeDirections ?? defaults.swipeDirections,
       role: config.role ?? (severity === 'error' ? 'alert' : 'status'),
       className: config.className,
+      style: config.style,
+      attributes: config.attributes,
       onClick: config.onClick,
       onClose: config.onClose,
       createdAt,

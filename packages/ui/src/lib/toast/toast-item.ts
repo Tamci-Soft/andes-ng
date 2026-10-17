@@ -5,10 +5,13 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   ElementRef,
   inject,
   input,
   output,
+  Renderer2,
+  RendererStyleFlags2,
   viewChild,
 } from '@angular/core';
 
@@ -16,17 +19,17 @@ import { AndesButton } from '../button/button';
 import type {
   AndesToast,
   AndesToastAction,
-  AndesToastPosition,
+  AndesToastSwipeDirection,
 } from './toast.types';
 
-/** Drag distance (px) past which releasing a swipe dismisses the toast. */
-const SWIPE_THRESHOLD = 45;
-/** Release speed (px/ms) that dismisses even a short flick. */
-const SWIPE_VELOCITY = 0.11;
+/** Distance, in px, past which releasing a drag dismisses the toast. */
+const SWIPE_DISTANCE_THRESHOLD = 45;
+/** Release speed, in px/ms, past which a shorter flick still dismisses the toast. */
+const SWIPE_VELOCITY_THRESHOLD = 0.11;
+/** Movement, in px, after which a press counts as a drag rather than a click. */
+const DRAG_START_THRESHOLD = 4;
 
-type AndesSwipeDirection = 'left' | 'right' | 'up' | 'down';
-
-interface AndesSwipeState {
+interface DragState {
   readonly pointerId: number;
   readonly startX: number;
   readonly startY: number;
@@ -35,17 +38,11 @@ interface AndesSwipeState {
   amount: number;
 }
 
-/** Movement against an allowed direction is dampened rather than blocked, so it feels elastic. */
-function dampen(delta: number): number {
-  return delta / (1.5 + Math.abs(delta) / 20);
-}
-
 /**
- * Renders a single toast's chrome (icon, title, message, actions, close button, progress
- * bar) - purely visual, with no live-region semantics of its own. Internal to `@andes-ng/ui` -
- * only `AndesToastRegion` instantiates it, so it stays unexported from the package root;
- * nothing about its auto-dismiss/hover-pause/queueing behavior lives here, only presentation,
- * the swipe gesture, and the events the region wires to the owning service.
+ * Renders a single toast's chrome (icon, title, message, buttons, close button, progress
+ * bar) and its drag-to-dismiss gesture - with no live-region semantics of its own. Internal to
+ * `@andes-ng/ui` - only `AndesToastRegion` instantiates it, so it stays unexported from the
+ * package root; auto-dismiss, hover pause, queueing and the stack layout live elsewhere.
  *
  * Deliberately has no `role`/`aria-live` on its host: this node is added to and removed from
  * the DOM dynamically (per toast, per show/dismiss), which is not a reliable way to trigger a
@@ -56,8 +53,8 @@ function dampen(delta: number): number {
  * honored there, as the announcement's politeness.)
  *
  * Reports its natural height (`heightChange`) so the region can lay the stack out with
- * transforms - the region pins a collapsed card's height to the front card's, so the height
- * is measured from the inner `.andes-toast__body`, which never stretches.
+ * transforms: the region clamps a card hidden behind the front of a collapsed deck to the
+ * front card's height, so the card can't measure itself from its own box.
  */
 @Component({
   selector: 'andes-toast-item',
@@ -69,41 +66,45 @@ function dampen(delta: number): number {
     '[class]': 'hostClasses()',
     '[attr.data-severity]': 'toast().severity',
     '[attr.data-flavor]': 'toast().flavor',
-    '[attr.data-rich-colors]': 'toast().richColors ? "" : null',
     '[attr.data-pause-on-hover]': 'toast().pauseOnHover ? "" : null',
     '[attr.data-clickable]': 'toast().onClick ? "" : null',
-    '[attr.data-swipeable]': 'swipeable() ? "" : null',
+    '[attr.data-rich-colors]': 'toast().richColors ? "" : null',
+    '[attr.data-swipeable]': 'swipeDirections().length ? "" : null',
+    '[attr.dir]': 'rtl() ? "rtl" : null',
+    '[style]': 'toast().style ?? null',
     '(click)': 'onHostClick($event)',
     '(pointerdown)': 'onPointerDown($event)',
     '(pointermove)': 'onPointerMove($event)',
     '(pointerup)': 'onPointerUp($event)',
-    '(pointercancel)': 'resetSwipe()',
+    '(pointercancel)': 'resetDrag()',
   },
 })
 export class AndesToastItem {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly body = viewChild.required<ElementRef<HTMLElement>>('body');
+  private readonly renderer = inject(Renderer2);
 
   readonly toast = input.required<AndesToast>();
-  /** The resolved placement - decides which way a swipe may fling the toast. */
-  readonly placement = input<AndesToastPosition>('bottom-right');
+  /** Lays the content out right-to-left (the flavor's global `rtl` option). */
+  readonly rtl = input(false);
+  /** Directions the toast can be dragged off screen in, already resolved by the region. */
+  readonly swipeDirections = input<readonly AndesToastSwipeDirection[]>([]);
 
   /** The close button was clicked. */
   readonly dismissRequested = output<void>();
   /** The inline `action` button was clicked. */
   readonly actionClicked = output<void>();
+  /** The inline `cancel` button was clicked. */
+  readonly cancelClicked = output<void>();
   /** A button of the `actions` group was clicked. */
   readonly groupActionClicked = output<AndesToastAction>();
   /** The toast body (anything but one of its buttons) was clicked. */
   readonly bodyClicked = output<void>();
-  /** A swipe went far or fast enough to dismiss the toast. */
-  readonly swiped = output<void>();
-  /** The toast's natural (unstretched) border-box height, in px. */
+  /** The toast was dragged past the dismiss threshold, in this direction. */
+  readonly swiped = output<AndesToastSwipeDirection>();
+  /** The toast's natural (unclamped) border-box height changed, in px. */
   readonly heightChange = output<number>();
 
-  private swipe: AndesSwipeState | null = null;
-  /** Set once a drag moved the toast, so the click that ends it doesn't count as a body click. */
-  private dragged = false;
+  private readonly row = viewChild.required<ElementRef<HTMLElement>>('row');
 
   protected readonly hostClasses = computed(() => {
     const toast = this.toast();
@@ -117,9 +118,11 @@ export class AndesToastItem {
       : 'Dismiss notification',
   );
 
-  protected readonly swipeable = computed(
-    () => this.toast().swipeToDismiss && this.toast().dismissible,
-  );
+  /** With a title the message becomes the supporting line; alone it is the headline. */
+  protected readonly hasTitle = computed(() => {
+    const toast = this.toast();
+    return !!toast.title || !!toast.titleTemplate;
+  });
 
   /** Progress bar only makes sense when there is a countdown to visualize. */
   protected readonly progressDuration = computed(() => {
@@ -134,153 +137,204 @@ export class AndesToastItem {
     $implicit: this.toast(),
   }));
 
-  /** The twelve bars of the loading spinner. */
-  protected readonly spinnerBars = Array.from({ length: 12 }, (_, i) => i);
+  private drag: DragState | null = null;
+  /** Set when a press turned into a drag, so the click that ends it isn't a body click. */
+  private suppressClick = false;
 
   constructor() {
-    const destroyRef = inject(DestroyRef);
-    afterNextRender(() => {
-      this.reportHeight();
-      if (typeof ResizeObserver === 'undefined') {
-        return;
+    // `attributes` is an open-ended map, so it can't be expressed as static host bindings:
+    // apply it imperatively and remove whatever a previous revision set but this one doesn't.
+    let applied: readonly string[] = [];
+    effect(() => {
+      const element = this.host.nativeElement;
+      const next = Object.entries(this.toast().attributes ?? {}).filter(
+        ([name]) => name !== 'class' && name !== 'style',
+      );
+      const nextNames = new Set(next.map(([name]) => name));
+      for (const name of applied) {
+        if (!nextNames.has(name)) {
+          this.renderer.removeAttribute(element, name);
+        }
       }
-      const observer = new ResizeObserver(() => this.reportHeight());
-      observer.observe(this.body().nativeElement);
-      destroyRef.onDestroy(() => observer.disconnect());
+      for (const [name, value] of next) {
+        this.renderer.setAttribute(element, name, value);
+      }
+      applied = [...nextNames];
+    });
+
+    const destroyRef = inject(DestroyRef);
+    afterNextRender({
+      read: () => {
+        this.reportHeight();
+        if (typeof ResizeObserver === 'undefined') {
+          return;
+        }
+        const observer = new ResizeObserver(() => this.reportHeight());
+        observer.observe(this.row().nativeElement);
+        destroyRef.onDestroy(() => observer.disconnect());
+      },
     });
   }
 
   protected onHostClick(event: MouseEvent): void {
-    if (this.dragged) {
-      this.dragged = false;
+    if (this.suppressClick) {
+      this.suppressClick = false;
       return;
     }
-    const target = event.target as Element | null;
-    const interactive = target?.closest('button, a, andes-button');
-    if (interactive && this.host.nativeElement.contains(interactive)) {
+    if (this.isInteractive(event.target)) {
       return;
     }
     this.bodyClicked.emit();
   }
 
   protected onPointerDown(event: PointerEvent): void {
-    const target = event.target as Element | null;
     if (
-      !this.swipeable() ||
+      !this.swipeDirections().length ||
       event.button !== 0 ||
-      target?.closest('button, a, andes-button, input, textarea, select')
+      this.isInteractive(event.target)
     ) {
       return;
     }
-    this.dragged = false;
-    this.swipe = {
+    this.suppressClick = false;
+    this.drag = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      startedAt: Date.now(),
+      startedAt: performance.now(),
       axis: null,
       amount: 0,
     };
   }
 
   protected onPointerMove(event: PointerEvent): void {
-    const swipe = this.swipe;
-    if (!swipe || swipe.pointerId !== event.pointerId) {
+    const drag = this.drag;
+    if (!drag || event.pointerId !== drag.pointerId) {
       return;
     }
-    const dx = event.clientX - swipe.startX;
-    const dy = event.clientY - swipe.startY;
-    if (swipe.axis === null) {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 3) {
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (drag.axis === null) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAG_START_THRESHOLD) {
         return;
       }
-      swipe.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-      const element = this.host.nativeElement;
-      element.setAttribute('data-swiping', '');
-      element.setPointerCapture?.(event.pointerId);
+      // Lock onto one axis for the rest of the gesture, so a mostly-vertical drag doesn't
+      // also wobble sideways.
+      drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      this.suppressClick = true;
+      this.renderer.setAttribute(this.host.nativeElement, 'data-swiping', '');
+      try {
+        // Keeps the drag alive when the pointer outruns the card.
+        this.host.nativeElement.setPointerCapture?.(event.pointerId);
+      } catch {
+        // The pointer is already gone (e.g. released between events) - nothing to capture.
+      }
     }
-    const delta = swipe.axis === 'x' ? dx : dy;
-    swipe.amount = this.allows(this.directionOf(swipe.axis, delta))
+    const delta = drag.axis === 'x' ? dx : dy;
+    // Free movement towards an allowed direction; elastic resistance the other way, so the
+    // toast still responds to the finger without travelling far where it can't be dismissed.
+    drag.amount = this.allows(drag.axis, delta)
       ? delta
-      : dampen(delta);
-    this.dragged = true;
-    this.setSwipeAmount(swipe.axis, swipe.amount);
+      : delta / (1.5 + Math.abs(delta) / 20);
+    this.setSwipeOffset(drag.axis, drag.amount);
   }
 
   protected onPointerUp(event: PointerEvent): void {
-    const swipe = this.swipe;
-    if (!swipe || swipe.pointerId !== event.pointerId) {
+    const drag = this.drag;
+    if (!drag || event.pointerId !== drag.pointerId) {
       return;
     }
-    this.swipe = null;
-    if (swipe.axis === null) {
+    this.drag = null;
+    if (drag.axis === null) {
       return;
     }
-    const direction = this.directionOf(swipe.axis, swipe.amount);
-    const velocity =
-      Math.abs(swipe.amount) / Math.max(1, Date.now() - swipe.startedAt);
+    const elapsed = Math.max(1, performance.now() - drag.startedAt);
+    const velocity = Math.abs(drag.amount) / elapsed;
+    const direction = this.directionOf(drag.axis, drag.amount);
     if (
-      this.allows(direction) &&
-      (Math.abs(swipe.amount) >= SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY)
+      direction !== null &&
+      this.swipeDirections().includes(direction) &&
+      (Math.abs(drag.amount) >= SWIPE_DISTANCE_THRESHOLD ||
+        velocity > SWIPE_VELOCITY_THRESHOLD)
     ) {
-      const element = this.host.nativeElement;
-      element.removeAttribute('data-swiping');
-      // Read by the region's leave animation, which flings the card out from where it is.
-      element.setAttribute('data-swipe-out', direction);
-      this.swiped.emit();
+      // The exit animation reads this attribute to continue the motion off screen.
+      this.renderer.setAttribute(
+        this.host.nativeElement,
+        'data-swipe-out',
+        direction,
+      );
+      this.renderer.removeAttribute(this.host.nativeElement, 'data-swiping');
+      this.swiped.emit(direction);
       return;
     }
-    this.resetSwipe();
+    this.resetDrag();
   }
 
-  protected resetSwipe(): void {
-    this.swipe = null;
+  /** Lets go of an unfinished drag; the toast eases back into place. */
+  protected resetDrag(): void {
+    this.drag = null;
     const element = this.host.nativeElement;
-    element.removeAttribute('data-swiping');
-    element.style.removeProperty('--_toast-swipe-x');
-    element.style.removeProperty('--_toast-swipe-y');
+    this.renderer.removeAttribute(element, 'data-swiping');
+    this.renderer.removeStyle(
+      element,
+      '--_toast-swipe-x',
+      RendererStyleFlags2.DashCase,
+    );
+    this.renderer.removeStyle(
+      element,
+      '--_toast-swipe-y',
+      RendererStyleFlags2.DashCase,
+    );
   }
 
-  private setSwipeAmount(axis: 'x' | 'y', amount: number): void {
-    const style = this.host.nativeElement.style;
-    style.setProperty('--_toast-swipe-x', axis === 'x' ? `${amount}px` : '0px');
-    style.setProperty('--_toast-swipe-y', axis === 'y' ? `${amount}px` : '0px');
+  private setSwipeOffset(axis: 'x' | 'y', amount: number): void {
+    this.renderer.setStyle(
+      this.host.nativeElement,
+      axis === 'x' ? '--_toast-swipe-x' : '--_toast-swipe-y',
+      `${amount}px`,
+      RendererStyleFlags2.DashCase,
+    );
   }
 
-  private directionOf(axis: 'x' | 'y', delta: number): AndesSwipeDirection {
+  private allows(axis: 'x' | 'y', delta: number): boolean {
+    const direction = this.directionOf(axis, delta);
+    return direction !== null && this.swipeDirections().includes(direction);
+  }
+
+  private directionOf(
+    axis: 'x' | 'y',
+    delta: number,
+  ): AndesToastSwipeDirection | null {
+    if (delta === 0) {
+      return null;
+    }
     if (axis === 'x') {
       return delta > 0 ? 'right' : 'left';
     }
-    return delta > 0 ? 'down' : 'up';
+    return delta > 0 ? 'bottom' : 'top';
   }
 
-  /** A toast flings toward the edges it's anchored to; centered ones sideways both ways. */
-  private allows(direction: AndesSwipeDirection): boolean {
-    const placement = this.placement();
-    switch (direction) {
-      case 'up':
-        return placement.startsWith('top');
-      case 'down':
-        return placement.startsWith('bottom');
-      case 'left':
-        return !placement.endsWith('right');
-      case 'right':
-        return !placement.endsWith('left');
-    }
+  private isInteractive(target: EventTarget | null): boolean {
+    const interactive = (target as Element | null)?.closest?.(
+      'button, a, andes-button',
+    );
+    return !!interactive && this.host.nativeElement.contains(interactive);
   }
 
   private reportHeight(): void {
-    const host = this.host.nativeElement;
-    const body = this.body().nativeElement;
-    const style = getComputedStyle(host);
-    const chrome =
-      parseFloat(style.paddingTop) +
-      parseFloat(style.paddingBottom) +
-      parseFloat(style.borderTopWidth) +
-      parseFloat(style.borderBottomWidth);
-    const height = body.offsetHeight + (Number.isFinite(chrome) ? chrome : 0);
+    const element = this.host.nativeElement;
+    const row = this.row().nativeElement;
+    const style = getComputedStyle(element);
+    const chrome = [
+      style.paddingTop,
+      style.paddingBottom,
+      style.borderTopWidth,
+      style.borderBottomWidth,
+    ].reduce((total, value) => total + (parseFloat(value) || 0), 0);
+    // offsetHeight ignores transforms, so a card scaled down in a collapsed deck (or still
+    // sliding in) reports its real size.
+    const height = row.offsetHeight + chrome;
     if (height > 0) {
-      this.heightChange.emit(height);
+      this.heightChange.emit(Math.round(height * 100) / 100);
     }
   }
 }

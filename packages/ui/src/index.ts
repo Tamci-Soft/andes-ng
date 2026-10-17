@@ -14,6 +14,7 @@ export type {
   AndesMessageConfig,
   AndesToast,
   AndesToastAction,
+  AndesToastAttributes,
   AndesToastCloseReason,
   AndesToastConfig,
   AndesToastFlavor,
@@ -25,5 +26,7 @@ export type {
   AndesToastRole,
   AndesToastSeverity,
   AndesToastStackConfig,
+  AndesToastStyle,
+  AndesToastSwipeDirection,
   AndesToastTemplateContext,
 } from './lib/toast/toast.types';

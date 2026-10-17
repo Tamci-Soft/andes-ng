@@ -115,10 +115,11 @@ export class AndesMessageService extends AndesToastQueue<AndesMessageConfig> {
   }
 
   protected toToastConfig(config: AndesMessageConfig): AndesToastConfig {
-    const { content, type, ...rest } = config;
+    const { content, contentTemplate, type, ...rest } = config;
     return {
       ...rest,
       message: content,
+      messageTemplate: contentTemplate,
       severity: type ?? 'info',
       placement: 'top-center',
     };

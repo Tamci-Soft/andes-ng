@@ -1,91 +1,101 @@
-/* The card's look - Sonner's (shadcn's toast) visual language on Andes tokens: a flat popover
-   card, 1px border, soft shadow, 13px text, monochrome 16px status glyph. Where it sits and how
-   it moves (stack, expand, enter/exit, swipe) is the region's job - see toast-region.css. */
+/*
+ * The toast card: a neutral raised surface where the severity is carried by the icon alone,
+ * or - with richColors - by a tinted wash too. Layout inside the stack (position, depth,
+ * enter/exit/swipe motion) belongs to toast-region.css; this file only paints the card.
+ */
 :host {
-  /* Component-local colors (not design tokens), switched per severity under data-rich-colors.
-     `--_toast-accent` drives the progress bar. */
-  --_toast-bg: var(--andes-color-popover, var(--andes-color-card));
-  --_toast-fg: var(
-    --andes-color-popover-foreground,
-    var(--andes-color-card-foreground)
-  );
-  --_toast-border: var(--andes-color-border);
-  --_toast-accent: var(--andes-color-primary);
-  --_toast-description: color-mix(
+  /* Component-local (not design tokens): the severity colour, and the surface the icon's
+     knocked-out glyph and the close button blend into. */
+  --_toast-accent: var(--andes-color-muted-foreground);
+  --_toast-surface: var(--andes-color-card);
+  /* A softer edge than the form-control border, so the card reads by its shadow first. */
+  --_toast-border: color-mix(
     in srgb,
-    var(--_toast-fg) 78%,
-    var(--_toast-bg)
+    var(--andes-color-border) 65%,
+    var(--andes-color-card)
   );
+  position: relative;
   display: block;
   box-sizing: border-box;
-  /* One fixed width for every notification (Sonner's 356px), so a stack of short and long ones
-     lines up as a single column. `--andes-toast-width` is a component-level hook like avatar's
-     `--andes-avatar-radius`; the region caps it to the viewport on narrow screens. */
-  width: var(--andes-toast-width, 356px);
-  max-width: 100%;
-  padding: 16px;
+  padding: var(--andes-space-4);
   border: 1px solid var(--_toast-border);
-  border-radius: var(--andes-radius-lg, 0.5rem);
-  background-color: var(--_toast-bg);
-  color: var(--_toast-fg);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--_toast-surface);
+  color: var(--andes-color-card-foreground);
+  box-shadow: 0 4px 12px rgb(15 23 42 / 10%);
   font-family: var(--andes-font-family), sans-serif;
-  font-size: 13px;
+  /* Set on the surface so the text and projected icons don't inherit the page's body size. */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   overflow-wrap: anywhere;
   /* The region disables pointer-events on itself so empty space around a toast doesn't
      block clicks - pointer-events is inherited, so each toast opts back in. */
   pointer-events: auto;
+  outline: none;
+}
+
+:host-context([data-andes-theme='dark']) {
+  --_toast-border: var(--andes-color-border);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
+}
+
+:host(:focus-visible) {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Per-severity accents, resolved through one private property per severity so the dark
+   theme can swap the shade without repeating the severity selectors. Warning's accent is its
+   -hover shade: the base amber only reaches ~2:1 on a white card, under the 3:1 a meaningful
+   graphic needs (same choice as the Alert). */
+:host {
+  --_toast-success: var(--andes-color-success);
+  --_toast-danger: var(--andes-color-danger);
+  --_toast-warning: var(--andes-color-warning-hover);
+  --_toast-info: var(--andes-color-info);
+}
+
+/* On the dark card the base green, red and blue drop under 3:1; their -hover shades are the
+   brighter ones on that theme. */
+:host-context([data-andes-theme='dark']) {
+  --_toast-success: var(--andes-color-success-hover);
+  --_toast-danger: var(--andes-color-danger-hover);
+  --_toast-info: var(--andes-color-info-hover);
 }
 
 :host([data-severity='success']) {
-  --_toast-accent: var(--andes-color-success);
+  --_toast-accent: var(--_toast-success);
 }
 
 :host([data-severity='error']) {
-  --_toast-accent: var(--andes-color-danger);
+  --_toast-accent: var(--_toast-danger);
 }
 
 :host([data-severity='warning']) {
-  --_toast-accent: var(--andes-color-warning);
+  --_toast-accent: var(--_toast-warning);
 }
 
 :host([data-severity='info']) {
-  --_toast-accent: var(--andes-color-info);
+  --_toast-accent: var(--_toast-info);
 }
 
-/* Rich colors: the whole card takes a soft tint of the status color. Text uses the `-active`
-   shade, which is the darkest in light mode and the brightest in dark mode, so it stays
-   legible on the tint either way. */
+/* Rich colours: the Alert's tinted recipe - a 9% wash of the accent mixed into the card, a 35%
+   border. Text stays on the regular foreground, which clears 4.5:1 on every wash. */
 :host(
-  [data-rich-colors]:not([data-severity='neutral'], [data-severity='loading'])
+  [data-rich-colors]:not([data-severity='neutral']):not(
+      [data-severity='loading']
+    )
 ) {
-  --_toast-bg: color-mix(
+  --_toast-surface: color-mix(
     in srgb,
-    var(--_toast-accent) 8%,
-    var(--andes-color-popover, var(--andes-color-card))
+    var(--_toast-accent) 9%,
+    var(--andes-color-card)
   );
   --_toast-border: color-mix(
     in srgb,
-    var(--_toast-accent) 28%,
-    var(--andes-color-popover, var(--andes-color-card))
+    var(--_toast-accent) 35%,
+    var(--andes-color-card)
   );
-  --_toast-description: var(--_toast-fg);
-}
-
-:host([data-rich-colors][data-severity='success']) {
-  --_toast-fg: var(--andes-color-success-active);
-}
-
-:host([data-rich-colors][data-severity='error']) {
-  --_toast-fg: var(--andes-color-danger-active);
-}
-
-:host([data-rich-colors][data-severity='warning']) {
-  --_toast-fg: var(--andes-color-warning-active);
-}
-
-:host([data-rich-colors][data-severity='info']) {
-  --_toast-fg: var(--andes-color-info-active);
 }
 
 :host([data-clickable]) {
@@ -93,24 +103,18 @@
 }
 
 :host([data-swipeable]) {
-  /* The region handles drags itself; keep the browser from scrolling/panning mid-swipe. */
+  /* The drag gesture is handled in script; keep the browser from scrolling or zooming under
+     it on touch screens. */
   touch-action: none;
+  user-select: none;
 }
 
-/* Message flavor: a compact single-line pill sized to its content. */
-:host([data-flavor='message']) {
-  width: max-content;
-  max-width: min(calc(100vw - 32px), 40rem);
-  padding: 10px 14px;
-}
-
-/* A card peeking out from behind the front of a collapsed stack shows only its edge - its
-   content fades out and is hidden (which also takes it out of the tab order and accessibility
-   tree until the stack expands). Visibility flips after the fade on collapse and right away on
-   expand. */
+/* A card behind the front of a collapsed stack shows only its edge. Its content fades out,
+   and visibility (which flips at the end of the fade, and at the start of the fade back in)
+   takes it out of the tab order and accessibility tree until the stack expands. */
 :host > * {
   transition:
-    opacity 400ms,
+    opacity 400ms ease,
     visibility 400ms;
 }
 
@@ -119,22 +123,21 @@
   visibility: hidden;
 }
 
-.andes-toast__body {
+.andes-toast__row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .andes-toast__icon {
-  position: relative;
   flex-shrink: 0;
   display: inline-flex;
-  align-items: center;
-  width: 16px;
-  height: 16px;
-  /* Sonner's optical alignment: the glyph hangs slightly into the padding and keeps 10px from
-     the text. */
-  margin-inline: -4px 4px;
+  width: 1.25rem;
+  height: 1.25rem;
+  /* Pulls the 20px icon into the padding, so the text starts 40px in, as on a 16px-padded
+     card with a 16px icon slot. */
+  margin-inline: -0.25rem 0.0625rem;
+  color: var(--_toast-accent);
 }
 
 .andes-toast__icon svg {
@@ -142,157 +145,232 @@
   height: 100%;
 }
 
-:host([data-flavor='message']) .andes-toast__icon {
-  margin-inline: -2px 2px;
+.andes-toast__shape {
+  fill: currentColor;
+}
+
+.andes-toast__glyph {
+  fill: none;
+  stroke: var(--_toast-surface);
+  stroke-width: 1.75;
 }
 
 .andes-toast__spinner {
-  position: relative;
-  display: block;
-  width: 16px;
-  height: 16px;
+  animation: andes-toast-spin 1s linear infinite;
 }
 
-.andes-toast__spinner-bar {
-  position: absolute;
-  top: calc(50% - 0.04 * 16px);
-  left: calc(50% - 0.12 * 16px);
-  width: 24%;
-  height: 8%;
-  border-radius: 6px;
-  background-color: var(--andes-color-muted-foreground);
-  transform: rotate(calc(var(--_bar) * 30deg)) translate(146%);
-  animation: andes-toast-spinner 1.2s linear infinite;
-  animation-delay: calc(var(--_bar) * 0.1s - 1.2s);
+.andes-toast__spinner-track {
+  opacity: 0.2;
 }
 
 .andes-toast__content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.125rem;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.andes-toast__title {
-  margin: 0;
-  font-weight: var(--andes-font-weight-medium, 500);
-  line-height: 1.5;
-}
-
-/* Without a title, the message is the toast's headline (Sonner's single-line toast); under a
-   title it reads as the description. */
+/*
+ * Type scale: the headline line - the title, or the message when it stands alone - is 14px
+ * medium; a message under a title becomes a 13px supporting line in a softer ink. 13px is
+ * this component's one deliberate exception to the 12/14 scale: at 12px a two-line muted
+ * description on a 356px card drops below comfortable reading size, and 13 keeps the title
+ * and description close in size, which is what makes this card read calm rather than loud.
+ */
+.andes-toast__title,
 .andes-toast__message {
   margin: 0;
-  font-weight: var(--andes-font-weight-medium, 500);
-  line-height: 1.5;
+  font-weight: var(--andes-font-weight-medium);
 }
 
-.andes-toast__title + .andes-toast__message {
+.andes-toast__message--description {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
   font-weight: 400;
-  line-height: 1.4;
-  color: var(--_toast-description);
+  /* 78% of the foreground into the card: >= 7:1 in both themes, but clearly secondary. */
+  color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 78%,
+    var(--_toast-surface)
+  );
 }
 
 .andes-toast__actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
+  gap: var(--andes-space-2);
+  margin-top: var(--andes-space-2);
 }
 
-/* The single inline action: a small inverted button, as in Sonner. */
-.andes-toast__action {
+/* The compact inline buttons: a solid ink "action" and a tinted "cancel" before it. */
+.andes-toast__action,
+.andes-toast__cancel {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  height: 24px;
-  margin-inline-start: auto;
-  padding: 0 8px;
+  height: 1.5rem;
+  padding: 0 var(--andes-space-2);
   border: none;
-  border-radius: var(--andes-radius-sm, 0.25rem);
-  background-color: var(--_toast-fg);
-  color: var(--_toast-bg);
+  border-radius: var(--andes-radius-sm);
   font-family: inherit;
-  font-size: 12px;
-  font-weight: var(--andes-font-weight-medium, 500);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: var(--andes-font-weight-medium);
+  white-space: nowrap;
   cursor: pointer;
-  transition: opacity var(--andes-motion-duration-fast, 0.1s);
+  transition:
+    background-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.andes-toast__action {
+  background-color: var(--andes-color-card-foreground);
+  color: var(--_toast-surface);
 }
 
 .andes-toast__action:hover {
   opacity: 0.88;
 }
 
+.andes-toast__cancel {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 8%,
+    transparent
+  );
+  color: var(--andes-color-card-foreground);
+}
+
+.andes-toast__cancel:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 14%,
+    transparent
+  );
+}
+
+/* Pinned to the card's top inline-start corner, half outside it, as a small round badge. */
 .andes-toast__close {
-  flex-shrink: 0;
-  align-self: flex-start;
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  margin-inline-end: -6px;
+  box-sizing: border-box;
+  min-width: 1.25rem;
+  height: 1.25rem;
   padding: 0;
-  border: none;
-  border-radius: var(--andes-radius-sm, 0.25rem);
-  background: transparent;
-  color: color-mix(in srgb, currentColor 65%, transparent);
+  border: 1px solid var(--_toast-border);
+  border-radius: var(--andes-radius-full);
+  background-color: var(--_toast-surface);
+  color: var(--andes-color-card-foreground);
+  font-family: inherit;
   cursor: pointer;
+  transform: translate(-35%, -35%);
   transition:
-    background-color var(--andes-motion-duration-fast, 0.1s),
-    color var(--andes-motion-duration-fast, 0.1s);
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+:host(:dir(rtl)) .andes-toast__close {
+  transform: translate(35%, -35%);
+}
+
+/* Widens the 20px badge's hit area to 28px without changing how it looks. */
+.andes-toast__close::before {
+  content: '';
+  position: absolute;
+  inset: -0.25rem;
 }
 
 .andes-toast__close:hover {
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
-  color: inherit;
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 6%,
+    var(--_toast-surface)
+  );
+  border-color: var(--andes-color-border);
 }
 
-.andes-toast__close-glyph {
-  width: 12px;
-  height: 12px;
+.andes-toast__close svg {
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 .andes-toast__close-icon {
   display: inline-flex;
-  font-size: 12px;
+  padding-inline: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 .andes-toast__close:focus-visible,
-.andes-toast__action:focus-visible {
+.andes-toast__action:focus-visible,
+.andes-toast__cancel:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
   outline-offset: 2px;
 }
 
-/* Clips the progress bar to the card's rounded corners. (The card itself can't clip: the
-   region hangs a hover bridge outside it.) */
+/* Clips the bar to the card's inner rounded corners (the card itself can't clip: the close
+   badge hangs over its edge). */
 .andes-toast__progress-track {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
+  border-radius: calc(var(--andes-radius-lg) - 1px);
   overflow: hidden;
   pointer-events: none;
 }
 
-/* Drains over the auto-dismiss countdown. Pauses exactly when AndesToastQueue's timer does:
-   on hover (unless pauseOnHover is off) and whenever focus is inside the toast. */
+/* Drains over the auto-dismiss countdown, and pauses exactly when AndesToastQueue's timer
+   does: while the stack is hovered (the region sets --_toast-progress-state) and whenever
+   focus is inside the toast. */
 .andes-toast__progress {
   position: absolute;
   inset-inline: 0;
   bottom: 0;
   height: 2px;
   background-color: var(--_toast-accent);
+  opacity: 0.8;
   transform-origin: left center;
   animation-name: andes-toast-progress;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
+  animation-play-state: var(--_toast-progress-state, running);
 }
 
-:host(:focus-within) .andes-toast__progress,
-:host([data-pause-on-hover]:hover) .andes-toast__progress {
+/* transform-origin has no logical keywords: drain towards the inline start in RTL too. */
+:host(:dir(rtl)) .andes-toast__progress {
+  transform-origin: right center;
+}
+
+:host([data-severity='neutral']) .andes-toast__progress,
+:host([data-severity='loading']) .andes-toast__progress {
+  background-color: var(--andes-color-primary);
+}
+
+:host([data-pause-on-hover]:hover) .andes-toast__progress,
+:host(:focus-within) .andes-toast__progress {
   animation-play-state: paused;
+}
+
+/* Message flavor: a compact single-line card - icon + text, sized to its content. */
+:host([data-flavor='message']) {
+  width: max-content;
+  max-width: 100%;
+  padding: 0.5625rem 0.875rem;
+}
+
+:host([data-flavor='message']) .andes-toast__row {
+  gap: var(--andes-space-2);
+}
+
+:host([data-flavor='message']) .andes-toast__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-inline: -0.125rem 0;
 }
 
 @keyframes andes-toast-progress {
@@ -305,13 +383,9 @@
   }
 }
 
-@keyframes andes-toast-spinner {
-  from {
-    opacity: 1;
-  }
-
+@keyframes andes-toast-spin {
   to {
-    opacity: 0.15;
+    transform: rotate(360deg);
   }
 }
 
@@ -320,7 +394,7 @@
     transition: none;
   }
 
-  .andes-toast__spinner-bar {
-    animation-duration: 3.6s;
+  .andes-toast__spinner {
+    animation-duration: 2.4s;
   }
 }
