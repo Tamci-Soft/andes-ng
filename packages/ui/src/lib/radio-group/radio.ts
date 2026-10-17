@@ -74,6 +74,7 @@ export class AndesRadio {
       `andes-radio--${this.state.orientation()}`,
       this.isChecked() && 'andes-radio--checked',
       this.isDisabled() && 'andes-radio--disabled',
+      this.state.invalid() && 'andes-radio--invalid',
       isButton && 'andes-radio--button',
       isButton && `andes-radio--${this.state.buttonStyle()}`,
       isButton && `andes-radio--${this.state.size()}`,

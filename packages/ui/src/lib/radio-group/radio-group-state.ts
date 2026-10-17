@@ -20,6 +20,7 @@ export interface AndesRadioGroupSource {
   readonly value: Signal<unknown>;
   readonly disabled: Signal<boolean>;
   readonly required: Signal<boolean>;
+  readonly invalid: Signal<boolean>;
   readonly optionType: Signal<AndesRadioOptionType>;
   readonly buttonStyle: Signal<AndesRadioButtonStyle>;
   readonly size: Signal<AndesRadioSize>;
@@ -51,6 +52,7 @@ export class AndesRadioGroupState {
   readonly value = computed(() => this.group.value());
   readonly disabled = computed(() => this.group.disabled());
   readonly required = computed(() => this.group.required());
+  readonly invalid = computed(() => this.group.invalid());
   readonly optionType = computed(() => this.group.optionType());
   readonly buttonStyle = computed(() => this.group.buttonStyle());
   readonly size = computed(() => this.group.size());

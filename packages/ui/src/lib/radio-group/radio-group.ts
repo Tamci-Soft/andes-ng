@@ -92,6 +92,9 @@ function noop(): void {
     '[attr.aria-labelledby]': 'ariaLabelledby()',
     '[attr.aria-disabled]': 'isDisabled() || null',
     '[attr.aria-required]': 'required() || null',
+    // Kept on the group host rather than forwarded to the native inputs: WAI-ARIA supports
+    // aria-invalid on the radiogroup role but not on the individual radio role.
+    '[attr.aria-invalid]': 'ariaInvalid() || null',
     '[attr.data-disabled]': 'isDisabled() ? "" : null',
     '[attr.data-orientation]': 'resolvedOrientation()',
     '[attr.data-option-type]': 'optionType()',
@@ -110,6 +113,12 @@ export class AndesRadioGroup<T = unknown> implements ControlValueAccessor {
   readonly name = input<string | undefined>(undefined);
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly required = input(false, { transform: booleanAttribute });
+  /** Marks the group as failing validation - sets `aria-invalid` on the radiogroup and tints
+   *  every item with the danger color. */
+  readonly ariaInvalid = input(false, {
+    alias: 'aria-invalid',
+    transform: booleanAttribute,
+  });
   /** Defaults to `horizontal` for `optionType="button"` (a segmented control) and to
    *  `vertical` for the classic style. */
   readonly orientation = input<AndesRadioGroupOrientation | undefined>(
@@ -180,6 +189,7 @@ export class AndesRadioGroup<T = unknown> implements ControlValueAccessor {
       this.optionType() === 'button' && 'andes-radio-group--button',
       this.block() && 'andes-radio-group--block',
       this.isDisabled() && 'andes-radio-group--disabled',
+      this.ariaInvalid() && 'andes-radio-group--invalid',
     ),
   );
 
@@ -189,6 +199,7 @@ export class AndesRadioGroup<T = unknown> implements ControlValueAccessor {
       value: this.value,
       disabled: this.isDisabled,
       required: this.required,
+      invalid: this.ariaInvalid,
       optionType: this.optionType,
       buttonStyle: this.buttonStyle,
       size: this.size,

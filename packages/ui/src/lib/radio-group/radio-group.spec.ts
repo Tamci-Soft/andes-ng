@@ -20,6 +20,7 @@ import {
     [name]="name()"
     [disabled]="disabled()"
     [required]="required()"
+    [aria-invalid]="invalid()"
     [orientation]="orientation()"
   >
     <andes-radio value="a" [disabled]="itemADisabled()">Option A</andes-radio>
@@ -31,6 +32,7 @@ class PlainHostComponent {
   readonly name = signal<string | undefined>(undefined);
   readonly disabled = signal(false);
   readonly required = signal(false);
+  readonly invalid = signal(false);
   readonly orientation = signal<AndesRadioGroupOrientation>('vertical');
   readonly itemADisabled = signal(false);
   readonly itemBDisabled = signal(false);
@@ -136,6 +138,14 @@ class NumericHostComponent {
 class IdHostComponent {
   boundId = 'bound-radio';
 }
+
+@Component({
+  imports: [AndesRadioGroup, AndesRadio],
+  template: `<andes-radio-group aria-invalid="true">
+    <andes-radio value="a">Option A</andes-radio>
+  </andes-radio-group>`,
+})
+class StaticInvalidHostComponent {}
 
 @Component({
   imports: [AndesRadioGroup, AndesRadio],
@@ -256,6 +266,54 @@ describe('AndesRadioGroup / AndesRadio', () => {
     fixture.detectChanges();
 
     expect(inputs.every((input) => input.required)).toBe(true);
+  });
+
+  it('omits aria-invalid and the invalid classes by default', () => {
+    const { fixture, group } = createPlainHost();
+    const items = Array.from(
+      fixture.nativeElement.querySelectorAll('andes-radio'),
+    ) as HTMLElement[];
+
+    expect(group.hasAttribute('aria-invalid')).toBe(false);
+    expect(group.classList).not.toContain('andes-radio-group--invalid');
+    expect(
+      items.some((item) => item.classList.contains('andes-radio--invalid')),
+    ).toBe(false);
+  });
+
+  it('sets aria-invalid on the radiogroup and marks every item invalid', () => {
+    const { fixture, group, inputs } = createPlainHost();
+    fixture.componentInstance.invalid.set(true);
+    fixture.detectChanges();
+    const items = Array.from(
+      fixture.nativeElement.querySelectorAll('andes-radio'),
+    ) as HTMLElement[];
+
+    expect(group.getAttribute('aria-invalid')).toBe('true');
+    expect(group.classList).toContain('andes-radio-group--invalid');
+    expect(
+      items.every((item) => item.classList.contains('andes-radio--invalid')),
+    ).toBe(true);
+    // aria-invalid is not a supported state of the radio role, so it stays on the group only.
+    expect(inputs.some((input) => input.hasAttribute('aria-invalid'))).toBe(
+      false,
+    );
+
+    fixture.componentInstance.invalid.set(false);
+    fixture.detectChanges();
+    expect(group.hasAttribute('aria-invalid')).toBe(false);
+    expect(items[0].classList).not.toContain('andes-radio--invalid');
+  });
+
+  it('accepts aria-invalid as a static attribute', () => {
+    const fixture = TestBed.createComponent(StaticInvalidHostComponent);
+    fixture.detectChanges();
+    const group = fixture.nativeElement.querySelector('andes-radio-group');
+
+    expect(group.getAttribute('aria-invalid')).toBe('true');
+    expect(
+      fixture.nativeElement.querySelector('andes-radio').classList,
+    ).toContain('andes-radio--invalid');
   });
 
   it('reflects data-orientation on the group host', () => {
