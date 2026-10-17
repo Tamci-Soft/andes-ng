@@ -18,15 +18,24 @@
   width: 100%;
   min-height: 0;
   overflow: hidden;
-  border-radius: var(--andes-radius-md);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
   border: 1px solid var(--andes-color-input);
   background-color: var(--andes-color-background);
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease,
-    outline-color 0.15s ease;
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    box-shadow var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-textarea-wrapper {
+    transition: none;
+  }
 }
 
 /* Single focus ring, on the wrapper. A textarea matches `:focus-visible` on every focus
@@ -41,8 +50,10 @@
      drops box-shadow but paints outlines in a system color. */
   outline: 2px solid transparent;
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+  box-shadow: var(
+    --andes-focus-halo,
+    0 0 0 3px color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent)
+  );
 }
 
 .andes-textarea__control {
@@ -61,10 +72,10 @@
   /* Manual resizing is handled by the wrapper (see the resize modes below), so the border,
      ring and clear button always follow the dragged size. */
   resize: none;
-  /* Explicit so `getComputedStyle(...).lineHeight` resolves to a real pixel value for the
+  /* Explicit so `getComputedStyle(...).lineHeight` resolves to a real length for the
      auto-size row math instead of `normal`; each size overrides it below. */
-  line-height: 1.5;
-  padding: var(--andes-space-2) var(--andes-space-3);
+  line-height: 1.375rem;
+  padding: var(--andes-space-1) var(--andes-control-padding-x-md, 0.6875rem);
 }
 
 /* Suppress the UA focus ring on the native control - and only there - so exactly one ring
@@ -169,6 +180,23 @@
   border-color: transparent;
 }
 
+/* Underlined has only a bottom edge, so a halo all round would float a box around a line.
+   Focus thickens that edge instead (border + a 1px shadow under it), in the status color when
+   there is one. After the status focus rules, which it overrides at equal specificity. */
+.andes-textarea-wrapper--underlined:has(textarea:focus-visible) {
+  box-shadow: 0 1px 0 0 var(--andes-color-focus-ring);
+}
+
+/* prettier-ignore */
+.andes-textarea-wrapper--underlined.andes-textarea-wrapper--invalid:has(textarea:focus-visible) {
+  box-shadow: 0 1px 0 0 var(--andes-color-danger);
+}
+
+/* prettier-ignore */
+.andes-textarea-wrapper--underlined.andes-textarea-wrapper--warning:has(textarea:focus-visible) {
+  box-shadow: 0 1px 0 0 var(--andes-color-warning);
+}
+
 /* Disabled / read-only */
 
 .andes-textarea-wrapper--readonly {
@@ -188,34 +216,37 @@
 
 /* Sizes - font-size lives on the wrapper (the textarea inherits it); line-height and
    padding on the textarea. Height is otherwise driven by `rows` (native) or the auto-size
-   measurement, never a fixed size-based height. Each size's line-height is its own
-   font-size * 1.5 so the auto-size row math (which reads the computed line-height) stays
-   proportional per size. */
+   measurement, never a fixed size-based height. Ant Design's scale: 14px text on a 22px line
+   (16px on 24px for lg), padding 0/4/7px block and 7/11/11px inline. The line-heights are
+   literal lengths, not the line-height token, because the auto-size row math reads the
+   computed line-height and needs a value every environment resolves. */
 
 .andes-textarea-wrapper--sm {
-  font-size: 0.875rem;
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
 }
 
 .andes-textarea-wrapper--sm .andes-textarea__control {
-  line-height: 1.3125rem;
-  padding: var(--andes-space-1) var(--andes-space-2);
+  line-height: 1.375rem;
+  padding: 0 var(--andes-control-padding-x-sm, 0.4375rem);
 }
 
 .andes-textarea-wrapper--md {
-  font-size: 1rem;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
 }
 
 .andes-textarea-wrapper--md .andes-textarea__control {
-  line-height: 1.5rem;
+  line-height: 1.375rem;
 }
 
 .andes-textarea-wrapper--lg {
-  font-size: 1.125rem;
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
 }
 
 .andes-textarea-wrapper--lg .andes-textarea__control {
-  line-height: 1.6875rem;
-  padding: var(--andes-space-3) var(--andes-space-4);
+  line-height: 1.5rem;
+  padding: 0.4375rem var(--andes-control-padding-x-lg, 0.6875rem);
 }
 
 /* Resize - applied to the wrapper; `none` whenever autoSize is on (see effectiveResize). */
@@ -252,11 +283,11 @@
 .andes-textarea__clear {
   position: absolute;
   inset-inline-end: var(--andes-space-2);
-  top: var(--andes-space-2);
+  top: var(--andes-space-1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 1.5em;
+  height: 1.375rem;
   padding: 0;
   border: none;
   background: none;
@@ -266,11 +297,12 @@
 }
 
 .andes-textarea-wrapper--sm .andes-textarea__clear {
-  top: var(--andes-space-1);
+  top: 0;
 }
 
 .andes-textarea-wrapper--lg .andes-textarea__clear {
-  top: var(--andes-space-3);
+  top: 0.4375rem;
+  height: 1.5rem;
 }
 
 .andes-textarea__clear:hover {
@@ -294,7 +326,9 @@
 .andes-textarea__count {
   align-self: flex-end;
   font-family: var(--andes-font-family), sans-serif;
-  font-size: 0.75rem;
+  /* Body text size, like Ant's TextArea count. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-muted-foreground);
 }
 

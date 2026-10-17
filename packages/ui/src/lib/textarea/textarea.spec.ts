@@ -643,11 +643,11 @@ describe('AndesTextarea', () => {
   });
 
   describe('auto-size', () => {
-    // The `md` size declares `line-height: 1.5rem` (see textarea.css), which is what
+    // The `md` size declares `line-height: 1.375rem` (see textarea.css), which is what
     // `getComputedStyle(...).lineHeight` resolves to for these host fixtures (default
-    // size 'md'). `parseFloat('1.5rem')` reads as `1.5`, so that - not the old hard-coded
+    // size 'md'). `parseFloat('1.375rem')` reads as `1.375`, so that - not the old hard-coded
     // `20` fallback - is the real per-row multiplier the row math below is built on.
-    const MD_LINE_HEIGHT = 1.5;
+    const MD_LINE_HEIGHT = 1.375;
 
     it('grows to fit content up to autoSize maxRows', () => {
       const { fixture, textarea } = createHost();
@@ -659,7 +659,7 @@ describe('AndesTextarea', () => {
       textarea.dispatchEvent(new Event('input'));
       fixture.detectChanges();
 
-      // 4 rows at the real computed line-height (1.5) = 6px ceiling.
+      // 4 rows at the real computed line-height (1.375) = 5.5px ceiling.
       expect(textarea.style.height).toBe(`${4 * MD_LINE_HEIGHT}px`);
       expect(textarea.style.overflowY).toBe('auto');
     });
@@ -669,14 +669,14 @@ describe('AndesTextarea', () => {
       fixture.componentInstance.autoSize.set({ minRows: 3 });
       fixture.detectChanges();
 
-      // The floor (3 rows * 1.5 = 4.5px) is now small enough that it must be exercised
+      // The floor (3 rows * 1.375 = 4.125px) is now small enough that it must be exercised
       // with a scrollHeight below it, or the content height would dominate instead.
       setScrollHeight(textarea, 0);
       textarea.value = 'x';
       textarea.dispatchEvent(new Event('input'));
       fixture.detectChanges();
 
-      // 3 rows at the real computed line-height (1.5) = 4.5px floor.
+      // 3 rows at the real computed line-height (1.375) = 4.125px floor.
       expect(textarea.style.height).toBe(`${3 * MD_LINE_HEIGHT}px`);
       expect(textarea.style.overflowY).toBe('hidden');
     });
@@ -690,7 +690,7 @@ describe('AndesTextarea', () => {
       setScrollHeight(textarea, 0);
       fixture.detectChanges();
 
-      // 5 rows at the real computed line-height (1.5) = 7.5px floor.
+      // 5 rows at the real computed line-height (1.375) = 6.875px floor.
       expect(textarea.style.height).toBe(`${5 * MD_LINE_HEIGHT}px`);
     });
 
@@ -846,18 +846,19 @@ describe('AndesTextarea', () => {
       return textarea.style.height;
     }
 
-    it('produces different, proportional heights per size instead of converging on one fallback number', () => {
-      // Each size declares its own line-height (sm: 1.3125rem, md: 1.5rem, lg: 1.6875rem -
-      // each size's font-size * 1.5), so the same `rows` count must yield genuinely
-      // different computed heights per size rather than all landing on the same value.
+    it("derives each size's height from its own line-height instead of one fallback number", () => {
+      // Each size declares its own line-height (sm and md: 1.375rem - 14px text on a 22px line;
+      // lg: 1.5rem - 16px on 24px), so the same `rows` count must yield the size's own computed
+      // height, and lg must differ from the others rather than all landing on the 20px fallback.
       const smHeight = heightForSize('sm', 4);
       const mdHeight = heightForSize('md', 4);
       const lgHeight = heightForSize('lg', 4);
 
-      expect(smHeight).toBe(`${4 * 1.3125}px`);
-      expect(mdHeight).toBe(`${4 * 1.5}px`);
-      expect(lgHeight).toBe(`${4 * 1.6875}px`);
-      expect(new Set([smHeight, mdHeight, lgHeight]).size).toBe(3);
+      expect(smHeight).toBe(`${4 * 1.375}px`);
+      expect(mdHeight).toBe(`${4 * 1.375}px`);
+      expect(lgHeight).toBe(`${4 * 1.5}px`);
+      expect(lgHeight).not.toBe(mdHeight);
+      expect([smHeight, mdHeight, lgHeight]).not.toContain(`${4 * 20}px`);
     });
   });
 
