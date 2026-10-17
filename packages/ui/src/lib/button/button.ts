@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DOCUMENT,
   effect,
   ElementRef,
   inject,
@@ -22,7 +23,7 @@ export type AndesButtonSize =
 export type AndesButtonShape = 'default' | 'full';
 export type AndesButtonType = 'button' | 'submit' | 'reset';
 
-const RIPPLE_DURATION_MS = 500;
+const RIPPLE_DURATION_MS = 400;
 
 @Component({
   selector: 'andes-button',
@@ -43,6 +44,7 @@ const RIPPLE_DURATION_MS = 500;
 export class AndesButton {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly renderer = inject(Renderer2);
+  private readonly document = inject(DOCUMENT);
 
   readonly variant = input<AndesButtonVariant>('primary');
   readonly size = input<AndesButtonSize>('md');
@@ -110,7 +112,8 @@ export class AndesButton {
   }
 
   protected onPointerDown(event: PointerEvent): void {
-    if (this.isDisabled()) {
+    // A press ripple is decorative motion - skip it entirely for users who ask for less.
+    if (this.isDisabled() || this.prefersReducedMotion()) {
       return;
     }
 
@@ -140,5 +143,13 @@ export class AndesButton {
     this.renderer.appendChild(host, ripple);
 
     setTimeout(() => ripple.remove(), RIPPLE_DURATION_MS);
+  }
+
+  private prefersReducedMotion(): boolean {
+    return (
+      this.document.defaultView?.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+      ).matches ?? false
+    );
   }
 }

@@ -9,12 +9,17 @@
   border: 1px solid transparent;
   font-family: var(--andes-font-family), sans-serif;
   font-weight: var(--andes-font-weight-medium);
+  line-height: var(--andes-control-line-height, 1.375rem);
+  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 /* Projected icons (icon-start/icon-end/default content) keep their own encapsulation
@@ -48,63 +53,83 @@
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
-.andes-button--full {
-  border-radius: var(--andes-radius-full);
-}
-
 .andes-button--full-width {
   display: flex;
   width: 100%;
 }
 
-/* Sizes */
+/* Sizes - the shared control scale (24/32/40px, Ant Design's small/middle/large), so a
+   button lines up with inputs, selects and pagination items of the same size. `xs` sits one
+   step below it for dense toolbars. Inline padding is 7px/15px: the 8px/16px rhythm less the
+   1px border, which sits inside the box. */
 
 .andes-button--xs {
-  height: 1.75rem;
-  padding-inline: var(--andes-space-2);
+  height: 1.25rem;
+  padding-inline: var(--andes-space-1);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
   font-size: 0.75rem;
+  line-height: 1.25rem;
 }
 
 .andes-button--sm {
-  height: 2rem;
-  padding-inline: var(--andes-space-3);
-  font-size: 0.875rem;
+  height: var(--andes-control-height-sm, 1.5rem);
+  padding-inline: var(--andes-control-padding-x-sm, 0.4375rem);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
 }
 
 .andes-button--md {
-  height: 2.5rem;
-  padding-inline: var(--andes-space-4);
-  font-size: 1rem;
+  height: var(--andes-control-height-md, 2rem);
+  padding-inline: 0.9375rem;
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  font-size: var(--andes-control-font-size-md, 0.875rem);
 }
 
 .andes-button--lg {
-  height: 3rem;
-  padding-inline: var(--andes-space-5);
-  font-size: 1.125rem;
+  height: var(--andes-control-height-lg, 2.5rem);
+  padding-inline: 0.9375rem;
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
 }
 
+/* Icon-only buttons are squares of the same heights. Their font-size sizes the projected
+   (1em) icon: 16px from md up, the size line icons are drawn for, 14px/12px below that. */
+
 .andes-button--icon-xs {
-  height: 1.75rem;
-  width: 1.75rem;
+  height: 1.25rem;
+  width: 1.25rem;
   padding: 0;
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: 0.75rem;
 }
 
 .andes-button--icon-sm {
-  height: 2rem;
-  width: 2rem;
+  height: var(--andes-control-height-sm, 1.5rem);
+  width: var(--andes-control-height-sm, 1.5rem);
   padding: 0;
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: 0.875rem;
 }
 
 .andes-button--icon {
-  height: 2.5rem;
-  width: 2.5rem;
+  height: var(--andes-control-height-md, 2rem);
+  width: var(--andes-control-height-md, 2rem);
   padding: 0;
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  font-size: 1rem;
 }
 
 .andes-button--icon-lg {
-  height: 3rem;
-  width: 3rem;
+  height: var(--andes-control-height-lg, 2.5rem);
+  width: var(--andes-control-height-lg, 2.5rem);
   padding: 0;
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: 1rem;
+}
+
+/* After the sizes, which each set their own radius, so the pill shape wins at every size. */
+.andes-button--full {
+  border-radius: var(--andes-radius-full);
 }
 
 /* Variants */
@@ -260,9 +285,11 @@
   position: absolute;
   border-radius: var(--andes-radius-full);
   background-color: currentcolor;
-  opacity: 0.25;
+  opacity: 0.15;
   transform: scale(0);
-  animation: andes-button-ripple 0.5s ease-out;
+  /* Kept at or under RIPPLE_DURATION_MS in button.ts, which removes the element. */
+  animation: andes-button-ripple var(--andes-motion-duration-slow, 0.3s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
   pointer-events: none;
 }
 
@@ -270,5 +297,13 @@
   to {
     transform: scale(1.6);
     opacity: 0;
+  }
+}
+
+/* button.ts already skips the ripple under reduced motion; this covers a preference that
+   changes while a ripple is mid-flight. */
+@media (prefers-reduced-motion: reduce) {
+  .andes-button__ripple {
+    display: none;
   }
 }

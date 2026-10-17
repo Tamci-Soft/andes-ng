@@ -364,4 +364,49 @@ describe('AndesButton', () => {
     expect(button.querySelector('.my-loader')).toBeTruthy();
     expect(button.querySelector('.andes-button__spinner')).toBeFalsy();
   });
+
+  describe('press ripple', () => {
+    const original = window.matchMedia;
+
+    function stubReducedMotion(reduce: boolean): void {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: (query: string) => ({
+          matches: reduce && query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+        }),
+      });
+    }
+
+    afterEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: original,
+      });
+    });
+
+    function press(): HTMLButtonElement {
+      const { fixture, button } = createHost();
+      (
+        fixture.nativeElement.querySelector('andes-button') as HTMLElement
+      ).dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      return button;
+    }
+
+    it('adds a ripple on press', () => {
+      stubReducedMotion(false);
+
+      expect(press().querySelector('.andes-button__ripple')).toBeTruthy();
+    });
+
+    it('adds no ripple when the user prefers reduced motion', () => {
+      stubReducedMotion(true);
+
+      expect(press().querySelector('.andes-button__ripple')).toBeNull();
+    });
+  });
 });
