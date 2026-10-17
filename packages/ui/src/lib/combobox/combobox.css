@@ -38,8 +38,15 @@
 }
 
 .andes-combobox-input:focus-visible {
-  outline: 2px solid var(--andes-color-focus-ring);
+  /* Field focus, shared by every text field: the border takes the ring color and a soft
+     3px halo hugs it (Ant Design / shadcn style) instead of a ring floating 2px outside
+     the border. The transparent outline is still there for forced-colors mode, which
+     drops box-shadow but paints outlines in a system color. */
+  outline: 2px solid transparent;
   outline-offset: 2px;
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
+  border-color: var(--andes-color-focus-ring);
 }
 
 .andes-combobox-input::placeholder {
@@ -73,7 +80,9 @@
 }
 
 .andes-combobox-input[aria-invalid='true']:focus-visible {
-  outline-color: var(--andes-color-danger);
+  border-color: var(--andes-color-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
 
 .andes-combobox-input[data-status='warning'] {
@@ -81,7 +90,9 @@
 }
 
 .andes-combobox-input[data-status='warning']:focus-visible {
-  outline-color: var(--andes-color-warning);
+  border-color: var(--andes-color-warning);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
 }
 
 /* Variants. `outlined` is the base rule above. */
