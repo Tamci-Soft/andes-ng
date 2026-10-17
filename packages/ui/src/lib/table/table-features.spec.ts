@@ -732,7 +732,7 @@ describe('AndesTable column filters', () => {
 
     act(trigger());
     const search = root.querySelector(
-      '.andes-table-filter__search',
+      '.andes-table-filter__search-input',
     ) as HTMLInputElement;
     search.value = 'pen';
     search.dispatchEvent(new Event('input'));
@@ -777,7 +777,10 @@ describe('AndesTable column filters', () => {
     expect(document.activeElement).toBe(trigger());
 
     act(trigger());
-    key(root.querySelector('.andes-table-filter__search') as Element, 'Enter');
+    key(
+      root.querySelector('.andes-table-filter__search-input') as Element,
+      'Enter',
+    );
     expect(panel()).toBeNull();
   });
 

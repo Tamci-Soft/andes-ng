@@ -1,7 +1,8 @@
 import {
   booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
   computed,
-  Directive,
   inject,
   input,
 } from '@angular/core';
@@ -34,9 +35,28 @@ export type AndesTableHeadScope = 'col' | 'row' | 'colgroup' | 'rowgroup';
  * `sortDirections` here or on the table.
  *
  * `fixed`/`fixedOffset`/`ellipsis` work as on `AndesTableCell`.
+ *
+ * The content is laid out like Ant Design's header: the projected title takes the
+ * free width, followed by the sort indicator and then any `andes-table-filter`,
+ * which sits at the cell's inline end.
  */
-@Directive({
+@Component({
   selector: 'th[andesTableHead]',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `<div class="andes-table__head-content">
+    <span class="andes-table__head-title"><ng-content /></span>
+    @if (sortKey()) {
+      <span class="andes-table__sorter" aria-hidden="true">
+        <span
+          class="andes-table__sorter-caret andes-table__sorter-caret--up"
+        ></span>
+        <span
+          class="andes-table__sorter-caret andes-table__sorter-caret--down"
+        ></span>
+      </span>
+    }
+    <ng-content select="andes-table-filter" />
+  </div>`,
   host: {
     '[class]': 'classes()',
     '[attr.scope]': 'scope()',

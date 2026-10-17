@@ -115,7 +115,7 @@ export class AndesTableFilter {
 
   readonly confirmText = input('OK');
   readonly resetText = input('Reset');
-  readonly searchPlaceholder = input('Search');
+  readonly searchPlaceholder = input('Search in filters');
   readonly noMatchText = input('No matches');
 
   protected readonly id = `andes-table-filter-${nextFilterId++}`;
