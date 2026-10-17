@@ -3,14 +3,17 @@
   [attr.aria-label]="ariaLabel()"
   class="andes-pagination"
   [class.andes-pagination--small]="isSmall()"
+  [class.andes-pagination--large]="isLarge()"
   [class.andes-pagination--simple]="isSimple()"
   [class.andes-pagination--disabled]="disabled()"
   [attr.data-align]="align()"
 >
-  @if (showTotal(); as totalTemplate) {
+  @if (totalTemplate(); as totalTpl) {
   <span class="andes-pagination__total">
-    <ng-container *ngTemplateOutlet="totalTemplate; context: totalContext()" />
+    <ng-container *ngTemplateOutlet="totalTpl; context: totalContext()" />
   </span>
+  } @else if (totalText() !== null) {
+  <span class="andes-pagination__total">{{ totalText() }}</span>
   }
 
   <ul class="andes-pagination__list">
@@ -49,11 +52,19 @@
         [disabled]="disabled() || isEmpty()"
         [attr.aria-label]="currentPageLabel()"
         (keydown)="onSimpleKeydown($event, simpleInput)"
-        (blur)="commitSimple(simpleInput)"
+        (blur)="onSimpleBlur(simpleInput)"
       />
       }
       <span class="andes-pagination__slash" aria-hidden="true">/</span>
       <span>{{ resolvedTotalPages() }}</span>
+      @if (hasSimpleGoButton()) {
+      <ng-container
+        *ngTemplateOutlet="
+          goButtonContent;
+          context: { $implicit: null, simple: true }
+        "
+      />
+      }
     </li>
     } @else { @for (item of items(); track item) {
     <li>
@@ -78,8 +89,16 @@
       </button>
       } @else {
       <span class="andes-pagination__ellipsis" aria-hidden="true"
-        >&hellip;</span
-      >
+        ><svg
+          class="andes-pagination__dots"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <circle cx="5" cy="12" r="1.5" />
+          <circle cx="12" cy="12" r="1.5" />
+          <circle cx="19" cy="12" r="1.5" /></svg
+      ></span>
       } } @else {
       <!--
         Native buttons rather than andes-button: AndesButton's host deliberately nulls
@@ -127,7 +146,12 @@
 
   @if (isSizeChangerVisible() || isQuickJumperVisible()) {
   <div class="andes-pagination__options">
-    @if (isSizeChangerVisible()) {
+    @if (isSizeChangerVisible()) { @if (sizeChangerRender(); as sizeChangerTpl)
+    {
+    <ng-container
+      *ngTemplateOutlet="sizeChangerTpl; context: sizeChangerContext()"
+    />
+    } @else {
     <!--
       A minimal native <select> until AndesSelect lands on develop - swap it in then.
       The native arrow is hidden and this chevron drawn instead, so the box matches
@@ -155,7 +179,7 @@
         <path d="M6 9l6 6 6-6" />
       </svg>
     </span>
-    } @if (isQuickJumperVisible()) {
+    } } @if (isQuickJumperVisible()) {
     <span class="andes-pagination__jump">
       <label class="andes-pagination__jump-label">
         {{ jumpToLabel() }}
@@ -169,32 +193,50 @@
           (keydown)="onJumperKeydown($event, jumpInput)"
           (blur)="onJumperBlur(jumpInput)"
         />
+        @if (jumpToSuffixLabel()) {
+        <span class="andes-pagination__jump-suffix"
+          >{{ jumpToSuffixLabel() }}</span
+        >
+        }
       </label>
-      @if (goButtonText(); as goText) {
-      <andes-button
-        class="andes-pagination__go"
-        variant="outline"
-        [size]="isSmall() ? 'xs' : 'sm'"
-        [disabled]="disabled() || isEmpty()"
-        (click)="commitJumper(jumpInput)"
-        >{{ goText }}</andes-button
-      >
-      } @else if (goButtonTemplate(); as goTemplate) {
-      <!--
-        A click on the template's own button bubbles here, so Enter/Space already work;
-        the wrapper itself is never focusable.
-      -->
-      <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-      <span class="andes-pagination__go" (click)="commitJumper(jumpInput)">
-        <ng-container *ngTemplateOutlet="goTemplate" />
-      </span>
-      }
+      <ng-container
+        *ngTemplateOutlet="
+          goButtonContent;
+          context: { $implicit: jumpInput, simple: false }
+        "
+      />
     </span>
     }
   </div>
   }
 </nav>
 }
+
+<!-- One go button for both the quick jumper and the simple-mode input. -->
+<ng-template #goButtonContent let-field let-simple="simple">
+  @if (goButtonText(); as goText) {
+  <andes-button
+    class="andes-pagination__go"
+    variant="outline"
+    [size]="controlButtonSize()"
+    [disabled]="disabled() || isEmpty()"
+    (click)="simple ? commitSimpleInput() : commitJumper(field)"
+    >{{ goText }}</andes-button
+  >
+  } @else if (goButtonTemplate(); as goTemplate) {
+  <!--
+    A click on the template's own button bubbles here, so Enter/Space already work;
+    the wrapper itself is never focusable.
+  -->
+  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+  <span
+    class="andes-pagination__go"
+    (click)="simple ? commitSimpleInput() : commitJumper(field)"
+  >
+    <ng-container *ngTemplateOutlet="goTemplate" />
+  </span>
+  }
+</ng-template>
 
 <ng-template #itemContent let-page let-type="type">
   @if (itemRender(); as render) {
@@ -210,14 +252,80 @@
 
 <ng-template #defaultItem let-page let-type="type">
   @switch (type) { @case ('prev') {
-  <span class="andes-pagination__arrow" aria-hidden="true">&lsaquo;</span>
+  <svg
+    class="andes-pagination__arrow"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m15 18-6-6 6-6" />
+  </svg>
   } @case ('next') {
-  <span class="andes-pagination__arrow" aria-hidden="true">&rsaquo;</span>
+  <svg
+    class="andes-pagination__arrow"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m9 18 6-6-6-6" />
+  </svg>
   } @case ('jump-prev') {
-  <span class="andes-pagination__jumper-dots" aria-hidden="true">&hellip;</span>
-  <span class="andes-pagination__jumper-icon" aria-hidden="true">&laquo;</span>
+  <span class="andes-pagination__jumper-dots" aria-hidden="true"
+    ><svg
+      class="andes-pagination__dots"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="5" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" /></svg
+  ></span>
+  <svg
+    class="andes-pagination__jumper-icon"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m11 17-5-5 5-5" />
+    <path d="m18 17-5-5 5-5" />
+  </svg>
   } @case ('jump-next') {
-  <span class="andes-pagination__jumper-dots" aria-hidden="true">&hellip;</span>
-  <span class="andes-pagination__jumper-icon" aria-hidden="true">&raquo;</span>
+  <span class="andes-pagination__jumper-dots" aria-hidden="true"
+    ><svg
+      class="andes-pagination__dots"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="5" cy="12" r="1.5" />
+      <circle cx="12" cy="12" r="1.5" />
+      <circle cx="19" cy="12" r="1.5" /></svg
+  ></span>
+  <svg
+    class="andes-pagination__jumper-icon"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m6 17 5-5-5-5" />
+    <path d="m13 17 5-5-5-5" />
+  </svg>
   } @default { {{ page }} } }
 </ng-template>

@@ -3,6 +3,7 @@ import { Component, signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesPagination, AndesPaginationChange } from './pagination';
 
 const meta: Meta<AndesPagination> = {
@@ -25,7 +26,10 @@ const meta: Meta<AndesPagination> = {
     showSizeChanger: { control: 'boolean' },
     showQuickJumper: { control: 'boolean' },
     responsive: { control: 'boolean' },
-    size: { control: 'inline-radio', options: ['default', 'small'] },
+    size: {
+      control: 'inline-radio',
+      options: ['small', 'default', 'medium', 'large'],
+    },
     align: { control: 'inline-radio', options: ['start', 'center', 'end'] },
   },
   args: {
@@ -167,6 +171,45 @@ export const Small: Story = {
   },
 };
 
+export const Large: Story = {
+  args: {
+    totalPages: undefined,
+    total: 500,
+    current: 4,
+    size: 'large',
+    showSizeChanger: true,
+    showQuickJumper: true,
+    goButton: true,
+  },
+};
+
+/** The three control heights side by side: 24, 32 and 40px. */
+export const Sizes: Story = {
+  render: () => ({
+    template: `
+      <div style="display: grid; gap: 1rem;">
+        <andes-pagination [total]="500" [current]="4" size="small" [showSizeChanger]="true" [showQuickJumper]="true" aria-label="Small" />
+        <andes-pagination [total]="500" [current]="4" [showSizeChanger]="true" [showQuickJumper]="true" aria-label="Default" />
+        <andes-pagination [total]="500" [current]="4" size="large" [showSizeChanger]="true" [showQuickJumper]="true" aria-label="Large" />
+      </div>`,
+  }),
+};
+
+/**
+ * In editable simple mode, a quick-jumper go button confirms the typed page instead of
+ * Enter-or-blur; blurring keeps the text until the button is pressed.
+ */
+export const SimpleWithGoButton: Story = {
+  args: {
+    totalPages: undefined,
+    total: 500,
+    current: 2,
+    simple: true,
+    showQuickJumper: true,
+    goButton: true,
+  },
+};
+
 /** Resize the viewport below 576px to collapse into the small, simple layout. */
 export const Responsive: Story = {
   args: {
@@ -205,12 +248,21 @@ export const Align: Story = {
   }),
 };
 
+/**
+ * `showTotal` takes a template, or a `(total, range) => string` function when plain
+ * text is enough.
+ */
 export const ShowTotal: Story = {
   render: () => ({
+    props: {
+      totalText: (total: number, range: [number, number]) =>
+        `${range[0]}-${range[1]} of ${total} records`,
+    },
     template: `
       <div style="display: grid; gap: 1rem;">
         <andes-pagination [total]="85" [current]="2" [showTotal]="totalTpl" aria-label="Total" />
         <andes-pagination [total]="85" [current]="2" [showTotal]="rangeTpl" aria-label="Range" />
+        <andes-pagination [total]="85" [current]="2" [showTotal]="totalText" aria-label="Function" />
       </div>
       <ng-template #totalTpl let-total>Total {{ total }} items</ng-template>
       <ng-template #rangeTpl let-total let-range="range">{{ range[0] }}-{{ range[1] }} of {{ total }} items</ng-template>`,
@@ -256,8 +308,43 @@ export const CustomLabels: Story = {
       itemsPerPageLabel="/ página"
       pageSizeLabel="Elementos por página"
       jumpToLabel="Ir a"
+      jumpToSuffixLabel="página"
       jumpToConfirmLabel="Ir"
     />`,
+  }),
+};
+
+/**
+ * `sizeChangerRender` swaps the built-in page-size select for any control. Its
+ * `change(size)` applies the size exactly like the built-in one (clamping the page
+ * and emitting both events); `size` and `disabled` let it match the pagination.
+ */
+export const CustomSizeChanger: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesButton] },
+    template: `
+      <andes-pagination [total]="500" [current]="3" [showSizeChanger]="true" [sizeChangerRender]="sizeTpl" />
+      <ng-template
+        #sizeTpl
+        let-pageSize
+        let-options="options"
+        let-disabled="disabled"
+        let-label="label"
+        let-change="change"
+      >
+        <span role="group" [attr.aria-label]="label" style="display: inline-flex; gap: 0.25rem;">
+          @for (option of options; track option) {
+            <andes-button
+              size="sm"
+              [variant]="option === pageSize ? 'primary' : 'outline'"
+              [disabled]="disabled"
+              [aria-label]="option + ' per page' + (option === pageSize ? ' (current)' : '')"
+              (click)="change(option)"
+              >{{ option }}</andes-button
+            >
+          }
+        </span>
+      </ng-template>`,
   }),
 };
 

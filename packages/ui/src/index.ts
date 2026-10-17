@@ -8,8 +8,10 @@ export type {
   AndesPaginationItemRenderContext,
   AndesPaginationItemType,
   AndesPaginationOriginalItemContext,
+  AndesPaginationShowTotalFn,
   AndesPaginationSimpleConfig,
   AndesPaginationSize,
   AndesPaginationSizeChange,
+  AndesPaginationSizeChangerContext,
   AndesPaginationTotalContext,
 } from './lib/pagination/pagination';
