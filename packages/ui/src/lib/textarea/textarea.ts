@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
   afterNextRender,
   afterRenderEffect,
@@ -13,6 +14,7 @@ import {
   model,
   output,
   signal,
+  TemplateRef,
   viewChild,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -32,12 +34,34 @@ export interface AndesTextareaAutoSize {
 
 export interface AndesTextareaCountInfo {
   value: string;
+  /** Length as measured by `countStrategy` (UTF-16 code units by default). */
   count: number;
+  /** The limit the count is measured against: `countMax`, else `maxLength`. */
   maxLength: number | undefined;
 }
 
 export type AndesTextareaCountFormatter = (
   info: AndesTextareaCountInfo,
+) => string;
+
+/** Template context for `countTemplate`: the count info as `$implicit`. */
+export interface AndesTextareaCountContext {
+  $implicit: AndesTextareaCountInfo;
+}
+
+/**
+ * Measures a value for the counter and the limit checks - e.g. counting grapheme clusters so
+ * an emoji made of several code points counts as one.
+ */
+export type AndesTextareaCountStrategy = (value: string) => number;
+
+/**
+ * Trims a value that went past the limit; `max` is `countMax`, else `maxLength`. It must return
+ * a value within the limit, measured by the same `countStrategy`.
+ */
+export type AndesTextareaExceedFormatter = (
+  value: string,
+  config: { max: number },
 ) => string;
 
 export interface AndesTextareaFocusOptions extends FocusOptions {
@@ -63,7 +87,7 @@ let nextId = 0;
 
 @Component({
   selector: 'andes-textarea',
-  imports: [],
+  imports: [NgTemplateOutlet],
   templateUrl: './textarea.html',
   styleUrl: './textarea.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -108,6 +132,35 @@ export class AndesTextarea implements ControlValueAccessor {
   readonly countFormatter = input<AndesTextareaCountFormatter | undefined>(
     undefined,
   );
+  /**
+   * Custom counter markup, rendered instead of the text from `countFormatter` (which it takes
+   * precedence over). Receives the count info as the implicit context.
+   */
+  readonly countTemplate = input<
+    TemplateRef<AndesTextareaCountContext> | undefined
+  >(undefined);
+  /**
+   * A soft limit: the counter shows it and the field is flagged invalid once the value goes
+   * past it, but - unlike `maxLength` - typing is never blocked. Takes precedence over
+   * `maxLength` as the counter's limit.
+   */
+  readonly countMax = input<number | undefined>(undefined);
+  /** How the counter measures the value; defaults to UTF-16 length (`value.length`). */
+  readonly countStrategy = input<AndesTextareaCountStrategy | undefined>(
+    undefined,
+  );
+  /**
+   * Called when typing or pasting takes the value past the limit (`countMax`, else
+   * `maxLength`), to trim it back. Not applied mid-IME composition, nor to values written
+   * programmatically - those are shown as exceeded instead.
+   */
+  readonly countExceedFormatter = input<
+    AndesTextareaExceedFormatter | undefined
+  >(undefined);
+  /** Replaces the default × glyph inside the clear button. */
+  readonly clearIcon = input<TemplateRef<unknown> | undefined>(undefined);
+  /** The clear button's accessible name - translate it with the rest of the form. */
+  readonly clearLabel = input('Clear');
   readonly resize = input<AndesTextareaResize>('vertical');
   readonly autoSize = input<
     boolean | AndesTextareaAutoSize,
@@ -133,10 +186,15 @@ export class AndesTextarea implements ControlValueAccessor {
    */
   readonly pressEnter = output<KeyboardEvent>();
   readonly cleared = output<void>();
+  /** The textarea took focus (the same `FocusEvent` it received). */
+  readonly focused = output<FocusEvent>();
+  /** The textarea lost focus (the same `FocusEvent` it received). */
+  readonly blurred = output<FocusEvent>();
   /** Fires when the textarea's rendered box changes size (manual drag or `autoSize`). */
   readonly resized = output<AndesTextareaResizeEvent>();
 
   private readonly cvaDisabled = signal(false);
+  private composing = false;
 
   private onChange: (value: string) => void = () => undefined;
   private onTouched: () => void = () => undefined;
@@ -147,8 +205,11 @@ export class AndesTextarea implements ControlValueAccessor {
     () => this.disabled() || this.cvaDisabled(),
   );
 
+  // Going past the counter's limit makes the value invalid too, so a soft `countMax` is both
+  // seen and announced, not just signalled by the counter's color.
   protected readonly isInvalid = computed(
-    () => this.ariaInvalid() || this.status() === 'error',
+    () =>
+      this.ariaInvalid() || this.status() === 'error' || this.countExceeded(),
   );
 
   protected readonly autoSizeEnabled = computed(
@@ -184,22 +245,32 @@ export class AndesTextarea implements ControlValueAccessor {
     ),
   );
 
-  protected readonly currentLength = computed(() => this.value().length);
+  protected readonly countLimit = computed(
+    () => this.countMax() ?? this.maxLength(),
+  );
+
+  protected readonly currentLength = computed(() => this.measure(this.value()));
 
   protected readonly countExceeded = computed(() => {
-    const max = this.maxLength();
+    const max = this.countLimit();
     return max != null && this.currentLength() > max;
   });
 
+  protected readonly countInfo = computed<AndesTextareaCountInfo>(() => ({
+    value: this.value(),
+    count: this.currentLength(),
+    maxLength: this.countLimit(),
+  }));
+
   protected readonly countText = computed(() => {
-    const value = this.value();
-    const count = value.length;
-    const maxLength = this.maxLength();
+    const info = this.countInfo();
     const formatter = this.countFormatter();
     if (formatter) {
-      return formatter({ value, count, maxLength });
+      return formatter(info);
     }
-    return maxLength != null ? `${count}/${maxLength}` : `${count}`;
+    return info.maxLength != null
+      ? `${info.count}/${info.maxLength}`
+      : `${info.count}`;
   });
 
   protected readonly describedBy = computed(
@@ -274,12 +345,34 @@ export class AndesTextarea implements ControlValueAccessor {
 
   protected onInput(event: Event): void {
     const target = event.target as HTMLTextAreaElement;
+    // Mid-composition the text is still provisional, so trimming waits for compositionend.
+    if (!this.composing) {
+      this.trimExceeded(target);
+    }
     this.value.set(target.value);
     this.onChange(target.value);
   }
 
-  protected onBlur(): void {
+  protected onCompositionStart(): void {
+    this.composing = true;
+  }
+
+  protected onCompositionEnd(event: CompositionEvent): void {
+    this.composing = false;
+    const target = event.target as HTMLTextAreaElement;
+    if (this.trimExceeded(target)) {
+      this.value.set(target.value);
+      this.onChange(target.value);
+    }
+  }
+
+  protected onFocus(event: FocusEvent): void {
+    this.focused.emit(event);
+  }
+
+  protected onBlur(event: FocusEvent): void {
     this.onTouched();
+    this.blurred.emit(event);
   }
 
   protected onKeydown(event: KeyboardEvent): void {
@@ -313,6 +406,36 @@ export class AndesTextarea implements ControlValueAccessor {
 
   setDisabledState(isDisabled: boolean): void {
     this.cvaDisabled.set(isDisabled);
+  }
+
+  private measure(value: string): number {
+    const strategy = this.countStrategy();
+    return strategy ? strategy(value) : value.length;
+  }
+
+  /**
+   * Runs `countExceedFormatter` over a value past the limit, writing the result straight to
+   * the element (the `[value]` binding wouldn't repaint when the trimmed value equals the
+   * previous one) and keeping the caret where it was. Returns whether it changed anything.
+   */
+  private trimExceeded(element: HTMLTextAreaElement): boolean {
+    const formatter = this.countExceedFormatter();
+    const max = this.countLimit();
+    const value = element.value;
+    if (!formatter || max == null || this.measure(value) <= max) {
+      return false;
+    }
+    const trimmed = formatter(value, { max });
+    if (trimmed === value) {
+      return false;
+    }
+    const caret = Math.min(
+      element.selectionEnd ?? trimmed.length,
+      trimmed.length,
+    );
+    element.value = trimmed;
+    element.setSelectionRange(caret, caret);
+    return true;
   }
 
   private adjustAutoSize(): void {

@@ -18,28 +18,34 @@
     [attr.aria-invalid]="isInvalid() || null"
     [value]="value()"
     (input)="onInput($event)"
-    (blur)="onBlur()"
+    (focus)="onFocus($event)"
+    (blur)="onBlur($event)"
     (keydown)="onKeydown($event)"
+    (compositionstart)="onCompositionStart()"
+    (compositionend)="onCompositionEnd($event)"
   ></textarea>
   @if (showClear()) {
   <button
     type="button"
     class="andes-textarea__clear"
-    aria-label="Clear"
+    data-slot="textarea-clear"
+    [attr.aria-label]="clearLabel()"
+    (mousedown)="$event.preventDefault()"
     (click)="clear($event)"
   >
+    @if (clearIcon(); as icon) {
+    <ng-container [ngTemplateOutlet]="icon" />
+    } @else {
     <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+      class="andes-textarea__clear-glyph"
+      viewBox="0 0 16 16"
       aria-hidden="true"
+      focusable="false"
     >
-      <line x1="18" y1="6" x2="6" y2="18"></line>
-      <line x1="6" y1="6" x2="18" y2="18"></line>
+      <circle cx="8" cy="8" r="8" />
+      <path d="M5.5 5.5l5 5m0-5-5 5" />
     </svg>
+    }
   </button>
   }
 </div>
@@ -48,6 +54,9 @@
   class="andes-textarea__count"
   [class.andes-textarea__count--exceeded]="countExceeded()"
   [id]="countId"
-  >{{ countText() }}</span
->
+  ><ng-container
+    [ngTemplateOutlet]="countTemplate() ?? defaultCount"
+    [ngTemplateOutletContext]="{ $implicit: countInfo() }"
+/></span>
 }
+<ng-template #defaultCount>{{ countText() }}</ng-template>
