@@ -134,7 +134,7 @@ export const AllStates: Story = {
     template: `
       <div style="display: flex; gap: 3rem; flex-wrap: wrap;">
         <div>
-          <p style="margin: 0 0 0.5rem; font-family: system-ui, sans-serif; color: var(--andes-color-foreground);">Vertical</p>
+          <p style="margin: 0 0 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">Vertical</p>
           <andes-radio-group aria-label="Plan (vertical)">
             <andes-radio value="starter">Starter</andes-radio>
             <andes-radio value="pro">Pro</andes-radio>
@@ -142,7 +142,7 @@ export const AllStates: Story = {
           </andes-radio-group>
         </div>
         <div>
-          <p style="margin: 0 0 0.5rem; font-family: system-ui, sans-serif; color: var(--andes-color-foreground);">Horizontal</p>
+          <p style="margin: 0 0 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">Horizontal</p>
           <andes-radio-group aria-label="Plan (horizontal)" orientation="horizontal">
             <andes-radio value="starter">Starter</andes-radio>
             <andes-radio value="pro">Pro</andes-radio>
@@ -150,14 +150,14 @@ export const AllStates: Story = {
           </andes-radio-group>
         </div>
         <div>
-          <p style="margin: 0 0 0.5rem; font-family: system-ui, sans-serif; color: var(--andes-color-foreground);">Disabled group</p>
+          <p style="margin: 0 0 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">Disabled group</p>
           <andes-radio-group aria-label="Plan (disabled)" disabled>
             <andes-radio value="starter">Starter</andes-radio>
             <andes-radio value="pro">Pro</andes-radio>
           </andes-radio-group>
         </div>
         <div>
-          <p style="margin: 0 0 0.5rem; font-family: system-ui, sans-serif; color: var(--andes-color-foreground);">One disabled item</p>
+          <p style="margin: 0 0 0.5rem; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">One disabled item</p>
           <andes-radio-group aria-label="Plan (one item disabled)">
             <andes-radio value="starter">Starter</andes-radio>
             <andes-radio value="pro" disabled>Pro (sold out)</andes-radio>
@@ -268,11 +268,11 @@ export const Options: Story = {
       <div style="display: flex; flex-direction: column; gap: 1.5rem;">
         <div>
           <andes-radio-group aria-label="Fruit" orientation="horizontal" [options]="fruits" [(value)]="fruit" />
-          <p style="margin: 0.5rem 0 0; font-family: system-ui, sans-serif; color: var(--andes-color-foreground);">Fruit: {{ fruit }}</p>
+          <p style="margin: 0.5rem 0 0; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">Fruit: {{ fruit }}</p>
         </div>
         <div>
           <andes-radio-group aria-label="Plan" optionType="button" buttonStyle="solid" [options]="plans" [(value)]="plan" />
-          <p style="margin: 0.5rem 0 0; font-family: system-ui, sans-serif; color: var(--andes-color-foreground);">Plan: {{ plan }} ({{ typeof plan }})</p>
+          <p style="margin: 0.5rem 0 0; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">Plan: {{ plan }} ({{ typeof plan }})</p>
         </div>
       </div>
     `,
@@ -327,7 +327,7 @@ export const ChangeEvent: Story = {
           <andes-radio value="c">C</andes-radio>
         </andes-radio-group>
         <andes-button variant="outline" size="sm" style="margin-left: 1rem;" (click)="value = 'a'">Set value to "a" programmatically</andes-button>
-        <ol data-testid="change-log" style="font-family: system-ui, sans-serif; color: var(--andes-color-foreground);">
+        <ol data-testid="change-log" style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">
           @for (entry of log; track $index) { <li>{{ entry }}</li> }
         </ol>
       `,
