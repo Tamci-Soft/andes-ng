@@ -8,8 +8,8 @@
    by the component's own :host rule:
      --andes-slider-rail-color          unfilled track
      --andes-slider-track-color         filled segment
-     --andes-slider-handle-color        thumb border
-     --andes-slider-handle-hover-color  thumb border on hover
+     --andes-slider-handle-color        thumb ring
+     --andes-slider-handle-hover-color  thumb ring on hover / focus / drag
      --andes-slider-handle-background   thumb fill
      --andes-slider-dot-color           tick dot border
      --andes-slider-dot-active-color    tick dot border inside the filled segment
@@ -17,7 +17,9 @@
    -thumb, -tooltip, -marks, -mark) for structural styling. */
 
 :host {
-  --andes-slider-thumb-size: 1rem;
+  /* The thumb's box: a 10px knob plus its 2px ring, as Ant's Slider handle. The knob grows
+     to 12px with a 2.5px ring (17px) on hover, focus and drag, overflowing this box. */
+  --andes-slider-thumb-size: 0.875rem;
   --andes-slider-rail-size: 0.25rem;
   --andes-slider-dot-size: 0.5rem;
   --andes-slider-length: 12rem;
@@ -166,24 +168,45 @@
   );
 }
 
-/* Thumb: the real focusable control, role="slider". */
+/* Thumb: the real focusable control, role="slider". The element itself is only the hit
+   area and the focus outline's box; the visible knob and ring are its ::after, so they can
+   grow on hover without moving the thumb or the tooltip anchored to it. */
 
 .andes-slider__thumb {
   position: absolute;
   box-sizing: border-box;
   inline-size: var(--andes-slider-thumb-size);
   block-size: var(--andes-slider-thumb-size);
-  border: 2px solid var(--andes-slider-handle-color, var(--andes-color-primary));
+  border-radius: var(--andes-radius-full);
+  cursor: grab;
+  transition: opacity var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+.andes-slider__thumb::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
   border-radius: var(--andes-radius-full);
   background-color: var(
     --andes-slider-handle-background,
     var(--andes-color-background)
   );
-  cursor: grab;
+  box-shadow: 0 0 0 2px
+    var(--andes-slider-handle-color, var(--andes-color-primary));
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    opacity 0.15s ease;
+    inset var(--andes-motion-duration-mid, 0.2s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    box-shadow var(--andes-motion-duration-mid, 0.2s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+.andes-slider__thumb:hover::after,
+.andes-slider__thumb:focus-visible::after,
+.andes-slider__thumb[data-dragging]::after {
+  inset: 1px;
+  box-shadow: 0 0 0 2.5px
+    var(--andes-slider-handle-hover-color, var(--andes-color-primary-hover));
 }
 
 :host([data-orientation='horizontal']) .andes-slider__thumb {
@@ -200,28 +223,25 @@
   margin-block-end: calc(var(--andes-slider-thumb-size) / -2);
 }
 
-.andes-slider__thumb:hover {
-  border-color: var(
-    --andes-slider-handle-hover-color,
-    var(--andes-color-primary-hover)
-  );
-}
-
 .andes-slider__thumb:focus-visible {
   outline: 2px solid var(--andes-color-focus-ring);
-  outline-offset: 2px;
+  /* Clears the grown 17px ring (1.5px past the box) with a visible gap. */
+  outline-offset: 3px;
 }
 
 .andes-slider__thumb[data-dragging] {
   cursor: grabbing;
-  box-shadow: 0 0 0 4px
-    color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
 }
 
 :host([data-disabled]) .andes-slider__thumb,
 .andes-slider__thumb[data-disabled] {
   cursor: not-allowed;
-  border-color: var(--andes-color-muted-foreground);
+}
+
+:host([data-disabled]) .andes-slider__thumb::after,
+.andes-slider__thumb[data-disabled]::after {
+  inset: 2px;
+  box-shadow: 0 0 0 2px var(--andes-color-muted-foreground);
 }
 
 /* Editable range: a handle dragged off the track fades to preview its removal on release. */
@@ -241,7 +261,8 @@
   display: flex;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 .andes-slider__tooltip[data-placement='top'] {
@@ -276,12 +297,14 @@
 
 .andes-slider__tooltip-bubble {
   border: 1px solid var(--andes-color-border);
-  border-radius: var(--andes-radius-sm);
   background-color: var(--andes-color-popover);
   color: var(--andes-color-popover-foreground);
-  padding: 0.125rem var(--andes-space-2);
-  font-size: 0.75rem;
-  line-height: 1.25;
+  /* Ant's tooltip metrics: 14px / 22px text, 34px tall (6px 8px padding, less the 1px border
+     kept so the bubble stays visible against a same-colored page), 6px corners. */
+  padding: 0.3125rem var(--andes-space-2);
+  border-radius: var(--andes-radius-md);
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   white-space: nowrap;
 }
 
@@ -304,7 +327,7 @@
 
 :host([data-orientation='horizontal']) .andes-slider__marks {
   margin-inline: calc(var(--andes-slider-thumb-size) / 2);
-  block-size: 1.25rem;
+  block-size: var(--andes-text-line-height, 1.375rem);
 }
 
 :host([data-orientation='vertical']) .andes-slider__marks {
@@ -319,7 +342,12 @@
 }
 
 :host([data-orientation='horizontal']) .andes-slider__mark {
-  inset-block-start: var(--andes-space-1);
+  /* 4px below the rail, as Ant: the control row extends half the thumb past the rail's
+     center, so pull the labels back up by the part of that beyond the rail. */
+  inset-block-start: calc(
+    var(--andes-space-1) -
+      (var(--andes-slider-thumb-size) - var(--andes-slider-rail-size)) / 2
+  );
   inset-inline-start: var(--andes-slider-mark-offset, 0%);
   inline-size: 0;
   justify-content: center;
@@ -333,8 +361,8 @@
 }
 
 .andes-slider__mark-label {
-  font-size: 0.75rem;
-  line-height: 1.25;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   color: var(--andes-color-muted-foreground);
   white-space: nowrap;
   pointer-events: auto;
@@ -347,4 +375,12 @@
 
 :host([data-disabled]) .andes-slider__mark-label {
   cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-slider__thumb,
+  .andes-slider__thumb::after,
+  .andes-slider__tooltip {
+    transition: none;
+  }
 }
