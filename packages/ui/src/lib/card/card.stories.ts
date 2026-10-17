@@ -1,6 +1,18 @@
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideEllipsis, lucidePencil, lucideSettings } from '@ng-icons/lucide';
-import { moduleMetadata, type Meta, type StoryObj } from '@storybook/angular';
+import {
+  lucideAppWindow,
+  lucideEllipsis,
+  lucideFileText,
+  lucideFolder,
+  lucidePencil,
+  lucideSettings,
+} from '@ng-icons/lucide';
+import {
+  componentWrapperDecorator,
+  moduleMetadata,
+  type Meta,
+  type StoryObj,
+} from '@storybook/angular';
 
 import { AndesButton } from '../button/button';
 import {
@@ -22,6 +34,15 @@ const AVATAR_STYLE =
   'display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;' +
   ' border-radius: 9999px; background: var(--andes-color-primary);' +
   ' color: var(--andes-color-primary-foreground); font-size: 0.875rem; font-weight: 500;';
+
+/**
+ * A faintly tinted page surface, so a borderless card (which relies on its fill alone) stays
+ * visible in both themes: the muted token equals the card surface in dark mode, so it can't be
+ * used here.
+ */
+const TINTED_SURFACE_STYLE =
+  'padding: 1.5rem; background: color-mix(in srgb, var(--andes-color-foreground) 4%,' +
+  ' var(--andes-color-background));';
 
 const ACTION_BUTTONS = `
   <andes-button variant="ghost" size="icon-sm" aria-label="Settings"><ng-icon name="lucideSettings" /></andes-button>
@@ -55,7 +76,14 @@ const meta: Meta<AndesCard> = {
       ],
       // Story-local rather than in preview.ts: only the Card demos use these icons.
       providers: [
-        provideIcons({ lucideSettings, lucidePencil, lucideEllipsis }),
+        provideIcons({
+          lucideSettings,
+          lucidePencil,
+          lucideEllipsis,
+          lucideFileText,
+          lucideAppWindow,
+          lucideFolder,
+        }),
       ],
     }),
   ],
@@ -100,8 +128,14 @@ export const Outlined: Story = {
   args: { variant: 'outlined' },
 };
 
+/** Shown on a tinted surface: without a border the card is set apart by its fill alone. */
 export const Borderless: Story = {
   args: { variant: 'borderless' },
+  decorators: [
+    componentWrapperDecorator(
+      (story) => `<div style="${TINTED_SURFACE_STYLE}">${story}</div>`,
+    ),
+  ],
 };
 
 export const SmallSize: Story = {
@@ -200,6 +234,40 @@ export const ContentOnly: Story = {
   }),
 };
 
+/**
+ * Cards laid out in a row of columns on a tinted surface. Grid items stretch to the row's height
+ * and the body takes up the spare space, so the footers line up even with uneven content.
+ */
+export const InColumns: Story = {
+  args: { variant: 'borderless' },
+  render: (args) => ({
+    props: { ...args, surfaceStyle: TINTED_SURFACE_STYLE },
+    template: `
+      <div [style]="surfaceStyle">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; width: min(720px, calc(100vw - 6rem));">
+          <andes-card [variant]="variant" [size]="size">
+            <andes-card-header><andes-card-title>Orders</andes-card-title></andes-card-header>
+            <andes-card-content><p style="margin: 0;">128 open orders.</p></andes-card-content>
+            <andes-card-footer><andes-button variant="outline" size="sm">View all</andes-button></andes-card-footer>
+          </andes-card>
+          <andes-card [variant]="variant" [size]="size">
+            <andes-card-header><andes-card-title>Invoices</andes-card-title></andes-card-header>
+            <andes-card-content>
+              <p style="margin: 0;">14 invoices are overdue and 6 more fall due this week. Review them before the month-end close.</p>
+            </andes-card-content>
+            <andes-card-footer><andes-button variant="outline" size="sm">View all</andes-button></andes-card-footer>
+          </andes-card>
+          <andes-card [variant]="variant" [size]="size">
+            <andes-card-header><andes-card-title>Stock</andes-card-title></andes-card-header>
+            <andes-card-content><p style="margin: 0;">3 items below reorder point.</p></andes-card-content>
+            <andes-card-footer><andes-button variant="outline" size="sm">View all</andes-button></andes-card-footer>
+          </andes-card>
+        </div>
+      </div>
+    `,
+  }),
+};
+
 export const Overview: Story = {
   render: () => ({
     template: `
@@ -226,7 +294,7 @@ export const Overview: Story = {
             <andes-card-title>Small + hoverable</andes-card-title>
             <andes-card-description>size="sm" hoverable</andes-card-description>
             <andes-card-action>
-              <andes-button variant="ghost" size="icon-sm" aria-label="More options">⋯</andes-button>
+              <andes-button variant="ghost" size="icon-sm" aria-label="More options"><ng-icon name="lucideEllipsis" /></andes-button>
             </andes-card-action>
           </andes-card-header>
           <andes-card-content><p style="margin:0;">Hover to see the elevation.</p></andes-card-content>
@@ -277,6 +345,23 @@ export const Actions: Story = {
           <andes-button variant="ghost" size="sm">Redeploy</andes-button>
           <andes-button variant="ghost" size="sm">Settings</andes-button>
         </andes-card-actions>
+      </andes-card>
+    `,
+  }),
+};
+
+/** A cover and an actions bar with no body in between - the parts still close up cleanly. */
+export const CoverAndActionsOnly: Story = {
+  render: (args) => ({
+    props: args,
+    template: `
+      <andes-card [variant]="variant" [size]="size" style="max-width: 320px;">
+        <img
+          src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=640&h=280&fit=crop"
+          alt="Mountain ridge above the clouds"
+          style="display: block; width: 100%; height: 160px; object-fit: cover;"
+        />
+        <andes-card-actions>${ACTION_BUTTONS}</andes-card-actions>
       </andes-card>
     `,
   }),
@@ -447,6 +532,80 @@ export const TabsWithoutTitle: Story = {
           <p style="margin: 0;">{{ bodies[active] }}</p>
         </andes-card-content>
       </andes-card>
+    `,
+  }),
+};
+
+/**
+ * When the tabs don't fit, the strip scrolls and fades out toward each edge that still has
+ * tabs beyond it - on the end edge at first, on both once scrolled, mirrored in right-to-left
+ * text.
+ */
+export const OverflowingTabs: Story = {
+  render: () => ({
+    props: {
+      tabs: Array.from({ length: 12 }, (_, i) => ({
+        key: `month-${i + 1}`,
+        label: new Date(2026, i, 1).toLocaleString('en', { month: 'long' }),
+      })),
+    },
+    template: `
+      <div style="display: grid; gap: 1.5rem;">
+        @for (dir of ['ltr', 'rtl']; track dir) {
+          <andes-card [tabList]="tabs" [attr.dir]="dir" style="width: min(360px, calc(100vw - 3rem));">
+            <andes-card-header>
+              <andes-card-title>Monthly report ({{ dir }})</andes-card-title>
+            </andes-card-header>
+            <andes-card-content>
+              <p style="margin: 0;">Scroll the months sideways.</p>
+            </andes-card-content>
+          </andes-card>
+        }
+      </div>
+    `,
+  }),
+};
+
+const TAB_ICONS: Record<string, string> = {
+  article: 'lucideFileText',
+  app: 'lucideAppWindow',
+  project: 'lucideFolder',
+  archived: 'lucideFolder',
+};
+
+/**
+ * `tabLabelTemplate` swaps each tab's plain label for custom content - here an icon beside the
+ * text. The template receives the tab as `$implicit` and a `selected` flag.
+ */
+export const TabsWithCustomLabels: Story = {
+  render: (args) => ({
+    props: {
+      ...args,
+      tabs: TABS,
+      bodies: TAB_BODIES,
+      icons: TAB_ICONS,
+      active: 'article',
+    },
+    template: `
+      <andes-card
+        [variant]="variant"
+        [size]="size"
+        [tabList]="tabs"
+        [(activeTabKey)]="active"
+        [tabLabelTemplate]="tabLabel"
+        style="width: min(420px, calc(100vw - 3rem));"
+      >
+        <andes-card-header>
+          <andes-card-title>Workspace</andes-card-title>
+        </andes-card-header>
+        <andes-card-content>
+          <p style="margin: 0;">{{ bodies[active] }}</p>
+        </andes-card-content>
+      </andes-card>
+      <ng-template #tabLabel let-tab>
+        <ng-icon [name]="icons[tab.key]" size="16" aria-hidden="true" />
+        <span>{{ tab.label }}</span>
+      </ng-template>
     `,
   }),
 };

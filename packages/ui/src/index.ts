@@ -15,6 +15,7 @@ export {
 export type {
   AndesCardSize,
   AndesCardTab,
+  AndesCardTabLabelContext,
   AndesCardTitleLevel,
   AndesCardType,
   AndesCardVariant,
