@@ -749,6 +749,122 @@ describe('AndesTable column filters', () => {
     ).toBe('No matches');
   });
 
+  it('tolerates a null filters model, as andesFilterRows does', () => {
+    const { host, fixture, trigger, options, act, check, buttonText } = setup();
+    host.filters.set(null as unknown as AndesTableFilters);
+
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(trigger().getAttribute('data-active')).toBeNull();
+
+    act(trigger());
+    check(options()[0]);
+    act(buttonText('OK'));
+    expect(host.filters()).toEqual({ status: ['paid'] });
+  });
+
+  it('applies the draft with Enter from an option or the search box', () => {
+    const { host, fixture, root, trigger, panel, options, act, check, key } =
+      setup();
+    host.searchable.set(true);
+    fixture.detectChanges();
+
+    act(trigger());
+    check(options()[1]);
+    key(options()[1], 'Enter');
+
+    expect(panel()).toBeNull();
+    expect(host.filters()).toEqual({ status: ['pending'] });
+    expect(document.activeElement).toBe(trigger());
+
+    act(trigger());
+    key(root.querySelector('.andes-table-filter__search') as Element, 'Enter');
+    expect(panel()).toBeNull();
+  });
+
+  it('closes when focus leaves the filter, applying the draft by default', () => {
+    const { fixture, host, root, trigger, panel, options, act, check } =
+      setup();
+
+    act(trigger());
+    check(options()[0]);
+    options()[0].dispatchEvent(
+      new FocusEvent('focusout', {
+        bubbles: true,
+        relatedTarget: root.querySelector('.outside'),
+      }),
+    );
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+    expect(host.filters()).toEqual({ status: ['paid'] });
+
+    // Focus moving between controls inside the panel keeps it open.
+    act(trigger());
+    options()[0].dispatchEvent(
+      new FocusEvent('focusout', {
+        bubbles: true,
+        relatedTarget: options()[1],
+      }),
+    );
+    fixture.detectChanges();
+    expect(panel()).not.toBeNull();
+  });
+
+  it('opens above the button when there is no room below, and stays on screen', async () => {
+    const { fixture, trigger, panel, act } = setup();
+    const viewport = { width: 800, height: 600 };
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(
+      viewport.width,
+    );
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(
+      viewport.height,
+    );
+    vi.spyOn(trigger(), 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(700, 560, 24, 24),
+    );
+    const size = { offsetWidth: 160, offsetHeight: 200 };
+    const original = Object.getOwnPropertyDescriptors(HTMLElement.prototype);
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+      configurable: true,
+      get() {
+        return this.classList?.contains('andes-table-filter__panel')
+          ? size.offsetWidth
+          : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get() {
+        return this.classList?.contains('andes-table-filter__panel')
+          ? size.offsetHeight
+          : 0;
+      },
+    });
+
+    try {
+      act(trigger());
+      await fixture.whenStable();
+
+      // 560 - 4 (gap) - 200 (height) = 356: flipped above the button.
+      expect(panel()?.style.top).toBe('356px');
+      // End edge aligned with the button's end edge: 724 - 160.
+      expect(panel()?.style.left).toBe('564px');
+      expect(panel()?.getAttribute('data-placement')).toBe('top');
+    } finally {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetWidth',
+        original.offsetWidth,
+      );
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetHeight',
+        original.offsetHeight,
+      );
+      vi.restoreAllMocks();
+    }
+  });
+
   it('renders a custom panel template with the draft and actions', () => {
     const { host, fixture, root, trigger, visibleIds, act } = setup();
 

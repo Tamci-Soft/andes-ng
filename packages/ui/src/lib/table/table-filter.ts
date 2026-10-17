@@ -78,6 +78,7 @@ let nextFilterId = 0;
     class: 'andes-table-filter',
     '(click)': '$event.stopPropagation()',
     '(keydown)': 'onKeydown($event)',
+    '(focusout)': 'onFocusOut($event)',
     '(document:pointerdown)': 'onDocumentPointerDown($event)',
   },
 })
@@ -226,10 +227,43 @@ export class AndesTableFilter {
     // Nothing typed in the filter may reach the header's Enter/Space sort handler.
     event.stopPropagation();
 
-    if (event.key === 'Escape' && this.open()) {
+    if (!this.open()) {
+      return;
+    }
+    if (event.key === 'Escape') {
       event.preventDefault();
       this.close(this.applyOnClose(), true);
+    } else if (
+      event.key === 'Enter' &&
+      this.isDefaultPanelField(event.target)
+    ) {
+      // Enter on an option or the search box applies, like submitting a form. Buttons
+      // keep their own Enter, and a custom panel decides for itself.
+      event.preventDefault();
+      this.confirm();
     }
+  }
+
+  protected onFocusOut(event: FocusEvent): void {
+    // A keyboard user tabbing out of the panel leaves it, just like a click outside.
+    // Only a known destination counts: `relatedTarget` is null when the window itself
+    // loses focus, which should not dismiss anything.
+    const next = event.relatedTarget;
+    if (
+      this.open() &&
+      next instanceof Node &&
+      !this.host.nativeElement.contains(next)
+    ) {
+      this.close(this.applyOnClose(), false);
+    }
+  }
+
+  private isDefaultPanelField(target: EventTarget | null): boolean {
+    return (
+      !this.panel() &&
+      target instanceof HTMLInputElement &&
+      !!this.panelElement()?.nativeElement.contains(target)
+    );
   }
 
   protected onDocumentPointerDown(event: Event): void {
@@ -287,19 +321,36 @@ export class AndesTableFilter {
       return;
     }
 
-    const anchor = this.trigger().nativeElement.getBoundingClientRect();
+    const trigger = this.trigger().nativeElement;
+    const anchor = trigger.getBoundingClientRect();
     const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
     const width = panel.offsetWidth;
+    const height = panel.offsetHeight;
+    const rtl = getComputedStyle(trigger).direction === 'rtl';
+
     // Align the panel's end edge with the button's, so it opens toward the column
     // it filters, then keep it on screen.
+    const preferredLeft = rtl ? anchor.left : anchor.right - width;
     const left = Math.min(
-      Math.max(VIEWPORT_MARGIN, anchor.right - width),
+      Math.max(VIEWPORT_MARGIN, preferredLeft),
       Math.max(VIEWPORT_MARGIN, viewportWidth - width - VIEWPORT_MARGIN),
     );
 
+    // Below the button unless it would run off the bottom and there is more room
+    // above - a fixed panel cannot be scrolled into view.
+    const spaceBelow = viewportHeight - anchor.bottom - PANEL_GAP;
+    const spaceAbove = anchor.top - PANEL_GAP;
+    const above =
+      height > spaceBelow - VIEWPORT_MARGIN && spaceAbove > spaceBelow;
+    const top = above
+      ? Math.max(VIEWPORT_MARGIN, anchor.top - PANEL_GAP - height)
+      : anchor.bottom + PANEL_GAP;
+
     // Written straight to the element: it is pure layout, and it must be in place
     // before focus moves into the panel in the same frame.
-    panel.style.top = `${anchor.bottom + PANEL_GAP}px`;
+    panel.style.top = `${top}px`;
     panel.style.left = `${left}px`;
+    panel.setAttribute('data-placement', above ? 'top' : 'bottom');
   }
 }
