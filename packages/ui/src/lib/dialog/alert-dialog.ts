@@ -144,7 +144,7 @@ export class AndesAlertDialogTrigger {
  * The alert dialog's surface. Carries `role="alertdialog"` and
  * `aria-modal="true"` (from the preset) plus the labelling relationships.
  *
- * Renders no built-in close control, matching shadcn's `AlertDialogContent`: the
+ * Renders no built-in close control: the
  * dismiss path must be an explicit, labelled Cancel action, not an anonymous "x".
  */
 @Component({
@@ -253,8 +253,8 @@ export class AndesAlertDialogCancel {
 }
 
 /**
- * The affirmative action. Closes the alert dialog, like shadcn's
- * `AlertDialogAction`; bind your own `(click)` for the work it confirms.
+ * The affirmative action. Closes the alert dialog;
+ * bind your own `(click)` for the work it confirms.
  *
  * For a confirmation that must stay open until an async call resolves, use the
  * root's built-in footer instead (`footer="default"`, `(ok)`, `[confirmLoading]`),

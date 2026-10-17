@@ -108,7 +108,7 @@ export class AndesDialogContentTemplate {
 export class AndesDialog extends AndesDialogRootBase {
   /**
    * A pointer event on the backdrop (or otherwise outside the surface) closes the
-   * dialog. The equivalent of Base UI's `disablePointerDismissal` inverted.
+   * dialog. Turn it off to require an explicit dismissal.
    */
   readonly closeOnOutsideClick = input(true, { transform: booleanAttribute });
 
@@ -190,7 +190,7 @@ export class AndesDialogContent extends AndesDialogSurfaceBase {
   protected readonly root = inject(AndesDialogRoot);
 
   /**
-   * Render the built-in close ("x") control. Mirrors shadcn's `showCloseButton`.
+   * Render the built-in close ("x") control.
    * Activating it counts as a cancel (emits the root's `cancelled`).
    */
   readonly showCloseButton = input(true, { transform: booleanAttribute });
