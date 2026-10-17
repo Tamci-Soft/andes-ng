@@ -292,8 +292,10 @@ describe('AndesInputOtp', () => {
 
     cells()[0].focus();
 
-    expect(getComputedStyle(cells()[0]).outline).toBe(
-      '2px solid var(--andes-color-focus-ring)',
+    // Transparent outline for forced-colors mode; the visible ring is border + halo.
+    expect(getComputedStyle(cells()[0]).outline).toBe('2px solid transparent');
+    expect(getComputedStyle(cells()[0]).boxShadow).toContain(
+      'var(--andes-color-focus-ring)',
     );
     expect(getComputedStyle(root).outline).not.toContain('solid');
     expect(getComputedStyle(root).fontFamily).toBe(
