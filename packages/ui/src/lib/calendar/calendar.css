@@ -3,10 +3,10 @@
    yet (flagged in docs/research/components/date-picker.md), so the band mixes the
    primary into transparency, which reads as the same light tint on either theme.
 
-   Geometry follows Ant Design's picker panel: a 40px header over a hairline, then
-   36px-square cells (7 x 36px + 18px gutters = a 288px panel) whose visible chip is
-   a 24px square. The chip is the cell's text span; the cell's `::before` is the
-   36px-wide, 24px-tall band that joins a range across cells. */
+   Geometry: a 40px header over a hairline, then 36px-square cells (7 x 36px + 18px
+   gutters = a 288px panel) whose visible chip is a 24px square. The chip is the cell's
+   text span; the cell's `::before` is the 36px-wide, 24px-tall band that joins a range
+   across cells. */
 
 .andes-calendar {
   --andes-calendar-cell: 2.25rem;
@@ -83,8 +83,8 @@
   outline-offset: 1px;
 }
 
-/* Bare icon buttons in the muted color, like Ant Design's header arrows: a bordered
-   box per arrow made the header read as a toolbar of controls. */
+/* Bare icon buttons in the muted color: a bordered box per arrow made the header read
+   as a toolbar of controls. */
 .andes-calendar__nav {
   display: inline-flex;
   flex-shrink: 0;
@@ -193,7 +193,7 @@
 }
 
 /* Month / quarter / year grids share the day grid's 288px width, so switching grids
-   does not resize the panel; their cells are taller (66px rows, as in Ant). */
+   does not resize the panel; their cells are taller (66px rows). */
 
 .andes-calendar__grid--period {
   box-sizing: border-box;
