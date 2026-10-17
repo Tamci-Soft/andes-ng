@@ -544,9 +544,9 @@ export class AndesBreadcrumbDropdown {
  *
  * - **Static (default, `items` empty).** A decorative glyph: `role="presentation"` /
  *   `aria-hidden="true"` on the host make the whole thing invisible to assistive tech (so the
- *   `sr-only` text is not exposed either), matching the upstream shadcn/ui source exactly. This is
- *   still the right mode when the consumer wants to wrap the ellipsis in their OWN
- *   `[andesDropdownMenuTrigger]` and author the menu themselves.
+ *   `sr-only` text is not exposed either). This is still the right mode when the consumer wants
+ *   to wrap the ellipsis in their OWN `[andesDropdownMenuTrigger]` and author the menu
+ *   themselves.
  * - **Interactive (`items` non-empty).** The glyph becomes the trigger of an `AndesDropdownMenu`
  *   listing the hidden crumbs. The decorative `role`/`aria-hidden` are dropped (a focusable
  *   control inside an `aria-hidden` subtree is exactly the "hidden but focusable" error axe flags),
@@ -615,8 +615,8 @@ export class AndesBreadcrumbEllipsis {
 
   /**
    * Accessible name of the trigger, and the `sr-only` text of the static glyph. Defaults to
-   * `'More'` (the upstream shadcn/ui wording); override it for localization, the same way
-   * `AndesBreadcrumb`'s own `aria-label` is overridden.
+   * `'More'`; override it for localization, the same way `AndesBreadcrumb`'s own `aria-label` is
+   * overridden.
    */
   readonly label = input('More');
 
@@ -653,8 +653,8 @@ function optionalNumberAttribute(value: unknown): number | undefined {
 
 /**
  * Root of a breadcrumb trail. Renders a `<nav>` landmark, defaulting `aria-label` to
- * `"breadcrumb"` per the ARIA Authoring Practices convention shadcn/ui also
- * follows; override it for localization (e.g. `aria-label="Ruta de navegación"`).
+ * `"breadcrumb"` per the ARIA Authoring Practices convention; override it for localization
+ * (e.g. `aria-label="Ruta de navegación"`).
  *
  * Two ways to fill it:
  *
