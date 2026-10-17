@@ -1,5 +1,6 @@
 /* Standalone placeholder shapes (andes-skeleton-avatar/-button/-input/-image/-node). Heights
-   follow AndesButton's size scale (sm 2rem, md 2.5rem, lg 3rem) so a Button/Input placeholder
+   follow the shared control scale (sm 1.5rem, md 2rem, lg 2.5rem - AndesButton's and the
+   inputs' 24/32/40px) so a Button/Input placeholder
    occupies exactly the space of the control it stands in for. Widths are fixed multiples of the
    height (button = 2x, input = 5x). */
 
@@ -29,7 +30,7 @@
 /* Avatar */
 
 .andes-skeleton-avatar {
-  --andes-skeleton-size: 2.5rem;
+  --andes-skeleton-size: 2rem;
   width: var(--andes-skeleton-size);
   height: var(--andes-skeleton-size);
 }
@@ -41,7 +42,7 @@
 /* Button */
 
 .andes-skeleton-button {
-  --andes-skeleton-size: 2.5rem;
+  --andes-skeleton-size: 2rem;
   width: calc(var(--andes-skeleton-size) * 2);
   min-width: calc(var(--andes-skeleton-size) * 2);
   height: var(--andes-skeleton-size);
@@ -65,7 +66,7 @@
 /* Input */
 
 .andes-skeleton-input {
-  --andes-skeleton-size: 2.5rem;
+  --andes-skeleton-size: 2rem;
   width: calc(var(--andes-skeleton-size) * 5);
   min-width: calc(var(--andes-skeleton-size) * 5);
   height: var(--andes-skeleton-size);
@@ -80,15 +81,15 @@
 /* Shared size scale for avatar/button/input */
 
 .andes-skeleton-element--sm {
-  --andes-skeleton-size: 2rem;
+  --andes-skeleton-size: var(--andes-control-height-sm, 1.5rem);
 }
 
 .andes-skeleton-element--md {
-  --andes-skeleton-size: 2.5rem;
+  --andes-skeleton-size: var(--andes-control-height-md, 2rem);
 }
 
 .andes-skeleton-element--lg {
-  --andes-skeleton-size: 3rem;
+  --andes-skeleton-size: var(--andes-control-height-lg, 2.5rem);
 }
 
 /* Image and Node: a fixed box (overridable through width/height) with centered content. */

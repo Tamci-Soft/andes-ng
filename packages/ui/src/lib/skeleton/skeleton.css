@@ -41,8 +41,8 @@
 }
 
 .andes-skeleton--circular {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2rem;
+  height: 2rem;
   border-radius: var(--andes-radius-full);
 }
 
@@ -82,9 +82,9 @@
   border-radius: var(--andes-radius-sm);
 }
 
-/* Beside an avatar, nudge the title down so it lines up with the avatar's upper half. */
+/* Beside an avatar, nudge the 16px title down onto the default 32px avatar's centre line. */
 .andes-skeleton-composite--with-avatar .andes-skeleton-composite__title {
-  margin-top: var(--andes-space-3);
+  margin-top: var(--andes-space-2);
 }
 
 .andes-skeleton-composite__paragraph {
