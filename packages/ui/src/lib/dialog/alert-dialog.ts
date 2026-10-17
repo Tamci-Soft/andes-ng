@@ -217,17 +217,23 @@ export class AndesAlertDialogFooter {}
  * The dismissing action. Place it before the affirmative action in the DOM so the
  * focus trap's initial focus lands on the safe choice, the same default the
  * built-in footer uses for confirmations (`autoFocusButton: 'cancel'`).
+ *
+ * Runs the root's cancel path, like the built-in Cancel: emits `cancelled`, then
+ * closes reporting `'close-button'`.
  */
 @Directive({
   selector: '[andesAlertDialogCancel]',
   exportAs: 'andesAlertDialogCancel',
-  hostDirectives: [AndesOverlayClosePrimitive],
   host: {
     class: 'andes-dialog__cancel',
+    '(click)': 'root.requestCancel()',
     '[attr.data-slot]': '"alert-dialog-cancel"',
   },
 })
-export class AndesAlertDialogCancel {}
+export class AndesAlertDialogCancel {
+  /** The alert dialog this action cancels. */
+  protected readonly root = inject(AndesDialogRoot);
+}
 
 /**
  * The affirmative action. Closes the alert dialog, like shadcn's

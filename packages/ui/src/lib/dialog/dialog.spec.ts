@@ -145,6 +145,7 @@ class DialogHost {
       [(open)]="open"
       [closeOnEscape]="closeOnEscape()"
       (closed)="reasons.push($event)"
+      (cancelled)="cancelReasons.push($event)"
     >
       <button type="button" id="trigger" andesAlertDialogTrigger>Delete</button>
 
@@ -178,6 +179,7 @@ class AlertDialogHost {
   readonly open = signal(false);
   readonly closeOnEscape = signal(true);
   readonly reasons: AndesOverlayCloseReason[] = [];
+  readonly cancelReasons: AndesOverlayCloseReason[] = [];
   confirmed = false;
 }
 
@@ -717,6 +719,26 @@ describe('AndesAlertDialog', () => {
     expect(surface()).toBeNull();
     expect(host.reasons).toEqual(['close-button']);
     expect(host.confirmed).toBe(false);
+  });
+
+  it('emits cancelled from the Cancel action, like the built-in footer Cancel', async () => {
+    const { fixture, host, inDialog, openViaTrigger } = createHost();
+    await openViaTrigger();
+
+    clickOn(inDialog('cancel'));
+    fixture.detectChanges();
+
+    expect(host.cancelReasons).toEqual(['close-button']);
+  });
+
+  it('does not emit cancelled from the affirmative action', async () => {
+    const { fixture, host, inDialog, openViaTrigger } = createHost();
+    await openViaTrigger();
+
+    clickOn(inDialog('action'));
+    fixture.detectChanges();
+
+    expect(host.cancelReasons).toEqual([]);
   });
 
   it('closes from the affirmative action, after running the consumer handler', async () => {
