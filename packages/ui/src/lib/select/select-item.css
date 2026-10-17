@@ -36,9 +36,9 @@
   background-color: var(--andes-color-accent-hover);
 }
 
-/* The highlight above is the indicator, as in Ant's list: a ring drawn inside the row
-   on top of it read as a second border. Kept transparent for forced-colors mode, which
-   paints it in a system colour. */
+/* The highlight above is the indicator: a ring drawn inside the row on top of it read as
+   a second border. Kept transparent for forced-colors mode, which paints it in a system
+   colour. */
 .andes-select__option:focus-visible {
   outline: 2px solid transparent;
   outline-offset: -2px;
