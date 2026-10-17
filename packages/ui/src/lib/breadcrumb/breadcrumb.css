@@ -60,6 +60,25 @@
   font-weight: var(--andes-font-weight-medium);
 }
 
+/* An `[items]` crumb with an `icon`: the icon and the title sit side by side, centered. */
+.andes-breadcrumb-has-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-1);
+}
+
+.andes-breadcrumb-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.andes-breadcrumb-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 .andes-breadcrumb-separator {
   display: inline-flex;
   align-items: center;
@@ -69,6 +88,11 @@
 .andes-breadcrumb-separator__icon {
   width: 0.875rem;
   height: 0.875rem;
+}
+
+/* The default chevron points toward the next crumb, which in right-to-left text is the left. */
+.andes-breadcrumb-separator__icon:dir(rtl) {
+  transform: scaleX(-1);
 }
 
 /* One text line tall (22px), so a collapsed trail is exactly as tall as an uncollapsed one, and
@@ -133,14 +157,42 @@
   align-items: center;
 }
 
+/* Inside the ellipsis box the host also fills it, so the trigger's `height: 100%` resolves and
+   the dots centre exactly like the static ellipsis. */
+.andes-breadcrumb-ellipsis andes-dropdown-menu {
+  width: 100%;
+  height: 100%;
+}
+
+/* The CDK pane of a crumb or ellipsis dropdown. It renders at the end of `<body>`, so it inherits
+   nothing from `.andes-breadcrumb` - the family is set again on the panel root. */
+.andes-breadcrumb-dropdown-panel {
+  font-family: var(--andes-font-family), sans-serif;
+}
+
 /* The inner `<a>`/`<span>` of a dropdown entry. Fills its `role="menuitem"` parent so the whole
    row - not just the text - is a click target, and drops `.andes-breadcrumb-link`'s own hover
    underline/color, which would fight the menu item's own hover/active highlight. */
 .andes-breadcrumb-menu-entry,
 .andes-breadcrumb-menu-entry:hover {
+  display: inline-flex;
   flex: 1;
+  align-items: center;
+  gap: var(--andes-space-2);
   color: inherit;
   text-decoration: none;
+}
+
+.andes-breadcrumb-menu-entry__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-breadcrumb-menu-entry__icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* The menu item already draws the focus/active highlight for the whole row. */
@@ -168,7 +220,7 @@
     var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
-.andes-breadcrumb-menu-trigger:hover {
+.andes-breadcrumb-menu-trigger:hover:not(:disabled) {
   color: var(--andes-color-foreground);
 }
 
@@ -181,6 +233,12 @@
 .andes-breadcrumb-menu-trigger[aria-current='page'] {
   color: var(--andes-color-foreground);
   font-weight: var(--andes-font-weight-medium);
+}
+
+/* `dropdownProps.disabled`: the caret stays, but the menu cannot open. */
+.andes-breadcrumb-menu-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .andes-breadcrumb-menu-trigger__icon {
@@ -201,7 +259,8 @@
   cursor: pointer;
 }
 
-.andes-breadcrumb-ellipsis__sr-only {
+.andes-breadcrumb-ellipsis__sr-only,
+.andes-breadcrumb-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;

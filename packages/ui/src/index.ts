@@ -12,11 +12,18 @@ export {
 } from './lib/breadcrumb/breadcrumb';
 export type { AndesBreadcrumbEllipsisItem } from './lib/breadcrumb/breadcrumb';
 export type {
+  AndesBreadcrumbDropdownAlign,
+  AndesBreadcrumbDropdownProps,
+  AndesBreadcrumbDropdownSide,
   AndesBreadcrumbItemClickEvent,
   AndesBreadcrumbItemRenderContext,
   AndesBreadcrumbItemType,
   AndesBreadcrumbMenuClickEvent,
+  AndesBreadcrumbMenuDivider,
+  AndesBreadcrumbMenuEntry,
+  AndesBreadcrumbMenuGroup,
   AndesBreadcrumbMenuItem,
+  AndesBreadcrumbMenuOpenChangeEvent,
   AndesBreadcrumbParams,
   AndesBreadcrumbRouteItem,
   AndesBreadcrumbSeparatorContent,
