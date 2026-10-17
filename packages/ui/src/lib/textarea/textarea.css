@@ -35,8 +35,14 @@
    `outline`, not `box-shadow`, so it survives `forced-colors: active`. */
 .andes-textarea-wrapper:has(textarea:focus-visible) {
   border-color: var(--andes-color-focus-ring);
-  outline: 2px solid var(--andes-color-focus-ring);
+  /* Field focus, shared by every text field: the border takes the ring color and a soft
+     3px halo hugs it (Ant Design / shadcn style) instead of a ring floating 2px outside
+     the border. The transparent outline is still there for forced-colors mode, which
+     drops box-shadow but paints outlines in a system color. */
+  outline: 2px solid transparent;
   outline-offset: 2px;
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--andes-color-focus-ring) 20%, transparent);
 }
 
 .andes-textarea__control {
@@ -112,7 +118,6 @@
 
 .andes-textarea-wrapper--invalid:has(textarea:focus-visible) {
   border-color: var(--andes-color-danger);
-  outline-color: var(--andes-color-danger);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
 }
@@ -123,7 +128,6 @@
 
 .andes-textarea-wrapper--warning:has(textarea:focus-visible) {
   border-color: var(--andes-color-warning);
-  outline-color: var(--andes-color-warning);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--andes-color-warning) 20%, transparent);
 }
