@@ -799,6 +799,9 @@ describe('AndesCombobox (data-driven options mode)', () => {
         kind: 'anchored',
         side: 'top',
         align: 'end',
+        // Never beside the input: only the opposite side is a fallback.
+        crossSideFallback: false,
+        flexibleDimensions: true,
       });
     });
 
@@ -811,12 +814,13 @@ describe('AndesCombobox (data-driven options mode)', () => {
       host.matchWidth.set(320);
       await settle();
       expect(config().positioning).toMatchObject({ matchAnchorWidth: false });
-      expect(config().size).toEqual({ width: 320 });
+      // minHeight '0px' is what lets CDK shrink the popup to fit (flexibleDimensions).
+      expect(config().size).toEqual({ minHeight: '0px', width: 320 });
 
       host.matchWidth.set(false);
       await settle();
       expect(config().positioning).toMatchObject({ matchAnchorWidth: false });
-      expect(config().size).toEqual({});
+      expect(config().size).toEqual({ minHeight: '0px' });
     });
   });
 

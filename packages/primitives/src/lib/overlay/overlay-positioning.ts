@@ -88,8 +88,9 @@ export function andesConnectedPosition(
 
 /**
  * The preferred position first, then the fallbacks CDK walks when it does not fit:
- * the opposite side (a flip), then the two perpendicular sides (a last resort before
- * CDK falls back to pushing the overlay into view).
+ * the opposite side (a flip), then - unless `crossSideFallback` is off - the two
+ * perpendicular sides (a last resort before CDK falls back to pushing the overlay into
+ * view).
  */
 export function andesConnectedPositions(
   side: AndesOverlaySide,
@@ -97,6 +98,7 @@ export function andesConnectedPositions(
   sideOffset: number,
   alignOffset: number,
   flip: boolean,
+  crossSideFallback = true,
 ): ConnectedPosition[] {
   const build = (candidate: AndesOverlaySide) =>
     andesConnectedPosition(candidate, align, sideOffset, alignOffset);
@@ -108,7 +110,7 @@ export function andesConnectedPositions(
   return [
     build(side),
     build(OPPOSITE_SIDE[side]),
-    ...CROSS_SIDES[side].map(build),
+    ...(crossSideFallback ? CROSS_SIDES[side].map(build) : []),
   ];
 }
 
@@ -145,18 +147,27 @@ export function createAndesPositionStrategy(
       sideOffset = 0,
       alignOffset = 0,
       flip = true,
+      crossSideFallback = true,
       shift = true,
+      flexibleDimensions = false,
       viewportMargin = 8,
       lockPosition = false,
     } = positioning;
 
     return createFlexibleConnectedPositionStrategy(injector, anchor)
       .withPositions(
-        andesConnectedPositions(side, align, sideOffset, alignOffset, flip),
+        andesConnectedPositions(
+          side,
+          align,
+          sideOffset,
+          alignOffset,
+          flip,
+          crossSideFallback,
+        ),
       )
       .withPush(shift)
       .withViewportMargin(viewportMargin)
-      .withFlexibleDimensions(false)
+      .withFlexibleDimensions(flexibleDimensions)
       .withGrowAfterOpen(false)
       .withLockedPosition(lockPosition);
   }
