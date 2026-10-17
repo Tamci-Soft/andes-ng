@@ -122,7 +122,7 @@ export class AndesCheckbox implements ControlValueAccessor {
   /**
    * Prevents toggling without visually disabling the control - distinct from `disabled`:
    * a read-only checkbox stays focusable and keeps its normal (non-dimmed) appearance, it
-   * just can't be changed. Matches shadcn/ui's Base UI-backed `Checkbox`'s `readOnly` prop.
+   * just can't be changed.
    * Native `<input type="checkbox">` ignores the HTML `readonly` attribute entirely (the
    * platform only honors it on text-like inputs), so this is enforced by preventing the
    * `click` that would otherwise toggle it - the same technique `AndesButtonPrimitive` uses
