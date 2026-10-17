@@ -217,7 +217,7 @@ describe('AndesAvatar', () => {
       },
     );
 
-    it('gives the host a background color from the muted token', () => {
+    it('gives the host a background color from the secondary token', () => {
       const { avatar } = createHost();
 
       const style = getComputedStyle(avatar);
@@ -231,6 +231,9 @@ describe('AndesAvatar', () => {
       expect(style.backgroundColor).not.toBe('');
       expect(style.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
       expect(style.backgroundColor).not.toBe('transparent');
+      // Not `muted`: in the dark theme muted equals the card color, so the
+      // avatar disappeared inside a card.
+      expect(style.backgroundColor).toContain('--andes-color-secondary');
     });
   });
 
@@ -698,6 +701,16 @@ describe('AndesAvatarBadge', () => {
       expect(badge.getAttribute('data-slot')).toBe('avatar-badge');
     },
   );
+
+  it('draws the away dot in the warning -hover shade, which clears 3:1 on a light page', () => {
+    const { fixture, badge } = createBadgeHost();
+    fixture.componentInstance.status.set('away');
+    fixture.detectChanges();
+
+    expect(getComputedStyle(badge).backgroundColor).toContain(
+      '--andes-color-warning-hover',
+    );
+  });
 
   it.each(['bottom-end', 'bottom-start', 'top-end', 'top-start'] as const)(
     'supports the %s placement',

@@ -17,11 +17,19 @@
    hook like avatar.css's `--andes-avatar-radius` (not a theme token): set it
    on the group - e.g. `style="--andes-avatar-group-overlap: -1rem"` for a
    tighter stack of large avatars, or `0.25rem` for a spaced-out, non-overlapping
-   look. */
+   look.
+
+   The ring is drawn in `--andes-avatar-ring-color`, another component-level
+   hook, defaulting to the page background. A group placed on a card or any
+   other surface sets it to that surface's color (e.g.
+   `--andes-avatar-ring-color: var(--andes-color-card)`) so the separator
+   reads as a cut-out rather than a dark outline. AndesAvatarBadge's ring
+   reads the same hook. */
 
 :host ::ng-deep andes-avatar,
 :host ::ng-deep andes-avatar-group-count {
-  box-shadow: 0 0 0 2px var(--andes-color-background);
+  box-shadow: 0 0 0 2px
+    var(--andes-avatar-ring-color, var(--andes-color-background));
 }
 
 :host ::ng-deep andes-avatar:not(:first-child),
