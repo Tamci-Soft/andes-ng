@@ -1,6 +1,7 @@
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import type { Meta, StoryObj } from '@storybook/angular';
 
+import { AndesButton } from '../button/button';
 import { AndesCheckbox } from './checkbox';
 
 const meta: Meta<AndesCheckbox> = {
@@ -152,6 +153,75 @@ export const IndeterminateToChecked: Story = {
       <andes-checkbox [(checked)]="checked" [(indeterminate)]="indeterminate">Mixed state</andes-checkbox>
       <p style="font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;">
         checked={{ checked }}, indeterminate={{ indeterminate }}
+      </p>
+    `,
+  }),
+};
+
+const note = `font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground); margin-top: 1rem;`;
+
+export const Controlled: Story = {
+  name: 'Controlled (checked + disabled from outside)',
+  render: () => ({
+    moduleMetadata: { imports: [AndesButton] },
+    props: { checked: true, disabled: false },
+    // The parent owns both states: the buttons flip them, and `[(checked)]` keeps a user click
+    // in sync with the parent's own value.
+    template: `
+      <andes-checkbox [(checked)]="checked" [disabled]="disabled">
+        {{ checked ? 'Checked' : 'Unchecked' }}-{{ disabled ? 'Disabled' : 'Enabled' }}
+      </andes-checkbox>
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <andes-button size="sm" (click)="checked = !checked">{{ checked ? 'Uncheck' : 'Check' }}</andes-button>
+        <andes-button size="sm" variant="outline" (click)="disabled = !disabled">{{ disabled ? 'Enable' : 'Disable' }}</andes-button>
+      </div>
+    `,
+  }),
+};
+
+export const FocusEvents: Story = {
+  name: 'Focus, blur and the native input',
+  render: () => ({
+    moduleMetadata: { imports: [AndesButton] },
+    props: { log: 'none yet' },
+    // `(focused)`/`(blurred)` carry the native FocusEvent; `focus()`, `blur()` and
+    // `nativeElement` are public on the component instance (here via a template reference).
+    template: `
+      <andes-checkbox
+        #box
+        (focused)="log = 'focused (' + $event.type + ')'"
+        (blurred)="log = 'blurred (' + $event.type + ')'"
+      >Remember me</andes-checkbox>
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <andes-button size="sm" variant="outline" (mousedown)="$event.preventDefault()" (click)="box.focus()">focus()</andes-button>
+        <andes-button size="sm" variant="outline" (mousedown)="$event.preventDefault()" (click)="box.blur()">blur()</andes-button>
+        <andes-button size="sm" variant="outline" (click)="log = 'nativeElement: <' + box.nativeElement.tagName.toLowerCase() + ' type=' + box.nativeElement.type + '>'">Read nativeElement</andes-button>
+      </div>
+      <p style="${note}">Last event: {{ log }}</p>
+    `,
+  }),
+};
+
+export const CustomBorderWidth: Story = {
+  name: 'Custom border width',
+  render: () => ({
+    // `--andes-checkbox-border-width` (default 1px) is the styling hook for the box outline.
+    template: `
+      <div style="display: flex; gap: 1.5rem; --andes-checkbox-border-width: 2px;">
+        <andes-checkbox>2px border</andes-checkbox>
+        <andes-checkbox checked>2px border</andes-checkbox>
+        <andes-checkbox indeterminate>2px border</andes-checkbox>
+      </div>
+    `,
+  }),
+};
+
+export const InlineWithText: Story = {
+  name: 'Inline with surrounding text',
+  render: () => ({
+    template: `
+      <p style="${note}">
+        Before <andes-checkbox>Inline checkbox</andes-checkbox> after, on the same text line.
       </p>
     `,
   }),

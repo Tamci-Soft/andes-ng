@@ -17,9 +17,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import clsx from 'clsx';
 
 import { AndesCheckbox } from './checkbox';
-import { AndesCheckboxGroupState } from './checkbox-group-state';
+import {
+  AndesCheckboxGroupState,
+  AndesCheckboxValue,
+} from './checkbox-group-state';
 import {
   AndesCheckboxOption,
+  AndesCheckboxOptionInput,
   AndesCheckboxOptionLabel,
 } from './checkbox-option-label';
 
@@ -75,7 +79,9 @@ export type AndesCheckboxGroupOrientation = 'vertical' | 'horizontal';
     '[attr.data-orientation]': 'orientation()',
   },
 })
-export class AndesCheckboxGroup implements ControlValueAccessor {
+export class AndesCheckboxGroup<
+  T extends AndesCheckboxValue = string,
+> implements ControlValueAccessor {
   private readonly state = inject(AndesCheckboxGroupState);
 
   /**
@@ -86,7 +92,7 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
    * diverge from the parent's after a click and then never recover, because a parent
    * re-asserting a value the reactive graph never saw change is an unobservable no-op write.
    */
-  readonly value = model<readonly string[]>([]);
+  readonly value = model<readonly T[]>([]);
 
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly orientation = input<AndesCheckboxGroupOrientation>('vertical');
@@ -100,9 +106,9 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
   /**
    * Checkboxes to render from data rather than projecting them. Rendered AFTER any projected
    * content, so a projected `<andes-checkbox andesSelectAll>` naturally sits above them.
-   * Values are strings, like everywhere else in the group (see `value`).
+   * Entries are strings, numbers or option objects; a number value stays a number in `value`.
    */
-  readonly options = input<readonly (string | AndesCheckboxOption)[]>([]);
+  readonly options = input<readonly AndesCheckboxOptionInput<T>[]>([]);
 
   /**
    * Fires with the new selection on every USER change (an item or select-all click). Unlike
@@ -110,13 +116,15 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
    * than `change` because items' native `change` events bubble up to this host (see
    * `AndesCheckbox.changed`).
    */
-  readonly changed = output<readonly string[]>();
+  readonly changed = output<readonly T[]>();
 
   protected readonly optionLabel = contentChild(AndesCheckboxOptionLabel);
 
   protected readonly normalizedOptions = computed(() =>
-    this.options().map((option): AndesCheckboxOption =>
-      typeof option === 'string' ? { label: option, value: option } : option,
+    this.options().map((option): AndesCheckboxOption<T> =>
+      typeof option === 'object'
+        ? option
+        : { label: String(option), value: option },
     ),
   );
   readonly ariaLabel = input<string | undefined>(undefined, {
@@ -143,7 +151,7 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
     ),
   );
 
-  private onChange: (value: readonly string[]) => void = () => undefined;
+  private onChange: (value: readonly T[]) => void = () => undefined;
   private onTouched: () => void = () => undefined;
 
   constructor() {
@@ -157,7 +165,10 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
 
     // State -> parent, for USER-driven changes only. One handler feeds both the two-way
     // binding and Angular forms, so `[(value)]` and `[formControl]` can never disagree.
-    this.state.registerOnUserChange((next) => {
+    // The state is shared by every item and so stores the wider `AndesCheckboxValue`; it only
+    // ever holds values that came from this group's own `T`-typed items, options or `value`.
+    this.state.registerOnUserChange((nextValue) => {
+      const next = nextValue as readonly T[];
       this.value.set(next);
       this.onChange(next);
       this.onTouched();
@@ -165,11 +176,11 @@ export class AndesCheckboxGroup implements ControlValueAccessor {
     });
   }
 
-  writeValue(value: readonly string[] | null): void {
+  writeValue(value: readonly T[] | null): void {
     this.value.set(value ?? []);
   }
 
-  registerOnChange(fn: (value: readonly string[]) => void): void {
+  registerOnChange(fn: (value: readonly T[]) => void): void {
     this.onChange = fn;
   }
 

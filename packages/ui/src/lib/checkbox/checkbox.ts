@@ -19,6 +19,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import {
   ANDES_CHECKBOX_SELECT_ALL,
   AndesCheckboxGroupState,
+  AndesCheckboxValue,
 } from './checkbox-group-state';
 
 /** Which side of the box the projected label sits on, in the current writing direction. */
@@ -33,7 +34,7 @@ export interface AndesCheckboxChange {
   /** The new checked state. */
   readonly checked: boolean;
   /** The checkbox's `value`, if it has one. */
-  readonly value: string | undefined;
+  readonly value: AndesCheckboxValue | undefined;
   /** The checkbox that changed. */
   readonly source: AndesCheckbox;
   /** The native `change` event from the underlying `<input type="checkbox">`. */
@@ -128,7 +129,11 @@ export class AndesCheckbox implements ControlValueAccessor {
    * to block navigation on a disabled anchor.
    */
   readonly readOnly = input(false, { transform: booleanAttribute });
-  readonly value = input<string | undefined>(undefined);
+  /**
+   * What this checkbox contributes to an enclosing group's selection (and the native input's
+   * submitted `value`). A number stays a number in the group's value array.
+   */
+  readonly value = input<AndesCheckboxValue | undefined>(undefined);
   /** `id` of the native input, for an external `<label for>`. Never left on the host. */
   readonly id = input<string | undefined>(undefined);
   readonly name = input<string | undefined>(undefined);
@@ -171,6 +176,16 @@ export class AndesCheckbox implements ControlValueAccessor {
    * payloads - which is also what `no-output-native` forbids.
    */
   readonly changed = output<AndesCheckboxChange>();
+
+  /**
+   * The native input gained focus. Needed as an output because `focus` does not bubble, so a
+   * `(focus)` listener on `<andes-checkbox>` itself would never fire. Not named `focus`: that
+   * is the imperative method below (and a native event name `no-output-native` forbids).
+   */
+  readonly focused = output<FocusEvent>();
+
+  /** The native input lost focus - the counterpart of `focused`. */
+  readonly blurred = output<FocusEvent>();
 
   private readonly inputRef =
     viewChild.required<ElementRef<HTMLInputElement>>('input');
@@ -269,6 +284,15 @@ export class AndesCheckbox implements ControlValueAccessor {
     this.inputRef().nativeElement.blur();
   }
 
+  /**
+   * The underlying `<input type="checkbox">`, for integrations that need the real DOM control
+   * (measuring it, anchoring a tooltip to it, reading `validity`). Prefer the component's own
+   * inputs and methods for anything they already cover.
+   */
+  get nativeElement(): HTMLInputElement {
+    return this.inputRef().nativeElement;
+  }
+
   protected onNativeClick(event: MouseEvent): void {
     if (this.readOnly()) {
       event.preventDefault();
@@ -306,8 +330,13 @@ export class AndesCheckbox implements ControlValueAccessor {
     });
   }
 
-  protected onNativeBlur(): void {
+  protected onNativeFocus(event: FocusEvent): void {
+    this.focused.emit(event);
+  }
+
+  protected onNativeBlur(event: FocusEvent): void {
     this.onTouched();
+    this.blurred.emit(event);
   }
 
   writeValue(value: boolean | null): void {

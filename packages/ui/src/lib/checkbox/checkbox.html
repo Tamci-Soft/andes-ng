@@ -25,7 +25,8 @@
       [attr.aria-readonly]="readOnly() || null"
       (click)="onNativeClick($event)"
       (change)="onNativeChange($event)"
-      (blur)="onNativeBlur()"
+      (focus)="onNativeFocus($event)"
+      (blur)="onNativeBlur($event)"
     />
     <span class="andes-checkbox__box" aria-hidden="true">
       <svg
