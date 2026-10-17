@@ -43,11 +43,18 @@
   --andes-color-danger-hover: #b91c1c;
   --andes-color-danger-active: #991b1b;
   --andes-color-danger-foreground: #ffffff;
+  /* `-text`: the status color as TEXT on the page/card/muted surfaces (>=4.5:1). The fill
+     shades above are tuned for backgrounds and are too light for small text on white
+     (warning #f59e0b is 2.1:1) or too dark on the dark theme (danger #dc2626 is 3.7:1). */
+  --andes-color-danger-text: #b91c1c;
 
-  --andes-color-success: #16a34a;
-  --andes-color-success-hover: #15803d;
-  --andes-color-success-active: #166534;
+  /* success/info fills are the 700 shades (not 600) so white text on them clears 4.5:1
+     (#16a34a was 3.3:1, #0284c7 4.1:1) - e.g. the success/info tooltip colors. */
+  --andes-color-success: #15803d;
+  --andes-color-success-hover: #166534;
+  --andes-color-success-active: #14532d;
   --andes-color-success-foreground: #ffffff;
+  --andes-color-success-text: #15803d;
 
   --andes-color-warning: #f59e0b;
   --andes-color-warning-hover: #d97706;
@@ -55,11 +62,13 @@
   /* Amber only reaches AA contrast with a dark foreground, not white - unlike primary/danger/
      success, which are dark enough to pair with white text. */
   --andes-color-warning-foreground: #78350f;
+  --andes-color-warning-text: #b45309;
 
-  --andes-color-info: #0284c7;
-  --andes-color-info-hover: #0369a1;
-  --andes-color-info-active: #075985;
+  --andes-color-info: #0369a1;
+  --andes-color-info-hover: #075985;
+  --andes-color-info-active: #0c4a6e;
   --andes-color-info-foreground: #ffffff;
+  --andes-color-info-text: #0369a1;
 
   --andes-color-border: #d1d5db;
   --andes-color-input: #d1d5db;
@@ -141,21 +150,25 @@
   --andes-color-danger-hover: #b91c1c;
   --andes-color-danger-active: #991b1b;
   --andes-color-danger-foreground: #ffffff;
+  --andes-color-danger-text: #f87171;
 
-  --andes-color-success: #16a34a;
-  --andes-color-success-hover: #22c55e;
-  --andes-color-success-active: #4ade80;
+  --andes-color-success: #15803d;
+  --andes-color-success-hover: #166534;
+  --andes-color-success-active: #14532d;
   --andes-color-success-foreground: #ffffff;
+  --andes-color-success-text: #4ade80;
 
   --andes-color-warning: #f59e0b;
   --andes-color-warning-hover: #fbbf24;
   --andes-color-warning-active: #fcd34d;
   --andes-color-warning-foreground: #78350f;
+  --andes-color-warning-text: #fbbf24;
 
-  --andes-color-info: #0284c7;
-  --andes-color-info-hover: #0ea5e9;
-  --andes-color-info-active: #38bdf8;
+  --andes-color-info: #0369a1;
+  --andes-color-info-hover: #075985;
+  --andes-color-info-active: #0c4a6e;
   --andes-color-info-foreground: #ffffff;
+  --andes-color-info-text: #38bdf8;
 
   --andes-color-border: #334155;
   --andes-color-input: #334155;
