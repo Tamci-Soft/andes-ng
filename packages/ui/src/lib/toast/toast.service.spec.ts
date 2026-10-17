@@ -256,7 +256,7 @@ describe('AndesToastService', () => {
       expect(service.toasts()[0].id).toBe(ref.id);
     });
 
-    it('defaults to a Sonner-style deck: stacking from the second toast, swipe on, rich colors off', () => {
+    it('defaults to a deck: stacking from the second toast, swipe on, rich colors off', () => {
       const service = createService();
 
       expect(service.defaults().stack).toEqual({ threshold: 1 });
