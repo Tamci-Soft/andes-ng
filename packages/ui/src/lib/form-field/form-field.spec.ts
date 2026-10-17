@@ -559,18 +559,25 @@ describe('AndesFormField', () => {
       };
     }
 
-    it('lays the field out as a spaced vertical flex column', () => {
-      const style = getComputedStyle(renderStyled().field);
+    it('lays the field out as a vertical flex column with 8px under the label', () => {
+      const { field } = renderStyled();
+      const style = getComputedStyle(field);
 
       expect(style.display).toBe('flex');
       expect(style.flexDirection).toBe('column');
-      expect(style.gap).toBe('var(--andes-space-2)');
+      // The spacing lives on the label row (Ant's vertical Form.Item), not in a flex gap that
+      // would also push the help text away from its control.
+      expect(
+        getComputedStyle(
+          field.querySelector('.andes-form-field__label') as HTMLElement,
+        ).paddingBlockEnd,
+      ).toBe('var(--andes-space-2)');
     });
 
     it('styles the <label> rendered by AndesFormLabel', () => {
       const style = getComputedStyle(renderStyled().label);
 
-      expect(style.fontSize).toBe('0.875rem');
+      expect(style.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
       expect(style.fontWeight).toBe('var(--andes-font-weight-medium)');
       expect(style.color).toBe('var(--andes-color-foreground)');
     });
@@ -578,7 +585,7 @@ describe('AndesFormField', () => {
     it('styles the <p> rendered by AndesFormDescription', () => {
       const style = getComputedStyle(renderStyled().description);
 
-      expect(style.fontSize).toBe('0.8125rem');
+      expect(style.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
       expect(style.color).toBe('var(--andes-color-muted-foreground)');
       // <p>'s UA default margin is 1em 0 - proving it is 0 proves the rule matched.
       expect(style.margin).toBe('0px');
@@ -592,7 +599,7 @@ describe('AndesFormField', () => {
         'var(--andes-color-danger-text, var(--andes-color-danger))',
       );
       expect(style.color).not.toBe('rgb(0, 0, 0)');
-      expect(style.fontSize).toBe('0.8125rem');
+      expect(style.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
       expect(style.margin).toBe('0px');
     });
 
@@ -616,7 +623,7 @@ describe('AndesFormField', () => {
           ?.classList,
       ).not.toContain('andes-form-field--invalid');
 
-      // `.andes-form-field--invalid :where(input, select, textarea)` targets an element the
+      // `.andes-form-field--invalid > .andes-form-field__control > :where(input, ...)` targets an element the
       // consumer authored and Angular projected in, so it was unreachable from a scoped
       // stylesheet - this property read back as an empty string before the fix, exactly like
       // the untinted baseline below still does.
