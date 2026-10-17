@@ -94,12 +94,34 @@ export interface AndesComboboxOptionContext<T = string> {
   readonly query: string;
 }
 
+/** Context of a `[groupLabelTemplate]`. */
+export interface AndesComboboxGroupContext<T = string> {
+  /** The group exactly as passed in `[options]`, extra properties included. */
+  readonly $implicit: AndesComboboxOptionGroup<T>;
+  /** The group's options that match the input's current text. */
+  readonly options: readonly AndesComboboxOption<T>[];
+  /** The input's current text. */
+  readonly query: string;
+}
+
+/** Context of a `[popupTemplate]`. */
+export interface AndesComboboxPopupContext {
+  /**
+   * The popup's default body - the options, or the empty or loading state. Render it with
+   * `*ngTemplateOutlet` wherever it belongs among the extra content.
+   */
+  readonly $implicit: TemplateRef<void>;
+  /** The input's current text. */
+  readonly query: string;
+}
+
 /** @internal One row of the `[options]` mode's rendered list. */
 export type AndesComboboxRenderedEntry<T> =
   | {
       readonly kind: 'group';
       readonly key: string;
       readonly label: string;
+      readonly group: AndesComboboxOptionGroup<T>;
       readonly options: readonly AndesComboboxOption<T>[];
     }
   | {
@@ -222,8 +244,8 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
    * edited away from the chosen suggestion's label. Two-way bindable as `[(value)]`, and
    * written by `[(ngModel)]`/`[formControl]` through the ControlValueAccessor as well.
    *
-   * `value` is never the input's free text: that is reported by `(searchChange)`, the
-   * chosen suggestion by `value`/`(optionSelect)`.
+   * Unless `freeText` is on, `value` is never the input's free text: that is reported by
+   * `(searchChange)`, the chosen suggestion by `value`/`(optionSelect)`.
    */
   readonly value = model<T | null>(null);
 
@@ -298,6 +320,15 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
    */
   readonly backfill = input(false, { transform: booleanAttribute });
 
+  /**
+   * Makes the typed text itself the value, for fields where the suggestions only help
+   * the user write it (an e-mail address, a search phrase): every edit writes the text to
+   * `value` and to a bound form control (`null` once the field is empty), and choosing a
+   * suggestion writes that suggestion's `value` while the input shows its label. Meant
+   * for `T = string`.
+   */
+  readonly freeText = input(false, { transform: booleanAttribute });
+
   /** Shows a button that empties the input and the selection while there is text. */
   readonly allowClear = input(false, { transform: booleanAttribute });
   /** Replaces the clear button's default cross icon. */
@@ -316,7 +347,7 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
   /** `id` of the rendered input in the `[options]` mode, for a `<label for>`. */
   readonly inputId = input<string | undefined>(undefined);
 
-  /** Control height and font size. */
+  /** Control height and font size: 24px (`sm`), 32px (`md`) or 40px (`lg`). */
   readonly size = input<AndesComboboxSize>('md');
   /** Validation status. `'error'` also sets `aria-invalid` on the input. */
   readonly status = input<AndesComboboxStatus | undefined>(undefined);
@@ -357,6 +388,25 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
     TemplateRef<AndesComboboxOptionContext<T>> | undefined
   >(undefined);
 
+  /**
+   * Custom rendering of each group heading in the `[options]` mode, e.g. a heading with a
+   * "see all" link. The heading stays out of keyboard navigation; a control inside it is
+   * reachable by pointer only, and the popup keeps the input focused while it is pressed.
+   */
+  readonly groupLabelTemplate = input<
+    TemplateRef<AndesComboboxGroupContext<T>> | undefined
+  >(undefined);
+
+  /**
+   * Wraps the `[options]` mode's popup body with extra content - a header, a footer
+   * action, a hint. The template receives the default body as `$implicit` and places it
+   * with `*ngTemplateOutlet`. While set, the popup stays open even when nothing matches
+   * and `notFoundContent` is `null`, so the extra content remains reachable.
+   */
+  readonly popupTemplate = input<
+    TemplateRef<AndesComboboxPopupContext> | undefined
+  >(undefined);
+
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly readOnly = input(false, { transform: booleanAttribute });
 
@@ -382,6 +432,22 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
   readonly clear = output<void>();
   /** Scroll events of the `[options]` mode's popup (e.g. for infinite loading). */
   readonly popupScroll = output<Event>();
+  /** The input received focus. Not named `focus`, which is the imperative method. */
+  readonly inputFocus = output<FocusEvent>();
+  /** The input lost focus. Not named `blur`, which is the imperative method. */
+  readonly inputBlur = output<FocusEvent>();
+  /**
+   * Same event as `inputFocus`, under the name every other field uses (AndesInput,
+   * AndesTextarea, AndesSelect, AndesCheckbox), so a form can listen to them alike.
+   */
+  readonly focused = output<FocusEvent>();
+  /** Same event as `inputBlur`, under the name every other field uses. */
+  readonly blurred = output<FocusEvent>();
+  /**
+   * Every keydown on the input, after the list's own handling of it (arrows, Enter,
+   * Escape) has run - e.g. for a shortcut that submits the surrounding form.
+   */
+  readonly inputKeydown = output<KeyboardEvent>();
 
   /** @internal */
   readonly overlay = inject(AndesOverlayPrimitive);
@@ -448,6 +514,7 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
               kind: 'group',
               key: `${this.uid}-group-${index}`,
               label: entry.label,
+              group: entry,
               options,
             });
           }
@@ -492,6 +559,7 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
   readonly hidePopup = computed(
     () =>
       this.notFoundContent() === null &&
+      this.popupTemplate() === undefined &&
       !this.loading() &&
       this.renderedOptions().length === 0,
   );
@@ -735,10 +803,18 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
     this._query.set(text);
     this.searchChange.emit(text);
 
+    const current = this.value();
+    if (this.freeText()) {
+      const next = (text === '' ? null : text) as T | null;
+      if (next !== current) {
+        this.setValue(next);
+      }
+      return;
+    }
+
     // Once the displayed text no longer matches the selected item's own label, the
     // selection itself is stale - clearing it keeps the form value honest instead of
     // silently keeping a value the user has since edited away from.
-    const current = this.value();
     if (current !== null && this.labelOf(current) !== text) {
       this.setValue(null);
     }

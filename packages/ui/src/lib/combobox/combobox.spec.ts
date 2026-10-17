@@ -415,6 +415,33 @@ describe('AndesCombobox', () => {
       // right edge - see the note in combobox.css.
       expect(getComputedStyle(panel() as HTMLElement).width).toBe('100%');
     });
+
+    it('fades and settles in over 150ms as it opens, and lists options at 14px/22px', () => {
+      const { focus, panel, options } = createNgModelHost();
+      focus();
+
+      // Through the motion tokens, which fall back to these values when not loaded.
+      expect(getComputedStyle(panel() as HTMLElement).animation).toBe(
+        'andes-combobox-enter var(--andes-duration-base, 150ms) var(--andes-ease-out, cubic-bezier(0.2, 0, 0, 1))',
+      );
+      expect(getComputedStyle(options()[0]).fontSize).toBe('0.875rem');
+      expect(getComputedStyle(options()[0]).lineHeight).toBe('1.375rem');
+    });
+  });
+
+  describe('the field', () => {
+    // One focus indicator on the input's own box - focus-colour border plus a soft 2px ring,
+    // on any focus - instead of a 2px outline offset from the border, which painted as a
+    // second frame. jsdom leaves var() unresolved, so values compare as authored.
+    it('rings the input on focus without an outline', () => {
+      const { input } = createNgModelHost();
+      input.focus();
+
+      expect(getComputedStyle(input).boxShadow).toBe(
+        '0 0 0 2px var(--_combobox-ring)',
+      );
+      expect(getComputedStyle(input).outline).toBe('none');
+    });
   });
 
   describe('keyboard navigation (aria-activedescendant)', () => {
