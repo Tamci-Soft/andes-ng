@@ -19,7 +19,7 @@
   background-color: var(--andes-ribbon-bg);
   color: var(--andes-ribbon-fg);
   font-family: var(--andes-font-family), sans-serif;
-  /* Ant Design's ribbon: body-size text on a 22px band. */
+  /* Body-size text on a 22px band. */
   font-size: var(--andes-text-font-size, 0.875rem);
   font-weight: var(--andes-font-weight-medium);
   line-height: 1.375rem;

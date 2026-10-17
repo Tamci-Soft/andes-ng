@@ -122,8 +122,7 @@ export const Variants: Story = {
 };
 
 /**
- * Shape progression: one character is a true circle, two or more elongate into a pill - the
- * same convention shadcn's count indicators follow.
+ * Shape progression: one character is a true circle, two or more elongate into a pill.
  */
 export const Shapes: Story = {
   render: () => ({
