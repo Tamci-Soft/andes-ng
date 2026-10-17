@@ -204,6 +204,8 @@ export abstract class AndesSelectState {
   abstract readonly loading: Signal<boolean>;
   /** Whether the clear button should be rendered. */
   abstract readonly showClear: Signal<boolean>;
+  /** `id` of the focusable combobox element, for a `<label for>`. */
+  abstract readonly id: Signal<string | undefined>;
   /** `aria-label` for the trigger, mirrored onto the listbox panel. */
   abstract readonly ariaLabel: Signal<string | undefined>;
   /** `aria-labelledby` for the trigger, mirrored onto the listbox panel. */

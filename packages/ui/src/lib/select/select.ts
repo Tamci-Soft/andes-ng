@@ -142,7 +142,9 @@ const PLACEMENTS: Readonly<
   host: {
     // Forwarded to the real combobox (and, for the label, to the listbox panel)
     // instead: a screen reader never sees this non-interactive host element, so leaving
-    // these here would do nothing.
+    // these here would do nothing. A static `id` left here would also be a duplicate,
+    // and a `<label for>` would resolve to this host first and so to no control at all.
+    '[attr.id]': 'null',
     '[attr.aria-label]': 'null',
     '[attr.aria-labelledby]': 'null',
     '[attr.aria-describedby]': 'null',
@@ -295,6 +297,11 @@ export class AndesSelect
    */
   readonly openState = model(false, { alias: 'open' });
 
+  /**
+   * `id` of the focusable combobox - the trigger button, or the search input when the
+   * select is searchable - so a `<label for>` names it and focuses it when clicked.
+   */
+  readonly id = input<string | undefined>(undefined);
   readonly ariaLabel = input<string | undefined>(undefined, {
     alias: 'aria-label',
   });
