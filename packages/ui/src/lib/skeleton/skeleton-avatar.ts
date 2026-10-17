@@ -22,7 +22,7 @@ export type AndesSkeletonAvatarShape = 'circle' | 'square';
   styleUrls: ['./skeleton-fill.css', './skeleton-element.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    // Decorative stand-in - see AndesSkeleton for the single accessible busy indicator.
+    // Decorative stand-in - see AndesSkeleton for the single accessible loading status.
     '[attr.aria-hidden]': 'true',
   },
 })

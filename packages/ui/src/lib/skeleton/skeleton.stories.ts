@@ -180,13 +180,16 @@ export const Elements: Story = {
   }),
 };
 
-/** Standalone elements are decorative - give the region its own single busy indicator. */
-export const ElementsInBusyRegion: Story = {
+/**
+ * Standalone elements are decorative - give the region its own single status text. Not aria-busy:
+ * screen readers may hold back the status announcement from inside a busy region.
+ */
+export const ElementsWithStatus: Story = {
   args: { active: true },
   render: (args) => ({
     props: args,
     template: `
-      <div aria-busy="true" style="display: flex; align-items: center; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
         <span role="status" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0);">Loading form…</span>
         <andes-skeleton-input [active]="active" />
         <andes-skeleton-button [active]="active" />

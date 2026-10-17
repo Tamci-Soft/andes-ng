@@ -61,14 +61,14 @@ function definedOnly<T extends object>(value: T): Partial<T> {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     // Block mode (legacy `shape` API) is a single decorative bar, hidden from assistive tech as
-    // before - a consumer composing several bars provides its own busy region around them.
+    // before - a consumer composing several bars provides its own loading status around them.
     //
-    // Composite mode owns that busy region itself: while the placeholder shows, the host is
-    // aria-busy and carries one visually hidden status text (`loadingLabel`); every placeholder
-    // bar below it is aria-hidden. Once `loading` is false the host is a plain wrapper around the
-    // real content, with no busy state and nothing hidden.
+    // Composite mode owns that loading status itself: while the placeholder shows, the host
+    // carries one visually hidden status text (`loadingLabel`); every placeholder bar below it is
+    // aria-hidden. The host is deliberately NOT aria-busy - screen readers may hold back
+    // announcements from inside a busy region, which would silence the status text. Once
+    // `loading` is false the host is a plain wrapper around the real content, with nothing hidden.
     '[attr.aria-hidden]': 'isBlock() ? "true" : null',
-    '[attr.aria-busy]': 'showPlaceholder() ? "true" : null',
     // `title` is an input here (the title bar config), not a tooltip - a bare `title` attribute
     // must not leave an empty native tooltip on the host.
     '[attr.title]': 'null',
@@ -95,7 +95,7 @@ export class AndesSkeleton {
   >(true, { transform: sectionAttribute });
   /** Fully rounded title and paragraph bars. */
   readonly round = input(false, { transform: booleanAttribute });
-  /** Visually hidden text announced for the busy region. */
+  /** Visually hidden status text announced while the placeholder shows. */
   readonly loadingLabel = input('Loading…');
 
   // --- Block (original single-bar) API ---------------------------------------------------------
@@ -108,9 +108,6 @@ export class AndesSkeleton {
   readonly animated = input(true, { transform: booleanAttribute });
 
   protected readonly isBlock = computed(() => this.shape() !== undefined);
-  protected readonly showPlaceholder = computed(
-    () => !this.isBlock() && this.loading(),
-  );
 
   protected readonly blockClasses = computed(() =>
     clsx(
