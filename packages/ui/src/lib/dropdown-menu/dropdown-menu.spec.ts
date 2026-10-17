@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { readFileSync } from 'node:fs';
 
 import { AndesDropdownMenu } from './dropdown-menu';
 import { AndesDropdownMenuCheckboxItem } from './dropdown-menu-checkbox-item';
@@ -533,6 +534,75 @@ describe('AndesDropdownMenu', () => {
       expect(style.alignItems).toBe('center');
       expect(style.padding).not.toBe('0px');
       expect(style.cursor).toBe('pointer');
+      // The md control height, shared with every other row kind.
+      expect(style.minHeight).toBe('2rem');
+    });
+
+    it('sets 14/22 panel text and a 12/20 caption group label', async () => {
+      const { fixture, trigger, menu } = createHost();
+      trigger().click();
+      await open(fixture);
+
+      const panel = getComputedStyle(menu()!);
+      expect(panel.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(panel.lineHeight).toBe('var(--andes-text-line-height, 1.375rem)');
+      const label = getComputedStyle(
+        menu()!.querySelector('andes-dropdown-menu-label') as Element,
+      );
+      expect(label.fontSize).toBe('0.75rem');
+      expect(label.lineHeight).toBe('1.25rem');
+    });
+
+    it('enters with the shared 150ms soft fade and a drift of at most 4px', () => {
+      // Read from the stylesheet source: jsdom runs no animations, and the rule sits
+      // behind a `prefers-reduced-motion` media query jsdom does not evaluate.
+      const css = readFileSync(
+        'packages/ui/src/lib/dropdown-menu/dropdown-menu.css',
+        'utf8',
+      );
+      expect(css).toContain(
+        'animation: andes-dropdown-menu-enter 150ms cubic-bezier(0.2, 0, 0, 1);',
+      );
+      const keyframes =
+        /@keyframes andes-dropdown-menu-enter\s*\{([\s\S]*?)\n\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(keyframes).toContain(
+        'translate: var(--andes-dropdown-menu-enter-from, 0 -4px);',
+      );
+      const offsets = [
+        ...css.matchAll(/--andes-dropdown-menu-enter-from: ([^;]+);/g),
+      ]
+        .flatMap((m) => m[1].match(/-?\d+px/g) ?? [])
+        .map((px) => Math.abs(Number.parseInt(px, 10)));
+      expect(offsets.length).toBeGreaterThan(0);
+      expect(Math.max(...offsets)).toBeLessThanOrEqual(4);
+    });
+
+    it('leaves with a quicker, accelerating mirror of its entry', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/dropdown-menu/dropdown-menu.css',
+        'utf8',
+      );
+      const rule =
+        /\.andes-dropdown-menu__content\[data-andes-closing\],\s*\.andes-dropdown-menu__popup\[data-andes-closing\] \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(rule).toContain('pointer-events: none;');
+      expect(rule).toMatch(
+        /animation: andes-dropdown-menu-exit var\(--andes-duration-fast, 120ms\)\s+var\(--andes-ease-in, [^)]+\)\) forwards;/,
+      );
+      const keyframes =
+        /@keyframes andes-dropdown-menu-exit\s*\{([\s\S]*?)\n\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(keyframes).toMatch(
+        /to \{\s*opacity: 0;\s*translate: var\(--andes-dropdown-menu-enter-from, 0 -4px\);/,
+      );
+      // Inside the no-preference query, so reduced motion has no exit at all.
+      expect(css.indexOf('andes-dropdown-menu-exit var')).toBeGreaterThan(
+        css.indexOf('@media (prefers-reduced-motion: no-preference)'),
+      );
     });
 
     it('gives the separator a real height and background, not a collapsed empty element', async () => {

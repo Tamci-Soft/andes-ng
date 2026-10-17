@@ -1,4 +1,5 @@
 import { AndesOverlayPrimitive } from '@andes-ng/primitives';
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -21,6 +22,7 @@ import type {
   AndesDropdownMenuOpenChange,
   AndesDropdownMenuPlacement,
   AndesDropdownMenuSelectEvent,
+  AndesDropdownMenuSubmenuClickEvent,
   AndesDropdownMenuTriggerAction,
 } from './dropdown-menu-types';
 
@@ -140,6 +142,7 @@ function overlayOf(fixture: ComponentFixture<unknown>, type: unknown) {
       [expandIcon]="useExpandIcon() ? expandTpl : undefined"
       (openStateChange)="changes.push($event)"
       (itemClick)="clicks.push($event)"
+      (submenuTriggerClick)="submenuClicks.push($event)"
     >
       <button type="button" id="trigger" andesDropdownMenuTrigger>
         Options
@@ -148,7 +151,7 @@ function overlayOf(fixture: ComponentFixture<unknown>, type: unknown) {
         <andes-dropdown-menu-item id="edit" key="edit"
           >Edit</andes-dropdown-menu-item
         >
-        <andes-dropdown-menu-sub key="share">
+        <andes-dropdown-menu-sub key="share" [popupOffset]="subOffset()">
           <andes-dropdown-menu-sub-trigger id="shareTrigger"
             >Share</andes-dropdown-menu-sub-trigger
           >
@@ -189,8 +192,10 @@ class MenuHost {
   readonly autoFocus = signal<boolean | undefined>(undefined);
   readonly autoAdjust = signal(true);
   readonly useExpandIcon = signal(false);
+  readonly subOffset = signal<[number, number] | undefined>(undefined);
   readonly changes: AndesDropdownMenuOpenChange[] = [];
   readonly clicks: AndesDropdownMenuClickEvent[] = [];
+  readonly submenuClicks: AndesDropdownMenuSubmenuClickEvent[] = [];
 }
 
 describe('AndesDropdownMenu - extended features', () => {
@@ -496,6 +501,19 @@ describe('AndesDropdownMenu - extended features', () => {
       expect(document.querySelector('.andes-dropdown-menu__arrow')).toBeNull();
     });
 
+    // `data-side` steers the entry drift, so a top-placed menu drifts in from its
+    // trigger's side; `data-align` is a styling hook.
+    it('exposes the requested side and alignment on the panel', async () => {
+      host.placement.set('topRight');
+      await settle(fixture);
+      byId('trigger').click();
+      await settle(fixture);
+
+      const panel = menus()[0];
+      expect(panel.getAttribute('data-side')).toBe('top');
+      expect(panel.getAttribute('data-align')).toBe('end');
+    });
+
     it('shifts a start-aligned panel toward the trigger center with pointAtCenter', async () => {
       const rect = vi
         .spyOn(byId('trigger'), 'getBoundingClientRect')
@@ -696,6 +714,38 @@ describe('AndesDropdownMenu - extended features', () => {
 
       expect(menus()).toHaveLength(0);
       expect(document.activeElement).toBe(byId('trigger'));
+    });
+
+    it('reports a click on a submenu trigger row through (submenuTriggerClick)', async () => {
+      await openRoot();
+      byId('shareTrigger').click();
+      await settle(fixture);
+
+      expect(host.submenuClicks).toHaveLength(1);
+      expect(host.submenuClicks[0]).toMatchObject({
+        key: 'share',
+        keyPath: ['share'],
+      });
+      expect(host.submenuClicks[0].event).toBeInstanceOf(MouseEvent);
+      expect(menus()).toHaveLength(2);
+    });
+
+    it('shifts the submenu panel by popupOffset', async () => {
+      await openRoot();
+      const overlay = overlayOf(fixture, AndesDropdownMenuSub);
+      expect(overlay.config().positioning).toMatchObject({
+        sideOffset: 2,
+        alignOffset: -5,
+      });
+
+      host.subOffset.set([8, 4]);
+      await settle(fixture);
+      expect(overlay.config().positioning).toMatchObject({
+        side: 'right',
+        align: 'start',
+        sideOffset: 10,
+        alignOffset: -1,
+      });
     });
 
     it('renders the expandIcon template with the open state', async () => {
@@ -988,6 +1038,8 @@ describe('AndesDropdownMenuGroup / dashed separator', () => {
   template: `
     <andes-dropdown-button
       [disabled]="disabled()"
+      [loading]="loading()"
+      [loadingDelay]="loadingDelay()"
       (buttonClick)="mainClicks = mainClicks + 1"
       (itemClick)="clicks.push($event)"
     >
@@ -1002,6 +1054,8 @@ describe('AndesDropdownMenuGroup / dashed separator', () => {
 })
 class ButtonHost {
   readonly disabled = signal(false);
+  readonly loading = signal(false);
+  readonly loadingDelay = signal(0);
   mainClicks = 0;
   readonly clicks: AndesDropdownMenuClickEvent[] = [];
 }
@@ -1080,6 +1134,18 @@ describe('AndesDropdownButton', () => {
     });
   });
 
+  it('shows the main button spinner only after loadingDelay', async () => {
+    host.loadingDelay.set(40);
+    host.loading.set(true);
+    await settle(fixture);
+    const [main, caret] = buttons();
+    expect(main.querySelector('.andes-button__spinner')).toBeNull();
+
+    await settle(fixture, 60);
+    expect(main.querySelector('.andes-button__spinner')).toBeTruthy();
+    expect(caret.querySelector('.andes-button__spinner')).toBeNull();
+  });
+
   it('disabled disables both halves', async () => {
     host.disabled.set(true);
     await settle(fixture);
@@ -1088,5 +1154,315 @@ describe('AndesDropdownButton', () => {
     buttons()[1].click();
     await settle(fixture);
     expect(menus()).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+@Component({
+  imports: [AndesDropdownMenu, AndesDropdownMenuTrigger, NgTemplateOutlet],
+  template: `
+    <andes-dropdown-menu
+      [items]="items"
+      [closeOnSelect]="closeOnSelect()"
+      [panelClass]="panelClass()"
+      [popupTemplate]="usePopup() ? popupTpl : undefined"
+      [subMenuOpenDelay]="0"
+      (itemClick)="clicks.push($event)"
+    >
+      <button type="button" id="trigger" andesDropdownMenuTrigger>
+        Options
+      </button>
+    </andes-dropdown-menu>
+    <ng-template #popupTpl let-menu let-close="close">
+      <input id="search" aria-label="Search" />
+      <ng-container *ngTemplateOutlet="menu" />
+      <button type="button" id="footer" (click)="close()">New item</button>
+    </ng-template>
+  `,
+})
+class ExtrasHost {
+  readonly closeOnSelect = signal<boolean | undefined>(undefined);
+  readonly panelClass = signal<string | undefined>(undefined);
+  readonly usePopup = signal(false);
+  readonly clicks: AndesDropdownMenuClickEvent[] = [];
+  readonly items: AndesDropdownMenuItemDef[] = [
+    { key: 'docs', label: 'Docs', href: '#docs' },
+    { key: 'site', label: 'Website', href: '#site', target: '_blank' },
+    { key: 'gone', label: 'Gone', href: '#gone', disabled: true },
+    { key: 'pin', label: 'Pin', closeOnSelect: false },
+    { key: 'close', label: 'Close me', closeOnSelect: true },
+    {
+      key: 'more',
+      label: 'More',
+      popupClass: 'my-submenu',
+      popupOffset: [6, 2],
+      children: [{ key: 'export', label: 'Export' }],
+    },
+  ];
+}
+
+describe('AndesDropdownMenu - links, closing, custom popup', () => {
+  withElementGeometry();
+
+  let fixture: ComponentFixture<ExtrasHost>;
+  let host: ExtrasHost;
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(ExtrasHost);
+    host = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  afterEach(() => fixture.destroy());
+
+  async function openMenu() {
+    byId('trigger').click();
+    await settle(fixture);
+  }
+
+  const item = (label: string) =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>('[role^="menuitem"]'),
+    ).find((element) =>
+      element.textContent?.trim().startsWith(label),
+    ) as HTMLElement;
+
+  describe('link items', () => {
+    it('renders the content inside an anchor with href, target and a safe rel', async () => {
+      await openMenu();
+      const docs = item('Docs').querySelector('a') as HTMLAnchorElement;
+      const site = item('Website').querySelector('a') as HTMLAnchorElement;
+
+      expect(docs.getAttribute('href')).toBe('#docs');
+      expect(docs.getAttribute('target')).toBeNull();
+      expect(docs.getAttribute('tabindex')).toBe('-1');
+      expect(docs.textContent?.trim()).toBe('Docs');
+      expect(site.getAttribute('target')).toBe('_blank');
+      expect(site.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(item('Docs').getAttribute('role')).toBe('menuitem');
+    });
+
+    it('drops the href of a disabled link item', async () => {
+      await openMenu();
+      const gone = item('Gone').querySelector('a') as HTMLAnchorElement;
+      expect(gone.hasAttribute('href')).toBe(false);
+    });
+
+    it('activates through the anchor on Enter, then reports and closes', async () => {
+      await openMenu();
+      const anchor = item('Docs').querySelector('a') as HTMLAnchorElement;
+      const anchorClicks: Event[] = [];
+      anchor.addEventListener('click', (event) => {
+        anchorClicks.push(event);
+        event.preventDefault();
+      });
+
+      pressKey(item('Docs'), 'Enter');
+      await settle(fixture);
+
+      expect(anchorClicks).toHaveLength(1);
+      expect(host.clicks).toHaveLength(1);
+      expect(host.clicks[0]).toMatchObject({ key: 'docs', keyPath: ['docs'] });
+      expect(menus()).toHaveLength(0);
+    });
+
+    it('forwards a click on the row outside the anchor to the anchor', async () => {
+      await openMenu();
+      const anchor = item('Docs').querySelector('a') as HTMLAnchorElement;
+      let anchorClicks = 0;
+      anchor.addEventListener('click', (event) => {
+        anchorClicks++;
+        event.preventDefault();
+      });
+
+      item('Docs').click();
+      await settle(fixture);
+
+      expect(anchorClicks).toBe(1);
+      expect(host.clicks).toHaveLength(1);
+    });
+  });
+
+  describe('closeOnSelect', () => {
+    it('keeps the menu open for an item whose closeOnSelect is false', async () => {
+      await openMenu();
+      item('Pin').click();
+      await settle(fixture);
+
+      expect(host.clicks.at(-1)?.key).toBe('pin');
+      expect(menus()).toHaveLength(1);
+    });
+
+    it('keeps every plain item open with closeOnSelect=false on the root, unless the item overrides it', async () => {
+      host.closeOnSelect.set(false);
+      await settle(fixture);
+      await openMenu();
+
+      item('Docs')
+        .querySelector('a')
+        ?.addEventListener('click', (event) => event.preventDefault());
+      item('Docs').click();
+      await settle(fixture);
+      expect(menus()).toHaveLength(1);
+
+      item('Close me').click();
+      await settle(fixture);
+      expect(menus()).toHaveLength(0);
+    });
+  });
+
+  describe('submenu options', () => {
+    it('applies popupClass to the submenu panel and popupOffset to its position', async () => {
+      await openMenu();
+      pressKey(item('More'), 'ArrowRight');
+      await settle(fixture);
+
+      const panel = document.querySelector(
+        '.andes-dropdown-menu__sub-content',
+      ) as HTMLElement;
+      expect(panel.classList.contains('my-submenu')).toBe(true);
+      expect(panel.classList.contains('andes-dropdown-menu__content')).toBe(
+        true,
+      );
+    });
+  });
+
+  it('adds panelClass to the overlay pane', async () => {
+    host.panelClass.set('wide-menu');
+    await settle(fixture);
+    await openMenu();
+
+    const pane = menus()[0].closest('.cdk-overlay-pane') as HTMLElement;
+    expect(pane.classList.contains('wide-menu')).toBe(true);
+  });
+
+  describe('popupTemplate', () => {
+    beforeEach(async () => {
+      host.usePopup.set(true);
+      await settle(fixture);
+    });
+
+    it('wraps the menu and the extra content in one popup surface', async () => {
+      await openMenu();
+      const popup = document.querySelector(
+        '.andes-dropdown-menu__popup',
+      ) as HTMLElement;
+
+      expect(popup).toBeTruthy();
+      expect(popup.querySelector('#search')).toBeTruthy();
+      expect(popup.querySelector('[role="menu"]')).toBeTruthy();
+      expect(popup.querySelector('#footer')).toBeTruthy();
+      expect(popup.getAttribute('data-side')).toBe('bottom');
+      expect(getComputedStyle(menus()[0]).boxShadow).toBe('none');
+    });
+
+    it('lets the extra content close the popup through the context', async () => {
+      await openMenu();
+      byId('footer').click();
+      await settle(fixture);
+
+      expect(menus()).toHaveLength(0);
+    });
+
+    it('leaves keys typed in the extra controls alone', async () => {
+      await openMenu();
+      const search = byId('search');
+      search.focus();
+      pressKey(search, 'ArrowDown');
+      pressKey(search, 'w');
+      await settle(fixture);
+
+      expect(document.activeElement).toBe(search);
+      expect(menus()).toHaveLength(1);
+    });
+
+    it('still navigates the menu with the arrow keys', async () => {
+      await openMenu();
+      item('Docs').focus();
+      pressKey(item('Docs'), 'ArrowDown');
+      await settle(fixture);
+
+      expect(document.activeElement).toBe(item('Website'));
+    });
+
+    it('lets Tab move between the menu and the extra controls, closing only past the end', async () => {
+      await openMenu();
+      item('Docs').focus();
+      pressKey(item('Docs'), 'ArrowDown');
+      await settle(fixture);
+
+      const tab = pressKey(document.activeElement as HTMLElement, 'Tab');
+      await settle(fixture);
+      expect(tab.defaultPrevented).toBe(false);
+      expect(menus()).toHaveLength(1);
+
+      byId('footer').focus();
+      pressKey(byId('footer'), 'Tab');
+      await settle(fixture);
+      expect(menus()).toHaveLength(0);
+    });
+  });
+});
+
+describe('AndesDropdownMenu panelClass ownership', () => {
+  @Component({
+    imports: [AndesDropdownMenu, AndesDropdownMenuTrigger],
+    template: `<andes-dropdown-menu
+      [panelClass]="panelClass()"
+      [items]="[{ key: 'a', label: 'A' }]"
+    >
+      <button type="button" andesDropdownMenuTrigger>Open</button>
+    </andes-dropdown-menu>`,
+  })
+  class PanelClassHost {
+    readonly panelClass = signal<string | undefined>(undefined);
+  }
+
+  function overlayOf(fixture: ComponentFixture<PanelClassHost>) {
+    return fixture.debugElement
+      .query(By.directive(AndesDropdownMenu))
+      .injector.get(AndesOverlayPrimitive);
+  }
+
+  it('leaves pane classes configured by a wrapping component alone while the input is unset', () => {
+    const fixture = TestBed.createComponent(PanelClassHost);
+    fixture.detectChanges();
+    const overlay = overlayOf(fixture);
+
+    overlay.configure({ panelClass: 'wrapper-panel' });
+    fixture.detectChanges();
+
+    expect(overlay.config().panelClass).toBe('wrapper-panel');
+  });
+
+  it('leaves positioning configured by a wrapping component alone while placement is default', () => {
+    const fixture = TestBed.createComponent(PanelClassHost);
+    fixture.detectChanges();
+    const overlay = overlayOf(fixture);
+    const wrapped = {
+      kind: 'anchored',
+      side: 'top',
+      align: 'end',
+    } as const;
+
+    overlay.configure({ positioning: wrapped });
+    fixture.detectChanges();
+
+    expect(overlay.config().positioning).toMatchObject(wrapped);
+  });
+
+  it('applies the input once set and clears it when unset again', () => {
+    const fixture = TestBed.createComponent(PanelClassHost);
+    fixture.detectChanges();
+    const overlay = overlayOf(fixture);
+
+    fixture.componentInstance.panelClass.set('mine');
+    fixture.detectChanges();
+    expect(overlay.config().panelClass).toBe('mine');
+
+    fixture.componentInstance.panelClass.set(undefined);
+    fixture.detectChanges();
+    expect(overlay.config().panelClass).toBeNull();
   });
 });

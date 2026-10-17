@@ -73,7 +73,10 @@ type Kind = 'divider' | 'group' | 'submenu' | 'item';
         }
         @case ('submenu') {
           @let submenu = asSubmenu(def);
-          <andes-dropdown-menu-sub [key]="submenu.key">
+          <andes-dropdown-menu-sub
+            [key]="submenu.key"
+            [popupOffset]="submenu.popupOffset"
+          >
             <andes-dropdown-menu-sub-trigger
               [disabled]="submenu.disabled ?? false"
               [typeaheadLabel]="submenu.title ?? textOf(submenu.label)"
@@ -90,7 +93,7 @@ type Kind = 'divider' | 'group' | 'submenu' | 'item';
                 "
               />
             </andes-dropdown-menu-sub-trigger>
-            <andes-dropdown-menu-sub-content>
+            <andes-dropdown-menu-sub-content [class]="submenu.popupClass ?? ''">
               <andes-dropdown-menu-items [items]="submenu.children" />
             </andes-dropdown-menu-sub-content>
           </andes-dropdown-menu-sub>
@@ -102,6 +105,10 @@ type Kind = 'divider' | 'group' | 'submenu' | 'item';
             [disabled]="item.disabled ?? false"
             [variant]="item.danger ? 'destructive' : 'default'"
             [typeaheadLabel]="item.title ?? textOf(item.label)"
+            [href]="item.href"
+            [target]="item.target"
+            [rel]="item.rel"
+            [closeOnSelect]="item.closeOnSelect"
           >
             @if (item.icon) {
               <span slot="icon-start" class="andes-dropdown-menu__item-icon">

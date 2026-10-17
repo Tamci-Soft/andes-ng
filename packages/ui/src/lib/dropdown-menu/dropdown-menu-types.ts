@@ -72,6 +72,29 @@ export interface AndesDropdownMenuSelectEvent extends AndesDropdownMenuClickEven
   readonly selectedKeys: readonly string[];
 }
 
+/** Payload of `(submenuTriggerClick)`: a submenu's trigger row was clicked. */
+export interface AndesDropdownMenuSubmenuClickEvent {
+  /** The submenu's `key`, or `undefined` for an unkeyed projected submenu. */
+  readonly key: string | undefined;
+  /** The submenu's key followed by each ancestor submenu's key, innermost first. */
+  readonly keyPath: readonly string[];
+  /** The click that hit the trigger row. */
+  readonly event: MouseEvent;
+}
+
+/**
+ * Context of a `popupTemplate`: the menu itself (render it with `ngTemplateOutlet`
+ * wherever it belongs among the extra content) and a way to close the whole popup.
+ */
+export interface AndesDropdownMenuPopupContext {
+  /** The menu panel - the same one the dropdown renders without a `popupTemplate`. */
+  readonly $implicit: TemplateRef<unknown>;
+  /** Alias of `$implicit`, for `let-menu="menu"`. */
+  readonly menu: TemplateRef<unknown>;
+  /** Closes the popup, returning focus to the trigger when it was inside. */
+  readonly close: () => void;
+}
+
 /** `string` renders as text; a `TemplateRef` renders as-is. */
 export type AndesDropdownMenuLabelValue = string | TemplateRef<unknown>;
 
@@ -88,6 +111,17 @@ export interface AndesDropdownMenuItemOption {
   readonly disabled?: boolean;
   /** Typeahead text, for a `TemplateRef` label. Defaults to the rendered text. */
   readonly title?: string;
+  /** Turns the item into a link: activating it follows `href` like a native anchor. */
+  readonly href?: string;
+  /** Browsing context for `href`, e.g. `'_blank'`. */
+  readonly target?: string;
+  /** Link relationship for `href`. Defaults to `'noopener noreferrer'` with `target="_blank"`. */
+  readonly rel?: string;
+  /**
+   * Whether activating the item closes the menu. Overrides the root's `closeOnSelect`
+   * for this one item.
+   */
+  readonly closeOnSelect?: boolean;
 }
 
 /** A nested submenu. `type` is optional when `children` is present. */
@@ -98,6 +132,13 @@ export interface AndesDropdownMenuSubmenuOption {
   readonly icon?: TemplateRef<unknown>;
   readonly disabled?: boolean;
   readonly title?: string;
+  /** Extra class(es) for the submenu's panel. */
+  readonly popupClass?: string;
+  /**
+   * `[x, y]` pixel offset of the submenu's panel from its default spot beside the
+   * trigger row: `x` pushes it further from the row, `y` moves it down.
+   */
+  readonly popupOffset?: readonly [number, number];
   readonly children: readonly AndesDropdownMenuItemDef[];
 }
 

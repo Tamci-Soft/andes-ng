@@ -8,6 +8,7 @@ import {
   type AndesOverlaySide,
   provideAndesOverlay,
 } from '@andes-ng/primitives';
+import { NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   afterNextRender,
@@ -48,7 +49,9 @@ import {
   type AndesDropdownMenuOpenChange,
   type AndesDropdownMenuOpenChangeSource,
   type AndesDropdownMenuPlacement,
+  type AndesDropdownMenuPopupContext,
   type AndesDropdownMenuSelectEvent,
+  type AndesDropdownMenuSubmenuClickEvent,
   type AndesDropdownMenuSubmenuRef,
   type AndesDropdownMenuTriggerAction,
   isAndesDropdownMenuSubmenu,
@@ -89,6 +92,10 @@ const CLOSE_REASONS: Partial<
   programmatic: 'imperative',
 };
 
+/** What Tab can land on inside a custom popup; filtered further in `tabbablesIn`. */
+const TABBABLE_SELECTOR =
+  'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 type FocusOnOpen = 'first' | 'last' | 'none';
 
 interface ShowOptions {
@@ -126,19 +133,45 @@ interface ShowOptions {
  * ```
  *
  * or described by the `items` array, in which case nothing but the trigger is projected.
+ *
+ * `popupTemplate` wraps the menu in extra content of your own - a footer action, a
+ * search field - inside one shared popup surface:
+ *
+ * ```html
+ * <andes-dropdown-menu [items]="items" [popupTemplate]="popup">…</andes-dropdown-menu>
+ * <ng-template #popup let-menu let-close="close">
+ *   <ng-container *ngTemplateOutlet="menu" />
+ *   <footer><button type="button" (click)="create(); close()">New…</button></footer>
+ * </ng-template>
+ * ```
  */
 @Component({
   selector: 'andes-dropdown-menu',
-  imports: [AndesDropdownMenuContent, AndesDropdownMenuItems],
+  imports: [NgTemplateOutlet, AndesDropdownMenuContent, AndesDropdownMenuItems],
   template: `
     <ng-content select="[andesDropdownMenuTrigger]" />
-    <ng-template #contentTemplate>
+    <ng-template #menuTemplate>
       @if (items(); as menuItems) {
         <andes-dropdown-menu-content>
           <andes-dropdown-menu-items [items]="menuItems" />
         </andes-dropdown-menu-content>
       } @else {
         <ng-content />
+      }
+    </ng-template>
+    <ng-template #contentTemplate>
+      @if (popupTemplate(); as popup) {
+        <div
+          class="andes-dropdown-menu__popup"
+          [attr.data-side]="requestedPlacement().side"
+          [attr.data-align]="requestedPlacement().align"
+          (pointerover)="pointerEntered()"
+          (pointerleave)="pointerLeft()"
+        >
+          <ng-container *ngTemplateOutlet="popup; context: popupContext()" />
+        </div>
+      } @else {
+        <ng-container *ngTemplateOutlet="menuTemplate" />
       }
       @if (arrowEnabled()) {
         <span class="andes-dropdown-menu__arrow" aria-hidden="true"></span>
@@ -169,6 +202,8 @@ export class AndesDropdownMenu
 
   private readonly contentTemplate =
     viewChild.required<TemplateRef<unknown>>('contentTemplate');
+  private readonly menuTemplate =
+    viewChild.required<TemplateRef<unknown>>('menuTemplate');
 
   /**
    * Whether the menu is open. Two-way bindable (`[(open)]`); a one-way `[open]` binding
@@ -208,6 +243,34 @@ export class AndesDropdownMenu
   readonly mouseEnterDelay = input(150, { transform: numberAttribute });
   /** Hover-close grace period in ms, for `trigger="hover"`. Default `100`. */
   readonly mouseLeaveDelay = input(100, { transform: numberAttribute });
+  /**
+   * Wraps the menu in custom popup content. The template's `$implicit` (also `menu`)
+   * is the menu panel to render with `ngTemplateOutlet`; `close` closes the popup. The
+   * wrapper takes over the panel's surface (background, border, shadow), so the menu
+   * sits flush inside it. Tab moves between the menu and the extra controls, and only
+   * closes the popup when it leaves it.
+   */
+  readonly popupTemplate = input<
+    TemplateRef<AndesDropdownMenuPopupContext> | undefined
+  >(undefined);
+  /**
+   * Extra class(es) on the overlay pane that holds the panel, for styling a single
+   * menu from the outside (e.g. `.wide .andes-dropdown-menu__content { … }`).
+   */
+  readonly panelClass = input<string | readonly string[] | undefined>(
+    undefined,
+  );
+  /**
+   * Whether activating a plain item closes the menu. Unset (the default) closes it,
+   * except in a `selectable` + `multiple` menu. An item's own `closeOnSelect` wins.
+   * Checkbox and radio items never close the menu.
+   */
+  readonly closeOnSelect = input<boolean | undefined, unknown>(undefined, {
+    transform: (value: unknown) =>
+      value === undefined || value === null
+        ? undefined
+        : booleanAttribute(value),
+  });
 
   /** Data-driven menu content. When set, projected content is ignored. */
   readonly items = input<readonly AndesDropdownMenuItemDef[] | null>(null);
@@ -234,6 +297,8 @@ export class AndesDropdownMenu
   readonly itemSelect = output<AndesDropdownMenuSelectEvent>();
   /** Emits when `selectable` and `multiple` are on and a key is deselected. */
   readonly itemDeselect = output<AndesDropdownMenuSelectEvent>();
+  /** Emits when a submenu's trigger row is clicked (it still opens/toggles its submenu). */
+  readonly submenuTriggerClick = output<AndesDropdownMenuSubmenuClickEvent>();
 
   /** Whether the menu is currently open. */
   readonly isOpen: Signal<boolean> = this.overlay.isOpen;
@@ -248,6 +313,18 @@ export class AndesDropdownMenu
     const arrow = this.arrow();
     return typeof arrow === 'object' ? true : arrow;
   });
+
+  /** The configured side/alignment (not the collision-resolved one). */
+  protected readonly requestedPlacement = computed(
+    () => PLACEMENTS[this.placement()],
+  );
+
+  protected readonly popupContext = computed<AndesDropdownMenuPopupContext>(
+    () => {
+      const menu = this.menuTemplate();
+      return { $implicit: menu, menu, close: () => this.close() };
+    },
+  );
 
   private readonly pointAtCenterOffset = signal(0);
   private readonly triggerActions = computed(
@@ -323,7 +400,33 @@ export class AndesDropdownMenu
       wrap: true,
     });
 
-    effect(() => this.overlay.configure({ positioning: this.positioning() }));
+    // A wrapping component (e.g. a breadcrumb crumb menu) may position this overlay itself.
+    // While it has, and this menu's own placement inputs haven't changed since, leave it be;
+    // any later change to those inputs takes over again.
+    let applied = untracked(() => this.overlay.config().positioning);
+    let lastKey: string | undefined;
+    effect(() => {
+      const positioning = this.positioning();
+      const key = JSON.stringify(positioning);
+      const positionedElsewhere = untracked(
+        () => this.overlay.config().positioning !== applied,
+      );
+      const unchanged = lastKey === undefined || key === lastKey;
+      lastKey = key;
+      if (positionedElsewhere && unchanged) return;
+      applied = positioning;
+      this.overlay.configure({ positioning });
+    });
+    // Only touch the pane class once the input has been used: a wrapping component (e.g. a
+    // breadcrumb crumb menu) may configure its own pane classes on this same overlay, and an
+    // unset input must not wipe them. Clearing a previously set value still resets it.
+    let panelClassUsed = false;
+    effect(() => {
+      const panelClass = this.panelClass();
+      if (panelClass === undefined && !panelClassUsed) return;
+      panelClassUsed = true;
+      this.overlay.configure({ panelClass: panelClass ?? null });
+    });
 
     // `[open]` -> overlay. The reverse direction (overlay -> `open`) is `commit()`.
     const openInput = computed(() => booleanAttribute(this.open()));
@@ -361,6 +464,17 @@ export class AndesDropdownMenu
         event.preventDefault();
         this.hide('escape-key');
         return;
+      }
+      if (this.popupTemplate()) {
+        if (event.key === 'Tab') {
+          this.onPopupTab(event);
+          return;
+        }
+        // Keys typed into the popup's own controls (a search field, a footer
+        // button) are theirs - only the menu's items take part in its navigation.
+        if (!this.isMenuKeyTarget(event.target)) {
+          return;
+        }
       }
       this.navigation.onKeydown(event);
     });
@@ -587,6 +701,10 @@ export class AndesDropdownMenu
     }
   }
 
+  submenuTriggerClicked(click: AndesDropdownMenuSubmenuClickEvent): void {
+    this.submenuTriggerClick.emit(click);
+  }
+
   pointerEntered(): void {
     clearTimeout(this.hoverCloseTimer);
     this.hoverCloseTimer = undefined;
@@ -727,7 +845,51 @@ export class AndesDropdownMenu
 
   private focusIsInMenu(): boolean {
     const active = this.document.activeElement;
-    return !!active?.closest('.andes-dropdown-menu__content');
+    return !!active?.closest(
+      '.andes-dropdown-menu__content, .andes-dropdown-menu__popup',
+    );
+  }
+
+  /** Whether a key event belongs to the menu's own list (an item, or nothing in the pane). */
+  private isMenuKeyTarget(target: EventTarget | null): boolean {
+    const pane = this.overlay.panelElement();
+    if (!(target instanceof Element) || !pane?.contains(target)) {
+      return true;
+    }
+    return !!target.closest('.andes-dropdown-menu__content');
+  }
+
+  /**
+   * Tab inside a custom popup: the roving tabindex leaves exactly one item tabbable,
+   * so the menu is one stop in the popup's natural tab order. The browser moves focus
+   * between the stops; only stepping past either end closes the popup (focus then
+   * continues from the trigger, as for a plain menu).
+   */
+  private onPopupTab(event: KeyboardEvent): void {
+    const pane = this.overlay.panelElement();
+    if (!pane) {
+      return;
+    }
+    const stops = this.tabbablesIn(pane);
+    const current =
+      event.target instanceof Element
+        ? stops.findIndex((stop) => stop.contains(event.target as Node))
+        : -1;
+    const next = current + (event.shiftKey ? -1 : 1);
+    if (current === -1 || next < 0 || next >= stops.length) {
+      this.hide('tab-out');
+    }
+  }
+
+  private tabbablesIn(root: HTMLElement): HTMLElement[] {
+    return Array.from(
+      root.querySelectorAll<HTMLElement>(TABBABLE_SELECTOR),
+    ).filter(
+      (element) =>
+        element.tabIndex >= 0 &&
+        !(element as HTMLButtonElement).disabled &&
+        !element.closest('[inert]'),
+    );
   }
 
   private clearHoverTimers(): void {

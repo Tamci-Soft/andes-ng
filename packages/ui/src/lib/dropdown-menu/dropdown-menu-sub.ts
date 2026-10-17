@@ -1,4 +1,5 @@
 import {
+  type AndesOverlayAnchoredPositioning,
   andesOverlayPreset,
   AndesOverlayPrimitive,
   provideAndesOverlay,
@@ -10,6 +11,7 @@ import {
   Component,
   DestroyRef,
   DOCUMENT,
+  effect,
   inject,
   Injector,
   input,
@@ -24,6 +26,27 @@ import {
   AndesDropdownMenuLevel,
   type AndesDropdownMenuSubmenuRef,
 } from './dropdown-menu-types';
+
+/**
+ * Overlap the parent panel's padding so the submenu reads as attached to its row, and
+ * pull it up by the panel's padding + border so the first item lines up with the
+ * trigger item.
+ */
+const SIDE_OFFSET = 2;
+const ALIGN_OFFSET = -5;
+
+function submenuPositioning(
+  offset: readonly [number, number] | null | undefined,
+): AndesOverlayAnchoredPositioning {
+  const [x, y] = offset ?? [0, 0];
+  return {
+    kind: 'anchored',
+    side: 'right',
+    align: 'start',
+    sideOffset: SIDE_OFFSET + x,
+    alignOffset: ALIGN_OFFSET + y,
+  };
+}
 
 /** What `AndesDropdownMenuSubTrigger` registers with its submenu. */
 export interface AndesDropdownMenuSubTriggerRef {
@@ -82,6 +105,13 @@ export class AndesDropdownMenuSub
 {
   /** Identifies the submenu in its descendants' `keyPath`. */
   readonly key = input<string | undefined>(undefined);
+  /**
+   * `[x, y]` pixel offset of the panel from its default spot beside the trigger row:
+   * `x` pushes it further away from the row, `y` moves it down.
+   */
+  readonly popupOffset = input<readonly [number, number] | null | undefined>(
+    undefined,
+  );
 
   private readonly overlay = inject(AndesOverlayPrimitive);
   private readonly root = inject(AndesDropdownMenuRoot);
@@ -113,20 +143,17 @@ export class AndesDropdownMenuSub
   constructor() {
     this.overlay.configure({
       ...andesOverlayPreset('menu'),
-      positioning: {
-        kind: 'anchored',
-        side: 'right',
-        align: 'start',
-        // Overlap the parent panel's padding so the submenu reads as attached to its
-        // row, and pull it up by the panel's padding + border so the first item lines
-        // up with the trigger item.
-        sideOffset: 2,
-        alignOffset: -5,
-      },
+      positioning: submenuPositioning(undefined),
       autoFocus: 'none',
       closeOnEscape: false,
       closeOnOutsideClick: false,
     });
+
+    effect(() =>
+      this.overlay.configure({
+        positioning: submenuPositioning(this.popupOffset()),
+      }),
+    );
 
     this.overlay.outsidePointerEvents
       .pipe(takeUntilDestroyed())
