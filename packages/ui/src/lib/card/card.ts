@@ -1,5 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import {
+  afterRenderEffect,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
@@ -12,7 +13,9 @@ import {
   input,
   model,
   numberAttribute,
+  signal,
   TemplateRef,
+  viewChild,
 } from '@angular/core';
 import clsx from 'clsx';
 
@@ -28,6 +31,15 @@ export interface AndesCardTab {
   readonly key: string;
   readonly label: string;
   readonly disabled?: boolean;
+}
+
+/**
+ * Template context for `AndesCard`'s `tabLabelTemplate`: the tab being rendered (as
+ * `$implicit`) and whether it is the selected one, so a custom label can restyle itself.
+ */
+export interface AndesCardTabLabelContext {
+  readonly $implicit: AndesCardTab;
+  readonly selected: boolean;
 }
 
 let nextCardId = 0;
@@ -93,6 +105,14 @@ export class AndesCard {
   readonly tabBarExtraContent = input<TemplateRef<unknown> | undefined>(
     undefined,
   );
+  /**
+   * Replaces each tab's plain-text `label` with richer content (an icon, a count badge...). The
+   * template renders inside the tab button, so it should hold phrasing content only - no
+   * interactive elements. Left unset, tabs show their `label` text.
+   */
+  readonly tabLabelTemplate = input<
+    TemplateRef<AndesCardTabLabelContext> | undefined
+  >(undefined);
 
   /** Prefix for the tab ids the header renders and the content panel references. */
   readonly idPrefix = `andes-card-${nextCardId++}`;
@@ -188,9 +208,13 @@ export class AndesCardDescription {}
     @if (card?.hasTabs()) {
       <div class="andes-card__tabs">
         <div
+          #tablist
           class="andes-card__tablist"
           role="tablist"
           aria-orientation="horizontal"
+          [class.andes-card__tablist--fade-start]="fadeStart()"
+          [class.andes-card__tablist--fade-end]="fadeEnd()"
+          (scroll)="syncFades()"
         >
           @for (tab of card!.tabList(); track tab.key; let index = $index) {
             @let selected = tab.key === card!.resolvedActiveTabKey();
@@ -206,7 +230,16 @@ export class AndesCardDescription {}
               (click)="card!.selectTab(tab.key)"
               (keydown)="onTabKeydown($event)"
             >
-              {{ tab.label }}
+              @if (card!.tabLabelTemplate(); as label) {
+                <ng-container
+                  *ngTemplateOutlet="
+                    label;
+                    context: { $implicit: tab, selected: selected }
+                  "
+                />
+              } @else {
+                {{ tab.label }}
+              }
             </button>
           }
         </div>
@@ -230,6 +263,48 @@ export class AndesCardHeader {
     descendants: false,
   });
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly tablist = viewChild<ElementRef<HTMLElement>>('tablist');
+
+  /** The strip hides tabs past its start edge (in reading order). */
+  protected readonly fadeStart = signal(false);
+  /** The strip hides tabs past its end edge (in reading order). */
+  protected readonly fadeEnd = signal(false);
+
+  constructor() {
+    // Re-measured after each render (tabs added, removed or relabelled) and whenever the
+    // strip's own box resizes - a narrower card can start overflowing without re-rendering.
+    afterRenderEffect((onCleanup) => {
+      this.card?.tabList();
+      const strip = this.tablist()?.nativeElement;
+      if (!strip) {
+        this.fadeStart.set(false);
+        this.fadeEnd.set(false);
+        return;
+      }
+      this.syncFades();
+      if (typeof ResizeObserver !== 'undefined') {
+        const observer = new ResizeObserver(() => this.syncFades());
+        observer.observe(strip);
+        onCleanup(() => observer.disconnect());
+      }
+    });
+  }
+
+  /**
+   * Fades the edges of an overflowing strip that still have tabs beyond them, so a cut-off tab
+   * reads as "scroll for more". In right-to-left text `scrollLeft` runs from 0 toward negative
+   * values, so its magnitude is the distance from the start edge in both directions.
+   */
+  protected syncFades(): void {
+    const strip = this.tablist()?.nativeElement;
+    if (!strip) {
+      return;
+    }
+    const max = strip.scrollWidth - strip.clientWidth;
+    const position = Math.abs(strip.scrollLeft);
+    this.fadeStart.set(max > 1 && position > 1);
+    this.fadeEnd.set(max > 1 && position < max - 1);
+  }
 
   protected onTabKeydown(event: KeyboardEvent): void {
     const card = this.card;
@@ -247,13 +322,19 @@ export class AndesCardHeader {
       ({ tab }) => tab.key === card.resolvedActiveTabKey(),
     );
 
+    // The strip runs along the inline axis, so in right-to-left text ArrowLeft is "next".
+    const forward =
+      getComputedStyle(this.host.nativeElement).direction === 'rtl'
+        ? 'ArrowLeft'
+        : 'ArrowRight';
     let next: number;
     switch (event.key) {
       case 'ArrowRight':
-        next = (current + 1) % enabled.length;
-        break;
       case 'ArrowLeft':
-        next = (current - 1 + enabled.length) % enabled.length;
+        next =
+          event.key === forward
+            ? (current + 1) % enabled.length
+            : (current - 1 + enabled.length) % enabled.length;
         break;
       case 'Home':
         next = 0;

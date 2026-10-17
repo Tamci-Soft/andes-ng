@@ -651,6 +651,68 @@ describe('AndesCard tabs', () => {
     );
   }
 
+  function stubScroll(
+    element: HTMLElement,
+    geometry: { scrollWidth: number; clientWidth: number },
+  ) {
+    for (const [name, value] of Object.entries(geometry)) {
+      Object.defineProperty(element, name, { configurable: true, value });
+    }
+    Object.defineProperty(element, 'scrollLeft', {
+      configurable: true,
+      writable: true,
+      value: 0,
+    });
+  }
+
+  it('fades only the strip edges that still have tabs beyond them', () => {
+    const { fixture, el } = create();
+    const strip = el.querySelector('[role="tablist"]') as HTMLElement;
+    const fades = () => ({
+      start: strip.classList.contains('andes-card__tablist--fade-start'),
+      end: strip.classList.contains('andes-card__tablist--fade-end'),
+    });
+    expect(fades()).toEqual({ start: false, end: false });
+
+    stubScroll(strip, { scrollWidth: 500, clientWidth: 200 });
+    strip.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    expect(fades()).toEqual({ start: false, end: true });
+
+    strip.scrollLeft = 150;
+    strip.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    expect(fades()).toEqual({ start: true, end: true });
+
+    // Right-to-left: scrollLeft runs negative from the start edge.
+    strip.scrollLeft = -300;
+    strip.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    expect(fades()).toEqual({ start: true, end: false });
+  });
+
+  it('re-measures the fades when the tabs change', () => {
+    const { fixture, el } = create();
+    const strip = el.querySelector('[role="tablist"]') as HTMLElement;
+    stubScroll(strip, { scrollWidth: 500, clientWidth: 200 });
+    fixture.componentInstance.tabs.set([
+      ...TABS,
+      { key: 'more', label: 'More' },
+    ]);
+    fixture.detectChanges();
+
+    expect(strip.classList).toContain('andes-card__tablist--fade-end');
+  });
+
+  it('hands its surface to card-type tabs inside it', () => {
+    const { el } = create();
+    const card = getComputedStyle(el.querySelector('andes-card') as Element);
+
+    expect(
+      card.getPropertyValue('--andes-tabs-card-selected-background').trim(),
+    ).toBe('var(--andes-color-card)');
+  });
+
   it('renders no tab strip when tabList is empty', () => {
     const { fixture, el } = create();
     fixture.componentInstance.tabs.set([]);
@@ -796,6 +858,20 @@ describe('AndesCard tabs', () => {
     expect(fixture.componentInstance.active()).toBe('project');
   });
 
+  it('swaps the arrow keys in right-to-left text, where the next tab sits to the left', () => {
+    const { fixture, el, tabs } = create();
+    const header = el.querySelector('andes-card-header') as HTMLElement;
+    header.style.direction = 'rtl';
+
+    key(tabs()[0], 'ArrowLeft');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.active()).toBe('app');
+
+    key(tabs()[1], 'ArrowRight');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.active()).toBe('article');
+  });
+
   it('jumps to the first and last enabled tab with Home and End', () => {
     const { fixture, tabs } = create();
 
@@ -886,6 +962,92 @@ describe('AndesCard tabs', () => {
       el.querySelector('[role="tab"]')?.hasAttribute('aria-controls'),
     ).toBe(false);
   });
+
+  it('treats a static activeTabKey as the initial tab, then switches on selection', () => {
+    @Component({
+      imports: [AndesCard, AndesCardHeader, AndesCardContent],
+      template: `<andes-card
+        [tabList]="tabs"
+        activeTabKey="app"
+        (activeTabKeyChange)="changes.push($event)"
+      >
+        <andes-card-header />
+        <andes-card-content>Body</andes-card-content>
+      </andes-card>`,
+    })
+    class StaticKeyHost {
+      readonly tabs = TABS;
+      readonly changes: (string | undefined)[] = [];
+    }
+
+    const fixture = TestBed.createComponent(StaticKeyHost);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const selected = () =>
+      el
+        .querySelector('[role="tab"][aria-selected="true"]')
+        ?.textContent?.trim();
+
+    expect(selected()).toBe('App');
+
+    (el.querySelectorAll('[role="tab"]')[3] as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(selected()).toBe('Project');
+    expect(fixture.componentInstance.changes).toEqual(['project']);
+  });
+
+  it('renders tabLabelTemplate inside each tab with the tab and its selected state', () => {
+    @Component({
+      imports: [AndesCard, AndesCardHeader, AndesCardContent],
+      template: `<andes-card
+          [tabList]="tabs"
+          [(activeTabKey)]="active"
+          [tabLabelTemplate]="label"
+        >
+          <andes-card-header />
+          <andes-card-content>Body</andes-card-content>
+        </andes-card>
+        <ng-template #label let-tab let-selected="selected"
+          ><i class="icon" [attr.data-key]="tab.key"></i
+          ><span class="text" [class.is-selected]="selected">{{
+            tab.label
+          }}</span></ng-template
+        >`,
+    })
+    class LabelHost {
+      readonly tabs = TABS;
+      readonly active = signal<string | undefined>('app');
+    }
+
+    const fixture = TestBed.createComponent(LabelHost);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const tabs = Array.from(el.querySelectorAll<HTMLElement>('[role="tab"]'));
+
+    expect(
+      tabs.map((tab) => tab.querySelector('.icon')?.getAttribute('data-key')),
+    ).toEqual(['article', 'app', 'archived', 'project']);
+    expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([
+      'Article',
+      'App',
+      'Archived',
+      'Project',
+    ]);
+    expect(
+      tabs.map((tab) =>
+        tab.querySelector('.text')?.classList.contains('is-selected'),
+      ),
+    ).toEqual([false, true, false, false]);
+
+    tabs[0].click();
+    fixture.detectChanges();
+
+    expect(tabs[0].querySelector('.text')?.classList).toContain('is-selected');
+    expect(tabs[1].querySelector('.text')?.classList).not.toContain(
+      'is-selected',
+    );
+  });
 });
 
 describe('AndesCardHeader layout', () => {
@@ -912,5 +1074,168 @@ describe('AndesCardHeader layout', () => {
     expect(el.querySelector('#without')?.classList).not.toContain(
       'andes-card__header--described',
     );
+  });
+});
+
+describe('AndesCard edge padding', () => {
+  // Every part carries its own padding and the head is closed by a divider, so the card has no
+  // `gap`; whichever part opens or closes the card must carry that edge's padding itself. A
+  // header-only card once lost its bottom padding this way, leaving the description touching the
+  // card's bottom border. jsdom resolves the cascade but not `var()`, so these assert that a
+  // padding (or divider) is declared rather than its pixel value.
+  @Component({
+    imports: [
+      AndesCard,
+      AndesCardHeader,
+      AndesCardTitle,
+      AndesCardDescription,
+      AndesCardContent,
+      AndesCardFooter,
+      AndesCardActions,
+    ],
+    template: `
+      <andes-card id="header-only">
+        <andes-card-header>
+          <andes-card-title>T</andes-card-title>
+          <andes-card-description>D</andes-card-description>
+        </andes-card-header>
+      </andes-card>
+      <andes-card id="header-only-sm" size="sm">
+        <andes-card-header
+          ><andes-card-title>T</andes-card-title></andes-card-header
+        >
+      </andes-card>
+      <andes-card id="header-body">
+        <andes-card-header
+          ><andes-card-title>T</andes-card-title></andes-card-header
+        >
+        <andes-card-content>B</andes-card-content>
+      </andes-card>
+      <andes-card id="body-only">
+        <andes-card-content>B</andes-card-content>
+      </andes-card>
+      <andes-card id="footer-only">
+        <andes-card-footer>F</andes-card-footer>
+      </andes-card>
+      <andes-card id="header-footer">
+        <andes-card-header
+          ><andes-card-title>T</andes-card-title></andes-card-header
+        >
+        <andes-card-footer>F</andes-card-footer>
+      </andes-card>
+      <andes-card id="full">
+        <andes-card-header
+          ><andes-card-title>T</andes-card-title></andes-card-header
+        >
+        <andes-card-content>B</andes-card-content>
+        <andes-card-footer>F</andes-card-footer>
+        <andes-card-actions
+          ><button type="button">A</button></andes-card-actions
+        >
+      </andes-card>
+      <andes-card id="cover-header">
+        <img alt="" src="data:," />
+        <andes-card-header
+          ><andes-card-title>T</andes-card-title></andes-card-header
+        >
+      </andes-card>
+      <andes-card id="inner" type="inner">
+        <andes-card-header
+          ><andes-card-title>T</andes-card-title></andes-card-header
+        >
+      </andes-card>
+    `,
+  })
+  class CompositionsHost {}
+
+  function part(id: string, selector: string): CSSStyleDeclaration {
+    const fixture = TestBed.createComponent(CompositionsHost);
+    fixture.detectChanges();
+    const el = (fixture.nativeElement as HTMLElement).querySelector(
+      `#${id} > ${selector}`,
+    ) as HTMLElement;
+    return getComputedStyle(el);
+  }
+
+  const padded = (value: string) =>
+    value !== '' && value !== '0' && value !== '0px';
+  // jsdom keeps shorthands and logical longhands as declared and doesn't map one onto another.
+  const blockPadding = (style: CSSStyleDeclaration, side: 'start' | 'end') =>
+    padded(style.getPropertyValue(`padding-block-${side}`)) ||
+    padded(style.getPropertyValue('padding-block')) ||
+    padded(style.getPropertyValue('padding'));
+  const top = (style: CSSStyleDeclaration) => blockPadding(style, 'start');
+  const bottom = (style: CSSStyleDeclaration) => blockPadding(style, 'end');
+  const divided = (style: CSSStyleDeclaration) =>
+    padded(style.getPropertyValue('border-block-end'));
+
+  it('pads both edges of a header-only card, at every size', () => {
+    for (const id of ['header-only', 'header-only-sm']) {
+      const header = part(id, 'andes-card-header');
+      expect(top(header)).toBe(true);
+      expect(bottom(header)).toBe(true);
+    }
+  });
+
+  it('closes the head with a divider above the body, but not in a header-only card', () => {
+    expect(divided(part('header-body', 'andes-card-header'))).toBe(true);
+    expect(divided(part('header-only', 'andes-card-header'))).toBe(false);
+    const body = part('header-body', 'andes-card-content');
+    expect(top(body)).toBe(true);
+    expect(bottom(body)).toBe(true);
+  });
+
+  it('pads both edges of a body-only card', () => {
+    const body = part('body-only', 'andes-card-content');
+    expect(top(body)).toBe(true);
+    expect(bottom(body)).toBe(true);
+  });
+
+  it('pads the top of a footer that opens the card', () => {
+    const footer = part('footer-only', 'andes-card-footer');
+    expect(top(footer)).toBe(true);
+    expect(bottom(footer)).toBe(true);
+  });
+
+  it('pads the bottom edge of a footer that closes a header + footer card', () => {
+    const footer = part('header-footer', 'andes-card-footer');
+    expect(bottom(footer)).toBe(true);
+  });
+
+  it('keeps the footer padded above the actions bar, which has its own rule and padding', () => {
+    expect(bottom(part('full', 'andes-card-footer'))).toBe(true);
+    const actions = part('full', 'andes-card-actions');
+    expect(top(actions)).toBe(true);
+    expect(bottom(actions)).toBe(true);
+  });
+
+  it('pads the header under a cover image on both edges', () => {
+    const header = part('cover-header', 'andes-card-header');
+    expect(top(header)).toBe(true);
+    expect(bottom(header)).toBe(true);
+  });
+
+  it('keeps the inner header band padded on both edges', () => {
+    const header = part('inner', 'andes-card-header');
+    expect(top(header)).toBe(true);
+    expect(bottom(header)).toBe(true);
+  });
+});
+
+describe('AndesCard typography', () => {
+  it('sets a 14/22 body on the card itself and a 16/24 semibold title', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const card = getComputedStyle(el.querySelector('andes-card') as Element);
+    expect(card.fontSize).toContain('0.875rem');
+    expect(card.lineHeight).toContain('1.375rem');
+
+    const title = getComputedStyle(
+      el.querySelector('.andes-card__title') as Element,
+    );
+    expect(title.fontWeight).toBe('600');
+    expect(title.getPropertyValue('line-height')).toContain('1.5rem');
   });
 });
