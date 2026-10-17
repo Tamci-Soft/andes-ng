@@ -538,7 +538,11 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
         align: 'start',
         sideOffset: 4,
         matchAnchorWidth: true,
+        // Above or below the input only (see the placement effect below).
+        crossSideFallback: false,
+        flexibleDimensions: true,
       },
+      size: { minHeight: '0px' },
     });
 
     this.navigation.configure({
@@ -608,8 +612,20 @@ export class AndesCombobox<T = string> implements ControlValueAccessor {
           align,
           sideOffset: 4,
           matchAnchorWidth: match === true,
+          // A suggestion list belongs above or below its input: the perpendicular
+          // fallbacks put it beside the field whenever it fitted neither way. Where
+          // neither side has room for every row, it shrinks into the larger one and
+          // scrolls instead of being pushed over the input.
+          crossSideFallback: false,
+          flexibleDimensions: true,
         },
-        size: typeof match === 'number' ? { width: match } : {},
+        // CDK only shrinks a pane with a minimum height set; zero (a string, as CDK
+        // reads a numeric 0 as "no minimum") lets the side with the most room win
+        // without growing a short list's pane past its content.
+        size: {
+          minHeight: '0px',
+          ...(typeof match === 'number' ? { width: match } : {}),
+        },
       });
     });
 

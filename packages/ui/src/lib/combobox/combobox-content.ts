@@ -27,6 +27,8 @@ import { ANDES_COMBOBOX } from './combobox-token';
   host: {
     class: 'andes-combobox-content',
     '[attr.aria-busy]': 'combobox.loading() ? "true" : null',
+    // The configured side, for the entrance animation's direction.
+    '[attr.data-side]': 'combobox.placement().split("-")[0]',
   },
 })
 export class AndesComboboxContent {
