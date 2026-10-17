@@ -1,11 +1,20 @@
-@for (toast of toasts(); track toast.id; let i = $index, count = $count) {
+@for (toast of toasts(); track toast.id; let i = $index, count = $count) { @let
+slot = slotOf(toast);
 <andes-toast-item
+  animate.leave="andes-toast--leaving"
   [toast]="toast"
+  [placement]="placement()"
+  [style.--_toast-index]="slot.index"
+  [style.--_toast-offset.px]="slot.offset"
+  [style.--_toast-height]="slot.height"
+  [style.--_toast-z]="count - slot.index"
   [style.--_toast-stack-depth]="count - 1 - i"
+  [attr.data-front]="slot.index === 0 ? '' : null"
   [attr.data-stack-behind]="stacked() && count - 1 - i > 0 ? '' : null"
   [attr.data-stack-overflow]="
     stacked() && count - 1 - i >= stackVisibleDepth ? '' : null
   "
+  (heightChange)="onHeightChange(toast, $event)"
   (mouseenter)="onHoverStart(toast)"
   (mouseleave)="onHoverEnd(toast)"
   (focusin)="controller().pause(toast.id)"
@@ -13,6 +22,7 @@
   (dismissRequested)="onClose(toast)"
   (actionClicked)="onAction(toast, toast.action)"
   (groupActionClicked)="onAction(toast, $event)"
+  (swiped)="onSwiped(toast)"
   (bodyClicked)="onBodyClick(toast)"
 />
 }

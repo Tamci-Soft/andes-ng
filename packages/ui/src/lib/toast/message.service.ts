@@ -9,6 +9,7 @@ import type {
   AndesMessageConfig,
   AndesToastConfig,
   AndesToastGlobalConfig,
+  AndesToastPromiseMessages,
   AndesToastRef,
 } from './toast.types';
 
@@ -78,6 +79,34 @@ export class AndesMessageService extends AndesToastQueue<AndesMessageConfig> {
     config: AndesMessageShortcutConfig = {},
   ): AndesToastRef<AndesMessageConfig> {
     return this.open({ ...config, content, type: 'loading' });
+  }
+
+  /** `loading` -> `success`/`error` once `promise` settles - see `AndesToastService.promise()`. */
+  promise<T>(
+    promise: Promise<T> | (() => Promise<T>),
+    messages: AndesToastPromiseMessages<T>,
+    config: AndesMessageShortcutConfig = {},
+  ): AndesToastRef<AndesMessageConfig> {
+    const ref = this.loading(messages.loading, { ...config, duration: false });
+    const settle = (type: 'success' | 'error', content: string) =>
+      ref.update({ type, content, duration: config.duration });
+    (typeof promise === 'function' ? promise() : promise).then(
+      (value) =>
+        settle(
+          'success',
+          typeof messages.success === 'function'
+            ? messages.success(value)
+            : messages.success,
+        ),
+      (error: unknown) =>
+        settle(
+          'error',
+          typeof messages.error === 'function'
+            ? messages.error(error)
+            : messages.error,
+        ),
+    );
+    return ref;
   }
 
   /** Messages always render top-center; a `placement` in the patch is ignored. */

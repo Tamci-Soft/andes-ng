@@ -30,7 +30,7 @@ export type AndesToastRole = 'alert' | 'status';
 
 /** Why a toast closed - the value `AndesToastRef.afterClosed` resolves with. */
 export type AndesToastCloseReason =
-  'timeout' | 'close-button' | 'action' | 'overflow' | 'dismissed';
+  'timeout' | 'close-button' | 'action' | 'overflow' | 'dismissed' | 'swipe';
 
 /** An action button rendered inside a toast. */
 export interface AndesToastAction {
@@ -90,6 +90,17 @@ export interface AndesToastConfig {
   readonly pauseOnHover?: boolean;
   /** Show a bar that drains over the auto-dismiss countdown. Default `false`. */
   readonly showProgress?: boolean;
+  /**
+   * Tint the whole card (background, border, text) with the severity color instead of only
+   * showing a monochrome status icon. Default `false` (overridable globally).
+   */
+  readonly richColors?: boolean;
+  /**
+   * Let a pointer drag (mouse, pen or touch) fling the toast off-screen to dismiss it, toward
+   * its placement's edge (closes with reason `'swipe'`). Only applies to `dismissible` toasts.
+   * Default `true` for notifications, `false` for messages.
+   */
+  readonly swipeToDismiss?: boolean;
   /** Announcement urgency. Default: `'alert'` for `error`, `'status'` for everything else. */
   readonly role?: AndesToastRole;
   /** Extra CSS class(es) for the toast's root element. */
@@ -115,6 +126,8 @@ export interface AndesMessageConfig {
   readonly dismissible?: boolean;
   readonly closeIcon?: TemplateRef<AndesToastTemplateContext>;
   readonly showProgress?: boolean;
+  readonly richColors?: boolean;
+  readonly swipeToDismiss?: boolean;
   readonly role?: AndesToastRole;
   readonly className?: string;
   readonly onClick?: (ref: AndesToastRef<AndesMessageConfig>) => void;
@@ -142,6 +155,8 @@ export interface AndesToast {
   readonly closeIcon?: TemplateRef<AndesToastTemplateContext>;
   readonly pauseOnHover: boolean;
   readonly showProgress: boolean;
+  readonly richColors: boolean;
+  readonly swipeToDismiss: boolean;
   readonly role: AndesToastRole;
   readonly className?: string;
   /** Typed loosely because a message's handle speaks `AndesMessageConfig`, a notification's `AndesToastConfig`. */
@@ -190,13 +205,20 @@ export interface AndesToastGlobalConfig {
   readonly overflow: AndesToastOverflow;
   readonly pauseOnHover: boolean;
   readonly showProgress: boolean;
+  readonly richColors: boolean;
+  readonly swipeToDismiss: boolean;
   readonly dismissible: boolean;
   readonly closeIcon?: TemplateRef<AndesToastTemplateContext>;
-  /** Collapsed stack, expanded on hover/focus. Default `false`; `true` = `{ threshold: 3 }`. */
+  /**
+   * Collapsed stack (a deck: newest in front, up to two older cards peeking behind it),
+   * expanded on hover/focus. `true` = `{ threshold: 3 }`; `false` = always a plain list.
+   * Default: notifications `{ threshold: 1 }` (a deck as soon as a second one opens),
+   * messages `false`.
+   */
   readonly stack: AndesToastStackConfig;
-  /** Offset from the top edge for top placements (number = px). Default: `--andes-space-4` (messages 8px). */
+  /** Offset from the top edge for top placements (number = px). Default 24px (messages 8px; 16px on narrow screens). */
   readonly top?: number | string;
-  /** Offset from the bottom edge for bottom placements (number = px). Default `--andes-space-4`. */
+  /** Offset from the bottom edge for bottom placements (number = px). Default 24px (16px on narrow screens). */
   readonly bottom?: number | string;
 }
 
@@ -211,3 +233,10 @@ export const ANDES_MESSAGE_DEFAULT_DURATION = 3000;
 
 /** Collapse threshold used when `stack` is `true`. */
 export const ANDES_TOAST_DEFAULT_STACK_THRESHOLD = 3;
+
+/** Messages for `promise()`: one per phase, each a string or built from the settled value. */
+export interface AndesToastPromiseMessages<T> {
+  readonly loading: string;
+  readonly success: string | ((value: T) => string);
+  readonly error: string | ((error: unknown) => string);
+}

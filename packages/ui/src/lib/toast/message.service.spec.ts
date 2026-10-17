@@ -174,4 +174,31 @@ describe('AndesMessageService', () => {
     expect(service.toasts()).toEqual([]);
     expect(toasts.toasts().map((t) => t.message)).toEqual(['notification']);
   });
+
+  it('promise() goes loading -> success in one message, keeping its type vocabulary', async () => {
+    const service = createService();
+
+    const ref = service.promise(Promise.resolve(3), {
+      loading: 'Uploading...',
+      success: (count) => `${count} files uploaded`,
+      error: 'Upload failed',
+    });
+    expect(service.toasts()[0]).toEqual(
+      expect.objectContaining({
+        id: ref.id,
+        severity: 'loading',
+        duration: false,
+      }),
+    );
+
+    await new Promise((r) => setTimeout(r));
+    expect(service.toasts()[0]).toEqual(
+      expect.objectContaining({
+        id: ref.id,
+        severity: 'success',
+        message: '3 files uploaded',
+        duration: 3000,
+      }),
+    );
+  });
 });

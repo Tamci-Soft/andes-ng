@@ -1,30 +1,37 @@
+/* The card's look - Sonner's (shadcn's toast) visual language on Andes tokens: a flat popover
+   card, 1px border, soft shadow, 13px text, monochrome 16px status glyph. Where it sits and how
+   it moves (stack, expand, enter/exit, swipe) is the region's job - see toast-region.css. */
 :host {
-  /* Component-local accent (not a design token): drives the inline-start border, the
-     status icon and the progress bar from one place per severity. */
-  --_toast-accent: var(--andes-color-border);
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--andes-space-3);
+  /* Component-local colors (not design tokens), switched per severity under data-rich-colors.
+     `--_toast-accent` drives the progress bar. */
+  --_toast-bg: var(--andes-color-popover, var(--andes-color-card));
+  --_toast-fg: var(
+    --andes-color-popover-foreground,
+    var(--andes-color-card-foreground)
+  );
+  --_toast-border: var(--andes-color-border);
+  --_toast-accent: var(--andes-color-primary);
+  --_toast-description: color-mix(
+    in srgb,
+    var(--_toast-fg) 78%,
+    var(--_toast-bg)
+  );
+  display: block;
   box-sizing: border-box;
-  /* One fixed width for every notification (Ant Design's 384px), so a stack of short and long
-     ones lines up as a single column instead of a ragged edge. `--andes-toast-width` is a
-     component-level hook like avatar's `--andes-avatar-radius`; the region caps it to the
-     viewport on narrow screens. */
-  width: var(--andes-toast-width, 24rem);
+  /* One fixed width for every notification (Sonner's 356px), so a stack of short and long ones
+     lines up as a single column. `--andes-toast-width` is a component-level hook like avatar's
+     `--andes-avatar-radius`; the region caps it to the viewport on narrow screens. */
+  width: var(--andes-toast-width, 356px);
   max-width: 100%;
-  padding: var(--andes-space-3) var(--andes-space-4);
-  border-radius: var(--andes-radius-lg);
-  border: 1px solid var(--andes-color-border);
-  border-inline-start: 4px solid var(--_toast-accent);
-  background-color: var(--andes-color-card);
-  color: var(--andes-color-card-foreground);
-  box-shadow:
-    0 4px 12px rgb(15 23 42 / 15%),
-    0 2px 4px rgb(15 23 42 / 10%);
+  padding: 16px;
+  border: 1px solid var(--_toast-border);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: var(--_toast-bg);
+  color: var(--_toast-fg);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
   font-family: var(--andes-font-family), sans-serif;
-  /* Clips the progress bar to the rounded corners. */
-  overflow: hidden;
+  font-size: 13px;
+  overflow-wrap: anywhere;
   /* The region disables pointer-events on itself so empty space around a toast doesn't
      block clicks - pointer-events is inherited, so each toast opts back in. */
   pointer-events: auto;
@@ -46,43 +53,88 @@
   --_toast-accent: var(--andes-color-info);
 }
 
-:host([data-severity='loading']) {
-  --_toast-accent: var(--andes-color-primary);
+/* Rich colors: the whole card takes a soft tint of the status color. Text uses the `-active`
+   shade, which is the darkest in light mode and the brightest in dark mode, so it stays
+   legible on the tint either way. */
+:host(
+  [data-rich-colors]:not([data-severity='neutral'], [data-severity='loading'])
+) {
+  --_toast-bg: color-mix(
+    in srgb,
+    var(--_toast-accent) 8%,
+    var(--andes-color-popover, var(--andes-color-card))
+  );
+  --_toast-border: color-mix(
+    in srgb,
+    var(--_toast-accent) 28%,
+    var(--andes-color-popover, var(--andes-color-card))
+  );
+  --_toast-description: var(--_toast-fg);
+}
+
+:host([data-rich-colors][data-severity='success']) {
+  --_toast-fg: var(--andes-color-success-active);
+}
+
+:host([data-rich-colors][data-severity='error']) {
+  --_toast-fg: var(--andes-color-danger-active);
+}
+
+:host([data-rich-colors][data-severity='warning']) {
+  --_toast-fg: var(--andes-color-warning-active);
+}
+
+:host([data-rich-colors][data-severity='info']) {
+  --_toast-fg: var(--andes-color-info-active);
 }
 
 :host([data-clickable]) {
   cursor: pointer;
 }
 
-/* Message flavor: a compact single-line pill - icon + text, no accent
-   border, sized to its content rather than the notification's fixed width range. */
+:host([data-swipeable]) {
+  /* The region handles drags itself; keep the browser from scrolling/panning mid-swipe. */
+  touch-action: none;
+}
+
+/* Message flavor: a compact single-line pill sized to its content. */
 :host([data-flavor='message']) {
-  align-items: center;
-  gap: var(--andes-space-2);
-  width: auto;
-  max-width: min(calc(100vw - 2 * var(--andes-space-4)), 40rem);
-  padding: var(--andes-space-2) var(--andes-space-3);
-  border-inline-start: 1px solid var(--andes-color-border);
+  width: max-content;
+  max-width: min(calc(100vw - 32px), 40rem);
+  padding: 10px 14px;
 }
 
 /* A card peeking out from behind the front of a collapsed stack shows only its edge - its
-   content is hidden (which also takes it out of the tab order and accessibility tree until
-   the stack expands). */
+   content fades out and is hidden (which also takes it out of the tab order and accessibility
+   tree until the stack expands). Visibility flips after the fade on collapse and right away on
+   expand. */
+:host > * {
+  transition:
+    opacity 400ms,
+    visibility 400ms;
+}
+
 :host([data-stack-behind]) > * {
+  opacity: 0;
   visibility: hidden;
 }
 
-.andes-toast__icon {
-  flex-shrink: 0;
-  display: inline-flex;
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--_toast-accent);
+.andes-toast__body {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-:host([data-flavor='message']) .andes-toast__icon {
-  width: 1rem;
-  height: 1rem;
+.andes-toast__icon {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  /* Sonner's optical alignment: the glyph hangs slightly into the padding and keeps 10px from
+     the text. */
+  margin-inline: -4px 4px;
 }
 
 .andes-toast__icon svg {
@@ -90,73 +142,122 @@
   height: 100%;
 }
 
+:host([data-flavor='message']) .andes-toast__icon {
+  margin-inline: -2px 2px;
+}
+
 .andes-toast__spinner {
-  animation: andes-toast-spin 0.8s linear infinite;
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.andes-toast__spinner-bar {
+  position: absolute;
+  top: calc(50% - 0.04 * 16px);
+  left: calc(50% - 0.12 * 16px);
+  width: 24%;
+  height: 8%;
+  border-radius: 6px;
+  background-color: var(--andes-color-muted-foreground);
+  transform: rotate(calc(var(--_bar) * 30deg)) translate(146%);
+  animation: andes-toast-spinner 1.2s linear infinite;
+  animation-delay: calc(var(--_bar) * 0.1s - 1.2s);
 }
 
 .andes-toast__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   flex: 1 1 auto;
   min-width: 0;
 }
 
 .andes-toast__title {
-  margin: 0 0 var(--andes-space-1);
-  font-weight: var(--andes-font-weight-medium);
+  margin: 0;
+  font-weight: var(--andes-font-weight-medium, 500);
+  line-height: 1.5;
 }
 
+/* Without a title, the message is the toast's headline (Sonner's single-line toast); under a
+   title it reads as the description. */
 .andes-toast__message {
   margin: 0;
-  font-size: 0.875rem;
-  overflow-wrap: break-word;
+  font-weight: var(--andes-font-weight-medium, 500);
+  line-height: 1.5;
+}
+
+.andes-toast__title + .andes-toast__message {
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--_toast-description);
 }
 
 .andes-toast__actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--andes-space-2);
-  margin-top: var(--andes-space-3);
+  gap: 8px;
+  margin-top: 10px;
 }
 
+/* The single inline action: a small inverted button, as in Sonner. */
 .andes-toast__action {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  margin-inline-start: auto;
+  padding: 0 8px;
   border: none;
-  background: none;
-  padding: 0;
-  color: var(--andes-color-primary-text);
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--_toast-fg);
+  color: var(--_toast-bg);
   font-family: inherit;
-  font-weight: var(--andes-font-weight-medium);
-  font-size: 0.875rem;
+  font-size: 12px;
+  font-weight: var(--andes-font-weight-medium, 500);
   cursor: pointer;
+  transition: opacity var(--andes-motion-duration-fast, 0.1s);
 }
 
 .andes-toast__action:hover {
-  text-decoration: underline;
+  opacity: 0.88;
 }
 
 .andes-toast__close {
   flex-shrink: 0;
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 20px;
+  height: 20px;
+  margin-inline-end: -6px;
+  padding: 0;
   border: none;
-  border-radius: var(--andes-radius-sm);
+  border-radius: var(--andes-radius-sm, 0.25rem);
   background: transparent;
-  color: var(--andes-color-muted-foreground);
-  font-size: 1.25rem;
-  line-height: 1;
+  color: color-mix(in srgb, currentColor 65%, transparent);
   cursor: pointer;
+  transition:
+    background-color var(--andes-motion-duration-fast, 0.1s),
+    color var(--andes-motion-duration-fast, 0.1s);
 }
 
 .andes-toast__close:hover {
-  background-color: var(--andes-color-accent);
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+  color: inherit;
+}
+
+.andes-toast__close-glyph {
+  width: 12px;
+  height: 12px;
 }
 
 .andes-toast__close-icon {
   display: inline-flex;
-  font-size: 1rem;
+  font-size: 12px;
 }
 
 .andes-toast__close:focus-visible,
@@ -165,22 +266,28 @@
   outline-offset: 2px;
 }
 
+/* Clips the progress bar to the card's rounded corners. (The card itself can't clip: the
+   region hangs a hover bridge outside it.) */
+.andes-toast__progress-track {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* Drains over the auto-dismiss countdown. Pauses exactly when AndesToastQueue's timer does:
    on hover (unless pauseOnHover is off) and whenever focus is inside the toast. */
 .andes-toast__progress {
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  height: 3px;
+  height: 2px;
   background-color: var(--_toast-accent);
   transform-origin: left center;
   animation-name: andes-toast-progress;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
-}
-
-:host([data-severity='neutral']) .andes-toast__progress {
-  background-color: var(--andes-color-primary);
 }
 
 :host(:focus-within) .andes-toast__progress,
@@ -198,14 +305,22 @@
   }
 }
 
-@keyframes andes-toast-spin {
+@keyframes andes-toast-spinner {
+  from {
+    opacity: 1;
+  }
+
   to {
-    transform: rotate(360deg);
+    opacity: 0.15;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .andes-toast__spinner {
-    animation-duration: 2.4s;
+  :host > * {
+    transition: none;
+  }
+
+  .andes-toast__spinner-bar {
+    animation-duration: 3.6s;
   }
 }

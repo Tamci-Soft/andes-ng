@@ -195,8 +195,8 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
 
   /**
    * Pauses a visible toast's auto-dismiss countdown, preserving whatever time is left.
-   * `AndesToastRegion` calls this on `mouseenter` (pointer hover, unless the toast opted out
-   * with `pauseOnHover: false`) and `focusin` (keyboard focus anywhere within the toast, e.g.
+   * `AndesToastRegion` calls this on pointer hover (of the toast, or of the whole region for a
+   * stacked deck - unless the toast opted out with `pauseOnHover: false`) and `focusin` (keyboard focus anywhere within the toast, e.g.
    * Tab-ing to its action button) - both are valid reasons a user needs the countdown to hold
    * still, per WCAG 2.2.1; focus always pauses. Reentrant: calling this while already paused
    * just increments the pause count, so hover and focus overlapping doesn't desync from
@@ -359,6 +359,8 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
       closeIcon: config.closeIcon ?? defaults.closeIcon,
       pauseOnHover: config.pauseOnHover ?? defaults.pauseOnHover,
       showProgress: config.showProgress ?? defaults.showProgress,
+      richColors: config.richColors ?? defaults.richColors,
+      swipeToDismiss: config.swipeToDismiss ?? defaults.swipeToDismiss,
       role: config.role ?? (severity === 'error' ? 'alert' : 'status'),
       className: config.className,
       onClick: config.onClick,

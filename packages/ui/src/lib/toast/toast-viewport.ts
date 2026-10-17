@@ -92,12 +92,21 @@ export class AndesToastViewport {
     () => this.position() ?? this.toastService.defaults().placement,
   );
 
+  /**
+   * Placements that have shown a toast at least once. Their regions stay mounted (empty ones
+   * are an invisible zero-height anchor) so the last toast to close still plays its exit
+   * animation instead of vanishing with its region. Grows only; there are at most six.
+   */
+  private readonly usedPlacements = new Set<AndesToastPosition>();
+  private messagesUsed = false;
+
   /** Visible notifications grouped by resolved placement, in a stable placement order. */
   protected readonly regions = computed(() => {
     const fallback = this.defaultPlacement();
     const groups = new Map<AndesToastPosition, AndesToast[]>();
     for (const toast of this.toastService.visibleToasts()) {
       const placement = toast.placement ?? fallback;
+      this.usedPlacements.add(placement);
       const group = groups.get(placement);
       if (group) {
         group.push(toast);
@@ -105,9 +114,17 @@ export class AndesToastViewport {
         groups.set(placement, [toast]);
       }
     }
-    return PLACEMENTS.filter((placement) => groups.has(placement)).map(
-      (placement) => ({ placement, toasts: groups.get(placement) ?? [] }),
-    );
+    return PLACEMENTS.filter((placement) =>
+      this.usedPlacements.has(placement),
+    ).map((placement) => ({ placement, toasts: groups.get(placement) ?? [] }));
+  });
+
+  /** Whether the messages region is mounted - from the first message on (see `usedPlacements`). */
+  protected readonly showMessages = computed(() => {
+    if (this.messageService.visibleToasts().length) {
+      this.messagesUsed = true;
+    }
+    return this.messagesUsed;
   });
 
   protected readonly messages = this.messageService.visibleToasts;
