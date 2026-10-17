@@ -6,7 +6,7 @@
    view encapsulation a stylesheet's selectors are rewritten to only match elements carrying
    its own component's `_ngcontent-*` attribute, so none of those four groups of elements were
    ever reachable from here - 5 of the 6 rules in this file were dead (measured: error text
-   computed to the initial `rgb(0, 0, 0)` rather than `--andes-color-danger`, and the label's
+   computed to the initial `rgb(0, 0, 0)` rather than the danger color, and the label's
    font-size/font-weight resolved to empty strings).
 
    `:host`/`:host-context` can't fix it either: `:host` only ever matches the component that
@@ -40,10 +40,15 @@
   color: var(--andes-color-muted-foreground);
 }
 
+/* Status colors used as TEXT go through the `--andes-color-<status>-text` tokens, not the
+   `--andes-color-<status>` fills: the fills are tuned as backgrounds and fail 4.5:1 as small
+   text (danger #dc2626 is 3.7:1 on the dark canvas, warning #f59e0b is 2.1:1 on white). The
+   `-text` tokens land with bugfix/token-state-contrast; until then the fill is the fallback.
+   The hasFeedback icons below keep the fills - graphics only need 3:1. */
 .andes-form-error {
   margin: 0;
   font-size: 0.8125rem;
-  color: var(--andes-color-danger);
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
 
 /* Andes-ng's own controls (AndesInput, AndesCheckbox, ...) already draw their own
@@ -170,7 +175,7 @@ andes-form-label {
 /* Label decorations */
 .andes-form-label__required {
   margin-inline-end: var(--andes-space-1);
-  color: var(--andes-color-danger);
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
 
 .andes-form-label__optional {
@@ -250,12 +255,12 @@ andes-form-label {
 
 /* prettier-ignore */
 .andes-form-field[data-status='error'] > .andes-form-field__messages > .andes-form-field__help {
-  color: var(--andes-color-danger);
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
 
 /* prettier-ignore */
 .andes-form-field[data-status='warning'] > .andes-form-field__messages > .andes-form-field__help {
-  color: var(--andes-color-warning);
+  color: var(--andes-color-warning-text, var(--andes-color-warning));
 }
 
 /* `warning` tints plain native controls the same way `--invalid` does above. */
