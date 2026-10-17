@@ -44,6 +44,11 @@ export interface AndesRadioOption<T = unknown> {
   title?: string;
   /** `id` of the rendered native `<input type="radio">`. */
   id?: string;
+  /** Extra CSS class(es) on the rendered `<andes-radio>` item, e.g. to restyle one option. */
+  class?: string;
+  /** Inline styles on the rendered `<andes-radio>` item - a style string or an object of
+   *  CSS properties, as accepted by Angular's `[style]` binding. */
+  style?: string | Record<string, string | number>;
 }
 
 /** A bare string/number is shorthand for `{ label: String(value), value }`. */
@@ -226,6 +231,17 @@ export class AndesRadioGroup<T = unknown> implements ControlValueAccessor {
       ) ??
       host.querySelector<HTMLInputElement>('input[type=radio]:not(:disabled)');
     target?.focus(options);
+  }
+
+  /** Remove focus from whichever item of this group currently has it (no-op otherwise). */
+  blur(): void {
+    const active = this.host.nativeElement.ownerDocument.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      this.host.nativeElement.contains(active)
+    ) {
+      active.blur();
+    }
   }
 
   writeValue(value: T | null): void {

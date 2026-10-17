@@ -4,6 +4,8 @@
   [disabled]="!!option.disabled"
   [id]="option.id"
   [attr.title]="option.title ?? null"
+  [class]="option.class ?? ''"
+  [style]="option.style ?? null"
 >
   @if (optionLabel(); as labelTemplate) {
   <ng-container

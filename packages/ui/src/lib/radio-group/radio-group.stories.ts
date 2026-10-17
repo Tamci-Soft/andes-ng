@@ -352,3 +352,104 @@ export const AutoFocus: Story = {
     `,
   }),
 };
+
+/** An `<andes-radio>` also works on its own, outside any group: `[(checked)]` holds its
+ *  state (a one-way `[checked]="true"` only seeds it). Like a native radio, the user can
+ *  check it but not uncheck it - the parent can. */
+export const StandaloneRadio: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesRadio, AndesButton] },
+    props: { accepted: false },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; font-family: var(--andes-font-family), sans-serif; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-foreground);">
+        <andes-radio [(checked)]="accepted">Use this address as default</andes-radio>
+        <andes-radio [checked]="true">Seeded as checked</andes-radio>
+        <andes-radio disabled>Disabled</andes-radio>
+        <andes-radio disabled [checked]="true">Disabled and checked</andes-radio>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+          <andes-button variant="outline" size="sm" (click)="accepted = false">Reset</andes-button>
+          <span data-testid="standalone-state">checked: {{ accepted }}</span>
+        </div>
+      </div>
+    `,
+  }),
+};
+
+/** Toggle `disabled` at runtime - on standalone radios and on a whole group. */
+export const DisabledToggle: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesRadio, AndesButton] },
+    props: { disabled: true, value: 'b' },
+    template: `
+      <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-start;">
+        <div style="display: flex; gap: 1rem;">
+          <andes-radio [disabled]="disabled">Unchecked</andes-radio>
+          <andes-radio [disabled]="disabled" [checked]="true">Checked</andes-radio>
+        </div>
+        <andes-radio-group aria-label="Letter" orientation="horizontal" [disabled]="disabled" [(value)]="value">
+          <andes-radio value="a">A</andes-radio>
+          <andes-radio value="b">B</andes-radio>
+          <andes-radio value="c">C</andes-radio>
+        </andes-radio-group>
+        <andes-radio-group aria-label="Letter (buttons)" optionType="button" [disabled]="disabled" [(value)]="value">
+          <andes-radio value="a">A</andes-radio>
+          <andes-radio value="b">B</andes-radio>
+          <andes-radio value="c">C</andes-radio>
+        </andes-radio-group>
+        <andes-button size="sm" (click)="disabled = !disabled">{{ disabled ? 'Enable' : 'Disable' }}</andes-button>
+      </div>
+    `,
+  }),
+};
+
+/** A vertical group whose last item reveals extra content (here a free-text field) once it
+ *  is selected. Any markup can sit inside an item's label. */
+export const VerticalWithExtraContent: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [AndesRadio] },
+    props: { value: 'email', other: '' },
+    template: `
+      <andes-radio-group aria-label="Contact preference" [(value)]="value">
+        <andes-radio value="email">Email</andes-radio>
+        <andes-radio value="phone">Phone</andes-radio>
+        <andes-radio value="mail">Postal mail</andes-radio>
+        <andes-radio value="other">
+          Other...
+          @if (value === 'other') {
+            <input
+              aria-label="Other contact preference"
+              placeholder="Please specify"
+              style="margin-inline-start: 0.5rem; height: 1.5rem; padding-inline: 0.5rem; box-sizing: border-box; font-family: inherit; font-size: 0.875rem; color: var(--andes-color-foreground); background: var(--andes-color-background); border: 1px solid var(--andes-color-input); border-radius: var(--andes-radius-md);"
+              [value]="other"
+              (input)="other = $any($event.target).value"
+            />
+          }
+        </andes-radio>
+      </andes-radio-group>
+    `,
+  }),
+};
+
+/** Per-option `class` and `style` land on the generated `<andes-radio>` item. */
+export const OptionsWithClassAndStyle: Story = {
+  render: () => ({
+    props: {
+      options: [
+        { label: 'Low', value: 'low' },
+        { label: 'Medium', value: 'medium' },
+        {
+          label: 'Urgent',
+          value: 'urgent',
+          style: {
+            fontWeight: 600,
+            borderBottom: '2px solid var(--andes-color-danger)',
+          },
+        },
+      ],
+      priority: 'medium',
+    },
+    template: `
+      <andes-radio-group aria-label="Priority" orientation="horizontal" [options]="options" [(value)]="priority" />
+    `,
+  }),
+};
