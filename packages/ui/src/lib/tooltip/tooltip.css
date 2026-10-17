@@ -26,14 +26,16 @@
   position: relative;
   box-sizing: border-box;
   max-width: var(--andes-tooltip-max-width, 20rem);
-  padding-block: var(--andes-space-1);
-  padding-inline: var(--andes-space-2);
-  border-radius: var(--andes-radius-sm);
+  /* Ant's tooltip box: 6px 8px around a 14px/22px line (34px for one line),
+     6px corners. */
+  min-height: 2rem;
+  padding: 0.375rem var(--andes-space-2);
+  border-radius: var(--andes-radius-md);
   background-color: var(--andes-tooltip-background, var(--andes-color-popover));
   color: var(--andes-tooltip-foreground, var(--andes-color-popover-foreground));
   font-family: var(--andes-font-family), sans-serif;
-  font-size: 0.8125rem;
-  line-height: 1.4;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
   overflow-wrap: break-word;
   /* A drop-shadow rather than a box-shadow so the arrow is outlined too -
      otherwise a white arrow on a white page would simply vanish. */
@@ -41,7 +43,8 @@
   /* With `disableHoverablePopup` the tooltip lets the pointer pass
      straight through to whatever is beneath it. */
   pointer-events: none;
-  animation: andes-tooltip-in 0.1s ease-out;
+  animation: andes-tooltip-in var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
 /*
@@ -52,20 +55,25 @@
   pointer-events: auto;
 }
 
+/*
+ * Entry: a fade plus a 4px drift away from the trigger - the tooltip starts
+ * nudged towards the side it points at and settles into place. No scale, so the
+ * text does not resample while it appears, and nothing overshoots.
+ */
 .andes-tooltip[data-side='top'] {
-  transform-origin: bottom center;
+  --andes-tooltip-enter-from: 0 4px;
 }
 
 .andes-tooltip[data-side='bottom'] {
-  transform-origin: top center;
+  --andes-tooltip-enter-from: 0 -4px;
 }
 
 .andes-tooltip[data-side='left'] {
-  transform-origin: center right;
+  --andes-tooltip-enter-from: 4px 0;
 }
 
 .andes-tooltip[data-side='right'] {
-  transform-origin: center left;
+  --andes-tooltip-enter-from: -4px 0;
 }
 
 /* Semantic presets: each maps onto an existing token pair. */
@@ -162,11 +170,11 @@
 @keyframes andes-tooltip-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    translate: var(--andes-tooltip-enter-from, 0 4px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    translate: 0 0;
   }
 }
 
