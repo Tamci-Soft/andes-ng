@@ -238,8 +238,8 @@ const DIALOG_PRESET: Partial<AndesOverlayConfig> = {
  *   dialog opened from inside a drawer stacks above it.
  * - `popover` and `menu` move focus into the overlay (both are click-opened and
  *   contain interactive content, so keyboard users must be able to reach it) but do
- *   not trap it: the page behind stays usable and scrollable, matching Base UI's
- *   non-modal Popover default, and they leave the rest of the page readable by
+ *   not trap it: the page behind stays usable and scrollable, as with any non-modal
+ *   popover, and they leave the rest of the page readable by
  *   assistive tech. Consumers that render a close button inside and want modal
  *   semantics can flip `trapFocus` and `inertBackground` on together.
  * - `tooltip` moves nothing, traps nothing and restores nothing — it is a passive
