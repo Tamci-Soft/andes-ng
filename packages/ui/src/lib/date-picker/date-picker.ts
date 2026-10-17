@@ -891,7 +891,7 @@ export class AndesDatePicker implements ControlValueAccessor {
       }
       const value = this.currentValue();
       if (value !== null || !this.hasValue()) {
-        this.commit(value);
+        this.commitTyped(value);
         this.close();
       }
       return;
@@ -927,7 +927,7 @@ export class AndesDatePicker implements ControlValueAccessor {
     if (changed && !this.confirmRequired()) {
       const value = this.currentValue();
       if (!sameValue(value, this.committed())) {
-        this.commit(value);
+        this.commitTyped(value);
       }
     }
 
@@ -1260,6 +1260,19 @@ export class AndesDatePicker implements ControlValueAccessor {
     this.committed.set(value);
     this.onChange(value);
     this.valueChange.emit(value);
+  }
+
+  /**
+   * Commits the outcome of resolved typed text. Emptying the text down to no
+   * selection at all is a clear, so it emits `clear` like the clear button does;
+   * emptying only a range's end leaves the start and is not.
+   */
+  private commitTyped(value: AndesDatePickerValue): void {
+    const hadValue = this.committed() !== null;
+    this.commit(value);
+    if (hadValue && !this.hasValue()) {
+      this.clear.emit();
+    }
   }
 
   private draftFor(side: Side) {
