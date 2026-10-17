@@ -2,6 +2,7 @@ import { AndesOverlayContentPrimitive } from '@andes-ng/primitives';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   ViewEncapsulation,
 } from '@angular/core';
@@ -40,11 +41,28 @@ import { AndesDropdownMenuRoot } from './dropdown-menu-root';
   encapsulation: ViewEncapsulation.None,
   host: {
     class: 'andes-dropdown-menu__content',
-    '[attr.data-side]': 'root.placementSide()',
+    '[attr.data-side]': 'placement()?.side',
+    '[attr.data-align]': 'placement()?.align',
     '(pointerenter)': 'root.pointerEntered()',
     '(pointerleave)': 'root.pointerLeft()',
   },
 })
 export class AndesDropdownMenuContent {
   protected readonly root = inject(AndesDropdownMenuRoot);
+  private readonly overlay = inject(AndesOverlayContentPrimitive).overlay;
+
+  /**
+   * The requested side/alignment, so the entry motion can grow out of the trigger
+   * instead of always from the top edge. It is the configured placement, not the
+   * resolved one: a collision flip still grows from the requested edge.
+   */
+  protected readonly placement = computed(() => {
+    const { positioning } = this.overlay.config();
+    return positioning.kind === 'anchored'
+      ? {
+          side: positioning.side ?? 'bottom',
+          align: positioning.align ?? 'center',
+        }
+      : null;
+  });
 }

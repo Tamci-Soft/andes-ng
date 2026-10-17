@@ -1,12 +1,15 @@
 import { AndesListNavigationItem } from '@andes-ng/primitives';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   inject,
   input,
   output,
+  viewChild,
   ViewEncapsulation,
 } from '@angular/core';
 
@@ -24,6 +27,11 @@ export type AndesDropdownMenuItemVariant = 'default' | 'destructive';
  * `selectable`, to make it selectable - it then becomes a `menuitemradio` (or a
  * `menuitemcheckbox` when `multiple`) with `aria-checked`.
  *
+ * With `href` the item is a link: its content renders inside a real `<a>` (laid out
+ * as `display: contents`, so it adds no box and takes no focus of its own), and every
+ * activation goes through that anchor, so `target`, middle-click and modifier-click
+ * behave like any link while the row keeps its `menuitem` role and arrow-key focus.
+ *
  * See the class-level comment on `AndesDropdownMenuContent` for why this needs
  * `encapsulation: ViewEncapsulation.None`: its BEM class lives only in `host: {
  * class: ... }`, which emulated encapsulation's own-component-only scoping can never
@@ -37,10 +45,27 @@ export type AndesDropdownMenuItemVariant = 'default' | 'destructive';
       inputs: ['disabled', 'typeaheadLabel'],
     },
   ],
+  imports: [NgTemplateOutlet],
   template: `
-    <ng-content select="[slot=icon-start]" />
-    <ng-content />
-    <ng-content select="[slot=icon-end]" />
+    <ng-template #body>
+      <ng-content select="[slot=icon-start]" />
+      <ng-content />
+      <ng-content select="[slot=icon-end]" />
+    </ng-template>
+    @if (href(); as url) {
+      <a
+        #link
+        class="andes-dropdown-menu__link"
+        tabindex="-1"
+        [attr.href]="isDisabled() ? null : url"
+        [attr.target]="target() ?? null"
+        [attr.rel]="linkRel()"
+      >
+        <ng-container *ngTemplateOutlet="body" />
+      </a>
+    } @else {
+      <ng-container *ngTemplateOutlet="body" />
+    }
   `,
   styleUrl: './dropdown-menu.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +98,12 @@ export class AndesDropdownMenuItem {
         ? undefined
         : booleanAttribute(value),
   });
+  /** Makes the item a link to this URL. */
+  readonly href = input<string | undefined>(undefined);
+  /** Browsing context for `href`, e.g. `'_blank'`. */
+  readonly target = input<string | undefined>(undefined);
+  /** Link relationship. Defaults to `'noopener noreferrer'` with `target="_blank"`. */
+  readonly rel = input<string | undefined>(undefined);
   /** Emits when the item is activated by click, Enter or Space. */
   readonly activated = output<void>();
 
@@ -81,6 +112,12 @@ export class AndesDropdownMenuItem {
 
   private readonly root = inject(AndesDropdownMenuRoot);
   private readonly level = inject(AndesDropdownMenuLevel);
+  private readonly link = viewChild<ElementRef<HTMLAnchorElement>>('link');
+
+  protected readonly linkRel = computed(
+    () =>
+      this.rel() ?? (this.target() === '_blank' ? 'noopener noreferrer' : null),
+  );
 
   protected readonly isSelectable = computed(
     () => this.root.isSelectable() && this.key() !== undefined,
@@ -100,6 +137,18 @@ export class AndesDropdownMenuItem {
 
   protected activate(event: Event): void {
     if (this.isDisabled()) {
+      event.preventDefault();
+      return;
+    }
+    // A link item activates through its anchor, so the browser follows the link. A
+    // click on the row's padding (outside the anchor's content) is forwarded to it;
+    // the anchor's click then bubbles back here as the real activation.
+    const link = this.link()?.nativeElement;
+    if (
+      link &&
+      !(event.target instanceof Node && link.contains(event.target))
+    ) {
+      link.click();
       return;
     }
     this.activated.emit();
@@ -113,6 +162,7 @@ export class AndesDropdownMenuItem {
       event,
       closeOnSelect:
         this.closeOnSelect() ??
+        this.root.closeOnSelect() ??
         !(this.root.isSelectable() && this.root.isMultiple()),
     });
   }

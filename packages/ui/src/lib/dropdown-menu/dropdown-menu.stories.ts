@@ -1,6 +1,10 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideBookOpen,
   lucideChevronDown,
+  lucideExternalLink,
+  lucidePlus,
   lucideCopy,
   lucideLink,
   lucideMail,
@@ -27,6 +31,38 @@ import { AndesDropdownMenuRadioItem } from './dropdown-menu-radio-item';
 import { AndesDropdownMenuSeparator } from './dropdown-menu-separator';
 import { AndesDropdownMenuShortcut } from './dropdown-menu-shortcut';
 import { AndesDropdownMenuTrigger } from './dropdown-menu-trigger';
+
+/**
+ * Demo search field styled like the library's own fields: one focus indicator (primary
+ * border plus a soft 2px ring), never the browser's outline drawn as a second frame.
+ */
+const FIELD_STYLES = `
+  <style>
+    .sb-field-input {
+      box-sizing: border-box;
+      width: 100%;
+      height: 2rem;
+      padding: 0 0.6875rem;
+      border: 1px solid var(--andes-color-input);
+      border-radius: var(--andes-radius-md);
+      background-color: var(--andes-color-background);
+      color: var(--andes-color-foreground);
+      font: inherit;
+      line-height: 1.375rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    }
+    .sb-field-input::placeholder { color: var(--andes-color-muted-foreground); }
+    .sb-field-input:hover {
+      border-color: color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input));
+    }
+    .sb-field-input:focus {
+      border-color: var(--andes-color-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+      outline: none;
+    }
+  </style>
+`;
 
 const meta: Meta<AndesDropdownMenu> = {
   title: 'Dropdown Menu',
@@ -177,7 +213,7 @@ export const KeyboardNavigation: Story = {
     },
     template: `
       <div>
-        <p style="font: 0.875rem system-ui; color: var(--andes-color-muted-foreground); margin-bottom: 0.5rem;">
+        <p style="font: 0.875rem var(--andes-font-family), sans-serif; color: var(--andes-color-muted-foreground); margin-bottom: 0.5rem;">
           Open with Enter/Space/ArrowDown/ArrowUp, navigate with the arrow keys, type
           to jump to an item, Escape to close and return focus to the trigger.
         </p>
@@ -196,6 +232,9 @@ export const KeyboardNavigation: Story = {
 };
 
 const ICONS = provideIcons({
+  lucideBookOpen,
+  lucideExternalLink,
+  lucidePlus,
   lucideCopy,
   lucideLink,
   lucideMail,
@@ -206,7 +245,7 @@ const ICONS = provideIcons({
 });
 
 const NOTE =
-  'font: 0.8125rem system-ui; color: var(--andes-color-muted-foreground); margin: 0 0 0.75rem; max-width: 34rem;';
+  'font: 0.75rem var(--andes-font-family), sans-serif; color: var(--andes-color-muted-foreground); margin: 0 0 0.75rem; max-width: 34rem;';
 
 /**
  * Nested submenus. Hover a "…" row (after a 100ms intent delay), click it, or focus it
@@ -371,7 +410,7 @@ export const ContextMenu: Story = {
           andesDropdownMenuTrigger
           tabindex="0"
           aria-label="Canvas - right-click or press Shift+F10 for actions"
-          style="display: flex; align-items: center; justify-content: center; width: 22rem; height: 12rem; border: 2px dashed var(--andes-color-border); border-radius: var(--andes-radius-md); color: var(--andes-color-muted-foreground); font: 0.875rem system-ui;"
+          style="display: flex; align-items: center; justify-content: center; width: 22rem; height: 12rem; border: 2px dashed var(--andes-color-border); border-radius: var(--andes-radius-md); color: var(--andes-color-muted-foreground); font: 0.875rem var(--andes-font-family), sans-serif;"
         >
           Right-click anywhere here
         </div>
@@ -621,6 +660,275 @@ export const Disabled: Story = {
           <andes-dropdown-menu-item>Edit</andes-dropdown-menu-item>
         </andes-dropdown-menu-content>
       </andes-dropdown-menu>
+    `,
+  }),
+};
+
+/**
+ * Link items: `href` (plus `target`/`rel`) renders the row's content inside a real
+ * anchor, so the browser follows it - new-tab via `target="_blank"`, middle-click and
+ * Ctrl/Cmd-click included - while the row keeps its menu role and arrow-key focus.
+ */
+export const LinkItems: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [
+        NgIcon,
+        AndesButton,
+        AndesDropdownMenu,
+        AndesDropdownMenuTrigger,
+        AndesDropdownMenuContent,
+        AndesDropdownMenuItem,
+        AndesDropdownMenuSeparator,
+      ],
+      providers: [ICONS],
+    },
+    template: `
+      <div style="display: flex; gap: 1rem;">
+        <ng-template #bookIcon><ng-icon name="lucideBookOpen" /></ng-template>
+        <ng-template #externalIcon><ng-icon name="lucideExternalLink" /></ng-template>
+        <andes-dropdown-menu
+          [items]="[
+            { key: 'guide', label: 'Getting started', href: '#getting-started', icon: bookIcon },
+            { key: 'angular', label: 'Angular docs', href: 'https://angular.dev', target: '_blank', icon: externalIcon },
+            { key: 'old', label: 'Legacy docs (disabled)', href: '#legacy', disabled: true },
+          ]"
+        >
+          <andes-button andesDropdownMenuTrigger variant="outline">Help (items)</andes-button>
+        </andes-dropdown-menu>
+        <andes-dropdown-menu>
+          <andes-button andesDropdownMenuTrigger variant="outline">Help (projected)</andes-button>
+          <andes-dropdown-menu-content>
+            <andes-dropdown-menu-item href="#shortcuts">Keyboard shortcuts</andes-dropdown-menu-item>
+            <andes-dropdown-menu-separator />
+            <andes-dropdown-menu-item href="https://angular.dev" target="_blank">
+              Angular docs
+              <ng-icon slot="icon-end" name="lucideExternalLink" />
+            </andes-dropdown-menu-item>
+          </andes-dropdown-menu-content>
+        </andes-dropdown-menu>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `closeOnSelect`: `false` on the root keeps the menu open after any plain item is
+ * picked (each item can still override it), for running several actions in a row.
+ */
+export const StayOpenOnSelect: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [AndesButton, AndesDropdownMenu, AndesDropdownMenuTrigger],
+    },
+    props: { log: [] as string[] },
+    template: `
+      <div>
+        <p style="${NOTE}">Picked: <strong>{{ log.join(', ') || '-' }}</strong></p>
+        <andes-dropdown-menu
+          [closeOnSelect]="false"
+          (itemClick)="log = log.concat($event.key).slice(-5)"
+          [items]="[
+            { key: 'zoom-in', label: 'Zoom in', extra: '+' },
+            { key: 'zoom-out', label: 'Zoom out', extra: '-' },
+            { key: 'reset', label: 'Reset zoom' },
+            { type: 'divider' },
+            { key: 'done', label: 'Done', closeOnSelect: true },
+          ]"
+        >
+          <andes-button andesDropdownMenuTrigger variant="outline">View</andes-button>
+        </andes-dropdown-menu>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * `popupTemplate` wraps the menu in content of your own - here a filter field above
+ * it and an action below it - inside one popup surface. The template receives the menu
+ * as `$implicit` and a `close` function. Tab moves through field, menu and footer.
+ */
+export const CustomPopup: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [
+        NgIcon,
+        NgTemplateOutlet,
+        AndesButton,
+        AndesDropdownMenu,
+        AndesDropdownMenuTrigger,
+      ],
+      providers: [ICONS],
+    },
+    props: {
+      query: '',
+      last: '',
+      projects: [
+        { key: 'atlas', label: 'Atlas ERP' },
+        { key: 'billing', label: 'Billing' },
+        { key: 'crm', label: 'CRM' },
+        { key: 'inventory', label: 'Inventory' },
+        { key: 'payroll', label: 'Payroll' },
+      ],
+      filter: (
+        items: readonly { key: string; label: string }[],
+        query: string,
+      ) =>
+        items.filter((item) =>
+          item.label.toLowerCase().includes(query.trim().toLowerCase()),
+        ),
+    },
+    template: `${FIELD_STYLES}
+      <div>
+        <p style="${NOTE}">Last action: <strong>{{ last || '-' }}</strong></p>
+        <andes-dropdown-menu
+          [items]="filter(projects, query)"
+          [popupTemplate]="popup"
+          (itemClick)="last = $event.key"
+          (openStateChange)="query = ''"
+        >
+          <andes-button andesDropdownMenuTrigger variant="outline">Switch project</andes-button>
+        </andes-dropdown-menu>
+        <ng-template #popup let-menu let-close="close">
+          <div style="padding: var(--andes-space-2); border-bottom: 1px solid var(--andes-color-border);">
+            <input
+              aria-label="Filter projects"
+              placeholder="Filter projects…"
+              [value]="query"
+              (input)="query = $any($event.target).value"
+              class="sb-field-input"
+            />
+          </div>
+          <ng-container *ngTemplateOutlet="menu" />
+          <div style="padding: var(--andes-space-1); border-top: 1px solid var(--andes-color-border);">
+            <andes-button variant="ghost" size="sm" fullWidth (click)="last = 'new project'; close()">
+              <ng-icon slot="icon-start" name="lucidePlus" /> New project
+            </andes-button>
+          </div>
+        </ng-template>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * A long menu scrolls inside the panel. The cap is the
+ * `--andes-dropdown-menu-max-height` custom property (default 24rem, never taller than
+ * the viewport) - set it on the content, or from a stylesheet through `panelClass`.
+ */
+export const ScrollableMenu: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [
+        AndesButton,
+        AndesDropdownMenu,
+        AndesDropdownMenuTrigger,
+        AndesDropdownMenuContent,
+        AndesDropdownMenuItem,
+      ],
+    },
+    props: {
+      branches: Array.from({ length: 40 }, (_, index) => ({
+        key: `branch-${index + 1}`,
+        label: `Branch office ${index + 1}`,
+      })),
+    },
+    template: `
+      <div style="display: flex; gap: 1rem;">
+        <andes-dropdown-menu [items]="branches">
+          <andes-button andesDropdownMenuTrigger variant="outline">40 branches</andes-button>
+        </andes-dropdown-menu>
+        <andes-dropdown-menu>
+          <andes-button andesDropdownMenuTrigger variant="outline">Capped at 12rem</andes-button>
+          <andes-dropdown-menu-content style="--andes-dropdown-menu-max-height: 12rem">
+            @for (branch of branches; track branch.key) {
+              <andes-dropdown-menu-item [key]="branch.key">{{ branch.label }}</andes-dropdown-menu-item>
+            }
+          </andes-dropdown-menu-content>
+        </andes-dropdown-menu>
+      </div>
+    `,
+  }),
+};
+
+/**
+ * Submenu options: a custom `expandIcon` (its context is the open state),
+ * `triggerSubMenuAction="click"`, a per-submenu `popupOffset` and
+ * `(submenuTriggerClick)` for the trigger rows themselves.
+ */
+export const SubmenuOptions: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [AndesButton, AndesDropdownMenu, AndesDropdownMenuTrigger],
+    },
+    props: { last: '' },
+    template: `
+      <div>
+        <p style="${NOTE}">Last event: <strong>{{ last || '-' }}</strong></p>
+        <ng-template #expand let-open>
+          <span style="display: inline-block; width: 1em; text-align: center;">{{ open ? '−' : '+' }}</span>
+        </ng-template>
+        <andes-dropdown-menu
+          triggerSubMenuAction="click"
+          [expandIcon]="expand"
+          (submenuTriggerClick)="last = 'opened ' + $event.key"
+          (itemClick)="last = 'clicked ' + $event.keyPath.join(' < ')"
+          [items]="[
+            { key: 'new', label: 'New document' },
+            { key: 'templates', label: 'From template', children: [
+              { key: 'invoice', label: 'Invoice' },
+              { key: 'quote', label: 'Quote' },
+            ] },
+            { key: 'import', label: 'Import (offset 8, 8)', popupOffset: [8, 8], children: [
+              { key: 'csv', label: 'CSV' },
+              { key: 'xlsx', label: 'Excel' },
+            ] },
+          ]"
+        >
+          <andes-button andesDropdownMenuTrigger variant="outline">Create</andes-button>
+        </andes-dropdown-menu>
+      </div>
+    `,
+  }),
+};
+
+/** `AndesDropdownButton` sizes, `loading` (with `loadingDelay`/`loadingIcon`), a custom caret `icon` and `trigger="hover"`. */
+export const DropdownButtonStates: Story = {
+  render: () => ({
+    moduleMetadata: {
+      imports: [NgIcon, AndesDropdownButton],
+      providers: [ICONS],
+    },
+    props: {
+      loading: false,
+      items: [
+        { key: 'draft', label: 'Save as draft' },
+        { key: 'template', label: 'Save as template' },
+      ],
+    },
+    template: `
+      <ng-template #moreIcon><ng-icon name="lucidePlus" /></ng-template>
+      <ng-template #dots><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 1em; height: 1em;"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg></ng-template>
+      <div style="display: grid; gap: 1rem; justify-items: start;">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <andes-dropdown-button size="sm" [items]="items">Small</andes-dropdown-button>
+          <andes-dropdown-button [items]="items">Medium</andes-dropdown-button>
+          <andes-dropdown-button size="lg" [items]="items">Large</andes-dropdown-button>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <andes-dropdown-button
+            variant="primary"
+            [loading]="loading"
+            [items]="items"
+            (buttonClick)="loading = !loading"
+          >
+            {{ loading ? 'Saving… (click to stop)' : 'Save (click me)' }}
+          </andes-dropdown-button>
+          <andes-dropdown-button loading [loadingDelay]="1000" [items]="items">Spinner after 1s</andes-dropdown-button>
+          <andes-dropdown-button loading [loadingIcon]="dots" [items]="items">Custom loading icon</andes-dropdown-button>
+          <andes-dropdown-button [icon]="moreIcon" trigger="hover" [items]="items">Hover, custom caret</andes-dropdown-button>
+        </div>
+      </div>
     `,
   }),
 };

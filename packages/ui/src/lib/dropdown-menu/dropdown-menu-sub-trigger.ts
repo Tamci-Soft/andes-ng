@@ -66,7 +66,7 @@ import { AndesDropdownMenuLevel } from './dropdown-menu-types';
     role: 'menuitem',
     class: 'andes-dropdown-menu__item andes-dropdown-menu__sub-trigger',
     '[attr.aria-disabled]': 'isDisabled() || null',
-    '(click)': 'onClick()',
+    '(click)': 'onClick($event)',
     '(keydown)': 'onKeydown($event)',
     '(pointerenter)': 'onPointerEnter($event)',
     '(pointerleave)': 'onPointerLeave($event)',
@@ -89,10 +89,15 @@ export class AndesDropdownMenuSubTrigger {
     });
   }
 
-  protected onClick(): void {
+  protected onClick(event: MouseEvent): void {
     if (this.isDisabled()) {
       return;
     }
+    this.root.submenuTriggerClicked({
+      key: this.sub.key(),
+      keyPath: this.sub.keyPath(),
+      event,
+    });
     if (this.root.triggerSubMenuAction() === 'click' && this.sub.isOpen()) {
       this.sub.close(false);
     } else {

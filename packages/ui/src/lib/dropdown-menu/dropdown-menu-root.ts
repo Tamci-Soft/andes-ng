@@ -1,7 +1,10 @@
 import type { AndesOverlaySide } from '@andes-ng/primitives';
 import type { Signal, TemplateRef } from '@angular/core';
 
-import type { AndesDropdownMenuOpenChangeSource } from './dropdown-menu-types';
+import type {
+  AndesDropdownMenuOpenChangeSource,
+  AndesDropdownMenuSubmenuClickEvent,
+} from './dropdown-menu-types';
 
 /** What activating an item reports to the root. */
 export interface AndesDropdownMenuActivation {
@@ -38,11 +41,17 @@ export abstract class AndesDropdownMenuRoot {
   abstract readonly subMenuOpenDelay: Signal<number>;
   /** Grace period before a submenu closes once the pointer moves elsewhere, in ms. */
   abstract readonly subMenuCloseDelay: Signal<number>;
+  /** Menu-wide default for whether activating a plain item closes the menu. */
+  abstract readonly closeOnSelect: Signal<boolean | undefined>;
 
   /** Whether `key` is currently selected. */
   abstract isKeySelected(key: string): boolean;
   /** Called by every activatable item. Emits the click/select events and closes if asked. */
   abstract activateItem(activation: AndesDropdownMenuActivation): void;
+  /** Called by a submenu trigger row on click. */
+  abstract submenuTriggerClicked(
+    click: AndesDropdownMenuSubmenuClickEvent,
+  ): void;
   /** Closes the menu (and every open submenu). */
   abstract hide(source: AndesDropdownMenuOpenChangeSource): void;
   /** The pointer entered the trigger or any of the menu's panels. */

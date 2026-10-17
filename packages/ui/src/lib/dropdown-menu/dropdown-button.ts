@@ -7,6 +7,7 @@ import {
   computed,
   forwardRef,
   input,
+  numberAttribute,
   output,
   TemplateRef,
   ViewEncapsulation,
@@ -77,6 +78,8 @@ const CARET_SIZES: Readonly<Record<AndesButtonSize, AndesButtonSize>> = {
       [size]="size()"
       [disabled]="isDisabled()"
       [loading]="loading()"
+      [loadingDelay]="loadingDelay()"
+      [loadingIcon]="loadingIcon()"
       (click)="onMainClick($event)"
     >
       <ng-content />
@@ -105,13 +108,28 @@ const CARET_SIZES: Readonly<Record<AndesButtonSize, AndesButtonSize>> = {
         </svg>
       }
     </andes-button>
-    <ng-template #contentTemplate>
+    <ng-template #menuTemplate>
       @if (items(); as menuItems) {
         <andes-dropdown-menu-content>
           <andes-dropdown-menu-items [items]="menuItems" />
         </andes-dropdown-menu-content>
       } @else {
         <ng-content select="andes-dropdown-menu-content" />
+      }
+    </ng-template>
+    <ng-template #contentTemplate>
+      @if (popupTemplate(); as popup) {
+        <div
+          class="andes-dropdown-menu__popup"
+          [attr.data-side]="requestedPlacement().side"
+          [attr.data-align]="requestedPlacement().align"
+          (pointerover)="pointerEntered()"
+          (pointerleave)="pointerLeft()"
+        >
+          <ng-container *ngTemplateOutlet="popup; context: popupContext()" />
+        </div>
+      } @else {
+        <ng-container *ngTemplateOutlet="menuTemplate" />
       }
       @if (arrowEnabled()) {
         <span class="andes-dropdown-menu__arrow" aria-hidden="true"></span>
@@ -149,6 +167,10 @@ export class AndesDropdownButton extends AndesDropdownMenu {
   readonly size = input<AndesButtonSize>('md');
   /** Shows the main button's loading state (the caret stays usable). */
   readonly loading = input(false, { transform: booleanAttribute });
+  /** Milliseconds `loading` must stay on before the spinner shows. Default `0`. */
+  readonly loadingDelay = input(0, { transform: numberAttribute });
+  /** Replaces the main button's loading spinner. */
+  readonly loadingIcon = input<TemplateRef<unknown> | undefined>(undefined);
   /** Replaces the caret's chevron. */
   readonly icon = input<TemplateRef<unknown> | undefined>(undefined);
   /** Accessible name of the icon-only caret button. Default `'More actions'`. */

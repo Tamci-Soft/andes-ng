@@ -29,7 +29,9 @@ export type {
   AndesDropdownMenuOpenChange,
   AndesDropdownMenuOpenChangeSource,
   AndesDropdownMenuPlacement,
+  AndesDropdownMenuPopupContext,
   AndesDropdownMenuSelectEvent,
+  AndesDropdownMenuSubmenuClickEvent,
   AndesDropdownMenuSubmenuOption,
   AndesDropdownMenuTriggerAction,
 } from './lib/dropdown-menu/dropdown-menu-types';
