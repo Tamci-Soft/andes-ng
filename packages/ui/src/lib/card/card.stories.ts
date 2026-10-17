@@ -132,6 +132,10 @@ export const HeaderWithAction: Story = {
   }),
 };
 
+/**
+ * `level` sets the heading element (`h2`-`h6`) for the page outline only - every level renders
+ * at the same 16px medium title size.
+ */
 export const HeadingLevels: Story = {
   render: () => ({
     template: `
@@ -139,14 +143,22 @@ export const HeadingLevels: Story = {
         <andes-card>
           <andes-card-header>
             <andes-card-title [level]="2">Section heading (h2)</andes-card-title>
-            <andes-card-description>Use a lower level when a card is a page's main section.</andes-card-description>
+            <andes-card-description>For a card that is a page's main section.</andes-card-description>
           </andes-card-header>
+          <andes-card-content><p style="margin: 0;">Same size as every other level.</p></andes-card-content>
         </andes-card>
         <andes-card>
           <andes-card-header>
             <andes-card-title>Default heading (h3)</andes-card-title>
             <andes-card-description>The default level fits most nested-card usage.</andes-card-description>
           </andes-card-header>
+          <andes-card-content><p style="margin: 0;">Same size as every other level.</p></andes-card-content>
+        </andes-card>
+        <andes-card>
+          <andes-card-header>
+            <andes-card-title [level]="5">Deeply nested heading (h5)</andes-card-title>
+          </andes-card-header>
+          <andes-card-content><p style="margin: 0;">Same size as every other level.</p></andes-card-content>
         </andes-card>
       </div>
     `,

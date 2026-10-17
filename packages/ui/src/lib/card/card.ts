@@ -181,6 +181,7 @@ export class AndesCardDescription {}
     'data-slot': 'card-header',
     '[class.andes-card__header--inner]': "card?.type() === 'inner'",
     '[class.andes-card__header--described]': '!!description()',
+    '[class.andes-card__header--tabbed]': '!!card?.hasTabs()',
   },
   template: `
     <ng-content />
