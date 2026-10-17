@@ -48,6 +48,17 @@
   font-weight: var(--andes-font-weight-medium);
 }
 
+/* Muted secondary text in an option template drops below 4.5:1 on these tinted rows (4:1
+   on the selected tint). Re-scoping the token reaches consumer markup too; `currentColor`
+   resolves where a descendant uses it in `color`, i.e. to this row's own text color. */
+.andes-select__option:is([data-active], [data-selected], :focus-visible) {
+  --andes-color-muted-foreground: color-mix(
+    in srgb,
+    currentcolor 70%,
+    transparent
+  );
+}
+
 .andes-select__option[data-disabled] {
   cursor: not-allowed;
   opacity: 0.5;
