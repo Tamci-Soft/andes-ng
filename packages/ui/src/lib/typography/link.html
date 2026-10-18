@@ -1,0 +1,31 @@
+<andes-text
+  [type]="type()"
+  [size]="size()"
+  [disabled]="disabled()"
+  [ellipsis]="ellipsis()"
+  [(expanded)]="expanded"
+  [copyable]="copyable()"
+  (copied)="copied.emit($event)"
+  (truncated)="truncated.emit($event)"
+>
+  <a
+    class="andes-link"
+    [attr.href]="disabled() ? null : href()"
+    [attr.target]="resolvedTarget()"
+    [attr.rel]="resolvedRel()"
+    [attr.download]="resolvedDownload()"
+    [attr.role]="disabled() ? 'link' : null"
+    [attr.aria-disabled]="disabled() || null"
+    (click)="onClick($event)"
+    ><ng-content />@if (external()) {<svg
+      class="andes-link__external"
+      viewBox="0 0 24 24"
+      role="img"
+      [attr.aria-label]="externalLabel()"
+    >
+      <path d="M7 17 17 7" />
+      <path d="M8 7h9v9" />
+    </svg>
+    }</a
+  >
+</andes-text>
