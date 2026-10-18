@@ -177,10 +177,6 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
-        with:
-          runtime: node@22
-
       - name: Install the packages in an empty project and check they resolve together
         env:
           CANDIDATE: ${{ needs.prepare.outputs.candidate }}
