@@ -29,4 +29,3 @@ export type {
   AndesListOrientation,
   AndesListTextDirection,
 } from './lib/listbox/list-navigation-types';
-export * from './lib/overlay';
