@@ -123,7 +123,7 @@ export * from './lib/button';
 
 // @slot spinner
 
-// @slot splitter
+export * from './lib/splitter';
 
 // @slot statistic
 
