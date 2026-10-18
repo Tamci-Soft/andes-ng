@@ -1,5 +1,20 @@
 export { AndesButtonPrimitive } from './lib/button-primitive';
 export {
+  ANDES_CHOICE_ROLE_MAPPINGS,
+  AndesChoiceGroup,
+  AndesChoiceItem,
+} from './lib/choice-group';
+export type {
+  AndesChoiceDataState,
+  AndesChoiceGroupRole,
+  AndesChoiceItemRef,
+  AndesChoiceItemRole,
+  AndesChoiceMode,
+  AndesChoiceRoleMapping,
+  AndesChoiceStateAttribute,
+  AndesChoiceValue,
+} from './lib/choice-group';
+export {
   ANDES_LIST_TYPEAHEAD_DEBOUNCE,
   AndesListNavigation,
 } from './lib/listbox/list-navigation';
