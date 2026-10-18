@@ -83,7 +83,7 @@ export * from './lib/button';
 
 // @slot mentions
 
-// @slot menu
+export * from './lib/menu';
 
 // @slot menubar
 
