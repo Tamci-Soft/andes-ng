@@ -39,7 +39,7 @@ export * from './lib/button';
 
 // @slot combobox
 
-// @slot command
+export * from './lib/command';
 
 // @slot context-menu
 
