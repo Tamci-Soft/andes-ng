@@ -97,7 +97,7 @@ export * from './lib/button';
 
 // @slot popover
 
-// @slot progress
+export * from './lib/progress';
 
 // @slot qr-code
 
