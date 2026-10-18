@@ -23,7 +23,7 @@ export * from './lib/accordion';
 
 export * from './lib/button';
 
-// @slot calendar
+export * from './lib/calendar';
 
 // @slot card
 
@@ -43,7 +43,7 @@ export * from './lib/button';
 
 // @slot context-menu
 
-// @slot date-picker
+export * from './lib/date-picker';
 
 // @slot descriptions
 
