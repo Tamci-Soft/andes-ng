@@ -62,8 +62,8 @@
 }
 
 /* The panel lives in the top layer, so it inherits nothing useful from the header
-   cell's typography - every text property is set explicitly here. Sizes follow Ant
-   Design's filter dropdown: 120px minimum, 6px radius, its layered popup shadow. */
+   cell's typography - every text property is set explicitly here. Sizes: 120px minimum,
+   6px radius, a layered popup shadow. */
 .andes-table-filter__panel {
   position: fixed;
   inset: auto;

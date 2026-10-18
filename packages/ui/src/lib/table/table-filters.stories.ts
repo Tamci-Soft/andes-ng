@@ -183,7 +183,7 @@ class FilterSorterDemo {
     row: Person,
   ) => startsWith(value, row.address);
 
-  // Ant's `defaultSortOrder: 'descend'` on Age.
+  // Sorted by Age, descending, from the start.
   readonly sort = signal<AndesSortState | null>({
     columnId: 'age',
     direction: 'desc',
@@ -515,7 +515,7 @@ class FilterPanelDemo {
       }));
   }
 
-  /** Focus the panel's input once it is open, like Ant's example does. */
+  /** Focus the panel's input once it is open. */
   protected focusSearch(): void {
     requestAnimationFrame(() =>
       document
