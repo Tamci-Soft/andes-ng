@@ -33,7 +33,7 @@ export * from './lib/button';
 
 // @slot checkbox
 
-// @slot collapsible
+export * from './lib/collapsible';
 
 // @slot color-picker
 
