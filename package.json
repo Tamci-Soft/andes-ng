@@ -19,6 +19,7 @@
     "release:changelog": "nx release changelog",
     "release:publish": "nx release publish",
     "release:version": "nx release version",
+    "release:prepare": ".github/scripts/release-prepare.sh",
     "storybook": "nx storybook ui",
     "test": "nx run-many -t test"
   },

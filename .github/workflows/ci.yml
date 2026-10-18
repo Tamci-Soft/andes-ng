@@ -3,14 +3,21 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'release/**', 'hotfix/**']
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  verify:
+  quality:
+    name: Format, lint and test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -26,7 +33,43 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
-      - run: pnpm lint
-      - run: pnpm test
+      - name: Lint and test
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            pnpm exec nx affected -t lint test --parallel=3
+          else
+            pnpm lint
+            pnpm test
+          fi
+
+  build:
+    name: Build packages and Storybook
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
+
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+          cache: true
+
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm build:storybook
+
+  verify:
+    name: verify
+    needs: [quality, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "format, lint, tests, packages and Storybook are green"

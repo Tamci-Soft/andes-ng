@@ -50,4 +50,4 @@ Create an ADR under `docs/adr` for decisions that affect package boundaries, the
 
 ## Releases
 
-The three npm packages version independently through Nx Release version plans. Add a version plan with `pnpm nx release plan` for any publishable change. Publishing remains disabled until the `andes-ng` npm organization and trusted publisher are configured.
+The four npm packages (`tokens`, `primitives`, `ui`, `testing`) share one version and are published to the public npm registry under `@andes-ng`. Add a version plan with `pnpm nx release plan` to any publishable change. To release: create `release/X.Y.Z`, run `pnpm release:prepare`, push; release candidates are published automatically and the final version ships when the release pull request merges into `main`. The full guide, the settings and the decisions are in [docs/releasing.md](../docs/releasing.md).

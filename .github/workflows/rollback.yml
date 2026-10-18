@@ -1,0 +1,48 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Released version that should be `latest` again, X.Y.Z
+        type: string
+        required: true
+      deprecate:
+        description: Version to deprecate with a pointer to the rollback (leave empty to keep it installable)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Move latest
+    if: vars.ENABLE_ANDES_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: npm
+      url: https://www.npmjs.com/org/andes-ng
+    steps:
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+
+      - name: Move the dist-tag
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          DEPRECATE: ${{ inputs.deprecate }}
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must be X.Y.Z"; exit 1; }
+          printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > "$RUNNER_TEMP/.npmrc"
+          export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/.npmrc"
+          for p in tokens primitives ui testing; do
+            npm view "@andes-ng/$p@$VERSION" version >/dev/null
+            npm dist-tag add "@andes-ng/$p@$VERSION" latest
+            echo "@andes-ng/$p: latest → $VERSION" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$DEPRECATE" ]; then
+              npm deprecate "@andes-ng/$p@$DEPRECATE" "Rolled back to $VERSION; upgrade to the next patch release."
+            fi
+          done
