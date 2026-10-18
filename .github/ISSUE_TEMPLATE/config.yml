@@ -2,7 +2,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security or secret exposure
-    url: https://github.com/Tamci-Soft/andes-ng/blob/main/.github/SECURITY.md
+    url: https://github.com/andes-ng/andes/blob/main/.github/SECURITY.md
     about: For security issues, follow SECURITY.md — do not open a public Issue.
   - name: General questions
     url: mailto:jhosepmyrgutierrezsoto@gmail.com
