@@ -1,5 +1,6 @@
 export { AndesButtonPrimitive } from './lib/button-primitive';
 export * from './lib/viewport';
+export * from './lib/form-control';
 export * from './lib/selection-model';
 export * from './lib/overlay';
 export {
