@@ -216,7 +216,7 @@
     [data-disabled]
   ) {
   background-color: var(--andes-color-ghost);
-  color: var(--andes-color-secondary-foreground);
+  color: var(--andes-color-ghost-foreground);
 }
 
 .andes-button--ghost-mode.andes-button--danger {

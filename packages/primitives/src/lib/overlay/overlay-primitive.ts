@@ -30,13 +30,19 @@ import { Subject, Subscription, type Observable } from 'rxjs';
 import {
   andesOverlayZIndex,
   ANDES_OVERLAY_BACKDROP_CLASS,
+  ANDES_OVERLAY_CLOSING_ATTRIBUTE,
   ANDES_OVERLAY_DEFAULT_CONFIG,
+  ANDES_OVERLAY_EXIT_TIMEOUT_MS,
   ANDES_OVERLAY_PANE_CLASS,
   ANDES_OVERLAY_SCRIM,
   type AndesOverlayCloseReason,
   type AndesOverlayConfig,
   type AndesOverlayContent,
 } from './overlay-config';
+import {
+  AndesOverlayInertRegistry,
+  type AndesOverlayInertHandle,
+} from './overlay-inert';
 import {
   andesImpliedSize,
   createAndesPositionStrategy,
@@ -70,6 +76,31 @@ function toElement(
     return null;
   }
   return value instanceof ElementRef ? value.nativeElement : value;
+}
+
+/** A close that has been requested but whose pane is not detached yet. */
+interface AndesOverlayPendingExit {
+  readonly reason: AndesOverlayCloseReason;
+  readonly restoreFocus: boolean;
+  /** Elements carrying the closing attribute, to clear if the close is cancelled. */
+  readonly marked: Element[];
+  /** Inline `pointer-events` values overridden for the exit, to put back. */
+  readonly pointerEvents: Map<HTMLElement, string>;
+  readonly subscription: Subscription;
+  timer: ReturnType<typeof setTimeout> | null;
+}
+
+/**
+ * Only animations that will actually end are worth waiting for: one that already
+ * finished (an enter animation held by `fill-mode`), was cancelled, or loops
+ * forever (a spinner inside a dialog) would only ever run into the timeout.
+ */
+function isSettling(animation: Animation): boolean {
+  if (animation.playState !== 'running') {
+    return false;
+  }
+  const endTime = animation.effect?.getComputedTiming().endTime;
+  return typeof endTime === 'number' && Number.isFinite(endTime);
 }
 
 function toClassList(
@@ -131,12 +162,29 @@ function toClassList(
  * ordering is by call time). `z-index` comes from `--andes-z-index-*` per layer, so
  * a Popover opened from inside a Dialog stacks above it without either component
  * hard-coding a number.
+ *
+ * ## Modality
+ *
+ * A modal overlay needs three separate things, and `aria-modal` is only the weakest
+ * of them: `trapFocus` for Tab, `ariaModal` as a hint, and `inertBackground` to
+ * actually mark every other body child `inert` so a screen reader's browse mode
+ * cannot walk into the page behind it. The modal presets turn on all three.
+ *
+ * ## Exit animations
+ *
+ * `close()` does not always detach at once. It sets
+ * {@link ANDES_OVERLAY_CLOSING_ATTRIBUTE} on the pane, its direct element children
+ * and the backdrop, and detaches once the animations that starts have finished
+ * (capped at {@link ANDES_OVERLAY_EXIT_TIMEOUT_MS}). With no exit animation, with
+ * reduced motion, or where the browser cannot report animations, the close is
+ * synchronous. `isOpen()` turns `false` immediately either way.
  */
 @Injectable()
 export class AndesOverlayPrimitive {
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);
   private readonly focusTrapFactory = inject(ConfigurableFocusTrapFactory);
+  private readonly inertRegistry = inject(AndesOverlayInertRegistry);
   private readonly hostViewContainerRef = inject(ViewContainerRef, {
     optional: true,
   });
@@ -149,19 +197,29 @@ export class AndesOverlayPrimitive {
   private readonly _panelElement = signal<HTMLElement | null>(null);
   private readonly _backdropElement = signal<HTMLElement | null>(null);
   private readonly _contentElement = signal<HTMLElement | null>(null);
+  private readonly _isBackgroundInert = signal(false);
 
   /** The resolved behavior configuration. */
   readonly config = this._config.asReadonly();
-  /** Whether the overlay is currently attached. */
+  /**
+   * Whether the overlay is open. Turns `false` as soon as a close is requested,
+   * even while the pane is still attached playing its exit animation.
+   */
   readonly isOpen = this._isOpen.asReadonly();
   /** The registered trigger element, if any. */
   readonly anchor = this._anchor.asReadonly();
-  /** The CDK overlay pane, while open. */
+  /** The CDK overlay pane, while attached (including during its exit animation). */
   readonly panelElement = this._panelElement.asReadonly();
   /** The backdrop scrim, while open and if the config renders one. */
   readonly backdropElement = this._backdropElement.asReadonly();
   /** The element carrying `andesOverlayContent`, while open. */
   readonly contentElement = this._contentElement.asReadonly();
+  /**
+   * Whether this overlay currently holds the page's background inert. False for a
+   * non-modal overlay, and false again as soon as it closes — even if an outer
+   * overlay still keeps the background inert for its own sake.
+   */
+  readonly isBackgroundInert = this._isBackgroundInert.asReadonly();
 
   /**
    * Stable id shared by the trigger's `aria-controls`/`aria-describedby` and the
@@ -176,7 +234,10 @@ export class AndesOverlayPrimitive {
 
   /** Emits after the overlay has been attached. */
   readonly opened: Observable<void> = this._opened.asObservable();
-  /** Emits the reason after the overlay has been detached. */
+  /**
+   * Emits the reason after the overlay has been detached — after its exit
+   * animation, if it has one. Not emitted for a close cancelled by re-opening.
+   */
   readonly closed: Observable<AndesOverlayCloseReason> =
     this._closed.asObservable();
   /**
@@ -191,14 +252,20 @@ export class AndesOverlayPrimitive {
 
   private overlayRef: OverlayRef | null = null;
   private focusTrap: ConfigurableFocusTrap | null = null;
+  private inertHandle: AndesOverlayInertHandle | null = null;
   private focusOrigin: HTMLElement | null = null;
   private explicitRestoreTarget: HTMLElement | null = null;
   private openSubscriptions = new Subscription();
-  private isClosing = false;
+  private pendingExit: AndesOverlayPendingExit | null = null;
+  private attachedContent: AndesOverlayContent<unknown> | null = null;
+  private attachedContext: unknown = undefined;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => {
-      this.close('destroyed');
+      // No exit animation for a host that is going away: detach now, including
+      // an overlay that was already part-way through closing.
+      this.beginClose('destroyed', false);
+      this.completeClose();
       this._opened.complete();
       this._closed.complete();
       this._keydown.complete();
@@ -213,9 +280,9 @@ export class AndesOverlayPrimitive {
    *
    * While the overlay is open, `positioning`, `size` and `layer` are re-applied
    * immediately. The structural flags (`hasBackdrop`, `trapFocus`, `lockScroll`,
-   * `autoFocus`) take effect on the next `open()`; the dismissal flags
-   * (`closeOnEscape`, `closeOnOutsideClick`) are read at event time and so apply
-   * immediately.
+   * `inertBackground`, `autoFocus`) take effect on the next `open()`; the
+   * dismissal flags (`closeOnEscape`, `closeOnOutsideClick`) are read at event
+   * time and so apply immediately.
    */
   configure(patch: Partial<AndesOverlayConfig>): void {
     this._config.update((current) => ({ ...current, ...patch }));
@@ -254,13 +321,31 @@ export class AndesOverlayPrimitive {
     this._contentElement.set(toElement(element));
   }
 
-  /** Opens the overlay with the given content. A no-op if already open. */
+  /**
+   * Opens the overlay with the given content. A no-op if already open.
+   *
+   * Called while the overlay is still playing its exit animation with the same
+   * content and context, it cancels the close and keeps the same pane, so the
+   * panel does not flicker; with different content the old pane is detached first.
+   */
   open<C>(
     content: AndesOverlayContent<C>,
     options: AndesOverlayOpenOptions<C> = {},
   ): void {
     if (this._isOpen()) {
       return;
+    }
+
+    if (this.pendingExit) {
+      if (
+        this.overlayRef &&
+        content === this.attachedContent &&
+        options.context === this.attachedContext
+      ) {
+        this.cancelExit(this.overlayRef, this.pendingExit, options);
+        return;
+      }
+      this.completeClose();
     }
 
     const config = this._config();
@@ -300,50 +385,28 @@ export class AndesOverlayPrimitive {
       ...toClassList(config.panelClass),
     ]);
     this.styleBackdrop(ref, config);
+    this.attachedContent = content;
+    this.attachedContext = options.context;
     this._panelElement.set(ref.overlayElement);
     this._backdropElement.set(ref.backdropElement);
     this._isOpen.set(true);
 
+    this.applyInertBackground(ref, config);
     this.wireDismissal(ref);
     this.installFocusManagement(ref, config);
 
     this._opened.next();
   }
 
-  /** Closes the overlay. A no-op if already closed. */
+  /**
+   * Closes the overlay. A no-op if already closed or closing.
+   *
+   * `isOpen()` turns `false` at once. If the closing attribute starts an exit
+   * animation, the pane stays attached until it ends; focus restoration and the
+   * `closed` emission follow the detach.
+   */
   close(reason: AndesOverlayCloseReason = 'imperative'): void {
-    if (!this._isOpen() || this.isClosing) {
-      return;
-    }
-    this.isClosing = true;
-
-    try {
-      const config = this._config();
-
-      this.openSubscriptions.unsubscribe();
-      this.openSubscriptions = new Subscription();
-
-      this.focusTrap?.destroy();
-      this.focusTrap = null;
-
-      this.overlayRef?.dispose();
-      this.overlayRef = null;
-
-      this._panelElement.set(null);
-      this._backdropElement.set(null);
-      this._contentElement.set(null);
-      this._isOpen.set(false);
-
-      if (config.restoreFocus) {
-        this.restoreFocus();
-      }
-      this.focusOrigin = null;
-      this.explicitRestoreTarget = null;
-
-      this._closed.next(reason);
-    } finally {
-      this.isClosing = false;
-    }
+    this.beginClose(reason, true);
   }
 
   /** Opens the overlay if closed, closes it if open. */
@@ -369,6 +432,195 @@ export class AndesOverlayPrimitive {
    */
   focusFirstTabbable(): void {
     this.focusTrap?.focusFirstTabbableElementWhenReady();
+  }
+
+  private beginClose(reason: AndesOverlayCloseReason, animate: boolean): void {
+    if (!this._isOpen()) {
+      return;
+    }
+    this._isOpen.set(false);
+
+    this.openSubscriptions.unsubscribe();
+    this.openSubscriptions = new Subscription();
+
+    // Before restoring focus: an element inside an inert subtree cannot be
+    // focused, so releasing late would silently drop focus on `document.body`.
+    // Released at once rather than after the exit, so the page responds while
+    // the overlay fades out.
+    this.releaseInertBackground();
+
+    this.focusTrap?.destroy();
+    this.focusTrap = null;
+
+    const exit: AndesOverlayPendingExit = {
+      reason,
+      restoreFocus: this._config().restoreFocus,
+      marked: [],
+      pointerEvents: new Map(),
+      subscription: new Subscription(),
+      timer: null,
+    };
+    this.pendingExit = exit;
+
+    const ref = this.overlayRef;
+    const running = ref && animate ? this.startExit(ref, exit) : [];
+    if (!ref || running.length === 0) {
+      this.completeClose();
+      return;
+    }
+
+    const settle = () => {
+      if (this.pendingExit === exit) {
+        this.completeClose();
+      }
+    };
+    // Something else detaching the overlay mid-exit (navigation, the content
+    // view being destroyed) ends the wait.
+    exit.subscription.add(ref.detachments().subscribe(settle));
+    exit.timer = setTimeout(settle, ANDES_OVERLAY_EXIT_TIMEOUT_MS);
+    void Promise.allSettled(
+      running.map((animation) => animation.finished),
+    ).then(settle);
+  }
+
+  /**
+   * Marks the pane, its direct element children and the backdrop as closing and
+   * returns the animations that marking started. Nothing is marked when the exit
+   * would be skipped anyway: reduced motion, or no `getAnimations` (SSR, jsdom).
+   */
+  private startExit(
+    ref: OverlayRef,
+    exit: AndesOverlayPendingExit,
+  ): Animation[] {
+    const pane = ref.overlayElement;
+    const backdrop = ref.backdropElement;
+    if (
+      typeof pane.getAnimations !== 'function' ||
+      this.prefersReducedMotion()
+    ) {
+      return [];
+    }
+
+    const targets: Element[] = [pane, ...Array.from(pane.children)];
+    if (backdrop) {
+      targets.push(backdrop);
+    }
+    for (const target of targets) {
+      target.setAttribute(ANDES_OVERLAY_CLOSING_ATTRIBUTE, '');
+      exit.marked.push(target);
+    }
+    for (const element of [pane, backdrop]) {
+      if (element) {
+        exit.pointerEvents.set(
+          element,
+          element.style.getPropertyValue('pointer-events'),
+        );
+        element.style.setProperty('pointer-events', 'none');
+      }
+    }
+
+    // `getAnimations()` flushes pending style changes, so animations and
+    // transitions the attribute just triggered are already reported here.
+    const animations = [
+      ...pane.getAnimations({ subtree: true }),
+      ...(backdrop?.getAnimations() ?? []),
+    ];
+    return animations.filter(isSettling);
+  }
+
+  /** Re-opening during the exit: undo the close on the pane that is still there. */
+  private cancelExit<C>(
+    ref: OverlayRef,
+    exit: AndesOverlayPendingExit,
+    options: AndesOverlayOpenOptions<C>,
+  ): void {
+    this.pendingExit = null;
+    if (exit.timer !== null) {
+      clearTimeout(exit.timer);
+    }
+    exit.subscription.unsubscribe();
+    for (const element of exit.marked) {
+      element.removeAttribute(ANDES_OVERLAY_CLOSING_ATTRIBUTE);
+    }
+    for (const [element, value] of exit.pointerEvents) {
+      if (value) {
+        element.style.setProperty('pointer-events', value);
+      } else {
+        element.style.removeProperty('pointer-events');
+      }
+    }
+
+    const config = this._config();
+    const pane = ref.overlayElement;
+    // Focus usually never left the pane during the exit; then the original
+    // origin is still the right place to return to later.
+    const active = this.activeElement();
+    const focusInside = !!active && pane.contains(active);
+    if (active && !focusInside) {
+      this.focusOrigin = active;
+    }
+    this.explicitRestoreTarget = toElement(options.restoreFocusTo);
+    this._isOpen.set(true);
+
+    this.applyInertBackground(ref, config);
+    this.wireDismissal(ref);
+    this.installFocusManagement(ref, config, !focusInside);
+  }
+
+  /** Detaches the overlay and finishes a requested close. */
+  private completeClose(): void {
+    const exit = this.pendingExit;
+    if (!exit) {
+      return;
+    }
+    this.pendingExit = null;
+    // Only a close that actually waited on an exit animation can have lost focus
+    // to the page in the meantime; measured while the pane is still attached.
+    const focusMovedAway =
+      exit.timer !== null && this.focusMovedOutside(this.overlayRef);
+    if (exit.timer !== null) {
+      clearTimeout(exit.timer);
+    }
+    exit.subscription.unsubscribe();
+
+    this.overlayRef?.dispose();
+    this.overlayRef = null;
+    this.attachedContent = null;
+    this.attachedContext = undefined;
+
+    this._panelElement.set(null);
+    this._backdropElement.set(null);
+    this._contentElement.set(null);
+
+    // Someone clicked or tabbed to something else on the page while the overlay
+    // was fading out: pulling focus back to the trigger would undo that.
+    if (exit.restoreFocus && !focusMovedAway) {
+      this.restoreFocus();
+    }
+    this.focusOrigin = null;
+    this.explicitRestoreTarget = null;
+
+    this._closed.next(exit.reason);
+  }
+
+  /**
+   * Whether focus now sits on a page element outside the pane. Focus inside the
+   * pane (an Escape or close-button close) or dropped on `body` still restores.
+   */
+  private focusMovedOutside(ref: OverlayRef | null): boolean {
+    const active = this.activeElement();
+    if (!ref || !active || active === this.document.body) {
+      return false;
+    }
+    return !ref.overlayElement.contains(active);
+  }
+
+  private prefersReducedMotion(): boolean {
+    const view = this.document.defaultView;
+    return (
+      typeof view?.matchMedia === 'function' &&
+      view.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
   }
 
   private buildOverlayConfig(config: AndesOverlayConfig): OverlayConfig {
@@ -485,13 +737,42 @@ export class AndesOverlayPrimitive {
     // view being destroyed). Run our own teardown so focus is still restored and
     // `isOpen` does not lie.
     this.openSubscriptions.add(
-      ref.detachments().subscribe(() => this.close('destroyed')),
+      ref.detachments().subscribe(() => this.beginClose('destroyed', false)),
     );
+  }
+
+  /**
+   * Makes the page outside the overlay inert, so AT browsing the document — not
+   * just tabbing through it — cannot reach content behind a modal. That includes
+   * overlays already open beneath it in the same CDK container (an outer dialog).
+   * The pane and backdrop are exempt, and the registry reference-counts across
+   * nested overlays.
+   */
+  private applyInertBackground(
+    ref: OverlayRef,
+    config: AndesOverlayConfig,
+  ): void {
+    if (!config.inertBackground) {
+      return;
+    }
+    this.inertHandle = this.inertRegistry.inertBackgroundExcept([
+      ref.overlayElement,
+      ref.hostElement,
+      ref.backdropElement,
+    ]);
+    this._isBackgroundInert.set(true);
+  }
+
+  private releaseInertBackground(): void {
+    this.inertHandle?.release();
+    this.inertHandle = null;
+    this._isBackgroundInert.set(false);
   }
 
   private installFocusManagement(
     ref: OverlayRef,
     config: AndesOverlayConfig,
+    moveFocus = true,
   ): void {
     const needsTrapObject =
       config.trapFocus || config.autoFocus === 'first-tabbable';
@@ -501,6 +782,10 @@ export class AndesOverlayPrimitive {
       // consumer that renders siblings next to its content cannot leak focus.
       this.focusTrap = this.focusTrapFactory.create(ref.overlayElement);
       this.focusTrap.enabled = config.trapFocus;
+    }
+
+    if (!moveFocus) {
+      return;
     }
 
     switch (config.autoFocus) {
