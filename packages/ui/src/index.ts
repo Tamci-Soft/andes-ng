@@ -141,7 +141,7 @@ export * from './lib/button';
 
 // @slot timeline
 
-// @slot toast
+export * from './lib/toast';
 
 // @slot toggle
 
