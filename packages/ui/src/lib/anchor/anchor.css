@@ -1,0 +1,95 @@
+/*
+ * Styling hooks: --andes-anchor-offset-top (set by the component when `affix` is on).
+ */
+:host {
+  display: block;
+  box-sizing: border-box;
+}
+
+:host([data-affix]) {
+  position: sticky;
+  top: var(--andes-anchor-offset-top, 0);
+  align-self: flex-start;
+}
+
+.andes-anchor {
+  position: relative;
+  box-sizing: border-box;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-anchor__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The rail the ink slides along: inline-start edge when vertical, bottom edge when horizontal. */
+.andes-anchor[data-direction='vertical']::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 2px;
+  background: var(--andes-color-border, #d1d5db);
+}
+
+.andes-anchor[data-direction='horizontal']::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 1px;
+  background: var(--andes-color-border, #d1d5db);
+}
+
+.andes-anchor[data-direction='horizontal'] .andes-anchor__list {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.andes-anchor[data-direction='horizontal'] .andes-anchor__link {
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}
+
+.andes-anchor__ink {
+  position: absolute;
+  z-index: 1;
+  background: var(--andes-color-primary, #2563eb);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.andes-anchor__ink[data-visible] {
+  opacity: 1;
+}
+
+.andes-anchor[data-direction='vertical'] .andes-anchor__ink {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 2px;
+}
+
+/* Horizontal ink is positioned with physical offsets, which is what offsetLeft reports. */
+.andes-anchor[data-direction='horizontal'] .andes-anchor__ink {
+  inset-block-end: 0;
+  left: 0;
+  block-size: 2px;
+}
+
+.andes-anchor__ink[data-ready] {
+  transition:
+    transform 150ms var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1)),
+    width 150ms var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1)),
+    height 150ms var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1)),
+    opacity 150ms var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-anchor__ink[data-ready] {
+    transition: none;
+  }
+}

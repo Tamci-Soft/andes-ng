@@ -1,0 +1,38 @@
+<nav
+  class="andes-anchor"
+  data-slot="anchor"
+  [attr.aria-label]="label()"
+  [attr.data-direction]="direction()"
+>
+  <span class="andes-anchor__ink" #ink aria-hidden="true"></span>
+  <ul class="andes-anchor__list" role="list">
+    <ng-template #node let-nodes>
+      @for (item of nodes; track item.key) {
+      <li class="andes-anchor__item">
+        <a
+          class="andes-anchor__link"
+          [attr.href]="item.href"
+          [attr.target]="item.target ?? null"
+          [attr.title]="item.title"
+          [attr.aria-current]="isActive(item.href) ? 'location' : null"
+          (click)="onItemClick($event, item)"
+          >{{ item.title }}</a
+        >
+        @if (item.children?.length) {
+        <ul class="andes-anchor__nested" role="list">
+          <ng-container
+            [ngTemplateOutlet]="node"
+            [ngTemplateOutletContext]="{ $implicit: item.children }"
+          />
+        </ul>
+        }
+      </li>
+      }
+    </ng-template>
+    <ng-container
+      [ngTemplateOutlet]="node"
+      [ngTemplateOutletContext]="{ $implicit: visibleItems() }"
+    />
+    <ng-content />
+  </ul>
+</nav>
