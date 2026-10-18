@@ -1,8 +1,5 @@
 name: CI
 
-# Pull requests and pushes to the long-lived branches. release.yml calls this same workflow (workflow_call), so a
-# release candidate is only ever published from a commit that passed it.
-
 on:
   pull_request:
   push:
@@ -17,8 +14,6 @@ permissions:
   contents: read
 
 jobs:
-  # Fast lane: formatting, lint and unit tests. Only the projects a pull request affects run there; a push to a
-  # long-lived branch runs everything.
   quality:
     name: Format, lint and test
     runs-on: ubuntu-latest
@@ -49,7 +44,6 @@ jobs:
             pnpm test
           fi
 
-  # Slow lane: the packages and the Storybook must build.
   build:
     name: Build packages and Storybook
     needs: quality
@@ -72,7 +66,6 @@ jobs:
       - run: pnpm build
       - run: pnpm build:storybook
 
-  # The single check branch protection requires.
   verify:
     name: verify
     needs: [quality, build]

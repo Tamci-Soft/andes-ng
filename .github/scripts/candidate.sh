@@ -1,30 +1,15 @@
 #!/usr/bin/env bash
-# Release-candidate bookkeeping for the three npm packages (they share one version).
-#
-# A candidate vX.Y.Z-rc.N is a GitHub pre-release whose body carries a JSON record (commit, tree hash, content
-# hash, stage). The final vX.Y.Z is created only from a verified candidate whose tree equals the tree of main.
-#
-#   branch <ref-name>                 X.Y.Z from release/X.Y.Z or hotfix/X.Y.Z
-#   next <version> <sha>              "<n> <reused>": the next rc number, or the one already built from <sha>
-#   create <json-file>                store the candidate as a pre-release, prints its URL
-#   mark <tag> <stage>                set the stage ("pending" -> "verified"), prints the updated JSON
-#   find <version> <tree>             the latest verified candidate with that tree hash, as JSON
-#   final <json-file> <sha>           publish vX.Y.Z as the latest release, prints its URL
-#   pr <head> <base> <title> <file>   open or update a pull request, prints its URL ("" if nothing to merge)
-#   automerge <pr-url>                enable auto-merge with a merge commit
-#
-# Needs: gh (GH_TOKEN), jq, git.
 set -euo pipefail
 
 SEMVER='^[0-9]+\.[0-9]+\.[0-9]+$'
 
 die() { echo "candidate.sh: $*" >&2; exit 1; }
 
-record_of() { # <tag> -> the JSON record stored in the release body
+record_of() {
   gh release view "$1" --json body --jq .body | sed -n '/^```json$/,/^```$/p' | sed '1d;$d'
 }
 
-body_of() { # <json-file> -> release body
+body_of() {
   printf 'Release candidate record (do not edit).\n\n```json\n'
   jq -S . "$1"
   printf '```\n'
@@ -38,13 +23,14 @@ cmd_branch() {
 }
 
 cmd_next() {
-  local version="$1" sha="$2" max=0 n tag
+  local version="$1" sha="$2" max=0 n tag tags
+  tags=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v$version-rc." --jq '.[].ref | sub("refs/tags/"; "")')
   while read -r tag; do
     [ -n "$tag" ] || continue
     n="${tag##*-rc.}"
     if [ "$(record_of "$tag" | jq -r .commit)" = "$sha" ]; then echo "$n true"; return; fi
     [ "$n" -gt "$max" ] && max="$n"
-  done < <(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v$version-rc." --jq '.[].ref | sub("refs/tags/"; "")')
+  done <<<"$tags"
   echo "$((max + 1)) false"
 }
 
@@ -70,14 +56,15 @@ cmd_mark() {
 }
 
 cmd_find() {
-  local version="$1" tree="$2" tag json found=""
+  local version="$1" tree="$2" tag json found="" tags
+  tags=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v$version-rc." --jq '.[].ref | sub("refs/tags/"; "")')
   while read -r tag; do
     [ -n "$tag" ] || continue
     json=$(record_of "$tag")
     if [ "$(jq -r .tree <<<"$json")" = "$tree" ] && [ "$(jq -r .stage <<<"$json")" = verified ]; then
-      found="$json" # tags come in ascending order, so the last match is the latest candidate
+      found="$json"
     fi
-  done < <(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/v$version-rc." --jq '.[].ref | sub("refs/tags/"; "")')
+  done <<<"$tags"
   [ -n "$found" ] || die "no verified candidate of $version has tree $tree: main differs from what was verified"
   echo "$found"
 }

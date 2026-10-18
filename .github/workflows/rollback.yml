@@ -1,10 +1,5 @@
 name: Rollback
 
-# Points the `latest` dist-tag of the four packages back at an earlier release X.Y.Z. Nothing is rebuilt or
-# republished: a version on npm is immutable, so a bad release is replaced by moving `latest` and, if it is
-# harmful, deprecating it (the deprecate input). Fix forward with hotfix/X.Y.Z afterwards.
-# Moving a dist-tag needs a granular automation token: npm trusted publishing only covers `npm publish`.
-
 on:
   workflow_dispatch:
     inputs:

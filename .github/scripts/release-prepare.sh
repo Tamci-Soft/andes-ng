@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Run once on a fresh release/X.Y.Z or hotfix/X.Y.Z branch (pnpm release:prepare): writes the changelog entries of
-# X.Y.Z from the version plans, then removes the consumed plans. No manifest, tag or lockfile changes: the version
-# lives in the branch name and the git tags, and release.yml stamps it on the packages when it publishes.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
