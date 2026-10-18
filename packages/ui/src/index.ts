@@ -111,7 +111,7 @@ export * from './lib/button';
 
 // @slot segmented
 
-// @slot select
+export * from './lib/select';
 
 // @slot sheet
 
