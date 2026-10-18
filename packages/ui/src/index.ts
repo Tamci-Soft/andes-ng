@@ -105,7 +105,7 @@ export * from './lib/button';
 
 // @slot rate
 
-// @slot result
+export * from './lib/result';
 
 // @slot scroll-area
 
