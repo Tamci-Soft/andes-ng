@@ -1,0 +1,51 @@
+<ng-template #items><ng-content /></ng-template>
+@if (trigger()) {
+<andes-float-button
+  class="andes-float-button-group__trigger"
+  [aria-label]="ariaLabel()"
+  [aria-expanded]="open()"
+  [aria-controls]="menuId"
+  (click)="onTriggerClick()"
+  (keydown)="onTriggerKeydown()"
+>
+  @if (open()) { @if (closeIcon(); as closeTemplate) {
+  <ng-container *ngTemplateOutlet="closeTemplate" />
+  } @else {
+  <svg
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.75"
+    stroke-linecap="round"
+    aria-hidden="true"
+  >
+    <path d="M4 4l8 8M12 4l-8 8" />
+  </svg>
+  } } @else { @if (triggerIcon(); as openTemplate) {
+  <ng-container *ngTemplateOutlet="openTemplate" />
+  } @else {
+  <svg
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.75"
+    stroke-linecap="round"
+    aria-hidden="true"
+  >
+    <path d="M8 3v10M3 8h10" />
+  </svg>
+  } }
+</andes-float-button>
+<div
+  class="andes-float-button-group__menu"
+  data-slot="float-button-group-menu"
+  [id]="menuId"
+  [class.andes-float-button-group__menu--open]="open()"
+  [attr.data-state]="open() ? 'open' : 'closed'"
+  [attr.inert]="open() ? null : ''"
+>
+  <ng-container *ngTemplateOutlet="items" />
+</div>
+} @else {
+<ng-container *ngTemplateOutlet="items" />
+}

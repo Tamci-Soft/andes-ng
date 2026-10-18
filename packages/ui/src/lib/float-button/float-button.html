@@ -1,0 +1,42 @@
+@if (href(); as link) {
+<a
+  class="andes-float-button__control"
+  data-slot="float-button-control"
+  [attr.href]="disabled() ? null : link"
+  [attr.target]="target() ?? null"
+  [attr.rel]="target() === '_blank' ? 'noopener noreferrer' : null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-disabled]="disabled() || null"
+  [attr.tabindex]="disabled() ? -1 : null"
+  [attr.title]="tooltip() ?? null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</a>
+} @else {
+<button
+  type="button"
+  class="andes-float-button__control"
+  data-slot="float-button-control"
+  [disabled]="disabled()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-expanded]="ariaExpanded()"
+  [attr.aria-controls]="ariaControls()"
+  [attr.title]="tooltip() ?? null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</button>
+}
+
+<ng-template #body>
+  <span class="andes-float-button__icon"><ng-content /></span>
+  @if (description(); as caption) {
+  <span class="andes-float-button__description">{{ caption }}</span>
+  } @if (badgeDot()) {
+  <span class="andes-float-button__badge" data-dot aria-hidden="true"></span>
+  } @else if (badgeText(); as text) {
+  <span class="andes-float-button__badge" data-slot="float-button-badge"
+    >{{ text }}</span
+  >
+  }
+  <ng-content select="[slot=badge]" />
+</ng-template>

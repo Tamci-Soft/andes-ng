@@ -1,0 +1,156 @@
+/* Sizes are 32 / 40 / 48px. Everything is driven by custom properties so a group and the
+   back-to-top button can restyle without reaching into the control. */
+:host {
+  --_size: 2.5rem;
+  --_icon: 1.125rem;
+  --_bg: var(--andes-color-background, #ffffff);
+  --_bg-hover: var(--andes-color-accent, #f3f4f6);
+  --_bg-active: var(--andes-color-accent-hover, #e5e7eb);
+  --_fg: var(--andes-color-foreground, #0f172a);
+  --_ring: var(--andes-color-focus-ring, #2563eb);
+  position: relative;
+  display: inline-flex;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+:host([data-size='sm']) {
+  --_size: 2rem;
+  --_icon: 1rem;
+}
+
+:host([data-size='lg']) {
+  --_size: 3rem;
+  --_icon: 1.25rem;
+}
+
+:host([data-type='primary']) {
+  --_bg: var(--andes-color-primary, #2563eb);
+  --_bg-hover: var(--andes-color-primary-hover, #1d4ed8);
+  --_bg-active: var(--andes-color-primary-active, #1e40af);
+  --_fg: var(--andes-color-primary-foreground, #ffffff);
+}
+
+:host([data-fixed]) {
+  position: fixed;
+  z-index: var(--andes-float-button-z-index, 900);
+}
+
+.andes-float-button__control {
+  box-sizing: border-box;
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  min-width: var(--_size);
+  min-height: var(--_size);
+  margin: 0;
+  padding: 0;
+  border: 1px solid
+    var(
+      --andes-float-button-border,
+      color-mix(in srgb, var(--andes-color-border, #d1d5db) 60%, transparent)
+    );
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--_bg);
+  color: var(--_fg);
+  box-shadow: var(--andes-shadow-md, 0 4px 12px 0 rgb(15 23 42 / 12%));
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+:host([data-type='primary']) .andes-float-button__control {
+  border-color: transparent;
+}
+
+:host([data-shape='square']) .andes-float-button__control {
+  border-radius: var(--andes-radius-md, 0.375rem);
+}
+
+/* A caption under the icon makes the button a tall rounded rectangle, circle or not. */
+:host([data-description]) .andes-float-button__control {
+  width: auto;
+  padding: 0.375rem 0.25rem;
+  border-radius: var(--andes-radius-md, 0.375rem);
+}
+
+.andes-float-button__control:hover:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--_bg-hover);
+}
+
+.andes-float-button__control:active:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--_bg-active);
+}
+
+.andes-float-button__control:focus-visible {
+  outline: 2px solid var(--_ring);
+  outline-offset: 2px;
+}
+
+.andes-float-button__control:disabled,
+.andes-float-button__control[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-float-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--_icon);
+  line-height: 1;
+}
+
+.andes-float-button__icon ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+}
+
+.andes-float-button__description {
+  max-width: 100%;
+  padding-inline: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+}
+
+.andes-float-button__badge {
+  position: absolute;
+  inset-block-start: -0.25rem;
+  inset-inline-end: -0.25rem;
+  box-sizing: border-box;
+  min-width: 1rem;
+  height: 1rem;
+  padding-inline: 0.25rem;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-color-danger, #dc2626);
+  color: var(--andes-color-danger-foreground, #ffffff);
+  box-shadow: 0 0 0 2px var(--_bg);
+  font-size: 0.6875rem;
+  font-weight: var(--andes-font-weight-medium, 500);
+  line-height: 1rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.andes-float-button__badge[data-dot] {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  min-width: 0.5rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-float-button__control {
+    transition: none;
+  }
+}
