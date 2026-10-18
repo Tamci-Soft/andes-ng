@@ -157,6 +157,6 @@ export * from './lib/button';
 
 // @slot typography
 
-// @slot upload
+export * from './lib/upload';
 
 // @slot watermark
