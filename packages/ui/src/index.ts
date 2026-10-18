@@ -9,7 +9,7 @@ export * from './lib/accordion';
 
 // @slot affix
 
-// @slot alert
+export * from './lib/alert';
 
 // @slot anchor
 
