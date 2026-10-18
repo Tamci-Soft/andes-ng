@@ -1,35 +1,126 @@
 name: Release
 
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
+# Gitflow release flow for the four npm packages (@andes-ng/tokens, primitives, ui, testing: one shared version).
+# One file on purpose: npm lets a package trust exactly one publishing workflow.
+#
+#   push to release/X.Y.Z or hotfix/X.Y.Z:
+#     CI → build once → publish X.Y.Z-rc.N under the `rc` dist-tag (never `latest`) → record it in the pre-release
+#     vX.Y.Z-rc.N with the commit, the tree hash and a content hash → install it from npm in a clean project →
+#     mark it verified → open the pull request release/X.Y.Z → main (as the release bot).
+#   push to main (that pull request merged):
+#     find the verified candidate whose tree hash equals this commit's tree (otherwise fail) → approval in the `npm`
+#     environment → rebuild, confirm the rebuild matches the candidate → publish X.Y.Z under `latest` → tag vX.Y.Z
+#     with its GitHub Release → open the back-merge main → develop.
+#
+# The version comes from the branch name; nothing is committed to it. Run `pnpm release:prepare X.Y.Z` on the new
+# release branch first: it consumes the version plans and writes the changelog.
+# Switch (repository or organization variable, 'true' = on): ENABLE_ANDES_PUBLISH. Off, CI still runs, nothing is
+# published and no tag is created.
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
-    inputs:
-      dry-run:
-        description: 'Preview version/changelog/publish without changing anything'
-        type: boolean
-        default: true
+    branches: [main, 'release/**', 'hotfix/**']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  release:
+  prepare:
+    name: Version and mode
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
-      contents: write
-      id-token: write
-    env:
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || 'false' }}
+      contents: read
+      pull-requests: read
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      version: ${{ steps.mode.outputs.version }}
+      released: ${{ steps.mode.outputs.released }}
+      candidate: ${{ steps.mode.outputs.candidate }}
+      tag: ${{ steps.mode.outputs.tag }}
+      tree: ${{ steps.mode.outputs.tree }}
+      publish_enabled: ${{ steps.switch.outputs.publish_enabled }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          filter: tree:0
+          persist-credentials: false
+
+      - name: Decide between candidate and final release
+        id: mode
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          tree=$(git rev-parse 'HEAD^{tree}')
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+          if [ "$BRANCH" = main ]; then
+            # main carries no version of its own: it is the version of the release branch whose pull request merged.
+            head_ref=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '[.[] | select(.merged_at != null)][0].head.ref')
+            version=$(.github/scripts/candidate.sh branch "$head_ref")
+            echo "mode=promote" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" >/dev/null 2>&1; then
+              echo "released=true" >> "$GITHUB_OUTPUT"
+              echo "::notice title=Nothing to release::v$version is already released."
+            else
+              echo "released=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo "### Promote v$version (tree \`${tree:0:12}\`)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            version=$(.github/scripts/candidate.sh branch "$BRANCH")
+            read -r rc reused < <(.github/scripts/candidate.sh next "$version" "$GITHUB_SHA")
+            {
+              echo "mode=candidate"
+              echo "released=false"
+              echo "version=$version"
+              echo "candidate=$version-rc.$rc"
+              echo "tag=v$version-rc.$rc"
+            } >> "$GITHUB_OUTPUT"
+            echo "### $version-rc.$rc from \`$BRANCH\` at \`${GITHUB_SHA:0:12}\` (tree \`${tree:0:12}\`, reused: $reused)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Read the publish switch
+        id: switch
+        env:
+          SWITCH: ${{ vars.ENABLE_ANDES_PUBLISH }}
+        run: |
+          if [ "$SWITCH" = true ]; then
+            echo "publish_enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish_enabled=false" >> "$GITHUB_OUTPUT"
+            msg="ENABLE_ANDES_PUBLISH is not 'true': nothing is published and no tag is created (Settings → Secrets and variables → Actions → Variables)."
+            echo "::notice title=Publishing is off::$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  ci:
+    name: CI
+    needs: prepare
+    if: needs.prepare.outputs.mode == 'candidate'
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  candidate:
+    name: Publish the candidate
+    needs: [prepare, ci]
+    if: needs.prepare.outputs.mode == 'candidate' && needs.prepare.outputs.publish_enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # the pre-release record
+      id-token: write # npm trusted publishing and provenance
+    outputs:
+      content_hash: ${{ steps.build.outputs.content_hash }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
         with:
@@ -39,15 +130,258 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: npm i -g npm@^11.5.1
 
-      - run: git config user.name 'github-actions[bot]'
-      - run: git config user.email 'github-actions[bot]@users.noreply.github.com'
+      - name: Build once and set the candidate version
+        id: build
+        env:
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+        run: |
+          pnpm build
+          echo "content_hash=$(.github/scripts/content-hash.sh)" >> "$GITHUB_OUTPUT"
+          # Only the manifests change (in the runner); nothing is committed or tagged.
+          pnpm exec nx release version "$CANDIDATE" --git-commit=false --git-tag=false --git-push=false
 
-      - run: pnpm exec nx release --skip-publish --dry-run=${{ env.DRY_RUN }}
-
-      - if: env.DRY_RUN != 'true'
-        run: git push --follow-tags
-
-      - run: pnpm exec nx release publish --dry-run=${{ env.DRY_RUN }}
+      - name: Publish under the rc dist-tag (or reuse this candidate)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+        run: |
+          if [ "$(npm view "@andes-ng/ui@$CANDIDATE" version 2>/dev/null || true)" = "$CANDIDATE" ]; then
+            echo "Reusing $CANDIDATE: it is already on npm for this commit." >> "$GITHUB_STEP_SUMMARY"
+          else
+            pnpm exec nx release publish --tag rc
+            echo "Published \`$CANDIDATE\` under the \`rc\` dist-tag." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Record the candidate as a pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          TREE: ${{ needs.prepare.outputs.tree }}
+          BRANCH: ${{ github.ref_name }}
+          CONTENT_HASH: ${{ steps.build.outputs.content_hash }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg version "$VERSION" --arg candidate "$CANDIDATE" \
+            --arg tag "$TAG" --arg commit "$GITHUB_SHA" --arg tree "$TREE" --arg branch "$BRANCH" \
+            --arg content_hash "$CONTENT_HASH" --arg build "$GITHUB_RUN_NUMBER" --arg run_url "$RUN_URL" \
+            '{repository: $repository, version: $version, candidate: $candidate, tag: $tag, commit: $commit,
+              tree: $tree, branch: $branch, content_hash: $content_hash, build: $build, run_url: $run_url,
+              stage: "pending"}' > "$RUNNER_TEMP/candidate.json"
+          url=$(.github/scripts/candidate.sh create "$RUNNER_TEMP/candidate.json")
+          echo "Candidate: [$TAG]($url)" >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    name: Install the candidate from npm
+    needs: [prepare, candidate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+
+      - name: Install the packages in an empty project and check they resolve together
+        env:
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+        run: |
+          mkdir consumer && cd consumer && npm init -y >/dev/null
+          # The registry can take a moment to serve a version it just accepted.
+          for _ in 1 2 3 4 5 6; do
+            npm view "@andes-ng/ui@$CANDIDATE" version >/dev/null 2>&1 && break
+            sleep 20
+          done
+          npm install --no-audit --no-fund \
+            "@andes-ng/ui@$CANDIDATE" "@andes-ng/primitives@$CANDIDATE" "@andes-ng/tokens@$CANDIDATE" \
+            "@andes-ng/testing@$CANDIDATE" @angular/core@22 @angular/common@22 @angular/forms@22 @angular/cdk@22 rxjs@7
+          for p in ui primitives tokens testing; do
+            v=$(node -p "require('./node_modules/@andes-ng/$p/package.json').version")
+            [ "$v" = "$CANDIDATE" ] || { echo "::error::@andes-ng/$p resolved to $v, expected $CANDIDATE"; exit 1; }
+          done
+          npm audit signatures
+          test -f node_modules/@andes-ng/tokens/dist/theme.css || test -f node_modules/@andes-ng/tokens/src/theme.css
+
+  ready:
+    name: Release candidate ready
+    needs: [prepare, candidate, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # marks the candidate verified; the pull request is opened by the release bot
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Mark the candidate as verified and write the release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          BRANCH: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          json=$(.github/scripts/candidate.sh mark "$TAG" verified)
+          {
+            echo "## Release $VERSION"
+            echo
+            echo "Candidate **[$TAG]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG)**: commit \`$(jq -r .commit <<<"$json")\`, tree \`$(jq -r .tree <<<"$json")\`, build $(jq -r .build <<<"$json")."
+            echo
+            echo "- Published as \`@andes-ng/{tokens,primitives,ui,testing}@$(jq -r .candidate <<<"$json")\` under the \`rc\` dist-tag (try it with \`npm i @andes-ng/ui@rc\`)."
+            echo "- Verified automatically: $RUN_URL (clean install from npm, one resolved version, signatures)."
+            echo
+            echo "Merging into \`main\` runs the promotion in \`release.yml\`: it finds this candidate by tree hash, waits for approval in \`npm\`, publishes \`$VERSION\` under \`latest\`, tags \`v$VERSION\` and opens the back-merge into \`develop\`."
+            echo "A new push to \`$BRANCH\` publishes the next candidate and updates this description."
+          } > "$RUNNER_TEMP/pr.md"
+
+      - name: Check the release bot configuration
+        env:
+          APP_ID: ${{ vars.RELEASE_APP_ID }}
+          HAS_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
+        run: |
+          if [ -z "$APP_ID" ] || [ "$HAS_KEY" != true ]; then
+            echo "::error title=Release bot not configured::RELEASE_APP_ID (variable) and RELEASE_APP_PRIVATE_KEY (secret) of the release GitHub App are required to open the release pull request. Nothing falls back to GITHUB_TOKEN: its pull requests start no workflows."
+            exit 1
+          fi
+
+      - name: Mint the release bot token
+        id: bot
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+
+      - name: Open or update the release pull request as the release bot
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          url=$(.github/scripts/candidate.sh pr "$BRANCH" main "release: $VERSION" "$RUNNER_TEMP/pr.md")
+          echo "Release pull request: $url" >> "$GITHUB_STEP_SUMMARY"
+
+  promote:
+    name: Publish the final release
+    needs: prepare
+    if: >-
+      needs.prepare.outputs.mode == 'promote' && needs.prepare.outputs.released == 'false' &&
+      needs.prepare.outputs.publish_enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: npm
+      url: https://www.npmjs.com/org/andes-ng
+    permissions:
+      contents: write # the vX.Y.Z tag and its GitHub Release
+      id-token: write # npm trusted publishing and provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Match this commit's tree with a verified candidate
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TREE: ${{ needs.prepare.outputs.tree }}
+        run: |
+          json=$(.github/scripts/candidate.sh find "$VERSION" "$TREE")
+          echo "$json" > "$RUNNER_TEMP/candidate.json"
+          echo "tag=$(jq -r .tag <<<"$json")" >> "$GITHUB_OUTPUT"
+          echo "content_hash=$(jq -r .content_hash <<<"$json")" >> "$GITHUB_OUTPUT"
+          echo "From candidate \`$(jq -r .tag <<<"$json")\`." >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@22
+          cache: true
+
+      - run: pnpm install --frozen-lockfile
+      - run: npm i -g npm@^11.5.1
+
+      - name: Rebuild and confirm it matches the candidate
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          EXPECTED: ${{ steps.find.outputs.content_hash }}
+        run: |
+          pnpm build
+          actual=$(.github/scripts/content-hash.sh)
+          if [ "$actual" != "$EXPECTED" ]; then
+            echo "::warning title=Rebuild differs from the candidate::The files to publish hash to $actual, the candidate recorded $EXPECTED. The tree hash matches, so the sources are identical; check the build for non-determinism."
+          fi
+          pnpm exec nx release version "$VERSION" --git-commit=false --git-tag=false --git-push=false
+
+      - name: Publish under latest
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          pnpm exec nx release publish --tag latest
+          echo "Published \`@andes-ng/*@$VERSION\` under \`latest\`." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tag and publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(.github/scripts/candidate.sh final "$RUNNER_TEMP/candidate.json" "$GITHUB_SHA")
+          echo "Released: $url" >> "$GITHUB_STEP_SUMMARY"
+
+  back-merge:
+    name: Back-merge into develop
+    needs: [prepare, promote]
+    if: needs.promote.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the release bot configuration
+        env:
+          APP_ID: ${{ vars.RELEASE_APP_ID }}
+          HAS_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
+        run: |
+          if [ -z "$APP_ID" ] || [ "$HAS_KEY" != true ]; then
+            echo "::error title=Release bot not configured::RELEASE_APP_ID and RELEASE_APP_PRIVATE_KEY are required to open the back-merge pull request."
+            exit 1
+          fi
+
+      - name: Mint the release bot token
+        id: bot
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write # auto-merge
+          permission-pull-requests: write
+          permission-workflows: write # auto-merge of a back-merge that changes .github/workflows
+
+      - name: Open the back-merge pull request into develop
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          body="$RUNNER_TEMP/back-merge.md"
+          {
+            echo "Gitflow back-merge of release $VERSION, now published and tagged [v$VERSION]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION)."
+            echo
+            echo "Brings the fixes made on the release or hotfix branch (and the consumed version plans and changelog) back into \`develop\`. Merge it with a merge commit, never a squash, so \`develop\` keeps \`main\`'s history."
+          } > "$body"
+          url=$(.github/scripts/candidate.sh pr main develop "chore: merge release $VERSION back into develop" "$body")
+          if [ -z "$url" ]; then
+            echo "Back-merge: not needed" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "Back-merge: $url ($(.github/scripts/candidate.sh automerge "$url"))" >> "$GITHUB_STEP_SUMMARY"
