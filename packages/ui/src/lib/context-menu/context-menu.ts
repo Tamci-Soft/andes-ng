@@ -283,6 +283,7 @@ export class AndesContextMenu
   private syncingFromInput = false;
   private swallowClickUntil = 0;
   private unbindOpenListeners: (() => void) | null = null;
+  private destroyed = false;
 
   constructor() {
     this.overlay.configure({
@@ -378,6 +379,7 @@ export class AndesContextMenu
       .subscribe(() => this.hide('tab-out'));
 
     inject(DestroyRef).onDestroy(() => {
+      this.destroyed = true;
       this.unbindOpenListeners?.();
       this.releaseVirtualAnchor();
     });
@@ -620,7 +622,7 @@ export class AndesContextMenu
   /** Reflects an open-state change onto `open` and `(openStateChange)`. */
   private commit(open: boolean, source: AndesContextMenuOpenChangeSource) {
     // A change the parent made through `[open]` is not news to the parent.
-    if (this.syncingFromInput) {
+    if (this.syncingFromInput || this.destroyed) {
       return;
     }
     if (untracked(this.open) !== open) {
