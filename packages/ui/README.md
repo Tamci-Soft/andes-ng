@@ -1,13 +1,50 @@
 # @andes-ng/ui
 
-Standalone, accessible Angular components for Andes NG.
+Accessible Angular components for the Andes NG design system: standalone, signal-based, `OnPush`, styled only through CSS custom properties.
 
-The package is published with a single public entry point:
+## Install
 
-```ts
-import {} from '@andes-ng/ui';
+```bash
+npm install @andes-ng/ui @andes-ng/tokens
 ```
 
-**No component has been implemented yet.** The entry point is intentionally empty while the workspace setup is completed; components will be exported from here as they are built.
+Peer dependencies: Angular 22 (`@angular/core`, `common`, `forms`, `cdk`) and RxJS 7.
 
-Import `@andes-ng/tokens/theme.css` once in the consumer application's global stylesheet. Do not import the headless libraries Andes builds on directly; they are an implementation detail and are not covered by the Andes public API compatibility guarantee.
+## Use
+
+Load the tokens once in the application's global stylesheet, then import the components you need:
+
+```css
+@import '@andes-ng/tokens/fonts.css'; /* optional: Geist */
+@import '@andes-ng/tokens/theme.css';
+```
+
+```ts
+import { Component } from '@angular/core';
+import { AndesButton } from '@andes-ng/ui';
+
+@Component({
+  selector: 'app-save',
+  imports: [AndesButton],
+  template: `<andes-button variant="primary">Save</andes-button>`,
+})
+export class Save {}
+```
+
+Dark mode is on when `data-andes-theme="dark"` is set on `<html>` or any ancestor.
+
+## Components
+
+The package exports every component from its single entry point, `@andes-ng/ui`. This release ships `AndesButton` (variants, colors, shapes, the 24 / 32 / 40px sizes, loading state, and `AndesButtonGroup`). New components are added in each release; see the changelog and the Storybook for the current list.
+
+Components follow the WAI-ARIA authoring practices, support right-to-left layouts and honor `prefers-reduced-motion`.
+
+## Related packages
+
+- [`@andes-ng/tokens`](https://www.npmjs.com/package/@andes-ng/tokens): design tokens as CSS custom properties.
+- [`@andes-ng/primitives`](https://www.npmjs.com/package/@andes-ng/primitives): the behavior directives the components are built on.
+- [`@andes-ng/testing`](https://www.npmjs.com/package/@andes-ng/testing): helpers for testing applications that use Andes NG.
+
+## License
+
+MIT
