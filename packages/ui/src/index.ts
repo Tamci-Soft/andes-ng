@@ -121,7 +121,7 @@ export * from './lib/button';
 
 // @slot space
 
-// @slot spinner
+export * from './lib/spinner';
 
 // @slot splitter
 
