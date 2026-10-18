@@ -125,7 +125,7 @@ export * from './lib/button';
 
 // @slot splitter
 
-// @slot statistic
+export * from './lib/statistic';
 
 // @slot steps
 
