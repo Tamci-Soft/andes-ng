@@ -12,6 +12,11 @@ export default [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vitest.config.{js,ts,mjs,mts}',
           ],
+          // Imported from src/fonts.css, which the dependency graph doesn't scan.
+          ignoredDependencies: [
+            '@fontsource-variable/geist',
+            '@fontsource-variable/geist-mono',
+          ],
         },
       ],
     },
