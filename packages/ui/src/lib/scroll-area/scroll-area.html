@@ -1,0 +1,109 @@
+<div
+  #viewport
+  class="andes-scroll-area__viewport"
+  data-slot="scroll-area-viewport"
+  [class]="viewportClass()"
+  [attr.tabindex]="focusable() ? 0 : null"
+  [attr.role]="ariaLabel() || ariaLabelledby() ? 'region' : null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  (scroll)="onScroll()"
+>
+  <div #content class="andes-scroll-area__content" [class]="contentClass()">
+    <ng-content />
+  </div>
+</div>
+
+@if (edgeShadow()) { @if (showVertical()) {
+<div
+  class="andes-scroll-area__shadow"
+  data-edge="top"
+  aria-hidden="true"
+  [attr.data-visible]="vertical().overflow && !vertical().atStart ? '' : null"
+></div>
+<div
+  class="andes-scroll-area__shadow"
+  data-edge="bottom"
+  aria-hidden="true"
+  [attr.data-visible]="vertical().overflow && !vertical().atEnd ? '' : null"
+></div>
+} @if (showHorizontal()) {
+<div
+  class="andes-scroll-area__shadow"
+  data-edge="start"
+  aria-hidden="true"
+  [attr.data-visible]="
+    horizontal().overflow && !horizontal().atStart ? '' : null
+  "
+></div>
+<div
+  class="andes-scroll-area__shadow"
+  data-edge="end"
+  aria-hidden="true"
+  [attr.data-visible]="horizontal().overflow && !horizontal().atEnd ? '' : null"
+></div>
+} } @if (showVertical()) {
+<div
+  #verticalBar
+  class="andes-scroll-area__scrollbar"
+  data-slot="scroll-area-scrollbar"
+  data-orientation="vertical"
+  aria-hidden="true"
+  [class]="scrollbarClass()"
+  [attr.data-state]="verticalState()"
+  [attr.data-corner]="showCorner() ? '' : null"
+  (pointerdown)="onTrackPointerDown($event, 'vertical')"
+  (pointerenter)="onBarEnter()"
+  (pointerleave)="onBarLeave()"
+>
+  <div
+    class="andes-scroll-area__thumb"
+    data-slot="scroll-area-thumb"
+    [class]="thumbClass()"
+    [style.height]="verticalThumbStyle().height"
+    [style.transform]="verticalThumbStyle().transform"
+    [style.display]="verticalThumbStyle().display"
+    [attr.data-dragging]="dragging() ? '' : null"
+    (pointerdown)="onThumbPointerDown($event, 'vertical')"
+    (pointermove)="onThumbPointerMove($event)"
+    (pointerup)="onThumbPointerEnd($event)"
+    (pointercancel)="onThumbPointerEnd($event)"
+    (lostpointercapture)="onThumbPointerEnd($event)"
+  ></div>
+</div>
+} @if (showHorizontal()) {
+<div
+  #horizontalBar
+  class="andes-scroll-area__scrollbar"
+  data-slot="scroll-area-scrollbar"
+  data-orientation="horizontal"
+  aria-hidden="true"
+  [class]="scrollbarClass()"
+  [attr.data-state]="horizontalState()"
+  [attr.data-corner]="showCorner() ? '' : null"
+  (pointerdown)="onTrackPointerDown($event, 'horizontal')"
+  (pointerenter)="onBarEnter()"
+  (pointerleave)="onBarLeave()"
+>
+  <div
+    class="andes-scroll-area__thumb"
+    data-slot="scroll-area-thumb"
+    [class]="thumbClass()"
+    [style.width]="horizontalThumbStyle().width"
+    [style.transform]="horizontalThumbStyle().transform"
+    [style.display]="horizontalThumbStyle().display"
+    [attr.data-dragging]="dragging() ? '' : null"
+    (pointerdown)="onThumbPointerDown($event, 'horizontal')"
+    (pointermove)="onThumbPointerMove($event)"
+    (pointerup)="onThumbPointerEnd($event)"
+    (pointercancel)="onThumbPointerEnd($event)"
+    (lostpointercapture)="onThumbPointerEnd($event)"
+  ></div>
+</div>
+} @if (showCorner()) {
+<div
+  class="andes-scroll-area__corner"
+  data-slot="scroll-area-corner"
+  aria-hidden="true"
+></div>
+}
