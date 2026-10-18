@@ -75,6 +75,7 @@ The behavior below is what each migration deletes; all paths are under `packages
 - `navigation-menu/navigation-menu.ts` — the bar handler (`forward`/`backward`, Home/End, `ArrowDown` to open content, `moveAlongBar`) and the content handler (Arrow/Home/End over `focusables`) are two flat navigations, horizontal for the bar and vertical with `wrap` for the content.
 - `accordion/accordion.ts` — `onKeydown` (Up/Down/Home/End over `TRIGGER_CONTROL_SELECTOR`, wrapping): a flat vertical navigation with `wrap: true` and `typeahead: false`; expansion stays with the accordion's own item state because Enter/Space toggle it.
 - `breadcrumb/breadcrumb.ts` has no arrow-key code of its own (its overflow dropdown reuses the menu), so it needs nothing until a roving toolbar-style breadcrumb is wanted: then it is a flat horizontal navigation.
+
 ## Viewport
 
 Signals for "how big is it" and "what does the environment prefer", with the server guard, the missing-API guard and the teardown written once. Everything is a no-op on the server and where `ResizeObserver` / `matchMedia` do not exist, and every listener is removed with the owning injector.
