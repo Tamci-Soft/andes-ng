@@ -61,7 +61,8 @@
         "compodoc": false,
         "styles": [
           "packages/tokens/src/fonts.css",
-          "packages/tokens/src/theme.css"
+          "packages/tokens/src/theme.css",
+          "node_modules/@angular/cdk/a11y-prebuilt.css"
         ]
       },
       "configurations": {
@@ -80,7 +81,8 @@
         "compodoc": false,
         "styles": [
           "packages/tokens/src/fonts.css",
-          "packages/tokens/src/theme.css"
+          "packages/tokens/src/theme.css",
+          "node_modules/@angular/cdk/a11y-prebuilt.css"
         ]
       },
       "configurations": {
