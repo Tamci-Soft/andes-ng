@@ -178,8 +178,35 @@ describe('andesMentionsInsert', () => {
 });
 
 describe('andesMentionsCaretPosition', () => {
+  /**
+   * jsdom has no layout, so the marker's offsets are stubbed on the prototype. The property is
+   * defined outright instead of spied on: the suites of a worker share one `HTMLElement`, and a
+   * spec that deleted `offsetTop` while cleaning up would make a spy on it throw here. Whatever
+   * was there before (a getter, or nothing) is put back afterwards.
+   */
+  const stubbed: [string, PropertyDescriptor | undefined][] = [];
+
+  function stubOffsets(offsets: { offsetTop: number; offsetLeft: number }) {
+    for (const [property, value] of Object.entries(offsets)) {
+      stubbed.push([
+        property,
+        Object.getOwnPropertyDescriptor(HTMLElement.prototype, property),
+      ]);
+      Object.defineProperty(HTMLElement.prototype, property, {
+        configurable: true,
+        get: () => value,
+      });
+    }
+  }
+
   afterEach(() => {
-    vi.restoreAllMocks();
+    for (const [property, descriptor] of stubbed.splice(0).reverse()) {
+      if (descriptor) {
+        Object.defineProperty(HTMLElement.prototype, property, descriptor);
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, property);
+      }
+    }
     document.body.innerHTML = '';
   });
 
@@ -188,8 +215,7 @@ describe('andesMentionsCaretPosition', () => {
     field.value = 'one\ntwo @an';
     field.style.lineHeight = '22px';
     document.body.append(field);
-    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(22);
-    vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockReturnValue(31);
+    stubOffsets({ offsetTop: 22, offsetLeft: 31 });
 
     const before = document.body.children.length;
     const position = andesMentionsCaretPosition(field, 8);
@@ -203,8 +229,7 @@ describe('andesMentionsCaretPosition', () => {
     field.value = 'text';
     document.body.append(field);
     field.scrollTop = 10;
-    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(40);
-    vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockReturnValue(5);
+    stubOffsets({ offsetTop: 40, offsetLeft: 5 });
 
     expect(andesMentionsCaretPosition(field, 2).top).toBe(30);
   });
