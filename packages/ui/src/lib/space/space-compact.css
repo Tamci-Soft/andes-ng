@@ -1,0 +1,99 @@
+/*
+ * Generic hooks: every rule targets the group's direct children and the first element inside
+ * each of them, never a component class, so any control that draws its own border and radius is
+ * joined. The element name plus a direction class is only there to out-rank a control's own
+ * `.andes-x[_ngcontent-*]` radius rule (specificity 0,2,0) without using !important.
+ *
+ * Selectors are kept short on purpose: no line may start with a combinator.
+ */
+
+.andes-space-compact {
+  display: inline-flex;
+  flex-direction: row;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.andes-space-compact--vertical {
+  flex-direction: column;
+}
+
+.andes-space-compact--block {
+  display: flex;
+  width: 100%;
+}
+
+.andes-space-compact--block.andes-space-compact--vertical {
+  height: 100%;
+}
+
+/* A positioned child so the raise on hover/focus below can use z-index. */
+.andes-space-compact > * {
+  position: relative;
+}
+
+/* Children that take the remaining space (block mode does it for text fields on its own). */
+.andes-space-compact > [data-grow],
+.andes-space-compact--block > input,
+.andes-space-compact--block > select,
+.andes-space-compact--block > textarea,
+.andes-space-compact--block > andes-input,
+.andes-space-compact--block > andes-textarea,
+.andes-space-compact--block > andes-select,
+.andes-space-compact--block > andes-combobox,
+.andes-space-compact--block > andes-input-number,
+.andes-space-compact--block > andes-date-picker {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Horizontal: pull each control over the previous one's border, square the inner corners. */
+andes-space-compact.andes-space-compact--horizontal > :not(:first-child) {
+  margin-inline-start: -1px;
+}
+
+andes-space-compact.andes-space-compact--horizontal > :not(:first-child),
+andes-space-compact.andes-space-compact--horizontal > :not(:first-child) > * {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+andes-space-compact.andes-space-compact--horizontal > :not(:last-child),
+andes-space-compact.andes-space-compact--horizontal > :not(:last-child) > * {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* Vertical: the same along the block axis. */
+andes-space-compact.andes-space-compact--vertical > :not(:first-child) {
+  margin-block-start: -1px;
+}
+
+andes-space-compact.andes-space-compact--vertical > :not(:first-child),
+andes-space-compact.andes-space-compact--vertical > :not(:first-child) > * {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+andes-space-compact.andes-space-compact--vertical > :not(:last-child),
+andes-space-compact.andes-space-compact--vertical > :not(:last-child) > * {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* The control being used sits above its neighbours so its border and focus ring are whole. */
+andes-space-compact.andes-space-compact > :is(:hover, :focus-within),
+andes-space-compact.andes-space-compact > [aria-expanded='true'],
+andes-space-compact.andes-space-compact > [data-state='open'] {
+  z-index: 1;
+}
+
+/* Kept apart so a browser without :has() still applies the rule above. */
+andes-space-compact.andes-space-compact > :has([aria-expanded='true']) {
+  z-index: 1;
+}
+
+andes-space-compact.andes-space-compact > [disabled],
+andes-space-compact.andes-space-compact > [aria-disabled='true'] {
+  z-index: 0;
+}
