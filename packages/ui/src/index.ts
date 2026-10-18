@@ -15,7 +15,7 @@ export * from './lib/accordion';
 
 // @slot aspect-ratio
 
-// @slot avatar
+export * from './lib/avatar';
 
 // @slot badge
 
