@@ -107,7 +107,7 @@ export * from './lib/button';
 
 // @slot result
 
-// @slot scroll-area
+export * from './lib/scroll-area';
 
 // @slot segmented
 
