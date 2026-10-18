@@ -55,7 +55,7 @@ export * from './lib/button';
 
 // @slot dropdown-menu
 
-// @slot empty
+export * from './lib/empty';
 
 // @slot flex
 
