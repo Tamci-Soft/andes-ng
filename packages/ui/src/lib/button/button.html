@@ -3,10 +3,12 @@
   andesButtonPrimitive
   data-slot="button"
   [attr.data-variant]="variant()"
-  [attr.data-size]="size()"
+  [attr.data-size]="resolvedSize()"
+  [attr.data-color]="resolvedColor() ?? null"
   [disabled]="isDisabled()"
   [attr.href]="isDisabled() ? null : hrefValue"
   [attr.target]="target()"
+  [attr.aria-busy]="visibleLoading() || null"
   [attr.aria-label]="ariaLabel()"
   [attr.aria-labelledby]="ariaLabelledby()"
   [attr.aria-describedby]="ariaDescribedby()"
@@ -20,7 +22,8 @@
   andesButtonPrimitive
   data-slot="button"
   [attr.data-variant]="variant()"
-  [attr.data-size]="size()"
+  [attr.data-size]="resolvedSize()"
+  [attr.data-color]="resolvedColor() ?? null"
   [disabled]="isDisabled()"
   [attr.type]="type()"
   [attr.aria-busy]="visibleLoading() || null"

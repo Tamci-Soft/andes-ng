@@ -15,6 +15,9 @@ import { filter } from 'rxjs/operators';
   host: {
     '[attr.tabindex]': 'disabled() ? -1 : undefined',
     '[attr.disabled]': '!isAnchor && disabled() ? "" : undefined',
+    // Anchors have no native disabled state, so screen readers need
+    // aria-disabled to announce it.
+    '[attr.aria-disabled]': 'isAnchor && disabled() ? "true" : undefined',
     '[attr.data-disabled]': 'disabled() ? "" : undefined',
   },
 })

@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DOCUMENT,
   effect,
   ElementRef,
   inject,
@@ -15,14 +16,30 @@ import {
 } from '@angular/core';
 import clsx from 'clsx';
 
+import { ANDES_BUTTON_GROUP } from './button-group';
+
 export type AndesButtonVariant =
-  'primary' | 'secondary' | 'danger' | 'outline' | 'dashed' | 'ghost' | 'link';
+  | 'primary'
+  | 'secondary'
+  | 'danger'
+  | 'outline'
+  | 'dashed'
+  | 'filled'
+  | 'ghost'
+  | 'link';
 export type AndesButtonSize =
   'xs' | 'sm' | 'md' | 'lg' | 'icon-xs' | 'icon-sm' | 'icon' | 'icon-lg';
-export type AndesButtonShape = 'default' | 'full';
+/** `full` and `round` are the same pill shape; `circle` is fully rounded with equal sides. */
+export type AndesButtonShape = 'default' | 'full' | 'round' | 'circle';
+/**
+ * Semantic color that tints the `primary` (solid), `outline`, `dashed`, `filled`, `ghost` and
+ * `link` variants. The `secondary` and `danger` variants keep their own palette.
+ */
+export type AndesButtonColor =
+  'primary' | 'danger' | 'success' | 'warning' | 'info';
 export type AndesButtonType = 'button' | 'submit' | 'reset';
 
-const RIPPLE_DURATION_MS = 500;
+const RIPPLE_DURATION_MS = 400;
 
 @Component({
   selector: 'andes-button',
@@ -43,10 +60,21 @@ const RIPPLE_DURATION_MS = 500;
 export class AndesButton {
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly renderer = inject(Renderer2);
+  private readonly document = inject(DOCUMENT);
+  private readonly group = inject(ANDES_BUTTON_GROUP, { optional: true });
 
   readonly variant = input<AndesButtonVariant>('primary');
-  readonly size = input<AndesButtonSize>('md');
+  /**
+   * Control size. Left unset, the button takes the size of an enclosing `andes-button-group`,
+   * or `md` outside one.
+   */
+  readonly size = input<AndesButtonSize | undefined>(undefined);
   readonly shape = input<AndesButtonShape>('default');
+  readonly color = input<AndesButtonColor | undefined>(undefined);
+  /** Shorthand for `color="danger"`: a destructive action in any variant. Wins over `color`. */
+  readonly danger = input(false, { transform: booleanAttribute });
+  /** Press feedback ripple. Turn it off for dense toolbars or custom press styling. */
+  readonly ripple = input(true, { transform: booleanAttribute });
   readonly disabled = input(false, { transform: booleanAttribute });
   readonly loading = input(false, { transform: booleanAttribute });
   readonly loadingDelay = input(0);
@@ -77,18 +105,30 @@ export class AndesButton {
     () => this.disabled() || this.visibleLoading(),
   );
 
-  protected readonly classes = computed(() =>
-    clsx(
+  protected readonly resolvedSize = computed<AndesButtonSize>(
+    () => this.size() ?? this.group?.size() ?? 'md',
+  );
+
+  protected readonly resolvedColor = computed<AndesButtonColor | undefined>(
+    () => (this.danger() ? 'danger' : this.color()),
+  );
+
+  protected readonly classes = computed(() => {
+    const shape = this.shape();
+    const color = this.resolvedColor();
+    return clsx(
       'andes-button',
       `andes-button--${this.variant()}`,
-      `andes-button--${this.size()}`,
-      this.shape() === 'full' && 'andes-button--full',
+      `andes-button--${this.resolvedSize()}`,
+      (shape === 'full' || shape === 'round') && 'andes-button--full',
+      shape === 'circle' && 'andes-button--circle',
+      color && `andes-button--colored andes-button--color-${color}`,
       this.visibleLoading() && 'andes-button--loading',
       this.fullWidth() && 'andes-button--full-width',
       this.ariaInvalid() && 'andes-button--invalid',
       this.ghost() && 'andes-button--ghost-mode',
-    ),
-  );
+    );
+  });
 
   constructor() {
     effect((onCleanup) => {
@@ -110,7 +150,8 @@ export class AndesButton {
   }
 
   protected onPointerDown(event: PointerEvent): void {
-    if (this.isDisabled()) {
+    // A press ripple is decorative motion - skip it entirely for users who ask for less.
+    if (this.isDisabled() || !this.ripple() || this.prefersReducedMotion()) {
       return;
     }
 
@@ -140,5 +181,13 @@ export class AndesButton {
     this.renderer.appendChild(host, ripple);
 
     setTimeout(() => ripple.remove(), RIPPLE_DURATION_MS);
+  }
+
+  private prefersReducedMotion(): boolean {
+    return (
+      this.document.defaultView?.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+      ).matches ?? false
+    );
   }
 }
