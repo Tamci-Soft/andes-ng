@@ -619,9 +619,7 @@ describe('AndesPopover - extended features', () => {
         'utf8',
       ).replace(/\s+/g, ' ');
       const rule = (color: string) =>
-        new RegExp(
-          `\\.andes-popover-content\\[data-color='${color}'\\] \\{([^}]*)\\}`,
-        ).exec(css)?.[1] ?? '';
+        ruleBody(css, `.andes-popover-content[data-color='${color}']`);
       expect(rule('success')).toContain(
         '--andes-popover-background: color-mix( in srgb, var(--andes-color-success) 80%, #000 );',
       );
@@ -1442,3 +1440,20 @@ describe('AndesPopover - color and close-from-content', () => {
     expect(host.open()).toBe(false);
   });
 });
+
+/** The declarations between the braces of the rule whose selector is exactly `selector`. */
+function ruleBody(css: string, selector: string): string {
+  let from = 0;
+  for (;;) {
+    const at = css.indexOf(selector, from);
+    if (at < 0) {
+      return '';
+    }
+    const end = at + selector.length;
+    const open = css.indexOf('{', end);
+    if (open >= 0 && css.slice(end, open).trim() === '') {
+      return css.slice(open + 1, css.indexOf('}', open));
+    }
+    from = at + 1;
+  }
+}
