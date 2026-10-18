@@ -409,37 +409,6 @@ describe('AndesToastViewport', () => {
       expect(onClick).toHaveBeenCalledTimes(1);
     });
 
-    it('showProgress renders a bar that drains over the duration, only for timed toasts', () => {
-      const { fixture, service } = createHost();
-
-      service.show({ message: 'timed', duration: 4000, showProgress: true });
-      service.show({ message: 'sticky', duration: false, showProgress: true });
-      service.show({ message: 'off', duration: 4000 });
-      fixture.detectChanges();
-
-      const [timed, sticky, off] = items(fixture);
-      const bar = timed.querySelector<HTMLElement>('.andes-toast__progress');
-      expect(bar?.style.animationDuration).toBe('4000ms');
-      expect(bar?.getAttribute('aria-hidden')).toBe('true');
-      expect(sticky.querySelector('.andes-toast__progress')).toBeNull();
-      expect(off.querySelector('.andes-toast__progress')).toBeNull();
-    });
-
-    it('a key-based update restarts the progress bar', () => {
-      const { fixture, service } = createHost();
-
-      service.show({ message: 'a', key: 'k', showProgress: true });
-      fixture.detectChanges();
-      const before = items(fixture)[0].querySelector('.andes-toast__progress');
-
-      service.show({ message: 'b', key: 'k', showProgress: true });
-      fixture.detectChanges();
-      const after = items(fixture)[0].querySelector('.andes-toast__progress');
-
-      expect(after).not.toBeNull();
-      expect(after).not.toBe(before);
-    });
-
     it('pauseOnHover: false keeps counting down while hovered (focus still pauses)', () => {
       vi.useFakeTimers();
       const { fixture, service } = createHost();

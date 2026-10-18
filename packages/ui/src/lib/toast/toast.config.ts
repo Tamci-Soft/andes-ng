@@ -21,7 +21,6 @@ export const ANDES_TOAST_BUILTIN_DEFAULTS: AndesToastGlobalConfig = {
   maxCount: ANDES_TOAST_DEFAULT_MAX_VISIBLE,
   overflow: 'queue',
   pauseOnHover: true,
-  showProgress: false,
   dismissible: true,
   stack: { threshold: ANDES_TOAST_DEFAULT_STACK_THRESHOLD },
   swipeToDismiss: true,
@@ -37,7 +36,6 @@ export const ANDES_MESSAGE_BUILTIN_DEFAULTS: AndesToastGlobalConfig = {
   maxCount: Number.POSITIVE_INFINITY,
   overflow: 'queue',
   pauseOnHover: true,
-  showProgress: false,
   dismissible: false,
   stack: false,
   swipeToDismiss: false,
@@ -63,7 +61,7 @@ export const ANDES_MESSAGE_CONFIG = new InjectionToken<
 /**
  * ```ts
  * bootstrapApplication(App, {
- *   providers: [provideAndesToastConfig({ placement: 'top-right', showProgress: true })],
+ *   providers: [provideAndesToastConfig({ placement: 'top-right', duration: 8000 })],
  * });
  * ```
  */

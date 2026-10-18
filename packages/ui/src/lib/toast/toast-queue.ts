@@ -298,7 +298,7 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
     };
     this.entries.set(id, { raw, ref, resolveClosed });
 
-    const toast = this.resolve(id, raw, Date.now(), 0);
+    const toast = this.resolve(id, raw, Date.now());
     this._toasts.update((current) => [...current, toast]);
     this.announce(toast);
     this.enforceOverflow();
@@ -313,12 +313,7 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
       return;
     }
     entry.raw = raw;
-    const next = this.resolve(
-      id,
-      raw,
-      previous.createdAt,
-      previous.revision + 1,
-    );
+    const next = this.resolve(id, raw, previous.createdAt);
     this._toasts.update((current) =>
       current.map((toast) => (toast.id === id ? next : toast)),
     );
@@ -341,12 +336,7 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
     this.syncTimers();
   }
 
-  private resolve(
-    id: string,
-    raw: TConfig,
-    createdAt: number,
-    revision: number,
-  ): AndesToast {
+  private resolve(id: string, raw: TConfig, createdAt: number): AndesToast {
     const config = this.toToastConfig(raw);
     const defaults = this._defaults();
     const severity = config.severity ?? 'neutral';
@@ -373,7 +363,6 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
       icon: config.icon,
       closeIcon: config.closeIcon ?? defaults.closeIcon,
       pauseOnHover: config.pauseOnHover ?? defaults.pauseOnHover,
-      showProgress: config.showProgress ?? defaults.showProgress,
       richColors: config.richColors ?? defaults.richColors,
       swipeToDismiss: config.swipeToDismiss ?? defaults.swipeToDismiss,
       swipeDirections: config.swipeDirections ?? defaults.swipeDirections,
@@ -384,7 +373,6 @@ export abstract class AndesToastQueue<TConfig> implements AndesToastController {
       onClick: config.onClick,
       onClose: config.onClose,
       createdAt,
-      revision,
     };
   }
 

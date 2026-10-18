@@ -364,7 +364,6 @@ describe('AndesToastService', () => {
           message: 'Saved.',
           severity: 'success',
           duration: 5000,
-          revision: 1,
         }),
       );
       // The replacement is announced, so the loading -> success change is heard.
@@ -493,14 +492,13 @@ describe('AndesToastService', () => {
       expect(announceSpy).toHaveBeenLastCalledWith('Soft failure', 'polite');
     });
 
-    it('resolves pauseOnHover/showProgress/actions/placement from config and defaults', () => {
+    it('resolves pauseOnHover/actions/placement from config and defaults', () => {
       const service = createService();
 
       service.show({ message: 'defaults' });
       service.show({
         message: 'custom',
         pauseOnHover: false,
-        showProgress: true,
         placement: 'top-left',
         className: 'my-toast',
         actions: [{ label: 'OK', onClick: () => undefined }],
@@ -509,7 +507,6 @@ describe('AndesToastService', () => {
       expect(service.toasts()[0]).toEqual(
         expect.objectContaining({
           pauseOnHover: true,
-          showProgress: false,
           placement: undefined,
           actions: [],
           role: 'status',
@@ -519,7 +516,6 @@ describe('AndesToastService', () => {
       expect(service.toasts()[1]).toEqual(
         expect.objectContaining({
           pauseOnHover: false,
-          showProgress: true,
           placement: 'top-left',
           className: 'my-toast',
         }),
@@ -568,7 +564,6 @@ describe('AndesToastService', () => {
       const service = createService([
         provideAndesToastConfig({
           duration: 1000,
-          showProgress: true,
           dismissible: false,
           maxCount: 1,
         }),
@@ -580,7 +575,6 @@ describe('AndesToastService', () => {
       expect(service.toasts()[0]).toEqual(
         expect.objectContaining({
           duration: 1000,
-          showProgress: true,
           dismissible: false,
         }),
       );

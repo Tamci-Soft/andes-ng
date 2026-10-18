@@ -138,11 +138,6 @@ andes-toast-item {
   pointer-events: none;
 }
 
-/* While the stack is hovered every countdown is paused, so the progress bars hold too. */
-:host([data-hovered]) andes-toast-item[data-pause-on-hover] {
-  --_toast-progress-state: paused;
-}
-
 /* Follows the finger 1:1 while dragged, then eases back (or out) on release. */
 andes-toast-item[data-swiping] {
   transition: none;

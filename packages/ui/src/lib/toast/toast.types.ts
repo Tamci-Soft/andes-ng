@@ -132,8 +132,6 @@ export interface AndesToastConfig {
    * `true`.
    */
   readonly pauseOnHover?: boolean;
-  /** Show a bar that drains over the auto-dismiss countdown. Default `false`. */
-  readonly showProgress?: boolean;
   /**
    * Tints the whole toast with its severity colour (background and border), instead of the
    * default neutral card where only the icon carries the colour. No effect on `neutral` and
@@ -186,7 +184,6 @@ export interface AndesMessageConfig {
   readonly dismissible?: boolean;
   /** Custom close glyph; `null` hides the close button. */
   readonly closeIcon?: TemplateRef<AndesToastTemplateContext> | null;
-  readonly showProgress?: boolean;
   /** Tints the message with its type colour. Default: the global `richColors` (`false`). */
   readonly richColors?: boolean;
   /** Whether the message can be dragged away to dismiss it. Default `false` (set `swipeDirections` to opt in). */
@@ -226,7 +223,6 @@ export interface AndesToast {
   readonly icon?: TemplateRef<AndesToastTemplateContext> | null;
   readonly closeIcon?: TemplateRef<AndesToastTemplateContext>;
   readonly pauseOnHover: boolean;
-  readonly showProgress: boolean;
   readonly richColors: boolean;
   /** `false` turns the default swiping off; an explicit `swipeDirections` still opts in. */
   readonly swipeToDismiss?: boolean;
@@ -240,8 +236,6 @@ export interface AndesToast {
   readonly onClick?: (ref: AndesToastRef<never>) => void;
   readonly onClose?: (reason: AndesToastCloseReason) => void;
   readonly createdAt: number;
-  /** Bumped by every key-based/`ref.update()` replacement, so the view can restart its progress bar. */
-  readonly revision: number;
 }
 
 /**
@@ -284,7 +278,6 @@ export interface AndesToastGlobalConfig {
    */
   readonly overflow: AndesToastOverflow;
   readonly pauseOnHover: boolean;
-  readonly showProgress: boolean;
   readonly dismissible: boolean;
   readonly closeIcon?: TemplateRef<AndesToastTemplateContext>;
   /**
@@ -314,8 +307,7 @@ export interface AndesToastGlobalConfig {
   readonly bottom?: number | string;
   /**
    * Lays each toast's content out right-to-left (icon on the right, close button on the
-   * top-right corner, progress
-   * draining leftwards) regardless of the page direction. Placements stay physical.
+   * top-right corner) regardless of the page direction. Placements stay physical.
    * Default `false`: toasts follow the inherited `dir`.
    */
   readonly rtl?: boolean;

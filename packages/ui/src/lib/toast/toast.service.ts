@@ -15,7 +15,7 @@ type AndesToastShortcutConfig = Omit<AndesToastConfig, 'message' | 'severity'>;
 
 /**
  * Imperative notification queue with a static-style API (title + message, corner
- * placements, actions, progress bar). Injectable anywhere (`providedIn: 'root'`) to show
+ * placements, actions). Injectable anywhere (`providedIn: 'root'`) to show
  * toasts; `AndesToastViewport` renders them. For the compact single-line `message` flavor,
  * use `AndesMessageService`.
  *

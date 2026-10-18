@@ -39,8 +39,7 @@ interface DragState {
 }
 
 /**
- * Renders a single toast's chrome (icon, title, message, buttons, close button, progress
- * bar) and its drag-to-dismiss gesture - with no live-region semantics of its own. Internal to
+ * Renders a single toast's chrome (icon, title, message, buttons, close button) and its drag-to-dismiss gesture - with no live-region semantics of its own. Internal to
  * `@andes-ng/ui` - only `AndesToastRegion` instantiates it, so it stays unexported from the
  * package root; auto-dismiss, hover pause, queueing and the stack layout live elsewhere.
  *
@@ -124,15 +123,6 @@ export class AndesToastItem {
     return !!toast.title || !!toast.titleTemplate;
   });
 
-  /** Progress bar only makes sense when there is a countdown to visualize. */
-  protected readonly progressDuration = computed(() => {
-    const { showProgress, duration } = this.toast();
-    return showProgress && duration !== false && duration > 0 ? duration : null;
-  });
-
-  /** One-element list keyed by revision, so a key-based update restarts the bar's animation. */
-  protected readonly progressRevision = computed(() => [this.toast().revision]);
-
   protected readonly iconContext = computed(() => ({
     $implicit: this.toast(),
   }));
@@ -143,7 +133,7 @@ export class AndesToastItem {
 
   constructor() {
     // `attributes` is an open-ended map, so it can't be expressed as static host bindings:
-    // apply it imperatively and remove whatever a previous revision set but this one doesn't.
+    // apply it imperatively and remove whatever a previous update set but this one doesn't.
     let applied: readonly string[] = [];
     effect(() => {
       const element = this.host.nativeElement;
