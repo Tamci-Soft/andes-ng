@@ -17,7 +17,7 @@
    -thumb, -tooltip, -marks, -mark) for structural styling. */
 
 :host {
-  /* The thumb's box: a 10px knob plus its 2px ring, as Ant's Slider handle. The knob grows
+  /* The thumb's box: a 10px knob plus its 2px ring. The knob grows
      to 12px with a 2.5px ring (17px) on hover, focus and drag, overflowing this box. */
   --andes-slider-thumb-size: 0.875rem;
   --andes-slider-rail-size: 0.25rem;
@@ -375,7 +375,7 @@
 }
 
 :host([data-orientation='horizontal']) .andes-slider__mark {
-  /* 4px below the rail, as Ant: the control row extends half the thumb past the rail's
+  /* 4px below the rail: the control row extends half the thumb past the rail's
      center, so pull the labels back up by the part of that beyond the rail. */
   inset-block-start: calc(
     var(--andes-space-1) -
