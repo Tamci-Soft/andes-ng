@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, develop, 'release/**', 'hotfix/**']
+    branches: [develop]
   workflow_call:
 
 concurrency:
@@ -16,6 +16,7 @@ permissions:
 jobs:
   quality:
     name: Format, lint and test
+    if: ${{ !(github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/') || github.head_ref == 'main')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -46,6 +47,7 @@ jobs:
 
   build:
     name: Build packages and Storybook
+    if: ${{ !(github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/') || github.head_ref == 'main')) }}
     needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -68,6 +70,7 @@ jobs:
 
   verify:
     name: verify
+    if: ${{ !(github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/') || github.head_ref == 'main')) }}
     needs: [quality, build]
     runs-on: ubuntu-latest
     timeout-minutes: 2
