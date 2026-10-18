@@ -68,13 +68,26 @@ The version is the branch name; nothing infers it. Version plans (`pnpm nx relea
 
 ### `ci.yml` (CI)
 
-| Job       | Runs                                                                                               | Notes                                                                                                                                           |
-| --------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `quality` | pull requests, pushes to `main`, `develop`, `release/**`, `hotfix/**`, and when `Release` calls it | `format:check`, then lint and test. On pull requests only the affected projects (`nx affected`); on pushes everything.                          |
-| `build`   | after `quality`                                                                                    | Builds the packages and the Storybook.                                                                                                          |
-| `verify`  | after both                                                                                         | Does nothing itself. It is the **single required check** for branch protection, so the list of real jobs can change without touching the rules. |
+| Job       | Runs                                                                                                               | Notes                                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality` | pull requests (except from `release/**`, `hotfix/**` and `main`), pushes to `develop`, and when `Release` calls it | `format:check`, then lint and test. On pull requests only the affected projects (`nx affected`); on pushes everything.                          |
+| `build`   | after `quality`                                                                                                    | Builds the packages and the Storybook.                                                                                                          |
+| `verify`  | after both                                                                                                         | Does nothing itself. It is the **single required check** for branch protection, so the list of real jobs can change without touching the rules. |
 
 It is also a reusable workflow (`workflow_call`): `Release` calls it so a candidate is only ever published from a commit that passed CI.
+
+### Which workflows run when
+
+| Event                                                                  | Runs                                                                                                                                                                                                                               |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pull request to `develop`                                              | CI (affected lint and tests, build, Storybook), CodeQL, all four security scans, plan-check                                                                                                                                        |
+| Merge into `develop`                                                   | CI in full (catches breakage from combining pull requests)                                                                                                                                                                         |
+| Push to `release/**` or `hotfix/**`                                    | `Release` only; it calls CI once before publishing                                                                                                                                                                                 |
+| Pull request `release/**`, `hotfix/**` → `main`, or `main` → `develop` | The two dependency scans only. CI, CodeQL, Gitleaks and Semgrep are skipped: that tree was already tested by the candidate and scanned in the pull requests that built it. A skipped job counts as passed for the required checks. |
+| Merge into `main`                                                      | `Release` only (the promotion). No CI, no CodeQL, no scans.                                                                                                                                                                        |
+| Schedule                                                               | CodeQL (Mondays, also the baseline for `main`), dependency re-check (daily), stale-branch cleanup (Mondays)                                                                                                                        |
+
+Tests must run on every pull request to `develop`, on `develop` after each merge, and once on the release branch right before a candidate is published. They never run on `main`: the promotion only publishes what a verified candidate already proved.
 
 ### `release.yml` (Release)
 
