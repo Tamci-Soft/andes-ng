@@ -14,6 +14,8 @@ export type {
   AndesChoiceStateAttribute,
   AndesChoiceValue,
 } from './lib/choice-group';
+export * from './lib/selection-model';
+export * from './lib/overlay';
 export {
   ANDES_LIST_TYPEAHEAD_DEBOUNCE,
   AndesListNavigation,
