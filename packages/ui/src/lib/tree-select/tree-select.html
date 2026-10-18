@@ -1,0 +1,222 @@
+<!--
+  The box is the overlay's anchor and, without an in-field search, the combobox itself: a div
+  with a tab stop, so the tags (which hold their own remove buttons) can sit inside it. With
+  an in-field search the input is the combobox and the box is only the frame around it. The
+  box's click handler is a pointer convenience, and all keys are handled on the combobox, so
+  it needs neither a tab stop nor a key handler of its own in that case.
+-->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+<div
+  #box
+  class="andes-tree-select__trigger"
+  data-slot="tree-select-trigger"
+  [attr.data-size]="size()"
+  [attr.data-variant]="variant()"
+  [attr.data-status]="status() ?? null"
+  [attr.data-state]="isOpen() ? 'open' : 'closed'"
+  [attr.data-placeholder]="hasValue() ? null : ''"
+  [attr.data-multiple]="multiMode() ? '' : null"
+  [attr.data-disabled]="isDisabled() ? '' : null"
+  [attr.data-invalid]="invalid() ? '' : null"
+  [attr.data-clearable]="showClear() ? '' : null"
+  [attr.data-searchable]="searchInTrigger() ? '' : null"
+  [attr.role]="searchInTrigger() ? null : 'combobox'"
+  [attr.tabindex]="searchInTrigger() || isDisabled() ? null : 0"
+  [attr.id]="searchInTrigger() ? null : (id() ?? null)"
+  [attr.aria-haspopup]="searchInTrigger() ? null : 'tree'"
+  [attr.aria-expanded]="searchInTrigger() ? null : isOpen()"
+  [attr.aria-controls]="!searchInTrigger() && isOpen() ? panelId : null"
+  [attr.aria-label]="searchInTrigger() ? null : (ariaLabel() ?? null)"
+  [attr.aria-labelledby]="searchInTrigger() ? null : (ariaLabelledby() ?? null)"
+  [attr.aria-describedby]="searchInTrigger() ? null : describedBy()"
+  [attr.aria-invalid]="searchInTrigger() ? null : invalid() ? 'true' : null"
+  [attr.aria-required]="searchInTrigger() ? null : required() ? 'true' : null"
+  [attr.aria-disabled]="searchInTrigger() ? null : isDisabled() ? 'true' : null"
+  (mousedown)="onBoxMouseDown($event)"
+  (click)="onBoxClick($event)"
+  (keydown)="onComboboxKeydown($event)"
+  (focusin)="onFocusIn($event)"
+  (focusout)="onFocusOut($event)"
+>
+  <div class="andes-tree-select__selection">
+    @if (multiMode()) { @for (option of visibleTags(); track option.key) {
+    <span
+      class="andes-tree-select__tag"
+      data-slot="tree-select-tag"
+      [attr.title]="option.title"
+    >
+      <span class="andes-tree-select__tag-label">{{ option.title }}</span>
+      @if (!isDisabled()) {
+      <!--
+        Out of the tab order on purpose: keyboard users remove tags with Backspace from the
+        field, which is one tab stop instead of one per tag.
+      -->
+      <button
+        type="button"
+        tabindex="-1"
+        class="andes-tree-select__tag-remove"
+        [attr.aria-label]="text().remove(option.title)"
+        (click)="removeOption(option, $event)"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path
+            d="M18 6 6 18M6 6l12 12"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      }
+    </span>
+    } @if (omittedTags().length > 0) {
+    <span
+      class="andes-tree-select__tag andes-tree-select__tag--rest"
+      data-slot="tree-select-tag-rest"
+    >
+      @if (omittedTemplate(); as rest) {
+      <ng-container
+        [ngTemplateOutlet]="rest"
+        [ngTemplateOutletContext]="{ $implicit: omittedTags() }"
+      />
+      } @else { {{ omittedText(omittedTags()) }} }
+    </span>
+    } } @else if (hasValue()) {
+    <span
+      class="andes-tree-select__value"
+      [attr.title]="summary()"
+      [attr.data-hidden]="searching() ? '' : null"
+      >{{ summary() }}</span
+    >
+    } @else if (!searchInTrigger() && placeholder()) {
+    <span class="andes-tree-select__placeholder">{{ placeholder() }}</span>
+    } @if (searchInTrigger()) {
+    <input
+      #searchInput
+      class="andes-tree-select__input"
+      type="text"
+      role="combobox"
+      autocomplete="off"
+      aria-autocomplete="list"
+      aria-haspopup="tree"
+      [id]="id() ?? null"
+      [attr.name]="name() ?? null"
+      [value]="searchValue()"
+      [disabled]="isDisabled()"
+      [attr.placeholder]="hasValue() ? null : (placeholder() ?? null)"
+      [attr.aria-expanded]="isOpen()"
+      [attr.aria-controls]="isOpen() ? panelId : null"
+      [attr.aria-label]="ariaLabel() ?? null"
+      [attr.aria-labelledby]="ariaLabelledby() ?? null"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-invalid]="invalid() ? 'true' : null"
+      [attr.aria-required]="required() ? 'true' : null"
+      (input)="onSearchInput($event)"
+    />
+    }
+  </div>
+
+  <span class="andes-tree-select__suffix">
+    @if (showClear()) {
+    <button
+      type="button"
+      tabindex="-1"
+      class="andes-tree-select__clear"
+      data-slot="tree-select-clear"
+      [attr.aria-label]="text().clear"
+      (click)="clear($event)"
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <circle cx="8" cy="8" r="8" />
+        <path d="M5.5 5.5l5 5m0-5-5 5" />
+      </svg>
+    </button>
+    } @if (loading()) {
+    <span
+      class="andes-tree-select__spinner"
+      data-slot="tree-select-loading"
+      aria-hidden="true"
+    ></span>
+    } @else {
+    <span class="andes-tree-select__chevron" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </span>
+    }
+  </span>
+
+  <span hidden [id]="summaryId">{{ summary() }}</span>
+</div>
+
+<ng-template #panel>
+  <div
+    class="andes-tree-select__panel"
+    data-slot="tree-select-panel"
+    data-state="open"
+    [id]="panelId"
+    [attr.data-side]="side()"
+    [attr.data-size]="size()"
+    [attr.data-match-width]="matchTriggerWidth() ? '' : null"
+    (keydown)="onPanelKeydown($event)"
+  >
+    @if (searchInPanel()) {
+    <div class="andes-tree-select__search">
+      <input
+        class="andes-tree-select__search-input"
+        type="text"
+        role="searchbox"
+        autocomplete="off"
+        [value]="searchValue()"
+        [attr.placeholder]="text().searchPlaceholder"
+        [attr.aria-label]="text().searchLabel"
+        (input)="onSearchInput($event)"
+        (keydown)="onSearchKeydown($event)"
+      />
+    </div>
+    }
+    <div
+      class="andes-tree-select__viewport"
+      [style.max-height.px]="virtualScroll() ? null : panelHeight()"
+    >
+      <andes-tree
+        blockNode
+        [aria-label]="ariaLabel()"
+        [aria-labelledby]="ariaLabelledby()"
+        [nodes]="nodes()"
+        [fieldNames]="fieldNames()"
+        [(expandedKeys)]="expandedKeys"
+        [selectedKeys]="treeSelectedKeys()"
+        [checkedKeys]="treeCheckedKeys()"
+        [multiple]="multiMode()"
+        [selectable]="treeSelectable()"
+        [deselectable]="multiple()"
+        [checkable]="checkable()"
+        [checkStrictly]="checkStrictly()"
+        [loadData]="loadData()"
+        [loading]="loading()"
+        [filter]="searchValue()"
+        [filterFn]="filterFn()"
+        [showLine]="showLine()"
+        [showIcon]="showIcon()"
+        [virtualScroll]="virtualScroll()"
+        [height]="panelHeight()"
+        [labels]="treeLabels()"
+        [nodeTemplate]="nodeTemplate()?.template"
+        (nodeSelect)="onTreeSelect($event)"
+        (nodeCheck)="onTreeCheck($event)"
+        (nodeClick)="onTreeClick($event)"
+      />
+    </div>
+  </div>
+</ng-template>

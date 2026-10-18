@@ -1,0 +1,604 @@
+:host {
+  display: block;
+}
+
+/*
+  The field box. `--_status-border` and `--_ring` are private hooks set by the status rules
+  below, so each variant decides where the status colour goes (all four sides, or only the
+  bottom border for `underlined`).
+
+  Focus is drawn by the box alone, from `:focus-within`: a primary border plus a soft 2px ring,
+  and no outline - a ring offset around a bordered box reads as a second border.
+*/
+.andes-tree-select__trigger {
+  --_padding-x: var(--andes-control-padding-x-md, 0.6875rem);
+  --_tag-height: calc(var(--andes-control-height-md, 2rem) - 0.5rem);
+  --_ring: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 20%,
+    transparent
+  );
+
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: var(--andes-control-height-md, 2rem);
+  align-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+  box-sizing: border-box;
+  padding-inline: var(--_padding-x);
+  border: 1px solid var(--_status-border, var(--andes-color-input, #cbd5e1));
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  background-color: var(--andes-color-background, #fff);
+  color: var(--andes-color-foreground, #0f172a);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+  line-height: var(--andes-control-line-height, 1.375rem);
+  text-align: start;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-tree-select__trigger {
+    transition: none;
+  }
+}
+
+/* prettier-ignore */
+.andes-tree-select__trigger:hover:not([data-disabled], :focus-within, [data-state='open']) {
+  border-color: var(
+    --_status-border,
+    color-mix(
+      in srgb,
+      var(--andes-color-primary, #2563eb) 65%,
+      var(--andes-color-input, #cbd5e1)
+    )
+  );
+}
+
+.andes-tree-select__trigger:focus-within,
+.andes-tree-select__trigger[data-state='open'] {
+  border-color: var(--_status-border, var(--andes-color-primary, #2563eb));
+  box-shadow: 0 0 0 2px var(--_ring);
+}
+
+@media (forced-colors: active) {
+  .andes-tree-select__trigger:focus-within,
+  .andes-tree-select__trigger[data-state='open'] {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}
+
+.andes-tree-select__trigger[data-disabled] {
+  cursor: not-allowed;
+  background-color: var(--andes-color-muted, #f1f5f9);
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+/* Status: warning, and error (also `aria-invalid`), the focus ring included. */
+
+.andes-tree-select__trigger[data-status='warning'] {
+  --_status-border: var(--andes-color-warning-hover, #d97706);
+  --_ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover, #d97706) 20%,
+    transparent
+  );
+}
+
+.andes-tree-select__trigger[data-invalid],
+.andes-tree-select__trigger[data-status='error'] {
+  --_status-border: var(--andes-color-danger, #dc2626);
+  --_ring: color-mix(
+    in srgb,
+    var(--andes-color-danger, #dc2626) 20%,
+    transparent
+  );
+}
+
+/* Variants. `outlined` is the base rule above. */
+
+.andes-tree-select__trigger[data-variant='filled'] {
+  border-color: var(--_status-border, transparent);
+  background-color: var(--andes-color-muted, #f1f5f9);
+}
+
+/* prettier-ignore */
+.andes-tree-select__trigger[data-variant='filled']:hover:not([data-disabled], :focus-within, [data-state='open']) {
+  border-color: var(--_status-border, transparent);
+  background-color: color-mix(in srgb, var(--andes-color-muted, #f1f5f9) 92%, var(--andes-color-foreground, #0f172a));
+}
+
+.andes-tree-select__trigger[data-variant='filled']:focus-within,
+.andes-tree-select__trigger[data-variant='filled'][data-state='open'] {
+  border-color: var(--_status-border, var(--andes-color-primary, #2563eb));
+  background-color: var(--andes-color-background, #fff);
+}
+
+/* No border at all: focus shows only the soft ring. */
+.andes-tree-select__trigger[data-variant='borderless'],
+/* prettier-ignore */
+.andes-tree-select__trigger[data-variant='borderless']:hover:not( [data-disabled] ),
+.andes-tree-select__trigger[data-variant='borderless']:focus-within,
+.andes-tree-select__trigger[data-variant='borderless'][data-state='open'] {
+  border-color: transparent;
+}
+
+.andes-tree-select__trigger[data-variant='borderless'] {
+  background-color: transparent;
+}
+
+.andes-tree-select__trigger[data-variant='underlined'] {
+  border-color: transparent;
+  border-bottom-color: var(--_status-border, var(--andes-color-input, #cbd5e1));
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* prettier-ignore */
+.andes-tree-select__trigger[data-variant='underlined']:hover:not([data-disabled], :focus-within, [data-state='open']) {
+  border-color: transparent;
+  border-bottom-color: var(--_status-border, color-mix(in srgb, var(--andes-color-primary, #2563eb) 65%, var(--andes-color-input, #cbd5e1)));
+}
+
+/* Underlined focus is the bottom border alone, without the ring. */
+.andes-tree-select__trigger[data-variant='underlined']:focus-within,
+.andes-tree-select__trigger[data-variant='underlined'][data-state='open'] {
+  border-color: transparent;
+  border-bottom-color: var(
+    --_status-border,
+    var(--andes-color-primary, #2563eb)
+  );
+  box-shadow: none;
+}
+
+/* Sizes: the shared control scale, 24 / 32 / 40px tall with 14 / 14 / 16px text. */
+
+.andes-tree-select__trigger[data-size='sm'] {
+  --_padding-x: var(--andes-control-padding-x-sm, 0.4375rem);
+  --_tag-height: calc(var(--andes-control-height-sm, 1.5rem) - 0.5rem);
+
+  min-height: var(--andes-control-height-sm, 1.5rem);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+}
+
+.andes-tree-select__trigger[data-size='lg'] {
+  --_padding-x: var(--andes-control-padding-x-lg, 0.6875rem);
+  --_tag-height: calc(var(--andes-control-height-lg, 2.5rem) - 0.5rem);
+
+  min-height: var(--andes-control-height-lg, 2.5rem);
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
+  line-height: 1.5rem;
+}
+
+/*
+  Tags sit 3px inside the border, so a tag is the control height minus 8px and one row of tags
+  keeps the box at its single-line height; wrapped rows are 4px apart.
+*/
+.andes-tree-select__trigger[data-multiple] {
+  padding-block: 0.1875rem;
+  padding-inline-start: 0.1875rem;
+}
+
+.andes-tree-select__selection {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+}
+
+.andes-tree-select__trigger[data-multiple] .andes-tree-select__selection {
+  flex-wrap: wrap;
+}
+
+/* With no tags, the placeholder and an empty input start at the size's padding. */
+/* prettier-ignore */
+.andes-tree-select__trigger[data-multiple][data-placeholder] .andes-tree-select__selection {
+  padding-inline-start: calc(var(--_padding-x) - 0.1875rem);
+}
+
+.andes-tree-select__value,
+.andes-tree-select__placeholder {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.andes-tree-select__placeholder {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+/* On the filled box's tint the plain muted colour drops just under 4.5:1; nudge it. */
+/* prettier-ignore */
+.andes-tree-select__trigger[data-variant='filled'] .andes-tree-select__placeholder {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground, #64748b) 80%,
+    var(--andes-color-foreground, #0f172a)
+  );
+}
+
+.andes-tree-select__value[data-hidden] {
+  visibility: hidden;
+}
+
+/*
+  The in-field search input. In a single select it lies over the value (which keeps the row's
+  size and hides while typing); in a multiple select it is the last item of the tag row.
+*/
+.andes-tree-select__input {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  outline: 0;
+  cursor: text;
+}
+
+.andes-tree-select__input::placeholder {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-tree-select__trigger:not([data-multiple]) .andes-tree-select__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+}
+
+.andes-tree-select__trigger[data-multiple] .andes-tree-select__input {
+  flex: 1 1 4rem;
+  min-width: 4rem;
+  align-self: stretch;
+}
+
+.andes-tree-select__input:disabled {
+  cursor: not-allowed;
+}
+
+/* Tags */
+
+.andes-tree-select__tag {
+  display: inline-flex;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: var(--_tag-height);
+  align-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+  padding-inline: var(--andes-space-2, 0.5rem) var(--andes-space-1, 0.25rem);
+  border: 1px solid transparent;
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  background-color: var(--andes-color-muted, #f1f5f9);
+  color: var(--andes-color-foreground, #0f172a);
+  font-size: inherit;
+  line-height: calc(var(--_tag-height) - 0.125rem);
+  cursor: default;
+}
+
+.andes-tree-select__tag:not(:has(.andes-tree-select__tag-remove)) {
+  padding-inline-end: var(--andes-space-2, 0.5rem);
+}
+
+.andes-tree-select__trigger[data-size='sm'] .andes-tree-select__tag {
+  padding-inline: var(--andes-space-1, 0.25rem);
+  border-radius: 0.125rem;
+  /* The 16px tags of the small box take the caption size. */
+  font-size: 0.75rem;
+}
+
+.andes-tree-select__trigger[data-variant='filled'] .andes-tree-select__tag {
+  border-color: var(--andes-color-border, #e2e8f0);
+  background-color: var(--andes-color-background, #fff);
+}
+
+.andes-tree-select__trigger[data-disabled] .andes-tree-select__tag {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-tree-select__tag--rest {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-tree-select__tag-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.andes-tree-select__tag-remove {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background: none;
+  color: var(--andes-color-muted-foreground, #64748b);
+  cursor: pointer;
+}
+
+.andes-tree-select__tag-remove:hover {
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+.andes-tree-select__tag-remove svg {
+  width: 0.75em;
+  height: 0.75em;
+}
+
+/* Suffix: clear button, loading spinner and chevron. */
+
+.andes-tree-select__suffix {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-tree-select__chevron {
+  display: inline-flex;
+  transition: transform var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+.andes-tree-select__trigger[data-state='open'] .andes-tree-select__chevron {
+  transform: rotate(180deg);
+}
+
+.andes-tree-select__chevron svg {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-tree-select__chevron {
+    transition: none;
+  }
+}
+
+/*
+  The clear button: a muted disc with the "x" knocked out of it, 1em across. It replaces the
+  chevron while the pointer is over the box or the box holds focus. The padding grows its hit
+  area to 24px and the equal negative margin takes it back out of the layout.
+*/
+.andes-tree-select__clear {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: calc((1.5rem - 1em) / 2);
+  margin: calc((1em - 1.5rem) / 2);
+  border: 0;
+  border-radius: var(--andes-radius-full, 9999px);
+  background: none;
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground, #64748b) 60%,
+    transparent
+  );
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.andes-tree-select__clear:hover {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-tree-select__clear svg {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+.andes-tree-select__clear circle {
+  fill: currentcolor;
+}
+
+.andes-tree-select__clear path {
+  fill: none;
+  stroke: var(--andes-color-background, #fff);
+  stroke-linecap: round;
+  stroke-width: 1.5;
+}
+
+.andes-tree-select__trigger:hover .andes-tree-select__clear,
+.andes-tree-select__trigger:focus-within .andes-tree-select__clear {
+  display: inline-flex;
+}
+
+/* While the clear button shows, it takes the chevron's place. */
+.andes-tree-select__trigger[data-clearable]:hover .andes-tree-select__chevron,
+/* prettier-ignore */
+.andes-tree-select__trigger[data-clearable]:focus-within .andes-tree-select__chevron {
+  display: none;
+}
+
+@media (hover: none) {
+  .andes-tree-select__clear {
+    display: inline-flex;
+  }
+
+  .andes-tree-select__trigger[data-clearable] .andes-tree-select__chevron {
+    display: none;
+  }
+}
+
+.andes-tree-select__spinner {
+  width: 0.875em;
+  height: 0.875em;
+  box-sizing: border-box;
+  border: 2px solid color-mix(in srgb, currentcolor 25%, transparent);
+  border-top-color: var(--andes-color-primary, #2563eb);
+  border-radius: 50%;
+  animation: andes-tree-select-spin 0.9s linear infinite;
+}
+
+@keyframes andes-tree-select-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-tree-select__spinner {
+    animation: none;
+  }
+}
+
+/* The panel. It renders in the overlay container, outside the host. */
+
+.andes-tree-select__panel {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow: hidden;
+  /* Transparent, so the edge only shows in forced-colors mode; the shadow draws it elsewhere. */
+  border: 1px solid transparent;
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  background-color: var(--andes-color-popover, #fff);
+  color: var(--andes-color-popover-foreground, #0f172a);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+  line-height: var(--andes-control-line-height, 1.375rem);
+  box-shadow: var(
+    --andes-shadow-md,
+    0 6px 16px 0 rgb(0 0 0 / 8%),
+    0 3px 6px -4px rgb(0 0 0 / 12%),
+    0 9px 28px 8px rgb(0 0 0 / 5%)
+  );
+}
+
+.andes-tree-select__panel[data-match-width] {
+  width: 100%;
+}
+
+.andes-tree-select__panel:not([data-match-width]) {
+  min-width: 12rem;
+}
+
+.andes-tree-select__panel[data-size='lg'] {
+  font-size: var(--andes-control-font-size-lg, 1rem);
+  line-height: 1.5rem;
+}
+
+/*
+  The panel grows out of the field's edge: a short fade from 97% scale, no bounce. Closing
+  mirrors it, a little faster and accelerating away: the overlay marks the panel
+  `data-andes-closing` and waits for this animation before detaching it. Reduced motion: it
+  simply appears and goes.
+*/
+@keyframes andes-tree-select-panel-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes andes-tree-select-panel-exit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .andes-tree-select__panel[data-state='open'] {
+    transform-origin: top center;
+    animation: andes-tree-select-panel-enter
+      var(--andes-motion-duration-mid, 150ms)
+      var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+  }
+
+  .andes-tree-select__panel[data-andes-closing] {
+    transform-origin: top center;
+    animation: andes-tree-select-panel-exit
+      var(--andes-motion-duration-fast, 120ms)
+      var(--andes-motion-ease-in, ease-in) forwards;
+  }
+
+  .andes-tree-select__panel[data-state='open'][data-side='top'],
+  .andes-tree-select__panel[data-andes-closing][data-side='top'] {
+    transform-origin: bottom center;
+  }
+}
+
+.andes-tree-select__search {
+  flex: 0 0 auto;
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-2, 0.5rem) 0;
+}
+
+/* The search box follows the shared field look: one border, one soft focus ring. */
+.andes-tree-select__search-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--andes-control-height-md, 2rem);
+  padding: 0 var(--andes-control-padding-x-md, 0.6875rem);
+  border: 1px solid var(--andes-color-input, #cbd5e1);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  background-color: var(--andes-color-background, #fff);
+  color: inherit;
+  font: inherit;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.andes-tree-select__search-input::placeholder {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-tree-select__search-input:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 65%,
+    var(--andes-color-input, #cbd5e1)
+  );
+}
+
+.andes-tree-select__search-input:focus {
+  border-color: var(--andes-color-primary, #2563eb);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-primary, #2563eb) 20%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-tree-select__search-input {
+    transition: none;
+  }
+}
+
+.andes-tree-select__viewport {
+  box-sizing: border-box;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--andes-space-2, 0.5rem);
+}
