@@ -103,7 +103,7 @@ export * from './lib/button';
 
 // @slot radio-group
 
-// @slot rate
+export * from './lib/rate';
 
 // @slot result
 
