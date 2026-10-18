@@ -1,0 +1,11 @@
+/* Layout and type come from statistic.css; this file only adds what is specific to the timer. */
+.andes-statistic__figure {
+  white-space: pre;
+}
+
+:host([data-finished]) .andes-statistic__figure {
+  color: var(
+    --andes-statistic-finished-color,
+    var(--andes-color-muted-foreground, #64748b)
+  );
+}

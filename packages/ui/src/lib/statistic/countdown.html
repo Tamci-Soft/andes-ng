@@ -1,0 +1,30 @@
+<dl class="andes-statistic">
+  <dt
+    class="andes-statistic__title"
+    [class.andes-statistic__sr]="!hasTitle()"
+    [hidden]="!hasName()"
+  >
+    @if (titleTemplate(); as template) {
+    <ng-container *ngTemplateOutlet="template" />
+    } @else if (titleText()) {{{ titleText() }}} @else {{{ ariaLabel() }}}
+  </dt>
+  <dd class="andes-statistic__value">
+    <span class="andes-statistic__prefix">
+      @if (prefixTemplate(); as template) {
+      <ng-container *ngTemplateOutlet="template" />
+      } @else {{{ prefixText() }}}
+    </span>
+    <time class="andes-statistic__figure" role="timer" [attr.datetime]="iso()"
+      >{{ text() }}</time
+    >
+    <span class="andes-statistic__suffix">
+      @if (suffixTemplate(); as template) {
+      <ng-container *ngTemplateOutlet="template" />
+      } @else {{{ suffixText() }}}
+    </span>
+  </dd>
+  <dd class="andes-statistic__extra"><ng-content /></dd>
+</dl>
+<span class="andes-statistic__sr" role="status" aria-live="polite"
+  >{{ announcement() }}</span
+>

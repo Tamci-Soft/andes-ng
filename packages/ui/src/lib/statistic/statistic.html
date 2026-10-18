@@ -1,0 +1,49 @@
+<dl class="andes-statistic" [attr.aria-busy]="loading() ? 'true' : null">
+  <dt
+    class="andes-statistic__title"
+    [class.andes-statistic__sr]="!hasTitle()"
+    [hidden]="!hasName()"
+  >
+    @if (titleTemplate(); as template) {
+    <ng-container *ngTemplateOutlet="template" />
+    } @else if (titleText()) {{{ titleText() }}} @else {{{ ariaLabel() }}}
+  </dt>
+  <dd class="andes-statistic__value">
+    @if (loading()) {
+    <span class="andes-statistic__skeleton" aria-hidden="true"></span>
+    <span class="andes-statistic__sr">{{ resolvedLabels().loading }}</span>
+    } @else { @if (trend(); as trend) { @if (trendIcon()) {
+    <svg
+      class="andes-statistic__trend-icon"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      @if (trend === 'up') {
+      <path d="M8 13V3m0 0L3.5 7.5M8 3l4.5 4.5" />
+      } @else {
+      <path d="M8 3v10m0 0L3.5 8.5M8 13l4.5-4.5" />
+      }
+    </svg>
+    }
+    <span class="andes-statistic__sr">{{ resolvedLabels()[trend] }}: </span>
+    }
+    <span class="andes-statistic__prefix">
+      @if (prefixTemplate(); as template) {
+      <ng-container *ngTemplateOutlet="template" />
+      } @else {{{ prefixText() }}}
+    </span>
+    <span class="andes-statistic__figure"
+      ><span class="andes-statistic__integer">{{ parts().integer }}</span
+      ><span class="andes-statistic__decimal">{{ parts().decimal }}</span
+      ><span class="andes-statistic__tail">{{ parts().tail }}</span></span
+    >
+    <span class="andes-statistic__suffix">
+      @if (suffixTemplate(); as template) {
+      <ng-container *ngTemplateOutlet="template" />
+      } @else {{{ suffixText() }}}
+    </span>
+    }
+  </dd>
+  <dd class="andes-statistic__extra"><ng-content /></dd>
+</dl>
