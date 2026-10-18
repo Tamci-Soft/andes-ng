@@ -7,7 +7,7 @@ import type { AndesTableRowKey } from './table-context';
  *
  * ```ts
  * readonly nodes = computed(() =>
- *   andesFlattenTree(this.accounts(), {
+ *   andesFlattenTableTree(this.accounts(), {
  *     key: (account) => account.id,
  *     children: (account) => account.children,
  *     expandedKeys: this.expanded(),
@@ -35,7 +35,7 @@ export interface AndesTreeAccessors<TRow> {
   readonly children: (row: TRow) => readonly TRow[] | null | undefined;
 }
 
-/** Options for `andesFlattenTree`. */
+/** Options for `andesFlattenTableTree`. */
 export interface AndesFlattenTreeOptions<
   TRow,
 > extends AndesTreeAccessors<TRow> {
@@ -49,7 +49,7 @@ export interface AndesFlattenTreeOptions<
 }
 
 /** One rendered row of a flattened tree. */
-export interface AndesTreeNode<TRow> {
+export interface AndesTableTreeNode<TRow> {
   readonly row: TRow;
   readonly key: AndesTableRowKey;
   /** Depth, 0 for a top-level row. Bind it to the row's `level`. */
@@ -67,14 +67,14 @@ export interface AndesTreeNode<TRow> {
  * the children of each expanded one, recursively. Children of a collapsed parent
  * are left out, however deep.
  */
-export function andesFlattenTree<TRow>(
+export function andesFlattenTableTree<TRow>(
   rows: readonly TRow[],
   options: AndesFlattenTreeOptions<TRow>,
-): readonly AndesTreeNode<TRow>[] {
+): readonly AndesTableTreeNode<TRow>[] {
   const expanded = new Set(options.expandedKeys);
   const sort =
     options.sortSiblings ?? ((siblings: readonly TRow[]) => siblings);
-  const result: AndesTreeNode<TRow>[] = [];
+  const result: AndesTableTreeNode<TRow>[] = [];
 
   const visit = (
     siblings: readonly TRow[],

@@ -24,7 +24,7 @@ import {
 } from './table-selection';
 import type { AndesSortState } from './table-sort';
 import {
-  andesFlattenTree,
+  andesFlattenTableTree,
   andesTreeDescendants,
   andesTreeIndex,
 } from './table-tree';
@@ -94,7 +94,7 @@ function key(element: Element, value: string, init: KeyboardEventInit = {}) {
 
 describe('table tree helpers', () => {
   it('flattens only the children of expanded parents, with their depth', () => {
-    const nodes = andesFlattenTree(ACCOUNTS, {
+    const nodes = andesFlattenTableTree(ACCOUNTS, {
       ...ACCESSORS,
       expandedKeys: ['assets'],
     });
@@ -114,7 +114,7 @@ describe('table tree helpers', () => {
   });
 
   it('hides grandchildren of a collapsed parent even when they are expanded', () => {
-    const nodes = andesFlattenTree(ACCOUNTS, {
+    const nodes = andesFlattenTableTree(ACCOUNTS, {
       ...ACCESSORS,
       expandedKeys: ['receivables'],
     });
@@ -122,7 +122,7 @@ describe('table tree helpers', () => {
   });
 
   it('orders each set of siblings with sortSiblings', () => {
-    const nodes = andesFlattenTree(ACCOUNTS, {
+    const nodes = andesFlattenTableTree(ACCOUNTS, {
       ...ACCESSORS,
       expandedKeys: ['assets'],
       sortSiblings: (rows) => [...rows].reverse(),
@@ -181,7 +181,7 @@ describe('AndesTable tree data', () => {
       'receivables',
     ]);
     readonly nodes = computed(() =>
-      andesFlattenTree(ACCOUNTS, {
+      andesFlattenTableTree(ACCOUNTS, {
         ...ACCESSORS,
         expandedKeys: this.expanded(),
       }),

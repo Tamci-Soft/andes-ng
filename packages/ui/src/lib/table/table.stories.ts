@@ -64,7 +64,7 @@ import {
   type AndesTableSelectionPreset,
 } from './table-selection';
 import { andesSortRows, type AndesSortState } from './table-sort';
-import { andesFlattenTree, andesTreeIndex } from './table-tree';
+import { andesFlattenTableTree, andesTreeIndex } from './table-tree';
 import { AndesTableVirtualRows } from './table-virtual';
 
 const TABLE_PARTS = [
@@ -1048,7 +1048,7 @@ const ACCOUNT_TREE = {
 };
 
 /**
- * Tree data: `andesFlattenTree` turns the nested chart of accounts into the rows
+ * Tree data: `andesFlattenTableTree` turns the nested chart of accounts into the rows
  * to render, `level` + `indent` indent them, and `selectionTree` makes selection
  * cascade - a parent is checked when all its children are, indeterminate when
  * some are.
@@ -1110,7 +1110,7 @@ class AndesTableTreeDemo {
   protected readonly money = money;
 
   readonly nodes = computed(() =>
-    andesFlattenTree(ACCOUNTS, {
+    andesFlattenTableTree(ACCOUNTS, {
       ...ACCOUNT_TREE,
       expandedKeys: this.expanded(),
     }),
