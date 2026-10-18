@@ -11,7 +11,7 @@ export * from './lib/accordion';
 
 // @slot alert
 
-// @slot anchor
+export * from './lib/anchor';
 
 // @slot aspect-ratio
 
