@@ -1,0 +1,173 @@
+/* Look is driven by custom properties (see the component docs). The private --_* values resolve
+   them once per size so the layout rules never repeat tokens. */
+:host {
+  --_cols: var(--_andes-descriptions-columns, 3);
+  --_pad-y: 0.75rem;
+  --_pad-x: 1rem;
+  --_gap-y: 0.75rem;
+  --_gap-x: 1.5rem;
+  --_border: var(
+    --andes-descriptions-border-color,
+    var(--andes-color-border, #d1d5db)
+  );
+
+  display: block;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-descriptions-content-color, var(--andes-color-foreground));
+}
+
+:host([data-size='middle']) {
+  --_pad-y: 0.5rem;
+  --_gap-y: 0.5rem;
+  --_gap-x: 1.25rem;
+}
+
+:host([data-size='small']) {
+  --_pad-y: 0.25rem;
+  --_pad-x: 0.75rem;
+  --_gap-y: 0.25rem;
+  --_gap-x: 1rem;
+}
+
+/* ---------------------------------------------------------------- Header */
+
+.andes-descriptions__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.andes-descriptions__title,
+.andes-descriptions__extra {
+  min-width: 0;
+  margin-block-end: 1rem;
+}
+
+.andes-descriptions__title {
+  flex: 1 1 auto;
+  color: var(--andes-descriptions-title-color, var(--andes-color-foreground));
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.andes-descriptions__extra {
+  flex: none;
+}
+
+.andes-descriptions__title:empty,
+.andes-descriptions__extra:empty {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- Plain list */
+
+.andes-descriptions__list {
+  display: grid;
+  grid-template-columns: repeat(var(--_cols), minmax(0, 1fr));
+  column-gap: var(--_gap-x);
+  row-gap: var(--_gap-y);
+  margin: 0;
+  padding: 0;
+}
+
+.andes-descriptions__item {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+:host([data-layout='vertical']) .andes-descriptions__item {
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.andes-descriptions__label {
+  margin: 0;
+  color: var(
+    --andes-descriptions-label-color,
+    var(--andes-color-muted-foreground, #64748b)
+  );
+  font-weight: var(--andes-descriptions-label-weight, 400);
+  overflow-wrap: break-word;
+}
+
+.andes-descriptions__list .andes-descriptions__label {
+  flex: none;
+  inline-size: var(--andes-descriptions-label-width, auto);
+}
+
+.andes-descriptions__content {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.andes-descriptions__list .andes-descriptions__content {
+  flex: 1 1 auto;
+}
+
+.andes-descriptions__content--ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The colon is decoration: the alternative text after the slash keeps it out of the
+   accessible name where that syntax is supported. */
+:host([data-colon])
+  .andes-descriptions__list
+  .andes-descriptions__label::after {
+  content: ':';
+  content: ':' / '';
+}
+
+/* ---------------------------------------------------------------- Bordered table */
+
+.andes-descriptions__table {
+  inline-size: 100%;
+  table-layout: fixed;
+  border: 1px solid var(--_border);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+.andes-descriptions__table th,
+.andes-descriptions__table td {
+  padding: var(--_pad-y) var(--_pad-x);
+  border-block-end: 1px solid var(--_border);
+  border-inline-end: 1px solid var(--_border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.andes-descriptions__table th:last-child,
+.andes-descriptions__table td:last-child {
+  border-inline-end: 0;
+}
+
+.andes-descriptions__table tr:last-child > th,
+.andes-descriptions__table tr:last-child > td {
+  border-block-end: 0;
+}
+
+.andes-descriptions__table th {
+  background-color: var(
+    --andes-descriptions-label-background,
+    var(--andes-color-muted, #f1f5f9)
+  );
+}
+
+.andes-descriptions__col-label {
+  /* `width`, not `inline-size`: column widths only honour the physical property, and `max()` is ignored there. */
+  width: var(--andes-descriptions-label-width, calc(40% / var(--_cols)));
+}
+
+.andes-descriptions__table .andes-descriptions__content--ellipsis {
+  max-inline-size: 0;
+}

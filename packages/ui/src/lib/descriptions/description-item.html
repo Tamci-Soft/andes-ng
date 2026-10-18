@@ -1,0 +1,6 @@
+<ng-template #labelTemplate>
+  @if (labelAsTemplate(); as template) {
+  <ng-container *ngTemplateOutlet="template" />
+  } @else {{{ labelText() }}}
+</ng-template>
+<ng-template #contentTemplate><ng-content /></ng-template>
