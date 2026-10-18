@@ -75,7 +75,7 @@ export * from './lib/button';
 
 // @slot kbd
 
-// @slot layout
+export * from './lib/layout';
 
 // @slot list
 
