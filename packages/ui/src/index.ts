@@ -101,7 +101,7 @@ export * from './lib/button';
 
 // @slot qr-code
 
-// @slot radio-group
+export * from './lib/radio-group';
 
 // @slot rate
 
