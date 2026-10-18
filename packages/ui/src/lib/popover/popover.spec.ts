@@ -570,6 +570,23 @@ describe('AndesPopover - extended features', () => {
       expect(Math.max(...offsets)).toBeLessThanOrEqual(4);
     });
 
+    it('keeps the arrow strokes on the panel border instead of poking into the panel', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      // A clip that overshoots the arrow's base by 1px leaves a visible step where the
+      // outline strokes meet the border; only a sub-pixel overlap is allowed.
+      const clips = [
+        ...css.matchAll(/clip-path: polygon\(([^)]*\)?[^;]*)\);/g),
+      ];
+      expect(clips.length).toBe(4);
+      for (const [, polygon] of clips) {
+        expect(polygon).not.toMatch(/[+-]\s?1px/);
+        expect(polygon).toMatch(/0\.25px/);
+      }
+    });
+
     it('leaves with a quicker, accelerating mirror of its entry', () => {
       const css = readFileSync(
         'packages/ui/src/lib/popover/popover-content.css',
