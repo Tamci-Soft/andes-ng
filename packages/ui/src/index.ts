@@ -153,7 +153,7 @@ export * from './lib/button';
 
 export * from './lib/tree';
 
-// @slot tree-select
+export * from './lib/tree-select';
 
 // @slot typography
 
