@@ -60,6 +60,13 @@ export interface AndesOverlayAnchoredPositioning {
   readonly alignOffset?: number;
   /** Flip to the opposite side when the preferred one does not fit. Default `true`. */
   readonly flip?: boolean;
+  /**
+   * When flipping, also try the two perpendicular sides once neither the preferred side
+   * nor its opposite fits. Default `true`. A list dropping down from a field turns this
+   * off: placed beside the field it no longer reads as that field's list, so it stays
+   * above or below and is shifted into view instead.
+   */
+  readonly crossSideFallback?: boolean;
   /** Shift along the cross axis to stay on screen. Default `true`. */
   readonly shift?: boolean;
   /** Minimum px kept between the overlay and the viewport edge. Default `8`. */
@@ -142,6 +149,19 @@ export interface AndesOverlayConfig {
   readonly closeOnOutsideClick: boolean;
   /** Block document scroll while open. */
   readonly lockScroll: boolean;
+  /**
+   * Mark everything outside the overlay `inert` while it is open, so a screen
+   * reader browsing the page (not just tabbing through it) cannot reach content
+   * behind a modal. `trapFocus` only governs Tab and `ariaModal` is a hint AT does
+   * not universally honour, so a truly modal overlay needs this as well.
+   *
+   * Applies to every direct child of `<body>` except the one the overlay itself is
+   * portalled into, and is reference-counted across nested overlays.
+   *
+   * On for the `dialog`, `alert-dialog` and `drawer` presets; off for the
+   * non-modal `popover`, `menu` and `tooltip`, which must leave the page usable.
+   */
+  readonly inertBackground: boolean;
   /** Render a backdrop scrim using `--andes-color-overlay`. */
   readonly hasBackdrop: boolean;
   /** ARIA role for the content element. */
@@ -161,9 +181,9 @@ export interface AndesOverlayConfig {
 }
 
 /**
- * Deliberately conservative defaults: no focus trap, no scroll lock, no backdrop.
- * A consumer that forgets to configure gets the least invasive overlay rather than
- * one that silently hijacks the page.
+ * Deliberately conservative defaults: no focus trap, no scroll lock, no backdrop,
+ * no inert background. A consumer that forgets to configure gets the least
+ * invasive overlay rather than one that silently hijacks the page.
  */
 export const ANDES_OVERLAY_DEFAULT_CONFIG: AndesOverlayConfig = {
   layer: 'overlay',
@@ -174,6 +194,7 @@ export const ANDES_OVERLAY_DEFAULT_CONFIG: AndesOverlayConfig = {
   closeOnEscape: true,
   closeOnOutsideClick: true,
   lockScroll: false,
+  inertBackground: false,
   hasBackdrop: false,
   role: 'none',
   ariaModal: false,
@@ -197,6 +218,7 @@ const DIALOG_PRESET: Partial<AndesOverlayConfig> = {
   closeOnEscape: true,
   closeOnOutsideClick: true,
   lockScroll: true,
+  inertBackground: true,
   hasBackdrop: true,
   role: 'dialog',
   ariaModal: true,
@@ -208,7 +230,8 @@ const DIALOG_PRESET: Partial<AndesOverlayConfig> = {
  * then override. They exist so the five components do not each invent their own
  * answer to "should a menu trap focus?" independently.
  *
- * - `dialog` / `alert-dialog` / `drawer` are modal: trap, lock scroll, backdrop.
+ * - `dialog` / `alert-dialog` / `drawer` are modal: trap, lock scroll, backdrop,
+ *   and an inert background so AT cannot reach the page behind them.
  *   `alert-dialog` additionally refuses outside-click dismissal, per the WAI-ARIA
  *   distinction between `dialog` and `alertdialog`.
  * - `drawer` sits on the `overlay` layer rather than `modal`, so a confirmation
@@ -216,8 +239,9 @@ const DIALOG_PRESET: Partial<AndesOverlayConfig> = {
  * - `popover` and `menu` move focus into the overlay (both are click-opened and
  *   contain interactive content, so keyboard users must be able to reach it) but do
  *   not trap it: the page behind stays usable and scrollable, as with any non-modal
- *   popover. Consumers that render a close button inside and want
- *   modal semantics can flip `trapFocus` on.
+ *   popover, and they leave the rest of the page readable by
+ *   assistive tech. Consumers that render a close button inside and want modal
+ *   semantics can flip `trapFocus` and `inertBackground` on together.
  * - `tooltip` moves nothing, traps nothing and restores nothing — it is a passive
  *   hint attached to an element that already has focus.
  */
@@ -249,6 +273,7 @@ export const ANDES_OVERLAY_PRESETS: Readonly<
     closeOnEscape: true,
     closeOnOutsideClick: true,
     lockScroll: false,
+    inertBackground: false,
     hasBackdrop: false,
     role: 'dialog',
     ariaModal: false,
@@ -268,6 +293,7 @@ export const ANDES_OVERLAY_PRESETS: Readonly<
     closeOnEscape: true,
     closeOnOutsideClick: true,
     lockScroll: false,
+    inertBackground: false,
     hasBackdrop: false,
     role: 'menu',
     ariaModal: false,
@@ -287,6 +313,7 @@ export const ANDES_OVERLAY_PRESETS: Readonly<
     closeOnEscape: true,
     closeOnOutsideClick: true,
     lockScroll: false,
+    inertBackground: false,
     hasBackdrop: false,
     role: 'tooltip',
     ariaModal: false,
@@ -310,3 +337,46 @@ export const ANDES_OVERLAY_BACKDROP_CLASS = 'andes-overlay-backdrop';
 
 /** Class applied to every andes-ng overlay pane, as a styling hook for consumers. */
 export const ANDES_OVERLAY_PANE_CLASS = 'andes-overlay-pane';
+
+/**
+ * Attribute (empty value) the overlay primitive sets while an overlay is closing,
+ * so a component can play an exit animation before the pane is removed.
+ *
+ * When `close()` is called, the attribute goes on the overlay pane, on each direct
+ * element child of the pane (the root elements of the component's own panel
+ * template, which is where emulated-encapsulation styles can reach it) and on the
+ * backdrop, if there is one. The pane and backdrop also stop receiving pointer
+ * events. The primitive then waits for every animation or transition running in
+ * the pane (and on the backdrop) to finish, at most
+ * {@link ANDES_OVERLAY_EXIT_TIMEOUT_MS}, before detaching.
+ *
+ * A component opts in by styling its panel root, for example
+ *
+ * ```css
+ * .panel[data-andes-closing] {
+ *   animation: panel-exit 120ms ease-in forwards;
+ * }
+ * @media (prefers-reduced-motion: reduce) {
+ *   .panel[data-andes-closing] { animation: none; }
+ * }
+ * ```
+ *
+ * Use `animation-fill-mode: forwards` (or a transition) so the panel does not
+ * snap back to full opacity between the end of the animation and the detach.
+ * Without any exit style the close stays instant and synchronous, and it is also
+ * instant when the user prefers reduced motion.
+ *
+ * While the attribute is present `isOpen()` is already `false`; focus is restored
+ * and `closed` emits only after the pane is detached. If focus moved to another
+ * element on the page during the exit, it stays there instead of returning to
+ * the trigger. Opening again before then
+ * removes the attribute and keeps the same pane, and neither `closed` nor `opened`
+ * emits for the interrupted close.
+ */
+export const ANDES_OVERLAY_CLOSING_ATTRIBUTE = 'data-andes-closing';
+
+/**
+ * Longest a close waits for exit animations before detaching the overlay anyway,
+ * so a stalled or endless animation can never keep a closed overlay on screen.
+ */
+export const ANDES_OVERLAY_EXIT_TIMEOUT_MS = 300;
