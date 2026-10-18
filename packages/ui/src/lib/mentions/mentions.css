@@ -1,0 +1,491 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+  width: 100%;
+}
+
+/* The wrapper - not the native field - is what visually reads as "the field": it owns the
+   border, background and focus ring. `overflow: hidden` clips the field to the rounded corners;
+   it does not clip the wrapper's own box-shadow ring (nor the suggestion list, which renders
+   in the overlay layer).
+
+   State colours go through these private properties so one `:hover` and one `:focus-within`
+   rule serve every variant, status and the disabled/read-only states: each of those only
+   re-points the properties. */
+.andes-mentions-wrapper {
+  --_andes-mentions-border: var(--andes-color-input);
+  --_andes-mentions-border-hover: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+  --_andes-mentions-border-focus: var(--andes-color-primary);
+  --_andes-mentions-bg: var(--andes-color-background);
+  --_andes-mentions-bg-hover: var(--_andes-mentions-bg);
+  --_andes-mentions-bg-focus: var(--_andes-mentions-bg);
+  --_andes-mentions-ring: color-mix(
+    in srgb,
+    var(--andes-color-primary) 20%,
+    transparent
+  );
+
+  --_andes-mentions-line: 1.375rem;
+  --_andes-mentions-pad-y: var(--andes-space-1, 0.25rem);
+  --_andes-mentions-pad-x: var(--andes-control-padding-x-md, 0.6875rem);
+
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  border: 1px solid var(--_andes-mentions-border);
+  background-color: var(--_andes-mentions-bg);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-mentions-wrapper {
+    transition: none;
+  }
+}
+
+.andes-mentions-wrapper:hover {
+  border-color: var(--_andes-mentions-border-hover);
+  background-color: var(--_andes-mentions-bg-hover);
+}
+
+/* One focus indicator, on the wrapper: the border takes the focus colour and a soft 2px ring
+   hugs it from outside, on any focus (mouse or keyboard). No `outline` - one drawn a few
+   pixels outside the border reads as a second, detached frame. */
+.andes-mentions-wrapper:focus-within {
+  border-color: var(--_andes-mentions-border-focus);
+  background-color: var(--_andes-mentions-bg-focus);
+  box-shadow: 0 0 0 2px var(--_andes-mentions-ring);
+  outline: none;
+}
+
+/* Forced-colors mode drops `box-shadow`; a real outline is the one indicator there. */
+@media (forced-colors: active) {
+  .andes-mentions-wrapper:focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* The native textarea is bare text inside the wrapper's box: no border, ring, shadow or fill
+   of its own (any of them would draw a second box inside the field). */
+.andes-mentions__control {
+  box-sizing: border-box;
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  resize: none;
+  /* Explicit so `getComputedStyle(...).lineHeight` resolves to a real length for the
+     auto-size row math instead of `normal`; each size overrides it below. */
+  line-height: var(--_andes-mentions-line);
+  padding: var(--_andes-mentions-pad-y) var(--_andes-mentions-pad-x);
+}
+
+.andes-mentions__control::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-mentions__control:disabled {
+  cursor: not-allowed;
+}
+
+/* With autoSize the measured inline height is authoritative - the textarea must not be
+   stretched or shrunk by the flex column around it. */
+.andes-mentions-wrapper--auto-size .andes-mentions__control {
+  flex: none;
+}
+
+/* Variants */
+
+.andes-mentions-wrapper--filled {
+  --_andes-mentions-border: transparent;
+  --_andes-mentions-border-hover: transparent;
+  --_andes-mentions-bg: var(--andes-color-muted);
+  --_andes-mentions-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-muted),
+    var(--andes-color-foreground) 6%
+  );
+  --_andes-mentions-bg-focus: var(--andes-color-background);
+}
+
+/* No border at all: focus shows only the soft ring. */
+.andes-mentions-wrapper--borderless {
+  --_andes-mentions-border: transparent;
+  --_andes-mentions-border-hover: transparent;
+  --_andes-mentions-border-focus: transparent;
+  --_andes-mentions-bg: transparent;
+}
+
+/* Only the bottom edge is drawn; that edge is the focus indicator, so no ring. */
+.andes-mentions-wrapper--underlined {
+  --_andes-mentions-bg: transparent;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.andes-mentions-wrapper--underlined:focus-within {
+  box-shadow: none;
+}
+
+/* Status - error also sets aria-invalid on the textarea (see textarea.ts). Hover and focus keep
+   the status colour; the ring takes it too. */
+
+.andes-mentions-wrapper--invalid {
+  --_andes-mentions-border: var(--andes-color-danger);
+  --_andes-mentions-border-hover: var(--andes-color-danger);
+  --_andes-mentions-border-focus: var(--andes-color-danger);
+  --_andes-mentions-ring: color-mix(
+    in srgb,
+    var(--andes-color-danger) 20%,
+    transparent
+  );
+}
+
+.andes-mentions-wrapper--warning {
+  --_andes-mentions-border: var(--andes-color-warning-hover);
+  --_andes-mentions-border-hover: var(--andes-color-warning-hover);
+  --_andes-mentions-border-focus: var(--andes-color-warning-hover);
+  --_andes-mentions-ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+/* A filled field keeps no border and shows its status as a tinted fill instead. */
+.andes-mentions-wrapper--filled.andes-mentions-wrapper--invalid {
+  --_andes-mentions-border: transparent;
+  --_andes-mentions-border-hover: transparent;
+  --_andes-mentions-bg: color-mix(
+    in srgb,
+    var(--andes-color-danger) 10%,
+    transparent
+  );
+  --_andes-mentions-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-danger) 14%,
+    transparent
+  );
+}
+
+.andes-mentions-wrapper--filled.andes-mentions-wrapper--warning {
+  --_andes-mentions-border: transparent;
+  --_andes-mentions-border-hover: transparent;
+  --_andes-mentions-bg: color-mix(
+    in srgb,
+    var(--andes-color-warning) 10%,
+    transparent
+  );
+  --_andes-mentions-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-warning) 14%,
+    transparent
+  );
+}
+
+/* Borderless stays borderless whatever its status: the text and the ring carry it. The text
+   uses the status *text* tokens, not the fills (danger #dc2626 is 3.7:1 on the dark background
+   and warning #f59e0b 2.1:1 on white); until the tokens land, danger falls back to the fill and
+   warning to its already-AA `-active` shade. */
+.andes-mentions-wrapper--borderless.andes-mentions-wrapper--invalid {
+  --_andes-mentions-border: transparent;
+  --_andes-mentions-border-hover: transparent;
+  --_andes-mentions-border-focus: transparent;
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
+}
+
+.andes-mentions-wrapper--borderless.andes-mentions-wrapper--warning {
+  --_andes-mentions-border: transparent;
+  --_andes-mentions-border-hover: transparent;
+  --_andes-mentions-border-focus: transparent;
+  color: var(--andes-color-warning-text, var(--andes-color-warning-active));
+}
+
+/* Disabled / read-only. Read-only is still focusable (so it gets the ring) but nothing else
+   reacts; disabled doesn't react at all. */
+
+.andes-mentions-wrapper--readonly {
+  --_andes-mentions-border-hover: var(--_andes-mentions-border);
+  --_andes-mentions-border-focus: var(--_andes-mentions-border);
+  --_andes-mentions-bg-hover: var(--_andes-mentions-bg);
+  --_andes-mentions-bg-focus: var(--_andes-mentions-bg);
+}
+
+.andes-mentions-wrapper--disabled {
+  --_andes-mentions-bg: var(--andes-color-muted);
+  --_andes-mentions-border-hover: var(--_andes-mentions-border);
+  --_andes-mentions-bg-hover: var(--_andes-mentions-bg);
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+.andes-mentions-wrapper--borderless.andes-mentions-wrapper--disabled {
+  --_andes-mentions-bg: transparent;
+}
+
+/* Sizes - the wrapper carries the size's font-size, line-height and padding as custom
+   properties; the field reads them. A single row comes out exactly as tall as the other
+   fields (24/32/40px including the 1px borders): 14px text on a 22px line (16px on 24px for
+   large) with 0/4/7px block padding. The line-heights are literal lengths, not the line-height
+   token, because the auto-size row math reads the computed line-height and needs a value every
+   environment resolves. */
+
+.andes-mentions-wrapper--sm {
+  --_andes-mentions-pad-y: 0px;
+  --_andes-mentions-pad-x: var(--andes-control-padding-x-sm, 0.4375rem);
+
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
+}
+
+.andes-mentions-wrapper--md {
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+}
+
+.andes-mentions-wrapper--lg {
+  --_andes-mentions-line: 1.5rem;
+  --_andes-mentions-pad-y: 0.4375rem;
+  --_andes-mentions-pad-x: var(--andes-control-padding-x-lg, 0.6875rem);
+
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
+}
+
+/* Character count */
+
+.andes-mentions__count {
+  align-self: flex-end;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  /* Fixed-width digits, as on AndesInput's count, so it doesn't jitter while typing. */
+  font-variant-numeric: tabular-nums;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-mentions__count--exceeded {
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
+}
+
+/* A single-line field: an input as tall as one row of the textarea, 24/32/40px with the
+   borders. The line-height is a literal length so the box does not depend on the font. */
+.andes-mentions-wrapper--single-line .andes-mentions__control {
+  flex: none;
+  height: calc(var(--_andes-mentions-line) + 2 * var(--_andes-mentions-pad-y));
+  text-overflow: ellipsis;
+}
+
+/*
+ * The marker the suggestions anchor to: placed over the text at the trigger's position by the
+ * component, so the list opens at the caret. It has no size of its own, takes no clicks and is
+ * not painted.
+ */
+.andes-mentions__caret {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  inline-size: 1px;
+  block-size: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Announced to assistive tech, never seen. */
+.andes-mentions__live {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The suggestion list. It renders in the overlay layer, outside the field, so it sets its own
+ * type. A short fade, scale and 4px slide out of the caret as it opens, downwards or upwards
+ * according to the side it renders on.
+ */
+.andes-mentions-panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 10rem;
+  max-inline-size: min(20rem, calc(100vw - 1rem));
+  max-block-size: 16rem;
+  overflow-y: auto;
+  padding: var(--andes-space-1, 0.25rem);
+  border: 1px solid var(--andes-color-border, #e2e8f0);
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  background-color: var(--andes-color-popover, #fff);
+  color: var(--andes-color-popover-foreground, #0f172a);
+  box-shadow: var(
+    --andes-shadow-md,
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%)
+  );
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  outline: none;
+  animation: andes-mentions-enter var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.andes-mentions-panel[data-side='top'] {
+  animation-name: andes-mentions-enter-above;
+}
+
+/* Closing mirrors it, a little faster and accelerating away: the overlay marks the list
+   data-andes-closing and waits for this animation before detaching it. */
+.andes-mentions-panel[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-mentions-exit var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, ease-in) forwards;
+}
+
+.andes-mentions-panel[data-side='top'][data-andes-closing] {
+  animation-name: andes-mentions-exit-above;
+}
+
+@keyframes andes-mentions-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem) scale(0.97);
+  }
+}
+
+@keyframes andes-mentions-enter-above {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem) scale(0.97);
+  }
+}
+
+@keyframes andes-mentions-exit {
+  to {
+    opacity: 0;
+    transform: translateY(-0.25rem) scale(0.97);
+  }
+}
+
+@keyframes andes-mentions-exit-above {
+  to {
+    opacity: 0;
+    transform: translateY(0.25rem) scale(0.97);
+  }
+}
+
+/* Reduced motion: a plain fade in, and no exit animation (it closes at once). */
+@media (prefers-reduced-motion: reduce) {
+  .andes-mentions-panel,
+  .andes-mentions-panel[data-side='top'] {
+    animation-name: andes-mentions-fade;
+  }
+
+  .andes-mentions-panel[data-andes-closing],
+  .andes-mentions-panel[data-side='top'][data-andes-closing] {
+    animation: none;
+  }
+}
+
+@keyframes andes-mentions-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.andes-mentions-option {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  box-sizing: border-box;
+  min-block-size: var(--andes-control-height-md, 2rem);
+  padding: 0.3125rem 0.75rem;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  cursor: pointer;
+  user-select: none;
+  scroll-margin-block: var(--andes-space-1, 0.25rem);
+}
+
+/* Highlighted through aria-activedescendant, not :hover or :focus - real focus never leaves
+   the field - so hovering a row moves the same active item and there is one highlight, one
+   source of truth. */
+.andes-mentions-option[data-active] {
+  background-color: var(--andes-color-accent-hover, #f1f5f9);
+  color: var(--andes-color-accent-foreground, #0f172a);
+  --andes-color-muted-foreground: color-mix(
+    in srgb,
+    var(--andes-color-accent-foreground, #0f172a) 70%,
+    transparent
+  );
+}
+
+.andes-mentions-option[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-mentions__option-label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.andes-mentions__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: var(--andes-space-3, 0.75rem);
+  color: var(--andes-color-muted-foreground, #64748b);
+  text-align: center;
+}
+
+.andes-mentions__spinner {
+  display: inline-block;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  inline-size: 1em;
+  block-size: 1em;
+  border: 2px solid currentcolor;
+  border-inline-end-color: transparent;
+  border-radius: var(--andes-radius-full, 9999px);
+  animation: andes-mentions-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-mentions__spinner {
+    animation-duration: 1.5s;
+  }
+}
+
+@keyframes andes-mentions-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
