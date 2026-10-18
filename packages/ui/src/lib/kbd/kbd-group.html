@@ -1,0 +1,13 @@
+@for (key of keys(); track $index) { @if ($index > 0 && separatorText()) {
+<span class="andes-kbd-group__separator" data-slot="kbd-separator"
+  >{{ separatorText() }}</span
+>
+}
+<andes-kbd
+  [key]="key"
+  [size]="size()"
+  [variant]="variant()"
+  [platform]="platform()"
+/>
+}
+<ng-content />

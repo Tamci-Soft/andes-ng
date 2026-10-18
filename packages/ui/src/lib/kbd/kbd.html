@@ -1,0 +1,16 @@
+@if (steps().length) { @for (step of steps(); track $index) { @if ($index > 0) {
+<span class="andes-kbd__separator" data-slot="kbd-separator">then</span>
+} @for (item of step; track $index) { @if (item.separator) {
+<span class="andes-kbd__separator" data-slot="kbd-separator"
+  >{{ item.separator }}</span
+>
+}
+<kbd class="andes-kbd__key" data-slot="kbd-key">
+  @if (item.isGlyph) {
+  <span aria-hidden="true">{{ item.symbol }}</span>
+  <span class="andes-kbd__sr-only">{{ item.name }}</span>
+  } @else { {{ item.symbol }} }
+</kbd>
+} } } @else {
+<kbd class="andes-kbd__key" data-slot="kbd-key"><ng-content /></kbd>
+}
