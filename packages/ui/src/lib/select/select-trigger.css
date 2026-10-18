@@ -197,13 +197,22 @@
 }
 
 /*
-  Multiple/tags: the tags sit 3px inside the border, top, bottom and start, so a tag is
-  the control height minus 8px (16/24/32px) and one row of tags keeps the box at its
-  single-line height. Wrapped rows are 4px apart. The placeholder and an empty search
-  input stay at the size's own inline padding, level with a single select.
+  Multiple/tags: the tags sit 4px inside the border (5px with it) at the medium and large
+  sizes, top, bottom and start, so a tag is the control height minus 10px (22px / 30px)
+  and one row of tags keeps the box at its single-line height. The small box is only 24px
+  tall and keeps 3px and 16px tags. Neighbouring tags are 6px apart and wrapped rows 4px.
+  The placeholder and an empty search input stay at the size's own inline padding, level
+  with a single select.
 */
 .andes-select__trigger[data-mode='multiple'],
 .andes-select__trigger[data-mode='tags'] {
+  padding-block: 0.25rem;
+  padding-inline-start: 0.25rem;
+}
+
+/* The small box is only 24px tall: its 16px tags keep the tighter 3px inset. */
+.andes-select__trigger--sm[data-mode='multiple'],
+.andes-select__trigger--sm[data-mode='tags'] {
   padding-block: 0.1875rem;
   padding-inline-start: 0.1875rem;
 }
@@ -219,6 +228,12 @@
   gap: var(--andes-space-1);
 }
 
+/* Wrapped rows stay 4px apart, but neighbouring tags get 6px of air. */
+.andes-select__trigger[data-mode='multiple'] .andes-select__selection,
+.andes-select__trigger[data-mode='tags'] .andes-select__selection {
+  column-gap: 0.375rem;
+}
+
 .andes-select__trigger[data-mode='multiple'] .andes-select__selection,
 .andes-select__trigger[data-mode='tags'] .andes-select__selection {
   flex-wrap: wrap;
@@ -227,6 +242,14 @@
 /* With no tags the placeholder (or the empty input) starts at the size's padding. */
 /* prettier-ignore */
 .andes-select__trigger:is([data-mode='multiple'], [data-mode='tags'])[data-placeholder] .andes-select__selection {
+  padding-inline-start: calc(var(--_select-padding-x) - 0.25rem);
+}
+
+.andes-select__trigger--sm:is(
+    [data-mode='multiple'],
+    [data-mode='tags']
+  )[data-placeholder]
+  .andes-select__selection {
   padding-inline-start: calc(var(--_select-padding-x) - 0.1875rem);
 }
 
@@ -350,15 +373,16 @@
 }
 
 /*
-  Tags: the control height minus 8px (see the multiple-mode padding above), the box's
-  own font size, 8px before the label and 4px after the remove icon.
+  Tags: the control height minus 10px (5px of air above and below, see the multiple-mode
+  padding above; the small box keeps minus 8px), the box's own font size, 8px before the
+  label and 4px after the remove icon.
 */
 
 .andes-select__tag {
   display: inline-flex;
   max-width: 100%;
   box-sizing: border-box;
-  height: calc(var(--andes-control-height-md, 2rem) - 0.5rem);
+  height: calc(var(--andes-control-height-md, 2rem) - 0.625rem);
   align-items: center;
   gap: var(--andes-space-1);
   padding-inline: var(--andes-space-2) var(--andes-space-1);
@@ -367,7 +391,7 @@
   background-color: var(--andes-color-muted);
   color: var(--andes-color-foreground);
   font-size: inherit;
-  line-height: calc(var(--andes-control-height-md, 2rem) - 0.625rem);
+  line-height: calc(var(--andes-control-height-md, 2rem) - 0.75rem);
   cursor: default;
 }
 
@@ -386,9 +410,9 @@
 }
 
 .andes-select__trigger--lg .andes-select__tag {
-  height: calc(var(--andes-control-height-lg, 2.5rem) - 0.5rem);
+  height: calc(var(--andes-control-height-lg, 2.5rem) - 0.625rem);
   border-radius: var(--andes-control-radius-md, 0.375rem);
-  line-height: calc(var(--andes-control-height-lg, 2.5rem) - 0.625rem);
+  line-height: calc(var(--andes-control-height-lg, 2.5rem) - 0.75rem);
 }
 
 /* The filled box is tinted with the tag's own colour, so its tags take the plain
