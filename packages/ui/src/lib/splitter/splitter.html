@@ -1,0 +1,109 @@
+@for (panel of panels(); track panel; let i = $index; let last = $last) {
+<div
+  class="andes-splitter__panel"
+  data-slot="splitter-panel"
+  [id]="panel.id"
+  [attr.data-state]="panelState(i)"
+  [attr.inert]="panelInert(i) ? '' : null"
+  [style.flex]="panelFlex(i)"
+>
+  <ng-container [ngTemplateOutlet]="panel.content()" />
+</div>
+@if (!last) { @let h = handles()[i];
+<div
+  #handle
+  class="andes-splitter__handle"
+  data-slot="splitter-handle"
+  role="separator"
+  [attr.aria-orientation]="separatorOrientation()"
+  [attr.aria-label]="handleLabel()"
+  [attr.aria-controls]="h.controls"
+  [attr.aria-valuenow]="h.interactive ? h.valueNow : null"
+  [attr.aria-valuemin]="h.interactive ? h.valueMin : null"
+  [attr.aria-valuemax]="h.interactive ? h.valueMax : null"
+  [attr.tabindex]="h.interactive ? 0 : null"
+  [attr.data-state]="
+    activeHandle() === i ? 'dragging' : h.draggable ? 'idle' : 'locked'
+  "
+  [attr.data-collapsed]="h.startCollapsed || h.endCollapsed ? '' : null"
+  (pointerdown)="onHandlePointerDown($event, i)"
+  (pointermove)="onHandlePointerMove($event)"
+  (pointerup)="onHandlePointerUp($event)"
+  (pointercancel)="onHandlePointerCancel($event)"
+  (lostpointercapture)="onHandlePointerCancel($event)"
+  (keydown)="onHandleKeydown($event, i)"
+>
+  <span class="andes-splitter__grip" aria-hidden="true">
+    @if (h.startCollapsible) {
+    <button
+      type="button"
+      class="andes-splitter__collapse"
+      tabindex="-1"
+      data-side="start"
+      [attr.title]="h.startCollapsed ? expandLabel() : collapseLabel()"
+      (pointerdown)="$event.stopPropagation()"
+      (click)="toggleFromHandle(i, 'start')"
+    >
+      <svg
+        viewBox="0 0 10 10"
+        width="10"
+        height="10"
+        focusable="false"
+        [style.rotate.deg]="chevronTurn('start', h.startCollapsed)"
+      >
+        <path
+          class="andes-splitter__chevron"
+          d="M6.5 2 3.5 5l3 3"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+    } @if (h.draggable) {
+    <span class="andes-splitter__dots"></span>
+    } @if (h.endCollapsible) {
+    <button
+      type="button"
+      class="andes-splitter__collapse"
+      tabindex="-1"
+      data-side="end"
+      [attr.title]="h.endCollapsed ? expandLabel() : collapseLabel()"
+      (pointerdown)="$event.stopPropagation()"
+      (click)="toggleFromHandle(i, 'end')"
+    >
+      <svg
+        viewBox="0 0 10 10"
+        width="10"
+        height="10"
+        focusable="false"
+        [style.rotate.deg]="chevronTurn('end', h.endCollapsed)"
+      >
+        <path
+          class="andes-splitter__chevron"
+          d="M6.5 2 3.5 5l3 3"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+    }
+  </span>
+</div>
+} } @if (previewOffset() !== null) {
+<div
+  class="andes-splitter__preview"
+  aria-hidden="true"
+  [style.inset-inline-start.px]="
+    orientation() === 'horizontal' ? previewOffset() : null
+  "
+  [style.inset-block-start.px]="
+    orientation() === 'vertical' ? previewOffset() : null
+  "
+></div>
+}
