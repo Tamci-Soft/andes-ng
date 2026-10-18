@@ -53,7 +53,7 @@ export * from './lib/button';
 
 // @slot drawer
 
-// @slot dropdown-menu
+export * from './lib/dropdown-menu';
 
 // @slot empty
 
