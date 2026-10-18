@@ -5,7 +5,7 @@
    not the `_ngcontent-*` attribute Angular appends to plain class selectors). */
 :host {
   display: flex;
-  /* 8px between items, as Ant's Radio.Group. */
+  /* 8px between items. */
   gap: var(--andes-space-2);
   font-family: var(--andes-font-family), sans-serif;
 }
