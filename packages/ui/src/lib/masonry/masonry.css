@@ -1,0 +1,73 @@
+/*
+ * Without JavaScript (server rendering, before the first measurement) the items flow through
+ * CSS columns. The host sets --andes-masonry-columns-<breakpoint> and the gutter equivalents.
+ */
+:host {
+  display: block;
+  position: relative;
+  box-sizing: border-box;
+  column-count: var(--andes-masonry-columns-xs, 3);
+  column-gap: var(--andes-masonry-gutter-x-xs, 16px);
+  --andes-masonry-gutter-y: var(--andes-masonry-gutter-y-xs, 16px);
+}
+
+@media (min-width: 576px) {
+  :host {
+    column-count: var(--andes-masonry-columns-sm, 3);
+    column-gap: var(--andes-masonry-gutter-x-sm, 16px);
+    --andes-masonry-gutter-y: var(--andes-masonry-gutter-y-sm, 16px);
+  }
+}
+
+@media (min-width: 768px) {
+  :host {
+    column-count: var(--andes-masonry-columns-md, 3);
+    column-gap: var(--andes-masonry-gutter-x-md, 16px);
+    --andes-masonry-gutter-y: var(--andes-masonry-gutter-y-md, 16px);
+  }
+}
+
+@media (min-width: 992px) {
+  :host {
+    column-count: var(--andes-masonry-columns-lg, 3);
+    column-gap: var(--andes-masonry-gutter-x-lg, 16px);
+    --andes-masonry-gutter-y: var(--andes-masonry-gutter-y-lg, 16px);
+  }
+}
+
+@media (min-width: 1200px) {
+  :host {
+    column-count: var(--andes-masonry-columns-xl, 3);
+    column-gap: var(--andes-masonry-gutter-x-xl, 16px);
+    --andes-masonry-gutter-y: var(--andes-masonry-gutter-y-xl, 16px);
+  }
+}
+
+@media (min-width: 1600px) {
+  :host {
+    column-count: var(--andes-masonry-columns-xxl, 3);
+    column-gap: var(--andes-masonry-gutter-x-xxl, 16px);
+    --andes-masonry-gutter-y: var(--andes-masonry-gutter-y-xxl, 16px);
+  }
+}
+
+/* Once measured, items are positioned absolutely and the columns are no longer needed. */
+:host([data-layout='js']) {
+  column-count: auto;
+  column-gap: normal;
+}
+
+.andes-masonry__item {
+  display: block;
+  box-sizing: border-box;
+  break-inside: avoid;
+  margin-block-end: var(--andes-masonry-gutter-y, 16px);
+}
+
+/* The layout writes the transition inline (it also applies to projected items), so `!important`
+   is the only way for this rule to win when the preference changes while the page is open. */
+@media (prefers-reduced-motion: reduce) {
+  .andes-masonry__item {
+    transition: none !important;
+  }
+}
