@@ -5,7 +5,7 @@
 // alphabetical and kept on separate lines divided by blank lines, so two pull requests never
 // edit adjacent lines and can merge in any order.
 
-// @slot accordion
+export * from './lib/accordion';
 
 // @slot affix
 
