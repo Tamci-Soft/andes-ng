@@ -1,0 +1,139 @@
+<span [class]="groupClasses()">
+  <span class="andes-input-number__addon andes-input-number__addon--before">
+    @if (addonBefore()) {
+    <span class="andes-input-number__addon-text">{{ addonBefore() }}</span>
+    }
+    <ng-content select="[slot=addon-before]" />
+  </span>
+  <span [class]="wrapperClasses()" data-slot="input-number">
+    @if (isSpinner()) {
+    <button
+      type="button"
+      tabindex="-1"
+      class="andes-input-number__spin andes-input-number__spin--down"
+      data-slot="input-number-decrease"
+      [attr.aria-label]="decreaseLabel()"
+      [attr.aria-controls]="controlId()"
+      [disabled]="!canStep() || atMin()"
+      (mousedown)="keepFocus($event)"
+      (pointerdown)="onHandlerPointerDown($event, 'down')"
+      (pointerup)="stopRepeat()"
+      (pointercancel)="stopRepeat()"
+      (pointerleave)="stopRepeat()"
+      (click)="onHandlerClick($event, 'down')"
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path d="M3.5 8h9" />
+      </svg>
+    </button>
+    }
+    <span class="andes-input-number__prefix">
+      <ng-content select="[slot=prefix]" />
+    </span>
+    <input
+      #nativeInput
+      type="text"
+      role="spinbutton"
+      data-slot="input"
+      class="andes-input-number__control"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      [attr.id]="controlId()"
+      [attr.name]="name()"
+      [attr.placeholder]="placeholder()"
+      [attr.inputmode]="resolvedInputmode()"
+      [attr.aria-label]="ariaLabel()"
+      [attr.aria-labelledby]="ariaLabelledby()"
+      [attr.aria-describedby]="ariaDescribedby()"
+      [attr.aria-invalid]="isInvalid() || null"
+      [attr.aria-readonly]="readOnly() || null"
+      [attr.aria-valuemin]="ariaMin()"
+      [attr.aria-valuemax]="ariaMax()"
+      [attr.aria-valuenow]="ariaNow()"
+      [attr.aria-valuetext]="ariaText()"
+      [disabled]="isDisabled()"
+      [required]="required()"
+      [readOnly]="readOnly()"
+      [value]="text()"
+      (beforeinput)="onBeforeInput($event)"
+      (input)="onInput($event)"
+      (compositionend)="onCompositionEnd($event)"
+      (keydown)="onKeydown($event)"
+      (wheel)="onWheel($event)"
+      (focus)="onFocus($event)"
+      (blur)="onBlur($event)"
+    />
+    <span class="andes-input-number__suffix">
+      <ng-content select="[slot=suffix]" />
+    </span>
+    @if (isSpinner()) {
+    <button
+      type="button"
+      tabindex="-1"
+      class="andes-input-number__spin andes-input-number__spin--up"
+      data-slot="input-number-increase"
+      [attr.aria-label]="increaseLabel()"
+      [attr.aria-controls]="controlId()"
+      [disabled]="!canStep() || atMax()"
+      (mousedown)="keepFocus($event)"
+      (pointerdown)="onHandlerPointerDown($event, 'up')"
+      (pointerup)="stopRepeat()"
+      (pointercancel)="stopRepeat()"
+      (pointerleave)="stopRepeat()"
+      (click)="onHandlerClick($event, 'up')"
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <path d="M3.5 8h9M8 3.5v9" />
+      </svg>
+    </button>
+    } @if (showStepper()) {
+    <span class="andes-input-number__stepper" data-slot="input-number-stepper">
+      <button
+        type="button"
+        tabindex="-1"
+        class="andes-input-number__step andes-input-number__step--up"
+        data-slot="input-number-increase"
+        [attr.aria-label]="increaseLabel()"
+        [attr.aria-controls]="controlId()"
+        [disabled]="atMax()"
+        (mousedown)="keepFocus($event)"
+        (pointerdown)="onHandlerPointerDown($event, 'up')"
+        (pointerup)="stopRepeat()"
+        (pointercancel)="stopRepeat()"
+        (pointerleave)="stopRepeat()"
+        (click)="onHandlerClick($event, 'up')"
+      >
+        <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+          <path d="M3 7.25 6 4.25l3 3" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        tabindex="-1"
+        class="andes-input-number__step andes-input-number__step--down"
+        data-slot="input-number-decrease"
+        [attr.aria-label]="decreaseLabel()"
+        [attr.aria-controls]="controlId()"
+        [disabled]="atMin()"
+        (mousedown)="keepFocus($event)"
+        (pointerdown)="onHandlerPointerDown($event, 'down')"
+        (pointerup)="stopRepeat()"
+        (pointercancel)="stopRepeat()"
+        (pointerleave)="stopRepeat()"
+        (click)="onHandlerClick($event, 'down')"
+      >
+        <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+          <path d="M3 4.75 6 7.75l3-3" />
+        </svg>
+      </button>
+    </span>
+    }
+  </span>
+  <span class="andes-input-number__addon andes-input-number__addon--after">
+    @if (addonAfter()) {
+    <span class="andes-input-number__addon-text">{{ addonAfter() }}</span>
+    }
+    <ng-content select="[slot=addon-after]" />
+  </span>
+</span>

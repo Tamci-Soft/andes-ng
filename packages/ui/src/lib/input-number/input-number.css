@@ -1,0 +1,486 @@
+:host {
+  display: inline-block;
+  vertical-align: middle;
+  /* Styling hook: `--andes-input-number-width: 8rem` for a fixed-width quantity field. */
+  width: var(--andes-input-number-width, 100%);
+  max-width: 100%;
+}
+
+/* The outermost element: lays the optional addon-before / field / addon-after out as one
+   attached row. `--_andes-radius` is the size's corner radius, shared by the field and the
+   addons so the row's outer corners match (set per size at the end of this file). */
+.andes-input-number-group {
+  --_andes-radius: var(--andes-control-radius-md, 0.375rem);
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  font-family: var(--andes-font-family), sans-serif;
+  line-height: 1.375rem;
+}
+
+.andes-input-number {
+  /* State colours are resolved through these private properties so one :hover and one
+     :focus-within rule serve every variant, status and the disabled/read-only states. */
+  --_andes-border: var(--andes-color-input);
+  --_andes-border-hover: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+  --_andes-border-focus: var(--andes-color-primary);
+  --_andes-bg: var(--andes-color-background);
+  --_andes-bg-hover: var(--_andes-bg);
+  --_andes-bg-focus: var(--_andes-bg);
+  --_andes-ring: color-mix(
+    in srgb,
+    var(--andes-color-primary) 20%,
+    transparent
+  );
+
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  /* Keeps the stepper's square corners inside the field's rounded border. */
+  overflow: hidden;
+  border-radius: var(--_andes-radius);
+  border: 1px solid var(--_andes-border);
+  background-color: var(--_andes-bg);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  line-height: 1.375rem;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-input-number {
+    transition: none;
+  }
+}
+
+.andes-input-number:hover {
+  border-color: var(--_andes-border-hover);
+  background-color: var(--_andes-bg-hover);
+}
+
+/* One box, one focus indicator: the border turns the focus colour and a soft 2px ring hugs it.
+   No outline - an outline a few pixels out reads as a second, detached frame. */
+.andes-input-number:focus-within {
+  border-color: var(--_andes-border-focus);
+  background-color: var(--_andes-bg-focus);
+  box-shadow: 0 0 0 2px var(--_andes-ring);
+  outline: none;
+}
+
+@media (forced-colors: active) {
+  .andes-input-number:focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* Variants (before status, which wins at equal specificity). */
+
+.andes-input-number--filled {
+  --_andes-border: transparent;
+  --_andes-border-hover: transparent;
+  --_andes-bg: var(--andes-color-muted);
+  --_andes-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-muted),
+    var(--andes-color-foreground) 6%
+  );
+  --_andes-bg-focus: var(--andes-color-background);
+}
+
+.andes-input-number--borderless {
+  --_andes-border: transparent;
+  --_andes-border-hover: transparent;
+  --_andes-border-focus: transparent;
+  --_andes-bg: transparent;
+}
+
+.andes-input-number--underlined {
+  --_andes-bg: transparent;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.andes-input-number--underlined:focus-within {
+  box-shadow: none;
+}
+
+/* Status. */
+
+.andes-input-number--invalid {
+  --_andes-border: var(--andes-color-danger);
+  --_andes-border-hover: var(--andes-color-danger);
+  --_andes-border-focus: var(--andes-color-danger);
+  --_andes-ring: color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+.andes-input-number--warning {
+  --_andes-border: var(--andes-color-warning-hover);
+  --_andes-border-hover: var(--andes-color-warning-hover);
+  --_andes-border-focus: var(--andes-color-warning-hover);
+  --_andes-ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+.andes-input-number--readonly {
+  --_andes-border-hover: var(--_andes-border);
+  --_andes-border-focus: var(--_andes-border);
+  --_andes-bg-hover: var(--_andes-bg);
+  --_andes-bg-focus: var(--_andes-bg);
+}
+
+.andes-input-number--disabled {
+  --_andes-bg: var(--andes-color-muted);
+  --_andes-border-hover: var(--_andes-border);
+  --_andes-bg-hover: var(--_andes-bg);
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+.andes-input-number__control {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Bare text inside the wrapper's box: no border, ring, shadow, fill or UA padding of its
+     own (any of them would draw a second box inside the field). */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  /* Styling hook: `--andes-input-number-text-align: end` right-aligns amounts in a grid. */
+  text-align: var(--andes-input-number-text-align, start);
+}
+
+.andes-input-number__control::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-input-number__control:disabled {
+  cursor: not-allowed;
+}
+
+.andes-input-number__prefix,
+.andes-input-number__suffix {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-input-number__prefix:empty,
+.andes-input-number__suffix:empty {
+  display: none;
+}
+
+.andes-input-number__prefix ::ng-deep svg,
+.andes-input-number__suffix ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* Stepper: two stacked buttons on the inline-end edge, revealed while the field is hovered or
+   holds focus (always on devices without hover). It overlays the field instead of taking room,
+   so nothing shifts when it appears. */
+.andes-input-number__stepper {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 1.375rem;
+  border-inline-start: 1px solid var(--andes-color-border);
+  background-color: var(--_andes-bg);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.andes-input-number:hover .andes-input-number__stepper,
+.andes-input-number:focus-within .andes-input-number__stepper {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .andes-input-number__stepper {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-input-number__stepper {
+    transition: none;
+  }
+}
+
+.andes-input-number__step {
+  display: flex;
+  flex: 1 1 50%;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-input-number__step--down {
+  border-top: 1px solid var(--andes-color-border);
+}
+
+.andes-input-number__step svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-input-number__step:hover:not(:disabled) {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-primary);
+}
+
+.andes-input-number__step:active:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-accent),
+    var(--andes-color-foreground) 6%
+  );
+}
+
+.andes-input-number__step:disabled {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 45%,
+    transparent
+  );
+  cursor: not-allowed;
+}
+
+/* Spinner mode: "-" and "+" buttons flank the centred value and are always visible. */
+.andes-input-number.andes-input-number--spinner {
+  gap: 0;
+  padding-inline: 0;
+}
+
+.andes-input-number--spinner .andes-input-number__control {
+  padding-inline: var(--andes-space-2, 0.5rem);
+  text-align: center;
+}
+
+.andes-input-number__spin {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-input-number__spin--down {
+  border-inline-end: 1px solid var(--andes-color-border);
+}
+
+.andes-input-number__spin--up {
+  border-inline-start: 1px solid var(--andes-color-border);
+}
+
+.andes-input-number__spin svg {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.andes-input-number__spin:hover:not(:disabled) {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-foreground);
+}
+
+.andes-input-number__spin:disabled {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 45%,
+    transparent
+  );
+  cursor: not-allowed;
+}
+
+/* Addons: attached segments outside the field's own border. */
+
+.andes-input-number__addon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--andes-space-2, 0.5rem);
+  padding-inline: var(--andes-control-padding-x-md, 0.6875rem);
+  border: 1px solid var(--andes-color-input);
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-foreground);
+  white-space: nowrap;
+}
+
+.andes-input-number__addon:empty {
+  display: none;
+}
+
+.andes-input-number__addon--before {
+  border-inline-end: 0;
+  border-start-start-radius: var(--_andes-radius);
+  border-end-start-radius: var(--_andes-radius);
+}
+
+.andes-input-number__addon--after {
+  border-inline-start: 0;
+  border-start-end-radius: var(--_andes-radius);
+  border-end-end-radius: var(--_andes-radius);
+}
+
+.andes-input-number__addon ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* The field squares off whichever side an addon is attached to. One line each: the style shim
+   mis-scopes a compound selector split across lines. */
+/* prettier-ignore */
+.andes-input-number-group:has(.andes-input-number__addon--before:not(:empty)) > .andes-input-number {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/* prettier-ignore */
+.andes-input-number-group:has(.andes-input-number__addon--after:not(:empty)) > .andes-input-number {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* Lift the hovered/focused field above its addons so their paint doesn't cover its edge or ring. */
+.andes-input-number-group > .andes-input-number:hover,
+.andes-input-number-group > .andes-input-number:focus-within {
+  position: relative;
+  z-index: 1;
+}
+
+.andes-input-number-group--disabled .andes-input-number__addon {
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+/* prettier-ignore */
+.andes-input-number-group:has(> .andes-input-number--filled) > .andes-input-number__addon {
+  border-color: transparent;
+}
+
+/* prettier-ignore */
+.andes-input-number-group:has(> .andes-input-number--borderless) > .andes-input-number__addon {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+/* prettier-ignore */
+.andes-input-number-group:has(> .andes-input-number--underlined) > .andes-input-number__addon {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* Sizes: 24/32/40px tall, 14px text on a 22px line (16px on 24px for lg). */
+
+.andes-input-number--sm {
+  height: 1.5rem;
+  padding-inline: var(--andes-space-2, 0.5rem);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+.andes-input-number--md {
+  height: 2rem;
+  padding-inline: var(--andes-space-3, 0.75rem);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+.andes-input-number--lg {
+  height: 2.5rem;
+  padding-inline: var(--andes-space-3, 0.75rem);
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.andes-input-number--lg .andes-input-number__stepper {
+  width: 1.5rem;
+}
+
+.andes-input-number--sm.andes-input-number--spinner .andes-input-number__spin {
+  width: 1.5rem;
+}
+
+.andes-input-number--md.andes-input-number--spinner .andes-input-number__spin {
+  width: 2rem;
+}
+
+.andes-input-number--lg.andes-input-number--spinner .andes-input-number__spin {
+  width: 2.5rem;
+}
+
+.andes-input-number-group--sm {
+  --_andes-radius: var(--andes-control-radius-sm, 0.25rem);
+}
+
+.andes-input-number-group--md {
+  --_andes-radius: var(--andes-control-radius-md, 0.375rem);
+}
+
+.andes-input-number-group--lg {
+  --_andes-radius: var(--andes-control-radius-lg, 0.5rem);
+}
+
+.andes-input-number-group--sm > .andes-input-number__addon {
+  padding-inline: var(--andes-control-padding-x-sm, 0.4375rem);
+}
