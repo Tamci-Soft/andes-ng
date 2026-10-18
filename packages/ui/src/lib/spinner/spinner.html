@@ -1,0 +1,39 @@
+<span
+  class="andes-spinner__indicator"
+  data-slot="spinner-indicator"
+  aria-hidden="true"
+>
+  @switch (variant()) { @case ('dots') {
+  <span class="andes-spinner__dot"></span>
+  <span class="andes-spinner__dot"></span>
+  <span class="andes-spinner__dot"></span>
+  } @case ('bars') {
+  <span class="andes-spinner__bar"></span>
+  <span class="andes-spinner__bar"></span>
+  <span class="andes-spinner__bar"></span>
+  } @default {
+  <svg class="andes-spinner__ring" viewBox="0 0 32 32" focusable="false">
+    <circle class="andes-spinner__track" cx="16" cy="16" [attr.r]="radius" />
+    <circle
+      class="andes-spinner__arc"
+      cx="16"
+      cy="16"
+      [attr.r]="radius"
+      [attr.stroke-dasharray]="dash()"
+      [attr.stroke-opacity]="resolvedPercent() === 0 ? 0 : null"
+    />
+  </svg>
+  } }
+</span>
+@if (resolvedPercent() !== undefined) {
+<span
+  class="andes-spinner__percent"
+  data-slot="spinner-percent"
+  aria-hidden="true"
+  >{{ resolvedPercent() }}%</span
+>
+} @if (tip()) {
+<span class="andes-spinner__tip" data-slot="spinner-tip">{{ tip() }}</span>
+} @else if (!determinate()) {
+<span class="andes-spinner__sr" data-slot="spinner-label">{{ label() }}</span>
+}
