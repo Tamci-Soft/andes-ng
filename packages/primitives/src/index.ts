@@ -1,4 +1,5 @@
 export { AndesButtonPrimitive } from './lib/button-primitive';
+export * from './lib/tree-navigation';
 export * from './lib/viewport';
 export * from './lib/form-control';
 export * from './lib/selection-model';
