@@ -145,19 +145,19 @@ describe('AndesMasonry', () => {
         }
       },
     );
-    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+    defineStub(HTMLElement.prototype, 'clientWidth', {
       configurable: true,
       get(this: HTMLElement) {
         return this.localName === 'andes-masonry' ? hostWidth : 0;
       },
     });
-    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    defineStub(HTMLElement.prototype, 'offsetHeight', {
       configurable: true,
       get(this: HTMLElement) {
         return heights[this.getAttribute('data-key') ?? this.id] ?? 0;
       },
     });
-    Object.defineProperty(window, 'matchMedia', {
+    defineStub(window, 'matchMedia', {
       configurable: true,
       value: (query: string) =>
         ({
@@ -165,7 +165,7 @@ describe('AndesMasonry', () => {
           media: query,
         }) as MediaQueryList,
     });
-    Object.defineProperty(window, 'innerWidth', {
+    defineStub(window, 'innerWidth', {
       configurable: true,
       value: 1024,
     });
@@ -173,10 +173,10 @@ describe('AndesMasonry', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    Reflect.deleteProperty(HTMLElement.prototype, 'clientWidth');
-    Reflect.deleteProperty(HTMLElement.prototype, 'offsetHeight');
-    Reflect.deleteProperty(window, 'matchMedia');
-    Reflect.deleteProperty(window, 'innerWidth');
+    restoreStub(HTMLElement.prototype, 'clientWidth');
+    restoreStub(HTMLElement.prototype, 'offsetHeight');
+    restoreStub(window, 'matchMedia');
+    restoreStub(window, 'innerWidth');
   });
 
   describe('placement', () => {
@@ -284,7 +284,7 @@ describe('AndesMasonry', () => {
       );
       expect(host.getAttribute('data-columns')).toBe('2');
 
-      Object.defineProperty(window, 'innerWidth', {
+      defineStub(window, 'innerWidth', {
         configurable: true,
         value: 500,
       });
@@ -292,7 +292,7 @@ describe('AndesMasonry', () => {
       fixture.detectChanges();
       expect(host.getAttribute('data-columns')).toBe('1');
 
-      Object.defineProperty(window, 'innerWidth', {
+      defineStub(window, 'innerWidth', {
         configurable: true,
         value: 1300,
       });
@@ -305,7 +305,7 @@ describe('AndesMasonry', () => {
       const { item, fixture } = setup((h) => h.columns.set({ xs: 1, lg: 2 }));
       expect(translation(item('b'))[0]).toBe(505);
 
-      Object.defineProperty(window, 'innerWidth', {
+      defineStub(window, 'innerWidth', {
         configurable: true,
         value: 400,
       });
@@ -626,4 +626,39 @@ describe('AndesMasonry', () => {
       expect(css).toContain('prefers-reduced-motion: reduce');
     });
   });
+});
+
+// Specs share one jsdom per worker, so a stub has to put back the property it found (jsdom's own
+// getter, or nothing) instead of deleting it, or the next spec file in the worker loses it.
+const stubbed = new Map<object, Map<string, PropertyDescriptor | undefined>>();
+
+function defineStub(
+  target: object,
+  key: string,
+  descriptor: PropertyDescriptor,
+): void {
+  const seen = stubbed.get(target) ?? new Map();
+  if (!seen.has(key)) {
+    seen.set(key, Object.getOwnPropertyDescriptor(target, key));
+    stubbed.set(target, seen);
+  }
+  Object.defineProperty(target, key, descriptor);
+}
+
+function restoreStub(target: object, key: string): void {
+  const original = stubbed.get(target)?.get(key);
+  stubbed.get(target)?.delete(key);
+  if (original) {
+    Object.defineProperty(target, key, original);
+  } else {
+    Reflect.deleteProperty(target, key);
+  }
+}
+
+afterEach(() => {
+  for (const [target, keys] of stubbed) {
+    for (const key of [...keys.keys()]) {
+      restoreStub(target, key);
+    }
+  }
 });
