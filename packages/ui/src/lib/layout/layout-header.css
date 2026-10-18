@@ -1,0 +1,30 @@
+:host {
+  display: block;
+  flex: none;
+  height: var(--andes-layout-header-height, 3.5rem);
+  box-sizing: border-box;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-3, 0.75rem);
+  box-sizing: border-box;
+  height: 100%;
+  padding-inline: var(--andes-layout-padding-x, 1rem);
+  background: var(--andes-color-background, #ffffff);
+  border-bottom: 1px solid var(--andes-color-border, #d1d5db);
+}
+
+:host([data-position='sticky']) {
+  position: sticky;
+  top: 0;
+  z-index: var(--andes-layout-z-index, 20);
+}
+
+:host([data-position='fixed']) .bar {
+  position: fixed;
+  top: 0;
+  inset-inline: var(--andes-layout-fixed-offset-start, 0) 0;
+  z-index: var(--andes-layout-z-index, 20);
+}

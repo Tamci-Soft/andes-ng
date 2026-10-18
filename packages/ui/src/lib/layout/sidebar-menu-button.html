@@ -1,0 +1,53 @@
+<ng-template #content><ng-content /></ng-template>
+@if (href(); as link) {
+<a
+  class="andes-sidebar-menu-button__control"
+  [attr.href]="disabled() ? null : link"
+  [attr.target]="target()"
+  [attr.data-size]="size()"
+  [attr.data-variant]="variant()"
+  [attr.data-active]="active() ? '' : null"
+  [attr.aria-current]="active() ? 'page' : null"
+  [attr.aria-disabled]="disabled() ? 'true' : null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-describedby]="tipVisible() ? tipId : null"
+  [attr.tabindex]="disabled() ? -1 : null"
+  (pointerenter)="showTip($event)"
+  (pointerleave)="hideTip()"
+  (pointerdown)="hideTip()"
+  (focusin)="showTip($event)"
+  (focusout)="hideTip()"
+  (keydown)="onKeydown($event)"
+>
+  <ng-container [ngTemplateOutlet]="content" />
+</a>
+} @else {
+<button
+  type="button"
+  class="andes-sidebar-menu-button__control"
+  [disabled]="disabled()"
+  [attr.data-size]="size()"
+  [attr.data-variant]="variant()"
+  [attr.data-active]="active() ? '' : null"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-describedby]="tipVisible() ? tipId : null"
+  (pointerenter)="showTip($event)"
+  (pointerleave)="hideTip()"
+  (pointerdown)="hideTip()"
+  (focusin)="showTip($event)"
+  (focusout)="hideTip()"
+  (keydown)="onKeydown($event)"
+>
+  <ng-container [ngTemplateOutlet]="content" />
+</button>
+} @if (tipVisible()) {
+<span
+  class="andes-sidebar-menu-button__tip"
+  role="tooltip"
+  [attr.id]="tipId"
+  [attr.data-end]="tipEnd() ? '' : null"
+  [style.top.px]="tipTop()"
+  [style.left.px]="tipLeft()"
+  >{{ tooltip() }}</span
+>
+}

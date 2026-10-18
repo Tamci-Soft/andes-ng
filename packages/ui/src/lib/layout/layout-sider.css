@@ -1,0 +1,167 @@
+:host {
+  --_bg: var(--andes-layout-sider-background, var(--andes-color-card, #ffffff));
+  --_fg: var(
+    --andes-layout-sider-foreground,
+    var(--andes-color-foreground, #0f172a)
+  );
+  --_border: var(--andes-color-border, #d1d5db);
+  --_hover: var(--andes-color-accent, #f3f4f6);
+
+  position: relative;
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--andes-layout-sider-current-width, 15rem);
+  min-width: 0;
+  transition: width var(--andes-motion-duration-slow, 200ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+:host([data-theme='dark']) {
+  --_bg: var(--andes-layout-sider-dark-background, #0f172a);
+  --_fg: var(--andes-layout-sider-dark-foreground, #f8fafc);
+  --_border: color-mix(in srgb, var(--_fg) 14%, transparent);
+  --_hover: color-mix(in srgb, var(--_fg) 10%, transparent);
+}
+
+:host([data-position='sticky']) {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
+  z-index: var(--andes-layout-z-index, 20);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--_bg);
+  color: var(--_fg);
+  border-inline-end: 1px solid var(--_border);
+}
+
+:host([data-side='end']) .panel {
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--_border);
+}
+
+/* Collapsed to nothing: no leftover border, and the hidden content leaves the tab order. */
+:host([data-zero]) .panel {
+  visibility: hidden;
+  border-width: 0;
+  transition: visibility 0s linear var(--andes-motion-duration-slow, 200ms);
+}
+
+/* A fixed sider leaves the flow, so the host keeps the width and the panel is pinned to the
+   viewport at the host's own inline position. */
+:host([data-position='fixed']) .panel {
+  position: fixed;
+  inset-block: 0;
+  width: var(--andes-layout-sider-current-width, 15rem);
+  height: auto;
+  z-index: var(--andes-layout-z-index, 20);
+  transition: width var(--andes-motion-duration-slow, 200ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.trigger {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 2.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--_border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+.trigger:hover {
+  background: var(--_hover);
+}
+
+.trigger:focus-visible,
+.zero-trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
+.zero-trigger {
+  position: absolute;
+  top: 1rem;
+  inset-inline-start: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 2rem;
+  height: 2.5rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--andes-color-border, #d1d5db);
+  border-inline-start: 0;
+  border-start-end-radius: var(--andes-radius-md, 0.375rem);
+  border-end-end-radius: var(--andes-radius-md, 0.375rem);
+  background: var(--_bg);
+  color: var(--_fg);
+  cursor: pointer;
+  z-index: 1;
+}
+
+:host([data-side='end']) .zero-trigger {
+  inset-inline: auto 100%;
+  border-inline-start: 1px solid var(--andes-color-border, #d1d5db);
+  border-inline-end: 0;
+  border-radius: 0;
+  border-start-start-radius: var(--andes-radius-md, 0.375rem);
+  border-end-start-radius: var(--andes-radius-md, 0.375rem);
+}
+
+.zero-trigger:hover {
+  background: var(--_hover);
+}
+
+.arrow {
+  flex: none;
+}
+
+.arrow[data-pointing='end'] {
+  transform: scaleX(-1);
+}
+
+/* In right-to-left text the start side is the right, so the arrow mirrors. */
+.arrow:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.arrow:dir(rtl)[data-pointing='end'] {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  :host([data-position='fixed']) .panel,
+  .trigger {
+    transition: none;
+  }
+}

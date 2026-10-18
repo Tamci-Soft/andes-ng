@@ -1,0 +1,65 @@
+<aside class="panel" [attr.id]="id" [attr.aria-label]="label()">
+  <div class="body"><ng-content /></div>
+  @if (showTrigger()) {
+  <button
+    type="button"
+    class="trigger"
+    data-slot="layout-sider-trigger"
+    [attr.aria-label]="toggleLabel()"
+    [attr.aria-expanded]="!collapsed()"
+    [attr.aria-controls]="id"
+    (click)="toggle()"
+  >
+    @if (trigger(); as custom) {
+    <ng-container [ngTemplateOutlet]="custom" />
+    } @else {
+    <svg
+      class="arrow"
+      [attr.data-pointing]="pointing()"
+      viewBox="0 0 16 16"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m10 3-5 5 5 5" />
+    </svg>
+    }
+  </button>
+  }
+</aside>
+@if (showZeroTrigger()) {
+<button
+  type="button"
+  class="zero-trigger"
+  data-slot="layout-sider-zero-trigger"
+  [attr.aria-label]="toggleLabel()"
+  [attr.aria-expanded]="!collapsed()"
+  [attr.aria-controls]="id"
+  (click)="toggle()"
+>
+  @if (trigger(); as custom) {
+  <ng-container [ngTemplateOutlet]="custom" />
+  } @else {
+  <svg
+    class="arrow"
+    [attr.data-pointing]="pointing()"
+    viewBox="0 0 16 16"
+    width="16"
+    height="16"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m10 3-5 5 5 5" />
+  </svg>
+  }
+</button>
+}

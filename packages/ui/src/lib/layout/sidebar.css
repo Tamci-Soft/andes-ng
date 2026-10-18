@@ -1,0 +1,535 @@
+/*
+ * Stylesheet of the whole sidebar family (it ships with the provider). Everything is prefixed
+ * `andes-sidebar`, state is read from data attributes the components set (`data-mode` is
+ * expanded | icon | offcanvas), and all positions are logical so end-side and RTL just work.
+ */
+
+.andes-sidebar-provider {
+  --_w: var(--andes-sidebar-width, 16rem);
+  --_wi: var(--andes-sidebar-width-icon, 3rem);
+  --_wm: var(--andes-sidebar-width-mobile, 18rem);
+  --_bg: var(--andes-sidebar-background, var(--andes-color-card, #ffffff));
+  --_fg: var(
+    --andes-sidebar-foreground,
+    var(--andes-color-foreground, #0f172a)
+  );
+  --_muted: var(--andes-color-muted-foreground, #64748b);
+  --_border: var(--andes-sidebar-border, var(--andes-color-border, #d1d5db));
+  --_hover: var(--andes-sidebar-accent, var(--andes-color-accent, #f3f4f6));
+  --_hover-fg: var(
+    --andes-sidebar-accent-foreground,
+    var(--andes-color-accent-foreground, #111827)
+  );
+  --_dur: var(--andes-motion-duration-slow, 200ms);
+  --_ease: var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--andes-sidebar-min-height, 100svh);
+  background: var(--_bg);
+  color: var(--_fg);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+}
+
+.andes-sidebar-provider[data-contained] {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.andes-sidebar {
+  display: block;
+  flex: none;
+}
+
+/* --- Desktop: an in-flow placeholder plus a pinned panel that move in step ------------------ */
+
+.andes-sidebar__gap {
+  position: relative;
+  width: var(--_w);
+  background: transparent;
+  transition: width var(--_dur) var(--_ease);
+}
+
+.andes-sidebar[data-mode='offcanvas'] .andes-sidebar__gap {
+  width: 0;
+}
+
+.andes-sidebar[data-mode='icon'] .andes-sidebar__gap {
+  width: var(--_wi);
+}
+
+.andes-sidebar[data-variant='floating'][data-mode='icon'] .andes-sidebar__gap,
+.andes-sidebar[data-variant='inset'][data-mode='icon'] .andes-sidebar__gap {
+  width: calc(var(--_wi) + 1rem);
+}
+
+.andes-sidebar__container {
+  position: fixed;
+  inset-block: 0;
+  z-index: var(--andes-sidebar-z-index, 30);
+  display: flex;
+  box-sizing: border-box;
+  width: var(--_w);
+  height: 100svh;
+  transition-property: width, inset-inline-start, inset-inline-end;
+  transition-duration: var(--_dur);
+  transition-timing-function: var(--_ease);
+}
+
+.andes-sidebar-provider[data-contained] .andes-sidebar__container {
+  position: absolute;
+  height: 100%;
+}
+
+.andes-sidebar[data-side='start'] .andes-sidebar__container {
+  inset-inline-start: 0;
+}
+
+.andes-sidebar[data-side='end'] .andes-sidebar__container {
+  inset-inline-end: 0;
+}
+
+.andes-sidebar[data-side='start'][data-mode='offcanvas']
+  .andes-sidebar__container {
+  inset-inline-start: calc(var(--_w) * -1);
+}
+
+.andes-sidebar[data-side='end'][data-mode='offcanvas']
+  .andes-sidebar__container {
+  inset-inline-end: calc(var(--_w) * -1);
+}
+
+.andes-sidebar[data-mode='icon'] .andes-sidebar__container {
+  width: var(--_wi);
+}
+
+.andes-sidebar[data-variant='floating'] .andes-sidebar__container,
+.andes-sidebar[data-variant='inset'] .andes-sidebar__container {
+  padding: 0.5rem;
+}
+
+.andes-sidebar[data-variant='floating'][data-mode='icon']
+  .andes-sidebar__container,
+.andes-sidebar[data-variant='inset'][data-mode='icon']
+  .andes-sidebar__container {
+  width: calc(var(--_wi) + 1rem);
+}
+
+.andes-sidebar__inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--_bg);
+  color: var(--_fg);
+}
+
+.andes-sidebar[data-variant='sidebar'][data-side='start']
+  .andes-sidebar__inner {
+  border-inline-end: 1px solid var(--_border);
+}
+
+.andes-sidebar[data-variant='sidebar'][data-side='end'] .andes-sidebar__inner {
+  border-inline-start: 1px solid var(--_border);
+}
+
+.andes-sidebar[data-variant='floating'] .andes-sidebar__inner {
+  border: 1px solid var(--_border);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  box-shadow: var(--andes-shadow-sm, 0 1px 2px rgb(15 23 42 / 8%));
+}
+
+.andes-sidebar[data-variant='inset'] .andes-sidebar__inner {
+  background: transparent;
+}
+
+/* A sidebar that never collapses is a plain column in the flow. */
+.andes-sidebar__static {
+  display: flex;
+  box-sizing: border-box;
+  width: var(--_w);
+  height: 100%;
+}
+
+.andes-sidebar__static .andes-sidebar__inner {
+  border-inline-end: 1px solid var(--_border);
+}
+
+.andes-sidebar[data-side='end'] .andes-sidebar__static .andes-sidebar__inner {
+  border-inline-end: 0;
+  border-inline-start: 1px solid var(--_border);
+}
+
+/* --- Mobile: a modal overlay with a scrim ---------------------------------------------------- */
+
+.andes-sidebar__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--andes-z-index-overlay, 1040);
+  background: var(--andes-color-overlay, rgb(15 23 42 / 45%));
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 150ms ease,
+    visibility 0s linear 150ms;
+}
+
+.andes-sidebar__scrim[data-open] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.andes-sidebar__overlay {
+  position: fixed;
+  inset-block: 0;
+  z-index: var(--andes-z-index-modal, 1050);
+  box-sizing: border-box;
+  width: var(--_wm);
+  max-width: calc(100vw - 3rem);
+  outline: none;
+  visibility: hidden;
+  transition-property: inset-inline-start, inset-inline-end, visibility;
+  transition-duration: var(--_dur), var(--_dur), 0s;
+  transition-delay: 0s, 0s, var(--_dur);
+  transition-timing-function: var(--_ease), var(--_ease), linear;
+}
+
+.andes-sidebar-provider[data-contained] .andes-sidebar__scrim,
+.andes-sidebar-provider[data-contained] .andes-sidebar__overlay {
+  position: absolute;
+}
+
+.andes-sidebar[data-side='start'] .andes-sidebar__overlay {
+  inset-inline-start: calc(var(--_wm) * -1 - 2rem);
+}
+
+.andes-sidebar[data-side='end'] .andes-sidebar__overlay {
+  inset-inline-end: calc(var(--_wm) * -1 - 2rem);
+}
+
+.andes-sidebar__overlay[data-open] {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.andes-sidebar[data-side='start'] .andes-sidebar__overlay[data-open] {
+  inset-inline-start: 0;
+}
+
+.andes-sidebar[data-side='end'] .andes-sidebar__overlay[data-open] {
+  inset-inline-end: 0;
+}
+
+/* --- Parts ------------------------------------------------------------------------------------ */
+
+.andes-sidebar-header,
+.andes-sidebar-footer {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.andes-sidebar-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.andes-sidebar-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.5rem;
+}
+
+.andes-sidebar-group-label {
+  display: flex;
+  flex: none;
+  align-items: center;
+  box-sizing: border-box;
+  height: 2rem;
+  padding-inline: 0.5rem;
+  color: var(--_muted);
+  font-size: 0.75rem;
+  font-weight: var(--andes-font-weight-medium, 500);
+  line-height: 1.25rem;
+  white-space: nowrap;
+  transition:
+    margin var(--_dur) var(--_ease),
+    opacity var(--_dur) var(--_ease);
+}
+
+.andes-sidebar-provider[data-mode='icon'] .andes-sidebar-group-label {
+  margin-top: -2rem;
+  opacity: 0;
+}
+
+.andes-sidebar-separator {
+  display: block;
+  flex: none;
+  height: 1px;
+  margin-inline: 0.5rem;
+  background: var(--_border);
+}
+
+.andes-sidebar-menu,
+.andes-sidebar-menu-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.andes-sidebar-menu-sub {
+  margin-inline: 0.875rem 0;
+  padding-block: 2px;
+  padding-inline: 0.625rem 0;
+  border-inline-start: 1px solid var(--_border);
+}
+
+.andes-sidebar-provider[data-mode='icon'] .andes-sidebar-menu-sub {
+  display: none;
+}
+
+.andes-sidebar-menu-item {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.andes-sidebar-menu-button {
+  display: block;
+  min-width: 0;
+}
+
+.andes-sidebar-menu-button__control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  width: 100%;
+  height: 2rem;
+  margin: 0;
+  padding: 0 0.5rem;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--andes-motion-duration-mid, 150ms) ease,
+    color var(--andes-motion-duration-mid, 150ms) ease,
+    width var(--_dur) var(--_ease),
+    padding var(--_dur) var(--_ease);
+}
+
+.andes-sidebar-menu-button__control[data-size='sm'] {
+  height: 1.75rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.andes-sidebar-menu-button__control[data-size='lg'] {
+  height: 3rem;
+}
+
+.andes-sidebar-menu-button__control[data-variant='outline'] {
+  border-color: var(--_border);
+  background: var(--andes-color-background, #ffffff);
+}
+
+.andes-sidebar-menu-button__control:hover {
+  background: var(--_hover);
+  color: var(--_hover-fg);
+}
+
+.andes-sidebar-menu-button__control[data-active] {
+  background: var(--_hover);
+  color: var(--_hover-fg);
+  font-weight: var(--andes-font-weight-medium, 500);
+}
+
+.andes-sidebar-menu-button__control:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
+.andes-sidebar-menu-button__control:disabled,
+.andes-sidebar-menu-button__control[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.andes-sidebar-menu-button__control > svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-sidebar-menu-button__control > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsed to icons the control is a 32px square: the icon stays, the label is clipped. */
+.andes-sidebar-provider[data-mode='icon'] .andes-sidebar-menu-button__control {
+  width: 2rem;
+  padding: 0.4375rem;
+}
+
+.andes-sidebar-menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-inline-start: auto;
+  padding-inline: 0.25rem;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  color: var(--_muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--andes-font-weight-medium, 500);
+  line-height: 1.25rem;
+}
+
+.andes-sidebar-provider[data-mode='icon'] .andes-sidebar-menu-badge {
+  display: none;
+}
+
+.andes-sidebar-menu-button__tip {
+  position: fixed;
+  z-index: var(--andes-z-index-tooltip, 1070);
+  padding: 0 0.5rem;
+  border: 1px solid var(--_border);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background: var(--andes-color-popover, #ffffff);
+  color: var(--andes-color-popover-foreground, #0f172a);
+  box-shadow: var(--andes-shadow-md, 0 4px 12px rgb(15 23 42 / 12%));
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+  animation: andes-sidebar-tip-in 120ms ease-out;
+}
+
+.andes-sidebar-menu-button__tip[data-end] {
+  transform: translate(-100%, -50%);
+}
+
+@keyframes andes-sidebar-tip-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.andes-sidebar-trigger {
+  display: inline-flex;
+}
+
+.andes-sidebar-trigger__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+.andes-sidebar-trigger__button:hover {
+  background: var(--andes-color-accent, #f3f4f6);
+}
+
+.andes-sidebar-trigger__button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 0;
+}
+
+/* --- The page beside the sidebar -------------------------------------------------------------- */
+
+.andes-sidebar-inset {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  background: var(--andes-color-background, #ffffff);
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+.andes-sidebar-provider[data-contained] .andes-sidebar-inset {
+  overflow: auto;
+}
+
+.andes-sidebar-inset[data-variant='inset'] {
+  margin: 0.5rem;
+  border-radius: var(--andes-radius-xl, 0.75rem);
+  box-shadow: var(--andes-shadow-sm, 0 1px 2px rgb(15 23 42 / 8%));
+}
+
+/* The sidebar's own padding already leaves the gap on its side, unless it is out of view. */
+.andes-sidebar-inset[data-variant='inset'][data-side='start']:not(
+    [data-mode='offcanvas']
+  ) {
+  margin-inline-start: 0;
+}
+
+.andes-sidebar-inset[data-variant='inset'][data-side='end']:not(
+    [data-mode='offcanvas']
+  ) {
+  margin-inline-end: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-sidebar__gap,
+  .andes-sidebar__container,
+  .andes-sidebar__overlay,
+  .andes-sidebar__scrim,
+  .andes-sidebar-group-label,
+  .andes-sidebar-menu-button__control {
+    transition: none;
+  }
+
+  .andes-sidebar-menu-button__tip {
+    animation: none;
+  }
+}

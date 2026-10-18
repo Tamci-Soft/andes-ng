@@ -1,0 +1,17 @@
+:host {
+  display: flex;
+  flex: auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  background: var(--andes-color-background, #ffffff);
+  color: var(--andes-color-foreground, #0f172a);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+}
+
+:host([data-has-sider]) {
+  flex-direction: row;
+}
