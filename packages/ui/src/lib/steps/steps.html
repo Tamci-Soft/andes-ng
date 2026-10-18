@@ -1,0 +1,10 @@
+<ol
+  class="andes-steps"
+  [attr.aria-label]="ariaLabel() ?? null"
+  [attr.aria-labelledby]="ariaLabelledby() ?? null"
+>
+  <ng-content />
+</ol>
+<span class="andes-steps__live" role="status" aria-live="polite"
+  >{{ liveMessage() }}</span
+>
