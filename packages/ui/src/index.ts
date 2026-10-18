@@ -115,7 +115,7 @@ export * from './lib/button';
 
 // @slot sheet
 
-// @slot skeleton
+export * from './lib/skeleton';
 
 // @slot slider
 
