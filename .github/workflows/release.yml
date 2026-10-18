@@ -54,6 +54,10 @@ jobs:
             echo "### Promote v$version (tree \`${tree:0:12}\`)" >> "$GITHUB_STEP_SUMMARY"
           else
             version=$(.github/scripts/candidate.sh branch "$BRANCH")
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" >/dev/null 2>&1; then
+              echo "::error title=Already released::v$version is already released. Start a new release/X.Y.Z or a hotfix instead of pushing to this branch."
+              exit 1
+            fi
             next=$(.github/scripts/candidate.sh next "$version" "$GITHUB_SHA")
             read -r rc reused <<<"$next"
             {
