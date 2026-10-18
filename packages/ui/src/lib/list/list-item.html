@@ -1,0 +1,34 @@
+<ng-template #metaSlot
+  ><ng-content select="andes-list-item-meta"
+/></ng-template>
+<ng-template #contentSlot>
+  <div class="andes-list-item__content" data-slot="list-item-content">
+    <ng-content />
+  </div>
+</ng-template>
+<ng-template #actionsSlot>
+  <div class="andes-list-item__actions">
+    <ng-content select="andes-list-item-actions, [slot=actions]" />
+  </div>
+</ng-template>
+<ng-template #extraSlot>
+  <div class="andes-list-item__extra" data-slot="list-item-extra">
+    <ng-content select="[slot=extra]" />
+  </div>
+</ng-template>
+
+@if (vertical()) {
+<div class="andes-list-item__main">
+  <ng-container *ngTemplateOutlet="metaSlot" />
+  <ng-container *ngTemplateOutlet="contentSlot" />
+  <ng-container *ngTemplateOutlet="actionsSlot" />
+</div>
+<ng-container *ngTemplateOutlet="extraSlot" />
+} @else {
+<div class="andes-list-item__main">
+  <ng-container *ngTemplateOutlet="metaSlot" />
+  <ng-container *ngTemplateOutlet="contentSlot" />
+</div>
+<ng-container *ngTemplateOutlet="actionsSlot" />
+<ng-container *ngTemplateOutlet="extraSlot" />
+}

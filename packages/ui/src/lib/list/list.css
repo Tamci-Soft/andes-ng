@@ -1,0 +1,290 @@
+/*
+ * The list is a column of regions: header, body (rows, loading skeleton or empty state),
+ * load-more, footer, pagination. Row padding comes from three custom properties set per size
+ * on the root, so a row only reads them. Everything is token-driven.
+ */
+
+:host {
+  display: block;
+}
+
+.andes-list {
+  --andes-list-padding-block: 0.75rem;
+  --andes-list-padding-inline: 0;
+  --andes-list-gutter-x: 1rem;
+  --andes-list-gutter-y: 1rem;
+
+  position: relative;
+  box-sizing: border-box;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  color: var(--andes-color-foreground);
+}
+
+.andes-list--sm {
+  --andes-list-padding-block: 0.5rem;
+  --andes-list-padding-inline: 0.75rem;
+}
+
+.andes-list--lg {
+  --andes-list-padding-block: 1rem;
+  --andes-list-padding-inline: 1.5rem;
+}
+
+.andes-list--split {
+  --andes-list-divider: 1px solid var(--andes-color-border);
+}
+
+/* The grid reads breakpoints from the list's own width. Containment only applies here: it
+   makes the list's width independent of its content, which a plain list does not need. */
+.andes-list--grid {
+  container: andes-list / inline-size;
+}
+
+.andes-list--bordered {
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  --andes-list-padding-inline: 1rem;
+}
+
+.andes-list--bordered.andes-list--sm {
+  --andes-list-padding-inline: 0.75rem;
+}
+
+.andes-list--bordered.andes-list--lg {
+  --andes-list-padding-inline: 1.5rem;
+}
+
+.andes-list--interactive {
+  --andes-list-padding-inline: 0.75rem;
+}
+
+.andes-list--interactive.andes-list--bordered {
+  --andes-list-padding-inline: 1rem;
+}
+
+/* --- Regions ------------------------------------------------------------------------------- */
+
+.andes-list__header,
+.andes-list__footer {
+  padding-block: 0.75rem;
+  padding-inline: var(--andes-list-padding-inline);
+}
+
+.andes-list--sm .andes-list__header,
+.andes-list--sm .andes-list__footer {
+  padding-block: 0.5rem;
+}
+
+.andes-list--lg .andes-list__header,
+.andes-list--lg .andes-list__footer {
+  padding-block: 1rem;
+}
+
+.andes-list__header {
+  font-weight: 600;
+}
+
+.andes-list__header:empty,
+.andes-list__footer:empty,
+.andes-list__load-more:empty,
+.andes-list__pagination:empty {
+  display: none;
+}
+
+.andes-list--split .andes-list__header {
+  border-block-end: 1px solid var(--andes-color-border);
+}
+
+.andes-list--split .andes-list__footer {
+  border-block-start: 1px solid var(--andes-color-border);
+}
+
+.andes-list__load-more {
+  display: flex;
+  justify-content: center;
+  padding-block: 0.75rem;
+}
+
+.andes-list__pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-start: 1rem;
+}
+
+.andes-list--bordered .andes-list__pagination {
+  margin: 1rem;
+}
+
+/* --- Rows container ------------------------------------------------------------------------ */
+
+.andes-list__items {
+  margin: 0;
+  padding: 0;
+}
+
+.andes-list__items[hidden] {
+  display: none;
+}
+
+.andes-list__viewport {
+  display: block;
+  overflow-y: auto;
+}
+
+.andes-list__viewport:focus {
+  outline: none;
+}
+
+/* Grid: the column count per breakpoint is resolved in the component. The breakpoints are
+   those of the list's own width, not of the page. */
+.andes-list__items--grid {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--andes-list-columns-xs, 1),
+    minmax(0, 1fr)
+  );
+  gap: var(--andes-list-gutter-y) var(--andes-list-gutter-x);
+}
+
+@container andes-list (min-width: 36rem) {
+  .andes-list__items--grid {
+    grid-template-columns: repeat(
+      var(--andes-list-columns-sm, 1),
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@container andes-list (min-width: 48rem) {
+  .andes-list__items--grid {
+    grid-template-columns: repeat(
+      var(--andes-list-columns-md, 1),
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@container andes-list (min-width: 62rem) {
+  .andes-list__items--grid {
+    grid-template-columns: repeat(
+      var(--andes-list-columns-lg, 1),
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@container andes-list (min-width: 75rem) {
+  .andes-list__items--grid {
+    grid-template-columns: repeat(
+      var(--andes-list-columns-xl, 1),
+      minmax(0, 1fr)
+    );
+  }
+}
+
+@container andes-list (min-width: 100rem) {
+  .andes-list__items--grid {
+    grid-template-columns: repeat(
+      var(--andes-list-columns-xxl, 1),
+      minmax(0, 1fr)
+    );
+  }
+}
+
+/* --- Empty state --------------------------------------------------------------------------- */
+
+.andes-list__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  color: var(--andes-color-muted-foreground);
+  text-align: center;
+}
+
+.andes-list__empty-icon {
+  inline-size: 2rem;
+  block-size: 2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+
+/* --- Loading skeleton ---------------------------------------------------------------------- */
+
+.andes-list__skeleton {
+  display: flex;
+  flex-direction: column;
+}
+
+.andes-list__skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-block: var(--andes-list-padding-block);
+  padding-inline: var(--andes-list-padding-inline);
+}
+
+.andes-list--split .andes-list__skeleton-row + .andes-list__skeleton-row {
+  border-block-start: 1px solid var(--andes-color-border);
+}
+
+.andes-list__skeleton-avatar,
+.andes-list__skeleton-bar {
+  background-color: var(--andes-color-muted);
+  animation: andes-list-pulse 1.8s ease-in-out infinite;
+}
+
+.andes-list__skeleton-avatar {
+  flex: none;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: var(--andes-radius-full);
+}
+
+.andes-list__skeleton-lines {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.andes-list__skeleton-bar {
+  display: block;
+  block-size: 0.75rem;
+  inline-size: 80%;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-list__skeleton-bar--title {
+  inline-size: 40%;
+}
+
+@keyframes andes-list-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.andes-list__sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-list__skeleton-avatar,
+  .andes-list__skeleton-bar {
+    animation: none;
+  }
+}
