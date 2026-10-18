@@ -294,9 +294,9 @@
 
    `border-box` keeps the bordered square exactly 10px, so its center lands on
    the panel's inner border edge (and on the measured coordinate) instead of
-   half a pixel off. The clip keeps only the outer half (plus ~0.7px of
-   overlap so no hairline shows at the seam): it covers the panel border
-   behind it but never reaches into the panel, even with zero padding. */
+   half a pixel off. The clip keeps only the outer half, plus ~0.2px of overlap so no
+   hairline shows at the seam: it covers the panel border behind it, and the arrow's two
+   outline strokes end on the border's inner edge instead of poking into the panel. */
 .andes-popover-arrow {
   position: absolute;
   box-sizing: border-box;
@@ -307,7 +307,7 @@
 }
 
 .andes-popover-arrow[data-side='bottom'] {
-  clip-path: polygon(0 0, calc(100% + 1px) 0, 0 calc(100% + 1px));
+  clip-path: polygon(0 0, calc(100% + 0.25px) 0, 0 calc(100% + 0.25px));
   top: -0.3125rem;
   left: 50%;
   margin-left: -0.3125rem;
@@ -318,7 +318,7 @@
 }
 
 .andes-popover-arrow[data-side='top'] {
-  clip-path: polygon(100% 100%, -1px 100%, 100% -1px);
+  clip-path: polygon(100% 100%, -0.25px 100%, 100% -0.25px);
   bottom: -0.3125rem;
   left: 50%;
   margin-left: -0.3125rem;
@@ -329,7 +329,7 @@
 }
 
 .andes-popover-arrow[data-side='right'] {
-  clip-path: polygon(0 100%, 0 -1px, calc(100% + 1px) 100%);
+  clip-path: polygon(0 100%, 0 -0.25px, calc(100% + 0.25px) 100%);
   left: -0.3125rem;
   top: 50%;
   margin-top: -0.3125rem;
@@ -340,7 +340,7 @@
 }
 
 .andes-popover-arrow[data-side='left'] {
-  clip-path: polygon(100% 0, 100% calc(100% + 1px), -1px 0);
+  clip-path: polygon(100% 0, 100% calc(100% + 0.25px), -0.25px 0);
   right: -0.3125rem;
   top: 50%;
   margin-top: -0.3125rem;
