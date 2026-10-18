@@ -164,7 +164,7 @@ describe('AndesAnchor', () => {
     scrollSpy = vi
       .spyOn(window, 'scrollTo')
       .mockImplementation(() => undefined);
-    Object.defineProperty(window, 'matchMedia', {
+    defineStub(window, 'matchMedia', {
       configurable: true,
       value: (query: string) =>
         ({
@@ -178,7 +178,7 @@ describe('AndesAnchor', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
-    Reflect.deleteProperty(window, 'matchMedia');
+    restoreStub(window, 'matchMedia');
     window.history.replaceState(null, '', '/');
   });
 
@@ -565,7 +565,7 @@ describe('AndesAnchor', () => {
 
   describe('ink', () => {
     beforeEach(() => {
-      Object.defineProperty(HTMLElement.prototype, 'offsetTop', {
+      defineStub(HTMLElement.prototype, 'offsetTop', {
         configurable: true,
         get(this: HTMLElement) {
           return (
@@ -575,15 +575,15 @@ describe('AndesAnchor', () => {
           );
         },
       });
-      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      defineStub(HTMLElement.prototype, 'offsetHeight', {
         configurable: true,
         get: () => 30,
       });
     });
 
     afterEach(() => {
-      Reflect.deleteProperty(HTMLElement.prototype, 'offsetTop');
-      Reflect.deleteProperty(HTMLElement.prototype, 'offsetHeight');
+      restoreStub(HTMLElement.prototype, 'offsetTop');
+      restoreStub(HTMLElement.prototype, 'offsetHeight');
     });
 
     it('sits on the active link and slides to the next one', () => {
@@ -614,19 +614,19 @@ describe('AndesAnchor', () => {
         h.direction.set('horizontal');
         h.active.set('#api');
       });
-      Object.defineProperty(HTMLElement.prototype, 'offsetLeft', {
+      defineStub(HTMLElement.prototype, 'offsetLeft', {
         configurable: true,
         get: () => 120,
       });
-      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+      defineStub(HTMLElement.prototype, 'offsetWidth', {
         configurable: true,
         get: () => 48,
       });
       const ink = root.querySelector('.andes-anchor__ink') as HTMLElement;
 
       expect(ink.getAttribute('data-visible')).not.toBeNull();
-      Reflect.deleteProperty(HTMLElement.prototype, 'offsetLeft');
-      Reflect.deleteProperty(HTMLElement.prototype, 'offsetWidth');
+      restoreStub(HTMLElement.prototype, 'offsetLeft');
+      restoreStub(HTMLElement.prototype, 'offsetWidth');
     });
 
     it('only starts animating after its first placement', () => {
@@ -739,4 +739,39 @@ describe('AndesAnchor', () => {
       expect(linkCss).not.toMatch(/^\s*[>+~]/m);
     });
   });
+});
+
+// Specs share one jsdom per worker, so a stub has to put back the property it found (jsdom's own
+// getter, or nothing) instead of deleting it, or the next spec file in the worker loses it.
+const stubbed = new Map<object, Map<string, PropertyDescriptor | undefined>>();
+
+function defineStub(
+  target: object,
+  key: string,
+  descriptor: PropertyDescriptor,
+): void {
+  const seen = stubbed.get(target) ?? new Map();
+  if (!seen.has(key)) {
+    seen.set(key, Object.getOwnPropertyDescriptor(target, key));
+    stubbed.set(target, seen);
+  }
+  Object.defineProperty(target, key, descriptor);
+}
+
+function restoreStub(target: object, key: string): void {
+  const original = stubbed.get(target)?.get(key);
+  stubbed.get(target)?.delete(key);
+  if (original) {
+    Object.defineProperty(target, key, original);
+  } else {
+    Reflect.deleteProperty(target, key);
+  }
+}
+
+afterEach(() => {
+  for (const [target, keys] of stubbed) {
+    for (const key of [...keys.keys()]) {
+      restoreStub(target, key);
+    }
+  }
 });
