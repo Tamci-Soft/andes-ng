@@ -1,0 +1,93 @@
+<div [class]="classes()" data-slot="qr-code-frame">
+  <div
+    class="andes-qr-code__symbol"
+    data-slot="qr-code-symbol"
+    role="img"
+    [attr.aria-label]="accessibleName()"
+    [style.width.px]="pixelSize()"
+    [style.height.px]="pixelSize()"
+  >
+    @if (layout(); as view) { @if (type() === 'canvas') {
+    <canvas
+      #canvas
+      class="andes-qr-code__canvas"
+      aria-hidden="true"
+      [style.width.px]="pixelSize()"
+      [style.height.px]="pixelSize()"
+    ></canvas>
+    } @else {
+    <svg
+      class="andes-qr-code__svg"
+      aria-hidden="true"
+      focusable="false"
+      shape-rendering="crispEdges"
+      [attr.viewBox]="'0 0 ' + view.modules + ' ' + view.modules"
+      [attr.width]="pixelSize()"
+      [attr.height]="pixelSize()"
+    >
+      <rect
+        class="andes-qr-code__background"
+        [attr.width]="view.modules"
+        [attr.height]="view.modules"
+      />
+      <path class="andes-qr-code__modules" [attr.d]="view.path" />
+      @if (view.icon; as rect) {
+      <image
+        class="andes-qr-code__icon"
+        preserveAspectRatio="xMidYMid meet"
+        [attr.href]="icon()"
+        [attr.x]="rect.x"
+        [attr.y]="rect.y"
+        [attr.width]="rect.width"
+        [attr.height]="rect.height"
+      />
+      }
+    </svg>
+    } }
+  </div>
+
+  @if (status() !== 'active') {
+  <div
+    class="andes-qr-code__cover"
+    data-slot="qr-code-cover"
+    [attr.data-status]="status()"
+  >
+    @if (statusRender(); as template) {
+    <ng-container
+      *ngTemplateOutlet="template; context: statusContext()"
+    ></ng-container>
+    } @else { @switch (status()) { @case ('loading') {
+    <span class="andes-qr-code__spinner" aria-hidden="true"></span>
+    } @case ('expired') {
+    <span class="andes-qr-code__message">{{ resolvedLabels().expired }}</span>
+    <button type="button" class="andes-qr-code__refresh" (click)="onRefresh()">
+      <svg
+        class="andes-qr-code__glyph"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+        <path d="M21 3v5h-5" />
+      </svg>
+      {{ resolvedLabels().refresh }}
+    </button>
+    } @case ('scanned') {
+    <svg
+      class="andes-qr-code__glyph andes-qr-code__glyph--success"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M21.8 10A10 10 0 1 1 17 3.34" />
+      <path d="m9 11 3 3L22 4" />
+    </svg>
+    <span class="andes-qr-code__message">{{ resolvedLabels().scanned }}</span>
+    } } }
+  </div>
+  }
+
+  <span class="andes-qr-code__live" role="status" aria-live="polite"
+    >{{ liveMessage() }}</span
+  >
+</div>
