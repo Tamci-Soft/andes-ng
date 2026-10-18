@@ -149,6 +149,7 @@ export function createAndesPositionStrategy(
       flip = true,
       crossSideFallback = true,
       shift = true,
+      flexibleDimensions = false,
       viewportMargin = 8,
       lockPosition = false,
     } = positioning;
@@ -166,7 +167,7 @@ export function createAndesPositionStrategy(
       )
       .withPush(shift)
       .withViewportMargin(viewportMargin)
-      .withFlexibleDimensions(false)
+      .withFlexibleDimensions(flexibleDimensions)
       .withGrowAfterOpen(false)
       .withLockedPosition(lockPosition);
   }
