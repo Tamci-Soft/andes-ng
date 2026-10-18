@@ -314,48 +314,6 @@
   outline-offset: 2px;
 }
 
-/* Clips the bar to the card's inner rounded corners (the card itself can't clip: the close
-   badge hangs over its edge). */
-.andes-toast__progress-track {
-  position: absolute;
-  inset: 0;
-  border-radius: calc(var(--andes-radius-lg) - 1px);
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/* Drains over the auto-dismiss countdown, and pauses exactly when AndesToastQueue's timer
-   does: while the stack is hovered (the region sets --_toast-progress-state) and whenever
-   focus is inside the toast. */
-.andes-toast__progress {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 2px;
-  background-color: var(--_toast-accent);
-  opacity: 0.8;
-  transform-origin: left center;
-  animation-name: andes-toast-progress;
-  animation-timing-function: linear;
-  animation-fill-mode: forwards;
-  animation-play-state: var(--_toast-progress-state, running);
-}
-
-/* transform-origin has no logical keywords: drain towards the inline start in RTL too. */
-:host(:dir(rtl)) .andes-toast__progress {
-  transform-origin: right center;
-}
-
-:host([data-severity='neutral']) .andes-toast__progress,
-:host([data-severity='loading']) .andes-toast__progress {
-  background-color: var(--andes-color-primary);
-}
-
-:host([data-pause-on-hover]:hover) .andes-toast__progress,
-:host(:focus-within) .andes-toast__progress {
-  animation-play-state: paused;
-}
-
 /* Message flavor: a compact single-line card - icon + text, sized to its content. */
 :host([data-flavor='message']) {
   width: max-content;
@@ -371,16 +329,6 @@
   width: 1.125rem;
   height: 1.125rem;
   margin-inline: -0.125rem 0;
-}
-
-@keyframes andes-toast-progress {
-  from {
-    transform: scaleX(1);
-  }
-
-  to {
-    transform: scaleX(0);
-  }
 }
 
 @keyframes andes-toast-spin {

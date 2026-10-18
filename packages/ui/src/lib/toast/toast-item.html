@@ -122,14 +122,4 @@
   </svg>
   }
 </button>
-} @if (progressDuration(); as progressMs) {
-<div class="andes-toast__progress-track">
-  @for (revision of progressRevision(); track revision) {
-  <div
-    class="andes-toast__progress"
-    aria-hidden="true"
-    [style.animation-duration.ms]="progressMs"
-  ></div>
-  }
-</div>
 }

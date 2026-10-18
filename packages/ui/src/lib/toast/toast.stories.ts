@@ -193,14 +193,6 @@ class ToastStoryHost {
         />
         Always expanded (stack: false)</label
       >
-      <label
-        ><input
-          type="checkbox"
-          [checked]="progress()"
-          (change)="setProgress($any($event.target).checked)"
-        />
-        Progress bar</label
-      >
       <button type="button" (click)="destroyAll()">Destroy all</button>
     </div>
     <p [style]="noteStyle">
@@ -218,7 +210,6 @@ class GalleryStoryHost {
   protected readonly status = signal('');
   protected readonly richColors = signal(false);
   protected readonly expanded = signal(false);
-  protected readonly progress = signal(false);
 
   protected showDefault(): void {
     this.toasts.show({
@@ -271,11 +262,6 @@ class GalleryStoryHost {
   protected setExpanded(on: boolean): void {
     this.expanded.set(on);
     this.toasts.config({ stack: !on });
-  }
-
-  protected setProgress(on: boolean): void {
-    this.progress.set(on);
-    this.toasts.config({ showProgress: on });
   }
 
   protected destroyAll(): void {
@@ -343,7 +329,7 @@ class MessageStoryHost {
 
 /**
  * Rich notifications: title + message, loading -> success by key, actions group, onClick,
- * progress bar, pauseOnHover opt-out, custom icon/close icon, per-toast placement.
+ * pauseOnHover opt-out, custom icon/close icon, per-toast placement.
  */
 @Component({
   selector: 'andes-notification-story',
@@ -355,10 +341,8 @@ class MessageStoryHost {
         Loading, then success (key update)
       </button>
       <button type="button" (click)="withActions()">Actions group</button>
-      <button type="button" (click)="withProgress()">Progress bar</button>
-      <button type="button" (click)="noHoverPause()">
-        Progress, no pause on hover
-      </button>
+      <button type="button" (click)="countdown()">Pause on hover</button>
+      <button type="button" (click)="noHoverPause()">No pause on hover</button>
       <button type="button" (click)="clickable()">Clickable body</button>
       <button type="button" (click)="customIcons()">
         Custom icon + close icon
@@ -427,7 +411,6 @@ class NotificationStoryHost {
         this.toasts.success('All changes were saved.', {
           key: 'save',
           title: 'Saved',
-          showProgress: true,
         }),
       1500,
     );
@@ -449,11 +432,10 @@ class NotificationStoryHost {
     });
   }
 
-  protected withProgress(): void {
+  protected countdown(): void {
     this.toasts.warning('Hover to pause the countdown.', {
       title: 'Storage almost full',
       duration: 8000,
-      showProgress: true,
     });
   }
 
@@ -461,7 +443,6 @@ class NotificationStoryHost {
     this.toasts.info('This one keeps counting down while hovered.', {
       title: 'pauseOnHover: false',
       duration: 6000,
-      showProgress: true,
       pauseOnHover: false,
     });
   }
@@ -657,7 +638,6 @@ class RichToastStoryHost {
       title: 'closeIcon: null',
       closeIcon: null,
       duration: 4000,
-      showProgress: true,
     });
     void ref.afterClosed.then((reason) =>
       this.status.set(`Closed (${reason}).`),
@@ -695,7 +675,6 @@ class RtlToastStoryHost {
   protected notify(): void {
     this.toasts.success('تم حفظ التغييرات بنجاح.', {
       title: 'تم الحفظ',
-      showProgress: true,
       duration: 8000,
       action: { label: 'تراجع', onClick: () => undefined },
     });
@@ -738,7 +717,7 @@ type Story = StoryObj<ToastStoryHost>;
 
 export const Playground: Story = {};
 
-/** The everyday set side by side, with switches for rich colors, expanded list and progress. */
+/** The everyday set side by side, with switches for rich colors and the expanded list. */
 export const Gallery: Story = {
   render: () => ({
     moduleMetadata: { imports: [GalleryStoryHost] },
