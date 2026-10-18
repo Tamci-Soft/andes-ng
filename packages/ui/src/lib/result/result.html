@@ -1,0 +1,233 @@
+<div
+  data-slot="result"
+  [attr.data-status]="status()"
+  [attr.role]="resolvedRole()"
+  [class]="classes()"
+>
+  <div
+    class="andes-result__visual"
+    data-slot="result-icon"
+    [class.andes-result__visual--illustration]="illustrated() && !icon()"
+    aria-hidden="true"
+  >
+    @if (icon(); as customIcon) {
+    <ng-container
+      [ngTemplateOutlet]="customIcon"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else { @switch (status()) { @case ('403') {
+    <!-- A locked card: the page exists, the visitor is not let in. -->
+    <svg class="andes-result__svg" viewBox="0 0 240 180" fill="none">
+      <ellipse class="andes-result__ground" cx="120" cy="162" rx="86" ry="8" />
+      <rect
+        class="andes-result__sheet"
+        x="38"
+        y="26"
+        width="164"
+        height="116"
+        rx="12"
+      />
+      <rect
+        class="andes-result__bar"
+        x="54"
+        y="42"
+        width="52"
+        height="8"
+        rx="4"
+      />
+      <rect
+        class="andes-result__bar"
+        x="54"
+        y="58"
+        width="34"
+        height="8"
+        rx="4"
+      />
+      <rect
+        class="andes-result__bar"
+        x="152"
+        y="42"
+        width="34"
+        height="8"
+        rx="4"
+      />
+      <path
+        class="andes-result__accent-stroke"
+        d="M101 92V80a19 19 0 0 1 38 0v12"
+      />
+      <rect
+        class="andes-result__accent-body"
+        x="86"
+        y="92"
+        width="68"
+        height="50"
+        rx="10"
+      />
+      <circle class="andes-result__accent-dot" cx="120" cy="113" r="6" />
+      <rect
+        class="andes-result__accent-dot"
+        x="117.5"
+        y="116"
+        width="5"
+        height="12"
+        rx="2.5"
+      />
+    </svg>
+    } @case ('404') {
+    <!-- A page with nothing in it, and a lens that found no match. -->
+    <svg class="andes-result__svg" viewBox="0 0 240 180" fill="none">
+      <ellipse class="andes-result__ground" cx="120" cy="162" rx="86" ry="8" />
+      <rect
+        class="andes-result__sheet"
+        x="46"
+        y="26"
+        width="148"
+        height="112"
+        rx="12"
+      />
+      <path class="andes-result__rule" d="M46 48h148" />
+      <circle class="andes-result__dot" cx="60" cy="37" r="3" />
+      <circle class="andes-result__dot" cx="71" cy="37" r="3" />
+      <circle class="andes-result__dot" cx="82" cy="37" r="3" />
+      <rect
+        class="andes-result__bar"
+        x="140"
+        y="68"
+        width="38"
+        height="8"
+        rx="4"
+      />
+      <rect
+        class="andes-result__bar"
+        x="140"
+        y="84"
+        width="26"
+        height="8"
+        rx="4"
+      />
+      <rect
+        class="andes-result__bar"
+        x="62"
+        y="120"
+        width="52"
+        height="8"
+        rx="4"
+      />
+      <circle class="andes-result__accent-body" cx="106" cy="90" r="23" />
+      <path class="andes-result__accent-stroke" d="m123 107 20 20" />
+      <path class="andes-result__accent-stroke" d="M97 90h18" />
+    </svg>
+    } @case ('500') {
+    <!-- Two servers, one of them flagged. -->
+    <svg class="andes-result__svg" viewBox="0 0 240 180" fill="none">
+      <ellipse class="andes-result__ground" cx="120" cy="162" rx="86" ry="8" />
+      <rect
+        class="andes-result__sheet"
+        x="58"
+        y="28"
+        width="124"
+        height="42"
+        rx="10"
+      />
+      <rect
+        class="andes-result__sheet"
+        x="58"
+        y="80"
+        width="124"
+        height="42"
+        rx="10"
+      />
+      <circle class="andes-result__dot" cx="77" cy="49" r="3.5" />
+      <rect
+        class="andes-result__bar"
+        x="92"
+        y="45"
+        width="58"
+        height="8"
+        rx="4"
+      />
+      <circle class="andes-result__accent-dot" cx="77" cy="101" r="3.5" />
+      <rect
+        class="andes-result__bar"
+        x="92"
+        y="97"
+        width="38"
+        height="8"
+        rx="4"
+      />
+      <circle class="andes-result__badge" cx="170" cy="124" r="19" />
+      <path class="andes-result__accent-stroke" d="M170 114v11" />
+      <path class="andes-result__accent-stroke" d="M170 133h.01" />
+    </svg>
+    } @case ('processing') {
+    <svg
+      class="andes-result__svg andes-result__svg--glyph"
+      viewBox="0 0 72 72"
+      fill="none"
+    >
+      <circle class="andes-result__disc" cx="36" cy="36" r="34" />
+      <circle class="andes-result__track" cx="36" cy="36" r="16" />
+      <circle class="andes-result__spin" cx="36" cy="36" r="16" />
+    </svg>
+    } @default {
+    <svg
+      class="andes-result__svg andes-result__svg--glyph"
+      viewBox="0 0 72 72"
+      fill="none"
+    >
+      <circle class="andes-result__disc" cx="36" cy="36" r="34" />
+      @switch (status()) { @case ('success') {
+      <path class="andes-result__glyph" d="m24 37 8.5 8.5L49 28" />
+      } @case ('error') {
+      <path class="andes-result__glyph" d="m27 27 18 18" />
+      <path class="andes-result__glyph" d="M45 27 27 45" />
+      } @case ('warning') {
+      <path
+        class="andes-result__glyph"
+        d="M33.2 21.5a3.2 3.2 0 0 1 5.6 0l14.3 25a3.2 3.2 0 0 1-2.8 4.8H21.7a3.2 3.2 0 0 1-2.8-4.8Z"
+      />
+      <path class="andes-result__glyph" d="M36 31v8" />
+      <path class="andes-result__glyph" d="M36 44.5h.01" />
+      } @default {
+      <path class="andes-result__glyph" d="M36 33v14" />
+      <path class="andes-result__glyph" d="M36 25h.01" />
+      } }
+    </svg>
+    } } }
+  </div>
+
+  <div
+    class="andes-result__title"
+    data-slot="result-title"
+    role="heading"
+    [attr.aria-level]="titleLevel()"
+  >
+    @if (asTemplate(title()); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else if (asText(title()); as text) { {{ text }} } @else {
+    <ng-content select="[slot=title]" />
+    }
+  </div>
+
+  <div class="andes-result__subtitle" data-slot="result-subtitle">
+    @if (asTemplate(subTitle()); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="templateContext()"
+    />
+    } @else if (asText(subTitle()); as text) { {{ text }} } @else {
+    <ng-content select="[slot=subtitle]" />
+    }
+  </div>
+
+  <div class="andes-result__extra" data-slot="result-extra">
+    <ng-content select="[slot=extra]" />
+  </div>
+
+  <div class="andes-result__body" data-slot="result-body">
+    <ng-content />
+  </div>
+</div>
