@@ -77,7 +77,7 @@ export * from './lib/button';
 
 // @slot layout
 
-// @slot list
+export * from './lib/list';
 
 // @slot masonry
 
