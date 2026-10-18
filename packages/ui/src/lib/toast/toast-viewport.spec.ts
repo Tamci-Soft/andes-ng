@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { Component, signal, TemplateRef, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -296,6 +297,29 @@ describe('AndesToastViewport', () => {
         messages: TestBed.inject(AndesMessageService),
       };
     }
+
+    describe('close button placement', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/toast/toast-item.css',
+        'utf8',
+      );
+
+      it('sits at the end of the row, centred with the text, not floating on a corner', () => {
+        const { fixture, toasts } = createTemplateHost();
+        toasts.show({ message: 'Saved', title: 'Done' });
+        fixture.detectChanges();
+        const row = fixture.nativeElement.querySelector('.andes-toast__row');
+        const close = row?.querySelector(':scope > .andes-toast__close');
+        expect(close).toBeTruthy();
+        expect(row?.lastElementChild).toBe(close);
+        expect(css).toMatch(/\.andes-toast__row \{[^}]*align-items: center/);
+        const rule = /\.andes-toast__close \{([^}]*)\}/.exec(css)?.[1] ?? '';
+        expect(rule).not.toContain('position: absolute');
+        expect(rule).not.toMatch(/translate/);
+        expect(rule).toContain('width: 1.75rem');
+        expect(rule).toContain('height: 1.75rem');
+      });
+    });
 
     function regions(root: HTMLElement): HTMLElement[] {
       return Array.from(root.querySelectorAll('andes-toast-region'));
@@ -902,9 +926,11 @@ describe('AndesToastViewport', () => {
           '.andes-toast__row > button',
         ) as NodeListOf<HTMLButtonElement>,
       );
+      // The close button closes the row, after the cancel and action buttons.
       expect(buttons.map((b) => b.className)).toEqual([
         'andes-toast__cancel',
         'andes-toast__action',
+        'andes-toast__close',
       ]);
       buttons[0].click();
       expect(onCancel).toHaveBeenCalledTimes(1);
