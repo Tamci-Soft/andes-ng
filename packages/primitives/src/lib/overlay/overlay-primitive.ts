@@ -58,8 +58,7 @@ export interface AndesOverlayOpenOptions<C = unknown> {
   /** Injector for `ComponentType` content, so the component can inject the overlay. */
   readonly injector?: Injector;
   /**
-   * Element focus returns to on close, overriding the registered trigger. The
-   * equivalent of Base UI's `finalFocus`.
+   * Element focus returns to on close, overriding the registered trigger.
    */
   readonly restoreFocusTo?: HTMLElement | ElementRef<HTMLElement> | null;
 }
