@@ -85,7 +85,7 @@ export * from './lib/dropdown-menu';
 
 // @slot menu
 
-// @slot menubar
+export * from './lib/menubar';
 
 // @slot navigation-menu
 
