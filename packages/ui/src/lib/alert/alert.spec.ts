@@ -1256,14 +1256,29 @@ describe('AndesAlert dark-theme accents', () => {
         join(process.cwd(), 'packages/ui/src/lib/alert/alert.css'),
         'utf8',
       );
-      const rule =
-        css.match(
-          new RegExp(
-            `:host-context\\(\\[data-andes-theme='dark'\\]\\) \\.andes-alert--${severity}\\s*{([^}]*)}`,
-          ),
-        )?.[1] ?? '';
+      const rule = ruleBody(
+        css,
+        `:host-context([data-andes-theme='dark']) .andes-alert--${severity}`,
+      );
 
       expect(rule).toContain(`var(--andes-color-${severity}-hover)`);
     },
   );
 });
+
+/** The declarations between the braces of the rule whose selector is exactly `selector`. */
+function ruleBody(css: string, selector: string): string {
+  let from = 0;
+  for (;;) {
+    const at = css.indexOf(selector, from);
+    if (at < 0) {
+      return '';
+    }
+    const end = at + selector.length;
+    const open = css.indexOf('{', end);
+    if (open >= 0 && css.slice(end, open).trim() === '') {
+      return css.slice(open + 1, css.indexOf('}', open));
+    }
+    from = at + 1;
+  }
+}
