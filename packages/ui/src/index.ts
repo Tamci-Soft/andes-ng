@@ -131,7 +131,7 @@ export * from './lib/button';
 
 // @slot switch
 
-// @slot table
+export * from './lib/table';
 
 // @slot tabs
 
