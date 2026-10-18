@@ -1,0 +1,9 @@
+<span
+  class="andes-divider__line"
+  data-slot="divider-line"
+  [attr.role]="role()"
+  [attr.aria-orientation]="decorative() ? null : orientation()"
+  [attr.aria-label]="decorative() ? null : (ariaLabel() ?? null)"
+></span>
+<span class="andes-divider__text" data-slot="divider-text"><ng-content /></span>
+<span class="andes-divider__line" aria-hidden="true"></span>
