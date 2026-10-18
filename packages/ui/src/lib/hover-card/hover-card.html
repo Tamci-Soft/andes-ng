@@ -1,0 +1,27 @@
+<ng-content />
+
+<ng-template #overlayTemplate>
+  <div
+    andesOverlayContent
+    data-slot="hover-card-content"
+    [class]="panelClasses()"
+    [attr.data-side]="renderedSide()"
+    [attr.data-align]="resolvedAlign()"
+    [style.--andes-hover-card-width]="widthValue()"
+    [style.--andes-hover-card-bridge]="bridgeValue()"
+    [style.--andes-hover-card-arrow-offset]="arrowOffsetValue()"
+    andesHoverCardSurface
+  >
+    <!-- Invisible strip over the gap between the trigger and the card, so the pointer can
+         cross it without the card ever losing the hover. -->
+    <span class="andes-hover-card__bridge" aria-hidden="true"></span>
+    @if (arrow()) {
+    <span class="andes-hover-card__arrow" aria-hidden="true"></span>
+    }
+    <div class="andes-hover-card__body">
+      @if (bodyTemplate(); as template) {
+      <ng-container *ngTemplateOutlet="template" />
+      }
+    </div>
+  </div>
+</ng-template>
