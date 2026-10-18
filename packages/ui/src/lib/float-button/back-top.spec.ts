@@ -224,9 +224,10 @@ describe('back-to-top stylesheet contract', () => {
     'utf8',
   );
 
-  it('fades in over 150ms and out over 120ms with no bounce', () => {
-    expect(css).toContain('opacity 150ms');
-    expect(css).toContain('opacity 120ms ease-in');
+  it('fades, rises and grows in over 200ms and leaves over 140ms with no bounce', () => {
+    expect(css).toContain('opacity 200ms');
+    expect(css).toContain('opacity 140ms ease-in');
+    expect(css).toContain('scale(0.8)');
     expect(css).not.toMatch(/cubic-bezier\([^)]*(1\.\d|-\d)/);
   });
 

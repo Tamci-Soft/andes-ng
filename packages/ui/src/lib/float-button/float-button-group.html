@@ -8,23 +8,45 @@
   (click)="onTriggerClick()"
   (keydown)="onTriggerKeydown()"
 >
-  @if (open()) { @if (closeIcon(); as closeTemplate) {
-  <ng-container *ngTemplateOutlet="closeTemplate" />
+  @if (closeIcon() || triggerIcon()) { @if (open()) { @if (closeIcon(); as
+  closeTemplate) {
+  <span class="andes-float-button-group__swap"
+    ><ng-container *ngTemplateOutlet="closeTemplate"
+  /></span>
   } @else {
-  <svg
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.75"
-    stroke-linecap="round"
-    aria-hidden="true"
-  >
-    <path d="M4 4l8 8M12 4l-8 8" />
-  </svg>
+  <span class="andes-float-button-group__swap">
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </svg>
+  </span>
   } } @else { @if (triggerIcon(); as openTemplate) {
-  <ng-container *ngTemplateOutlet="openTemplate" />
+  <span class="andes-float-button-group__swap"
+    ><ng-container *ngTemplateOutlet="openTemplate"
+  /></span>
   } @else {
+  <span class="andes-float-button-group__swap">
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <path d="M8 3v10M3 8h10" />
+    </svg>
+  </span>
+  } } } @else {
   <svg
+    class="andes-float-button-group__glyph"
+    [class.andes-float-button-group__glyph--open]="open()"
     viewBox="0 0 16 16"
     fill="none"
     stroke="currentColor"
@@ -34,7 +56,7 @@
   >
     <path d="M8 3v10M3 8h10" />
   </svg>
-  } }
+  }
 </andes-float-button>
 <div
   class="andes-float-button-group__menu"

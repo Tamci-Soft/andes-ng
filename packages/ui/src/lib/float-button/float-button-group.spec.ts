@@ -110,14 +110,19 @@ describe('AndesFloatButtonGroup', () => {
       expect(host.open()).toBe(false);
     });
 
-    it('swaps the default trigger icon when open', () => {
+    it('turns the default plus into the close cross instead of swapping it', () => {
       const { fixture, trigger } = setup();
-      const closedPath = trigger().querySelector('path')?.getAttribute('d');
+      const glyph = () =>
+        trigger().querySelector<SVGElement>('.andes-float-button-group__glyph');
+      expect(glyph()).toBeTruthy();
+      expect(
+        glyph()?.classList.contains('andes-float-button-group__glyph--open'),
+      ).toBe(false);
       trigger().click();
       fixture.detectChanges();
-      expect(trigger().querySelector('path')?.getAttribute('d')).not.toBe(
-        closedPath,
-      );
+      expect(
+        glyph()?.classList.contains('andes-float-button-group__glyph--open'),
+      ).toBe(true);
     });
 
     it('closes with Escape and returns focus to the trigger', () => {
@@ -265,14 +270,22 @@ describe('float button group stylesheet contract', () => {
     'utf8',
   );
 
-  it('staggers the entrance by 30ms per button over 120ms', () => {
+  it('staggers the entrance by 35ms per button over 160ms, growing from 70%', () => {
     expect(css).toMatch(
-      /opacity 120ms cubic-bezier\(0\.2, 0, 0, 1\)\s+calc\(var\(--andes-float-button-index, 0\) \* 30ms\)/,
+      /opacity 160ms cubic-bezier\(0\.2, 0, 0, 1\)\s+calc\(var\(--andes-float-button-index, 0\) \* 35ms\)/,
     );
+    expect(css).toContain('scale(0.7)');
+  });
+
+  it('turns the default plus into the close cross instead of swapping icons', () => {
+    expect(css).toMatch(
+      /\.andes-float-button-group__glyph--open\s*\{\s*transform: rotate\(135deg\)/,
+    );
+    expect(css).toContain('@keyframes andes-float-button-swap');
   });
 
   it('exits quicker than it enters, without bounce', () => {
-    expect(css).toContain('opacity 100ms ease-in');
+    expect(css).toContain('opacity 110ms ease-in');
     expect(css).not.toMatch(/cubic-bezier\([^)]*(1\.\d|-\d)/);
   });
 

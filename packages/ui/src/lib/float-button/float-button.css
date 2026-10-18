@@ -63,7 +63,8 @@
   appearance: none;
   transition:
     background-color 150ms ease,
-    box-shadow 150ms ease;
+    box-shadow 150ms ease,
+    transform 150ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 :host([data-type='primary']) .andes-float-button__control {
@@ -83,10 +84,16 @@
 
 .andes-float-button__control:hover:not(:disabled):not([aria-disabled='true']) {
   background-color: var(--_bg-hover);
+  box-shadow: var(--andes-shadow-lg, 0 8px 20px 0 rgb(15 23 42 / 18%));
+  transform: translateY(-2px);
 }
 
+/* Pressing sinks the button back below its resting height and shrinks it a little. */
 .andes-float-button__control:active:not(:disabled):not([aria-disabled='true']) {
   background-color: var(--_bg-active);
+  box-shadow: var(--andes-shadow-sm, 0 1px 2px 0 rgb(15 23 42 / 12%));
+  transform: translateY(0) scale(0.94);
+  transition-duration: 80ms;
 }
 
 .andes-float-button__control:focus-visible {
@@ -106,6 +113,11 @@
   justify-content: center;
   font-size: var(--_icon);
   line-height: 1;
+  transition: transform 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-float-button__control:hover:not(:disabled) .andes-float-button__icon {
+  transform: scale(1.1);
 }
 
 .andes-float-button__icon ::ng-deep svg {
@@ -140,6 +152,22 @@
   white-space: nowrap;
 }
 
+/* A badge pops in when it appears, growing from 40% with a soft overshoot-free ease. */
+.andes-float-button__badge {
+  animation: andes-float-button-badge-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes andes-float-button-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .andes-float-button__badge[data-dot] {
   inset-block-start: 0;
   inset-inline-end: 0;
@@ -150,7 +178,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .andes-float-button__control {
+  .andes-float-button__control,
+  .andes-float-button__icon {
     transition: none;
+  }
+
+  .andes-float-button__control:hover:not(:disabled):not([aria-disabled='true']),
+  .andes-float-button__control:active:not(:disabled):not(
+      [aria-disabled='true']
+    ),
+  .andes-float-button__control:hover:not(:disabled) .andes-float-button__icon {
+    transform: none;
+  }
+
+  .andes-float-button__badge {
+    animation: none;
   }
 }

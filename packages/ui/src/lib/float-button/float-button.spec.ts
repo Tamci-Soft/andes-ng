@@ -252,9 +252,23 @@ describe('float button stylesheet contract', () => {
     expect(css).not.toMatch(/\bright:|\bleft:/);
   });
 
-  it('drops transitions under reduced motion', () => {
-    expect(css.slice(css.indexOf('prefers-reduced-motion'))).toContain(
-      'transition: none',
+  it('lifts on hover and sinks on press', () => {
+    expect(css).toMatch(
+      /:hover:not\(:disabled\)[^{]*\{[^}]*translateY\(-2px\)/,
     );
+    expect(css).toMatch(/:active:not\(:disabled\)[^{]*\{[^}]*scale\(0\.94\)/);
+    expect(css).toContain('transform 150ms cubic-bezier(0.2, 0, 0, 1)');
+  });
+
+  it('pops the badge in without overshoot', () => {
+    expect(css).toContain('@keyframes andes-float-button-badge-in');
+    expect(css).not.toMatch(/cubic-bezier\([^)]*(1\.\d|-\d)/);
+  });
+
+  it('drops transitions, lifts and the badge pop under reduced motion', () => {
+    const reduced = css.slice(css.indexOf('prefers-reduced-motion'));
+    expect(reduced).toContain('transition: none');
+    expect(reduced).toContain('transform: none');
+    expect(reduced).toContain('animation: none');
   });
 });

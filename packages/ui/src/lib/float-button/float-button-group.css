@@ -154,18 +154,18 @@
   flex-direction: row;
 }
 
-/* Staggered fade + slide: each button is 30ms behind the one before it, moving in from the
-   trigger over 120ms; closing is quicker and not staggered. */
+/* Staggered fan-out: each button is 35ms behind the one before it, growing from 70% while it
+   slides out of the trigger over 160ms; closing is quicker, not staggered, and shrinks back. */
 .andes-float-button-group__menu ::ng-deep andes-float-button {
   --_dx: 0;
   --_dy: 0;
   opacity: 0;
-  transform: translate(var(--_dx), var(--_dy));
+  transform: translate(var(--_dx), var(--_dy)) scale(0.7);
   visibility: hidden;
   transition:
-    opacity 100ms ease-in,
-    transform 100ms ease-in,
-    visibility 0s linear 100ms;
+    opacity 110ms ease-in,
+    transform 110ms ease-in,
+    visibility 0s linear 110ms;
 }
 
 :host([data-placement='up'])
@@ -215,17 +215,52 @@
   transform: none;
   visibility: visible;
   transition:
-    opacity 120ms cubic-bezier(0.2, 0, 0, 1)
-      calc(var(--andes-float-button-index, 0) * 30ms),
-    transform 120ms cubic-bezier(0.2, 0, 0, 1)
-      calc(var(--andes-float-button-index, 0) * 30ms),
+    opacity 160ms cubic-bezier(0.2, 0, 0, 1)
+      calc(var(--andes-float-button-index, 0) * 35ms),
+    transform 160ms cubic-bezier(0.2, 0, 0, 1)
+      calc(var(--andes-float-button-index, 0) * 35ms),
     visibility 0s linear 0s;
+}
+
+/* The default plus turns a quarter-eighth to become the close cross, instead of swapping. */
+.andes-float-button-group__glyph {
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-float-button-group__glyph--open {
+  transform: rotate(135deg);
+}
+
+/* Custom open/close icons swap, with the new one turning in. */
+.andes-float-button-group__swap {
+  display: inline-flex;
+  animation: andes-float-button-swap 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes andes-float-button-swap {
+  from {
+    opacity: 0;
+    transform: rotate(-60deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .andes-float-button-group__menu ::ng-deep andes-float-button,
-  .andes-float-button-group__menu--open ::ng-deep andes-float-button {
+  .andes-float-button-group__menu--open ::ng-deep andes-float-button,
+  .andes-float-button-group__glyph {
     transition: none;
     transform: none;
+  }
+
+  .andes-float-button-group__glyph--open {
+    transform: none;
+  }
+
+  .andes-float-button-group__swap {
+    animation: none;
   }
 }
