@@ -1,0 +1,140 @@
+/* A character is two stacked layers: the empty one, and the filled one clipped to a fraction
+   of the box (inline-size), so half and fractional values fill from the reading start - the
+   left in LTR, the right in RTL - with no direction-specific code.
+   Hooks, read with a fallback so a rule on the element is never outranked:
+     --andes-rate-color         filled colour (default: the warning colour)
+     --andes-rate-empty-color   empty colour
+     --andes-rate-size          character box (set by `size`)
+     --andes-rate-gap           space between characters (default: 0.35 x size) */
+
+:host {
+  display: inline-block;
+  vertical-align: middle;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: 1;
+}
+
+:host([data-disabled]) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-rate__stars {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-rate-gap, calc(var(--andes-rate-size, 1.25rem) * 0.35));
+  border-radius: var(--andes-radius-sm, 4px);
+  outline: none;
+  cursor: pointer;
+}
+
+:host([data-readonly]) .andes-rate__stars,
+:host([data-disabled]) .andes-rate__stars {
+  cursor: default;
+}
+
+:host([data-disabled]) .andes-rate__stars {
+  cursor: not-allowed;
+}
+
+/* A non-bordered control: the keyboard ring, never shown for a mouse click. */
+.andes-rate__stars:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 3px;
+}
+
+.andes-rate__star {
+  position: relative;
+  flex: none;
+  inline-size: var(--andes-rate-size, 1.25rem);
+  block-size: var(--andes-rate-size, 1.25rem);
+  transition: transform var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-out, ease-out);
+}
+
+:host(:not([data-readonly]):not([data-disabled])) .andes-rate__star:hover {
+  transform: scale(1.1);
+}
+
+.andes-rate__layer {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  overflow: hidden;
+}
+
+.andes-rate__layer--empty {
+  inline-size: 100%;
+  color: var(
+    --andes-rate-empty-color,
+    color-mix(
+      in srgb,
+      var(--andes-color-foreground) 14%,
+      var(--andes-color-background)
+    )
+  );
+}
+
+.andes-rate__layer--filled {
+  color: var(--andes-rate-color, var(--andes-color-warning, #f59e0b));
+}
+
+/* The clipped layer keeps the full character size so the glyph is cut, never squeezed. */
+.andes-rate__glyph-box {
+  inline-size: var(--andes-rate-size, 1.25rem);
+  block-size: 100%;
+}
+
+.andes-rate__glyph-box,
+.andes-rate__layer--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.andes-rate__star-icon {
+  inline-size: 100%;
+  block-size: 100%;
+  fill: currentcolor;
+  stroke: currentcolor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.andes-rate__text {
+  font-size: var(--andes-rate-size, 1.25rem);
+  line-height: 1;
+}
+
+/* --- Tooltip bubble -------------------------------------------------------------------------- */
+
+.andes-rate__tip {
+  position: absolute;
+  inset-block-end: calc(100% + 0.5rem);
+  inset-inline-start: 50%;
+  z-index: 1;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--andes-radius-md, 6px);
+  background: var(--andes-color-foreground);
+  color: var(--andes-color-background);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: -50% 0;
+}
+
+:host-context([dir='rtl']) .andes-rate__tip {
+  translate: 50% 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-rate__star {
+    transition: none;
+  }
+
+  :host(:not([data-readonly]):not([data-disabled])) .andes-rate__star:hover {
+    transform: none;
+  }
+}
