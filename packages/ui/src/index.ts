@@ -151,7 +151,7 @@ export * from './lib/button';
 
 // @slot transfer
 
-// @slot tree
+export * from './lib/tree';
 
 // @slot tree-select
 
