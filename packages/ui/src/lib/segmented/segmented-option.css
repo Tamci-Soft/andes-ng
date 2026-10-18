@@ -1,0 +1,89 @@
+:host {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.andes-segmented-option__button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  height: var(--_h, 1.75rem);
+  min-width: 0;
+  margin: 0;
+  padding: 0 var(--_px, 0.6875rem);
+  border: 0;
+  border-radius: var(--_item-radius, 0.25rem);
+  background-color: transparent;
+  color: color-mix(
+    in srgb,
+    var(--andes-color-foreground, #0f172a) 65%,
+    transparent
+  );
+  font: inherit;
+  line-height: var(--_h, 1.75rem);
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+:host([data-state='checked']) .andes-segmented-option__button {
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+:host([data-state='unchecked']:not([data-disabled]))
+  .andes-segmented-option__button:hover {
+  color: var(--andes-color-foreground, #0f172a);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground, #0f172a) 6%,
+    transparent
+  );
+}
+
+.andes-segmented-option__button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 1px;
+}
+
+.andes-segmented-option__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-segmented-option__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+.andes-segmented-option__icon:empty,
+.andes-segmented-option__label:empty {
+  display: none;
+}
+
+.andes-segmented-option__icon ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+}
+
+.andes-segmented-option__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-segmented-option__button {
+    transition: none;
+  }
+}

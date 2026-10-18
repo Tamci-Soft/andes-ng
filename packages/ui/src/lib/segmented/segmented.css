@@ -1,0 +1,113 @@
+/* Sizes are custom properties on the group so the projected/generated options (separate
+   components) inherit them: control height 24/32/40 = segment height + 2 x 2px padding. */
+:host {
+  --_pad: 2px;
+  --_h: 1.75rem;
+  --_px: 0.6875rem;
+  --_fs: 0.875rem;
+  --_radius: var(--andes-radius-md, 0.375rem);
+  --_item-radius: calc(var(--_radius) - 2px);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--_pad);
+  border-radius: var(--_radius);
+  background-color: var(
+    --andes-segmented-bg,
+    var(--andes-color-muted, #f1f5f9)
+  );
+  color: var(--andes-color-foreground, #0f172a);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--_fs);
+  vertical-align: middle;
+}
+
+:host([data-size='sm']) {
+  --_h: 1.25rem;
+  --_px: 0.4375rem;
+}
+
+:host([data-size='lg']) {
+  --_h: 2.25rem;
+  --_px: 0.9375rem;
+  --_fs: 1rem;
+}
+
+/* Fully rounded ends; the thumb follows through the same radius variable. */
+:host([data-shape='round']) {
+  --_radius: var(--andes-radius-full, 9999px);
+  --_item-radius: var(--andes-radius-full, 9999px);
+}
+
+:host([data-orientation='vertical']) {
+  flex-direction: column;
+}
+
+:host([data-block]) {
+  display: flex;
+  width: 100%;
+}
+
+/* Equal-width segments in block mode; the options are separate components, hence ::ng-deep. */
+:host([data-block]:not([data-orientation='vertical']))
+  ::ng-deep
+  andes-segmented-option {
+  flex: 1 1 0%;
+}
+
+:host([data-disabled]) {
+  cursor: not-allowed;
+}
+
+/* The thumb is placed with measured pixels, so it uses physical left/top on purpose: offsetLeft
+   is physical in right-to-left layouts too. */
+.andes-segmented__thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 1px solid
+    color-mix(in srgb, var(--andes-color-border, #d1d5db) 55%, transparent);
+  border-radius: var(--_item-radius);
+  background-color: var(
+    --andes-segmented-thumb-bg,
+    var(--andes-color-background, #ffffff)
+  );
+  box-shadow: var(--andes-shadow-sm, 0 1px 2px 0 rgb(15 23 42 / 8%));
+  opacity: 0;
+}
+
+/* Only slide after the first placement (data-thumb=ready), so it never glides in from 0,0. */
+:host([data-thumb='ready']) .andes-segmented__thumb {
+  transition:
+    transform var(--andes-segmented-duration, 180ms)
+      var(--andes-segmented-easing, cubic-bezier(0.2, 0, 0, 1)),
+    width var(--andes-segmented-duration, 180ms)
+      var(--andes-segmented-easing, cubic-bezier(0.2, 0, 0, 1)),
+    height var(--andes-segmented-duration, 180ms)
+      var(--andes-segmented-easing, cubic-bezier(0.2, 0, 0, 1)),
+    opacity 150ms linear;
+}
+
+/* Until the thumb has been measured (first paint, server rendering) the selected segment draws
+   the thumb itself, so there is never a frame without a visible selection. */
+:host([data-thumb='pending'])
+  ::ng-deep
+  andes-segmented-option[data-state='checked']
+  .andes-segmented-option__button {
+  background-color: var(
+    --andes-segmented-thumb-bg,
+    var(--andes-color-background, #ffffff)
+  );
+  box-shadow: var(--andes-shadow-sm, 0 1px 2px 0 rgb(15 23 42 / 8%));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host([data-thumb='ready']) .andes-segmented__thumb {
+    transition: none;
+  }
+}

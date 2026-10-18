@@ -1,0 +1,70 @@
+:host {
+  display: inline-flex;
+  align-items: stretch;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+:host([data-orientation='vertical']) {
+  flex-direction: column;
+}
+
+/* Joined (outline): neighbours share a border and only the outer corners stay round. The toggles are
+   separate components, hence ::ng-deep. The pressed or focused one is lifted above its
+   neighbours so its full border shows. */
+:host([data-joined]) ::ng-deep andes-toggle .andes-toggle__button {
+  border-radius: 0;
+}
+
+:host([data-joined][data-orientation='horizontal'])
+  ::ng-deep
+  andes-toggle
+  + andes-toggle[data-variant='outline'] {
+  margin-inline-start: -1px;
+}
+
+:host([data-joined][data-orientation='vertical'])
+  ::ng-deep
+  andes-toggle
+  + andes-toggle[data-variant='outline'] {
+  margin-block-start: -1px;
+}
+
+:host([data-joined][data-orientation='horizontal'])
+  ::ng-deep
+  andes-toggle:first-child
+  .andes-toggle__button {
+  border-start-start-radius: var(--andes-radius-md, 0.375rem);
+  border-end-start-radius: var(--andes-radius-md, 0.375rem);
+}
+
+:host([data-joined][data-orientation='horizontal'])
+  ::ng-deep
+  andes-toggle:last-child
+  .andes-toggle__button {
+  border-start-end-radius: var(--andes-radius-md, 0.375rem);
+  border-end-end-radius: var(--andes-radius-md, 0.375rem);
+}
+
+:host([data-joined][data-orientation='vertical'])
+  ::ng-deep
+  andes-toggle:first-child
+  .andes-toggle__button {
+  border-start-start-radius: var(--andes-radius-md, 0.375rem);
+  border-start-end-radius: var(--andes-radius-md, 0.375rem);
+}
+
+:host([data-joined][data-orientation='vertical'])
+  ::ng-deep
+  andes-toggle:last-child
+  .andes-toggle__button {
+  border-end-start-radius: var(--andes-radius-md, 0.375rem);
+  border-end-end-radius: var(--andes-radius-md, 0.375rem);
+}
+
+:host([data-joined])
+  ::ng-deep
+  andes-toggle[data-state='on']
+  .andes-toggle__button {
+  position: relative;
+  z-index: 1;
+}

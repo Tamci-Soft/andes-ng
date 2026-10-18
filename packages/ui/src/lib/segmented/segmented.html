@@ -1,0 +1,36 @@
+<span
+  class="andes-segmented__thumb"
+  data-slot="segmented-thumb"
+  aria-hidden="true"
+  [style.width]="thumbStyle()?.width"
+  [style.height]="thumbStyle()?.height"
+  [style.transform]="thumbStyle()?.transform"
+  [style.opacity]="thumb() ? 1 : 0"
+></span>
+@for (option of normalizedOptions(); track $index) {
+<andes-segmented-option
+  [value]="option.value"
+  [disabled]="!!option.disabled"
+  [icon]="option.icon"
+  [tooltip]="option.tooltip"
+  [aria-label]="option.ariaLabel"
+  [class]="option.class ?? ''"
+>
+  @if (optionLabel(); as labelTemplate) {
+  <ng-container
+    *ngTemplateOutlet="
+      labelTemplate;
+      context: {
+        $implicit: option,
+        checked: isChecked(option.value),
+        index: $index,
+      }
+    "
+  />
+  } @else { {{ option.label }} }
+</andes-segmented-option>
+}
+<ng-content />
+@if (name(); as fieldName) {
+<input type="hidden" [name]="fieldName" [value]="serialize(value())" />
+}

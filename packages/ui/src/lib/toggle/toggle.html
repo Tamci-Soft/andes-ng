@@ -1,0 +1,16 @@
+<button
+  type="button"
+  class="andes-toggle__button"
+  data-slot="toggle-button"
+  [attr.aria-pressed]="isPressed()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.title]="tooltip() ?? null"
+  [attr.tabindex]="tabIndex()"
+  [disabled]="isDisabled()"
+  (click)="onClick()"
+  (blur)="onBlur()"
+>
+  <ng-content />
+</button>
