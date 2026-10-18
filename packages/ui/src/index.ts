@@ -19,7 +19,7 @@ export * from './lib/accordion';
 
 // @slot badge
 
-// @slot breadcrumb
+export * from './lib/breadcrumb';
 
 export * from './lib/button';
 
