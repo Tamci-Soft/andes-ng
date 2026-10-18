@@ -694,11 +694,15 @@ describe('AndesTooltip colour contrast', () => {
   const dark = { ...light, ...themeColors(theme.slice(darkStart)) };
 
   function presetRule(preset: string) {
-    const body =
-      new RegExp(`\\.andes-tooltip--${preset} \\{([^}]*)\\}`).exec(css)?.[1] ??
-      '';
-    const read = (prop: string) =>
-      new RegExp(`--andes-tooltip-${prop}:\\s*([^;]+);`).exec(body)?.[1] ?? '';
+    const body = ruleBody(css, `.andes-tooltip--${preset}`);
+    const read = (prop: string) => {
+      const at = body.indexOf(`--andes-tooltip-${prop}:`);
+      if (at < 0) {
+        return '';
+      }
+      const start = body.indexOf(':', at) + 1;
+      return body.slice(start, body.indexOf(';', start)).trim();
+    };
     return { background: read('background'), foreground: read('foreground') };
   }
 
@@ -1585,3 +1589,20 @@ describe('AndesTooltip (extended options)', () => {
     });
   });
 });
+
+/** The declarations between the braces of the rule whose selector is exactly `selector`. */
+function ruleBody(css: string, selector: string): string {
+  let from = 0;
+  for (;;) {
+    const at = css.indexOf(selector, from);
+    if (at < 0) {
+      return '';
+    }
+    const end = at + selector.length;
+    const open = css.indexOf('{', end);
+    if (open >= 0 && css.slice(end, open).trim() === '') {
+      return css.slice(open + 1, css.indexOf('}', open));
+    }
+    from = at + 1;
+  }
+}
