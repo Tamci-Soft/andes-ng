@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted with constraint
+Accepted with constraint — partially superseded by [ADR 0008](0008-own-behavior-primitives-incrementally.md) for components small enough to own outright; this ADR's adapter boundary and evaluation criteria still apply whenever Spartan Brain is used.
 
 ## Context
 
@@ -18,15 +18,13 @@ Every Brain upgrade requires compatibility, accessibility and bundle regression 
 
 ## Current state
 
-No adapter exists yet, because no component exists yet. Brain and its required peers are installed and declared in `packages/ui/package.json` so the dependency contract above is reserved and verified by the build, but nothing in `packages/ui/src` imports them. `@nx/dependency-checks` therefore lists them under `ignoredDependencies` in `packages/ui/eslint.config.mjs`; those exceptions are removed as each dependency comes into real use.
-
-The first component is what turns this decision into code. Until then the cost of the choice is visible — Tailwind-related packages sit in the installation graph without providing anything — and that is accepted deliberately.
+The first component, `AndesButton`, did not end up using Spartan Brain: its one dependency, `BrnButton`, was small enough to own outright, per [ADR 0008](0008-own-behavior-primitives-incrementally.md). `@spartan-ng/brain` and its Tailwind-related peers are no longer declared in `packages/ui/package.json` at all. This ADR's decision — treat Brain as an implementation dependency, never re-export it, evaluate the peer-graph cost honestly — remains the standard to apply the day a component needs behavior complex enough to reach for it.
 
 ## Consequences
 
 - Consumers program only against Andes APIs, so Brain can be upgraded or replaced internally.
 - Tailwind configuration and generated CSS are not required by consumers.
-- Tailwind-related packages still appear in the installation graph because Brain 1.4.1 declares them as peers. This is installation overhead and must not be misrepresented as complete dependency independence.
+- Whenever a component does depend on Brain, Tailwind-related packages reappear in the installation graph because Brain 1.4.1 declares them as peers. That cost must not be misrepresented as complete dependency independence.
 - `allowedNonPeerDependencies` documents intentional packaging exceptions but provides no bundling or isolation.
 - Direct imports from `@spartan-ng/brain` outside `packages/ui` are prohibited by convention and review.
 

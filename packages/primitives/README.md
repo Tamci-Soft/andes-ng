@@ -1,0 +1,436 @@
+# @andes-ng/primitives
+
+Andes NG's own accessible, unstyled Angular behavior directives — the layer `@andes-ng/ui` builds components on top of.
+
+Grown incrementally: a primitive is added here only when an `@andes-ng/ui` component needs it, never speculatively ahead of one.
+
+## Choice group
+
+`AndesChoiceGroup` + `AndesChoiceItem` are the shared behavior of every "choose from a set" control: one tab stop, arrow keys move between items, `Space`/`Enter` (or focus itself) select. They own the selection and the roving focus, publish the ARIA that goes with them, and set no CSS. Roving focus is [`AndesListNavigation`](src/lib/listbox)'s — the group provides its own instance — so arrow keys, `Home`/`End`, wrap-around and disabled-item skipping are not re-implemented per component.
+
+One primitive serves every pattern because the pattern is data. The group's `role` selects a role mapping:
+
+| `role`       | item `role` | selected state  | `data-state` | selection follows focus | arrows     | deselects on re-press |
+| ------------ | ----------- | --------------- | ------------ | ----------------------- | ---------- | --------------------- |
+| `radiogroup` | `radio`     | `aria-checked`  | checked      | yes                     | all four   | no                    |
+| `tablist`    | `tab`       | `aria-selected` | active       | yes (automatic tabs)    | horizontal | no                    |
+| `toolbar`    | `button`    | `aria-pressed`  | on           | no                      | horizontal | yes                   |
+| `group`      | `button`    | `aria-pressed`  | on           | no                      | horizontal | yes                   |
+| `listbox`    | `option`    | `aria-selected` | selected     | no                      | vertical   | no                    |
+
+Every column is a default: `selectionFollowsFocus`, `orientation`, `deselectable` and `roleMapping` override it per group (manual-activation tabs are `selectionFollowsFocus=false`; a vertical tablist is `orientation="vertical"`). In `multiple` mode items always toggle and moving focus never selects.
+
+```ts
+@Component({
+  selector: 'app-view-switcher',
+  imports: [AndesChoiceGroup, AndesChoiceItem],
+  template: `
+    <div
+      andesChoiceGroup
+      role="tablist"
+      aria-label="View"
+      [(value)]="view"
+      [selectionFollowsFocus]="false"
+      (changed)="viewChanged.emit($event)"
+    >
+      @for (tab of tabs; track tab.value) {
+        <button
+          type="button"
+          andesChoiceItem
+          [value]="tab.value"
+          [disabled]="tab.disabled"
+          [controls]="'panel-' + tab.value"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+  `,
+})
+export class ViewSwitcher {
+  readonly view = model<unknown>('list');
+  readonly viewChanged = output<unknown>();
+}
+```
+
+- **State.** `value` is a `model()`: one item's value or `null` in `single` mode, an array in `multiple` mode. `required` stops a `single` group from being cleared (and publishes `aria-required` on roles that support it). `compareWith` compares object values. `disabled` (or `setDisabledState()` for a `ControlValueAccessor` wrapper) disables the whole group.
+- **Output.** `changed` emits the new value when the _user_ changes the selection (click, `Space`/`Enter`, or navigation that selects). Writing `value` is silent, so a wrapper can tell form writes from user input. The imperative `select()`/`deselect()`/`toggle()`/`clear()` act as the user would and do emit.
+- **Items** expose `selected`, `disabled` and `active` signals and the `data-state`, `data-disabled` and `data-active` host attributes as styling hooks; `[controls]` publishes `aria-controls` for a tab's panel. Put `andesChoiceItem` on the focusable element — a `<button>` also gets native `disabled`; any other element gets `aria-disabled` only.
+- **Right-to-left** is read from the surrounding `dir` (CDK `Directionality`), or forced with `textDirection`.
+- **Activation.** The group handles `Space`/`Enter` itself and cancels the default action, so a `<button>` does not also fire a click and a `<div role="radio">` behaves the same as a button. The tab stop returns to the selected item whenever focus leaves the group, so manual-activation tabs and toggle groups re-enter where the choice is.
+
+### Which components should adopt this
+
+Paths are under `packages/ui/src/lib/`.
+
+- **`segmented/`** — `segmented.ts` `onKeydown` (filters enabled options, mirrors left/right for RTL, wraps, handles `Home`/`End`, then focuses and selects), the `tabbable` computed and `AndesSegmentedOption.tabIndex`/`button` role="radio" logic. Replace with `andesChoiceGroup role="radiogroup"` on the host and `andesChoiceItem` on the option's `<button>`; keep the sliding thumb measuring against `group.items()`/`selectedItem()`. Keep the hidden form input and `compareWith` pass-through.
+- **`toggle/`** — `toggle-group.ts` (`onKeydown` focus-only roving, `tabbable`, `toggle()`, `isPressed`, the `single`/`multiple` + `allowEmpty` value rules) and `toggle.ts` `tabIndex`. Replace with `andesChoiceGroup role="group"` + `[mode]` + `[required]` (`allowEmpty` is the inverse of `required`), and `andesChoiceItem` on the inner `<button>`. A standalone `<andes-toggle>` stays as it is.
+- **`tabs/`** — `tabs-trigger.ts` (the automatic-activation `effect` that selects when the trigger becomes the active item, plus its `aria-selected`/`aria-controls` bindings) and the tab-stop sync in `tabs.ts` (`syncActiveItem`, the effect around line 475). `AndesTabsList` already forwards keys to `AndesListNavigation`; swap that for `andesChoiceGroup role="tablist"` (`selectionFollowsFocus` = `activationMode() === 'automatic'`) and the trigger's `<button>` for `andesChoiceItem`. The fallback-to-first-enabled-tab rule, overflow menu, drag-reorder and editable-card removal stay in `AndesTabs`.
+- **`radio-group/`** — a lower-priority adopter: it uses native `<input type="radio">`, which already provide roving focus and form participation, so there is no hand-written `keydown` to remove. Adopt only for the `optionType="button"` face if it should stop depending on hidden native inputs.
+
+Not a fit, deliberately: **`rate/`** is a `role="slider"` over a number (`onKeydown` steps a value by 1 or 0.5, and digit keys set it) — a different pattern with no item set to choose from. **`accordion/`** triggers keep every trigger in the natural tab order and optionally move focus with the arrows (`accordion.ts` `onKeydown`); there is no selection, only `aria-expanded` per item, so it should adopt `AndesListNavigation` directly rather than this.
+
+## Tree navigation
+
+`AndesTreeNavigation` is the keyboard model of every hierarchical widget: a tree, a cascading picker, a menu with fly-out submenus. It owns the order of the _visible_ nodes (collapsed subtrees are skipped), the active node, the expanded keys, the WAI-ARIA TreeView keys, and the ARIA facts each node needs. It sets no `role`, owns no selection, and never interprets `Enter` or `Space` — activation stays with the component.
+
+Keys (mirrored for right-to-left): `ArrowDown`/`ArrowUp` move across the visible nodes; `ArrowRight` opens a collapsed parent, then steps into its first child; `ArrowLeft` closes an open parent, then steps to the parent; `Home`/`End` jump to the first/last visible node; `*` opens every sibling of the active node; typing a character moves to the next node whose label matches, across levels. Disabled nodes are skipped.
+
+It is a DI-scoped service, so provide it from the component and let the directives find it. That also covers items rendered into an overlay, which are injector descendants but not DOM descendants.
+
+```ts
+@Component({
+  selector: 'andes-file-tree',
+  imports: [AndesTreeNavigationItem, AndesTreeNavigationKeys],
+  providers: [AndesTreeNavigation],
+  template: `
+    <ul role="tree" andesTreeNavigationKeys aria-label="Files">
+      @for (node of nodes(); track node.key) {
+        <li
+          role="treeitem"
+          aria-selected="false"
+          [andesTreeNavigationItem]="node.key"
+          [parentKey]="node.parentKey"
+          [disabled]="node.disabled"
+          [hidden]="navigation.visibleIndexOf(node.key) < 0"
+        >
+          {{ node.title }}
+        </li>
+      }
+    </ul>
+  `,
+})
+export class AndesFileTree {
+  protected readonly navigation = inject(AndesTreeNavigation);
+  readonly nodes = input.required<readonly FileNode[]>();
+  readonly expandedKeys = model<readonly string[]>([]);
+
+  constructor() {
+    this.navigation.bindExpanded(this.expandedKeys); // the component keeps owning the state
+    this.navigation.expandedChange.subscribe(({ key, expanded }) => {
+      if (expanded) this.loadChildren(key); // lazy trees start loading here
+    });
+  }
+}
+```
+
+What the item gives the template, all as signals: `ariaLevel`, `ariaPosinset`, `ariaSetsize`, `ariaExpanded`, `tabIndex`, `active`, `expanded`. By default the directive also writes `id`, `tabindex`, `aria-level`, `aria-posinset`, `aria-setsize`, `aria-expanded`, `aria-disabled` and `data-active`/`data-disabled`/`data-expanded` itself; pass `[manageAria]="false"` to bind the ARIA ones from the signals instead. `aria-posinset`/`aria-setsize` count all siblings, collapsed ones included; `level`, `posInSet` and `setSize` inputs override them for partly loaded lists.
+
+### Where the structure comes from
+
+- **From the items** (default). Each item names its `key` and its `parentKey` — or, in nested markup, the enclosing item is the parent. DOM order is the sibling order (call `refreshOrder()` after moving existing elements). A parent whose children are not in the DOM yet (a collapsed subtree rendered with `@if`, lazily loaded children) must say `[expandable]="true"`, because there is nothing to derive it from.
+- **From a node source** (`navigation.setNodes(() => nodes())`) — for virtualized trees. The data order drives everything and the nodes need not be mounted: `ArrowDown` onto a row outside the window makes it active, emits `revealRequested` with the row's index so the list can scroll, and the item takes focus the moment it mounts. Bind `[attr.tabindex]="navigation.containerTabIndex()"` on the tree so it stays reachable with Tab while the tab stop sits on an unmounted row.
+
+### Behavior worth knowing
+
+- **Collapse under the cursor.** If the active node ends up hidden — it was collapsed away by `collapse()`, by an arrow key, or by the consumer changing a bound expanded set — the active node moves to the nearest visible ancestor, and real focus goes with it if the tree had focus.
+- **Expanded state** lives in the navigation by default (`expandedKeys`, `expand`, `collapse`, `toggle`, `expandAll`, `collapseAll`, `expandTo`). `bindExpanded(signal)` hands ownership to a signal of yours (a `Set` or an array — the shape you give is the shape written back). `expandedChange` reports navigation-driven changes only; `setExpanded` and `configure({ expanded })` are silent.
+- **Focus modes.** `roving-tabindex` (default) moves real focus between items; `active-descendant` keeps focus on one element (an input, a popup) and publishes `aria-activedescendant` through `andesTreeNavigationKeys`.
+- **Menus and columns.** `scope: 'level'` keeps `Up`/`Down`/`Home`/`End`/typeahead inside the active node's sibling group; `enterOnExpand` makes the open key also step into the first child (waiting for lazy children to arrive); `collapseOnLeave` closes the parent when stepping back out; `orientation: 'horizontal'` swaps the axes for a bar; `wrap` wraps within the scope.
+- **Disabled.** Skipped by default (`skipDisabled`). With `skipDisabled: false` they hold focus, and `expandDisabled` decides whether the keyboard may still open them.
+
+### Which components should adopt this
+
+The behavior below is what each migration deletes; all paths are under `packages/ui/src/lib/`.
+
+- `tree/tree.ts` — `onKeydown` (Up/Down/Right/Left/Home/End/`*`), `runTypeahead`, `expandSiblings`, the `activeKey`/`tabbableKey`/`visibleRows`/`visibleIndex` computeds and `focusRow`. The tree keeps selection, checking and drag-and-drop; it feeds `setNodes` from its flat rows (which also makes its virtual mode work, replacing `scrollToKey` for keyboard reveal) and binds `expandedKeys`. Its "disabled but still openable" nodes map to `skipDisabled: false` + `expandDisabled: true`.
+- `tree-select/tree-select.ts` — hosts a `tree` and forwards `ArrowDown` into it (`focusTree`); it gets this behavior through `tree` and needs no keyboard code of its own beyond that hand-off.
+- `cascader/cascader.ts` — `onKeydown` and `moveSibling`/`expandCursor`/`edgeNode`/`cursorColumn`: Up/Down and Home/End inside a column, Right into the next column (waiting on `ensureLoaded` for lazy columns), Left to the parent. That is `scope: 'level'`, `enterOnExpand`, `focusMode: 'active-descendant'` and a node source built from its `tree().roots`; the pending-expand bookkeeping (`pendingExpand`) goes away.
+- `menu/menu.ts`, `menu/sub-menu.ts`, `menu/menu-row.ts` — `keydown` (Up/Down, `forward`/`backward` into and out of submenus, Home/End), `typeahead` with its buffer and timer, `ensureTabStop`/`tabStopSignal` and `navigableRows`. That is `scope: 'level'`, `enterOnExpand`, `collapseOnLeave`, `wrap`. Items in an inline submenu and in popup submenus share one navigation through the injector.
+- `menubar/menubar.ts` (`onKeydown`, `jumpTo`, `moveFrom` over the triggers) — a flat `orientation: 'horizontal'` navigation with `Down` as the open key; `menubar/menubar-menu.ts` already forwards panel keys to a list navigation and can switch to a tree navigation per panel when the panel has fly-out submenus.
+- `navigation-menu/navigation-menu.ts` — the bar handler (`forward`/`backward`, Home/End, `ArrowDown` to open content, `moveAlongBar`) and the content handler (Arrow/Home/End over `focusables`) are two flat navigations, horizontal for the bar and vertical with `wrap` for the content.
+- `accordion/accordion.ts` — `onKeydown` (Up/Down/Home/End over `TRIGGER_CONTROL_SELECTOR`, wrapping): a flat vertical navigation with `wrap: true` and `typeahead: false`; expansion stays with the accordion's own item state because Enter/Space toggle it.
+- `breadcrumb/breadcrumb.ts` has no arrow-key code of its own (its overflow dropdown reuses the menu), so it needs nothing until a roving toolbar-style breadcrumb is wanted: then it is a flat horizontal navigation.
+
+## Viewport
+
+Signals for "how big is it" and "what does the environment prefer", with the server guard, the missing-API guard and the teardown written once. Everything is a no-op on the server and where `ResizeObserver` / `matchMedia` do not exist, and every listener is removed with the owning injector.
+
+| API                                                                                                      | Answers                                                                                              |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `andesElementSize(target, options?)`                                                                     | An element's `width`, `height` (and `size`, `measured`) as signals.                                  |
+| `andesContainerBreakpoint(target, buckets, options?)`                                                    | Which named width bucket an element currently falls in.                                              |
+| `andesMediaQuery(query, options?)`                                                                       | Whether a media query matches.                                                                       |
+| `andesPrefersReducedMotion()`, `andesPrefersDark()`, `andesPrefersContrast()`                            | Ready-made user-preference queries.                                                                  |
+| `AndesBreakpoints`                                                                                       | The viewport breakpoint (`active`) and `up(name)`, `down(name)`, `between(from, to)` signals.        |
+| `ANDES_BREAKPOINTS`, `ANDES_BREAKPOINT_NAMES`, `andesBreakpointForWidth`, `ANDES_BREAKPOINT_SSR_DEFAULT` | The shared breakpoint table (`xs 0`, `sm 576`, `md 768`, `lg 992`, `xl 1200`, `xxl 1600`).           |
+| `AndesResizeObserver`                                                                                    | The shared observer behind `andesElementSize`, for callers that need a callback instead of a signal. |
+
+```ts
+@Component({
+  selector: 'app-chart',
+  template: `
+    <div #frame><canvas [attr.width]="size.width()"></canvas></div>
+    @if (!reducedMotion()) {
+      <app-sparkle />
+    }
+    @if (isMobile()) {
+      <app-drawer-toggle />
+    }
+  `,
+})
+export class Chart {
+  private readonly frame = viewChild.required<ElementRef<HTMLElement>>('frame');
+
+  // Re-observes if `frame` is re-created; stops with the component.
+  protected readonly size = andesElementSize(this.frame);
+
+  // Collapses on the element's own width, not the window's.
+  protected readonly layout = andesContainerBreakpoint(
+    this.frame,
+    { compact: 0, full: 480 },
+    { initial: 'full' },
+  );
+
+  protected readonly reducedMotion = andesPrefersReducedMotion();
+  protected readonly isMobile = inject(AndesBreakpoints).down('md');
+}
+```
+
+Behavior worth knowing:
+
+- **One observer, one write per frame.** All elements share a native `ResizeObserver` (created with the first subscription, disconnected with the last). Bursts of changes are reduced to the latest size and delivered in one animation frame; the very first measurement is delivered immediately so the first paint is already correct.
+- **`measured` vs. the `initial` size.** Before the browser reports a size (and always on the server) the signals hold `options.initial` (`0 x 0` by default). `measured()` tells a real zero from "not measured yet", and is reset when the element goes away or is swapped.
+- **Breakpoint comparisons are half-open.** `up('md')` is true from 768px; `down('md')` is true strictly below it, so `down(x)` is always `!up(x)` and `between('sm', 'lg')` includes `sm` and excludes `lg`. Chained `between` ranges neither overlap nor leave gaps.
+- **Server default.** Without a viewport, `AndesBreakpoints.active` is `ANDES_BREAKPOINT_SSR_DEFAULT` (`lg`); override the token to match your most common client. `andesMediaQuery` takes an `ssrDefault`.
+- **Container buckets** map a name to the minimum width where it starts (the same shape as `ANDES_BREAKPOINTS`), and the signal changes only when a threshold is crossed. Pass a signal of buckets when the thresholds come from inputs.
+- `andesMediaQuery` accepts a `Signal<string>` for queries that depend on an input and moves its listener when the query changes. Each call owns one listener; use `AndesBreakpoints` for viewport widths, which is shared by the whole application.
+
+### Which components should adopt this
+
+Paths are in `packages/ui/src/lib/`.
+
+Element size (`andesElementSize` / `AndesResizeObserver`), replacing a hand-written `new ResizeObserver` with its `typeof ResizeObserver` guard and `disconnect()`:
+
+- `alert/alert.ts`: marquee track width (`track.offsetWidth` into `marqueeDistance`).
+- `avatar/avatar-fallback.ts`: host and text width, to scale the fallback text to fit.
+- `descriptions/descriptions.ts`: host width (`getBoundingClientRect().width`) to pick the column count.
+- `steps/steps.ts`: host width against `breakpoint()` to switch to the narrow layout (a good fit for `andesContainerBreakpoint`).
+- `grid/grid-row.ts`: the container breakpoint (`andesBreakpointForWidth` over `contentRect.width`); becomes `andesContainerBreakpoint(host, ANDES_BREAKPOINTS)`.
+- `scroll-area/scroll-area.ts`: viewport and content boxes, to re-measure the scrollbars.
+- `collapsible/collapsible-content.ts`: inner `scrollHeight`, to publish the content height variable.
+- `masonry/masonry.ts`: host width, to re-run the layout (its own `requestAnimationFrame` coalescing and `window` resize listener also go away).
+- `splitter/splitter.ts`: host size, to re-layout panels.
+- `table/table.ts`, `card/card.ts`, `tabs/tabs.ts`, `menu/menu.ts`, `segmented/segmented.ts`: container, strip, nav and option sizes, to recompute scroll edges, fades, overflow and the thumb.
+- `textarea/textarea.ts`: width/height deduped by hand against the last size (the primitive already de-duplicates).
+- `select/select-trigger.ts`, `toast/toast-item.ts`, `spinner/spin.ts`, `typography/typography-base.ts`, `affix/affix.ts`: box, row, scroller and host sizes feeding re-positioning or truncation.
+- `tooltip/tooltip.ts`, `hover-card/hover-card.ts`, `popover/popover-base.ts`, `tour/tour.ts`, `navigation-menu/navigation-menu.ts`: observe the floating panel or target to re-position; use `AndesResizeObserver.observe` with a callback.
+
+Media queries (`andesMediaQuery` and the preference helpers), replacing `matchMedia` + `addEventListener('change')` + `removeEventListener`:
+
+- `andesPrefersReducedMotion()`: `button/button.ts`, `carousel/carousel.ts` (kept in sync today), `alert/alert.ts`, `anchor/anchor.ts`, `masonry/masonry.ts`, `scroll-area/scroll-area.ts`, `statistic/countdown.ts`, `float-button/back-top.ts`, `tour/tour.ts`, `navigation-menu/navigation-menu.ts`. Most read it once with a bare `matchMedia(...)` call (some without a guard) and never update.
+- `andesMediaQuery` with a width query: `pagination/pagination.ts` (`(max-width: 575.98px)`; better as `AndesBreakpoints.down('sm')`), `navigation-menu/navigation-menu.ts` (`(max-width: <mobileBreakpoint>px)` in an effect), `layout/sidebar-provider.ts` and `layout/layout-sider.ts` (`max-width: <breakpoint>px` below-breakpoint tests; `down(name)`).
+
+Breakpoints (`AndesBreakpoints`, `ANDES_BREAKPOINTS`): `grid/breakpoints.ts` (its `AndesBreakpointService`, `ANDES_BREAKPOINTS` and `andesBreakpointForWidth` move here), `avatar/avatar-size.ts` (`injectAvatarBreakpoint` registers its own queries per avatar), and every consumer of `AndesBreakpointService.atLeast(name)` (`up(name)`).
+
+## Form control
+
+`AndesFormControlBase`, `AndesValueAccessor`, `provideAndesValueAccessor` and `injectAndesControlStatus` (in `src/lib/form-control/`) are the shared plumbing of every component that holds a value and has to work inside an Angular form: `writeValue`, `registerOnChange`, `registerOnTouched`, `setDisabledState`, the `disabled` input merged with the form's disabled state, touched on blur, and the validation status the `andes-form-field` wrapper needs.
+
+### What it guarantees
+
+- `commit(value)` sets the signal and notifies the form **once**, and only when the value actually changed (`equals`, `Object.is` by default). Re-picking the selected option never marks the control dirty.
+- `writeValue(raw)` sets the signal and never calls `onChange`, so `setValue()`, `patchValue()` and `reset()` cannot loop back into the form. `null` / `undefined` become the control's empty value (`''`, `[]`, ...) or go through a `coerce` function.
+- `disabled` is the component's own input **or** the form's state. Either side can disable the control and neither can re-enable it for the other.
+- `markTouched()` is forwarded on every call: a control with `updateOn: 'blur'` only publishes its pending value from that call.
+- One `provideAndesValueAccessor(() => Component)` replaces the `NG_VALUE_ACCESSOR` / `forwardRef` block, and it covers `formControl`, `formControlName`, `ngModel` **and** signal forms' `[formField]`, which binds through a value accessor when one is provided.
+- The control's validity is readable as signals (`invalid`, `touched`, `dirty`, `pending`, `errors`, `showError`, ...) from reactive forms, template-driven forms and signal forms alike, without the circular dependency you get from `inject(NgControl)` in a component that also provides `NG_VALUE_ACCESSOR`. The control is looked up from an effect, after construction, and follows a `[formControl]` that is re-bound to another control.
+
+### Usage
+
+When the value is a plain `value` model, extend the base class. It declares `value`, `disabled` and `touch`, so the subclass only renders and commits:
+
+```ts
+@Component({
+  selector: 'andes-rating',
+  providers: [provideAndesValueAccessor(() => AndesRating)],
+  template: `
+    @for (star of stars(); track star) {
+      <button
+        type="button"
+        [disabled]="isDisabled()"
+        [attr.aria-pressed]="star <= value()"
+        (click)="commit(star)"
+        (blur)="markTouched()"
+      >
+        {{ star }}
+      </button>
+    }
+  `,
+})
+export class AndesRating extends AndesFormControlBase<number> {
+  readonly total = input(5);
+  protected readonly stars = computed(() => range(this.total()));
+
+  protected emptyValue(): number {
+    return 0;
+  }
+
+  // Optional: normalize what a form writes, and compare non-primitive values.
+  protected override coerce(raw: unknown): number {
+    return clamp(Number(raw ?? 0), 0, this.total());
+  }
+}
+```
+
+When the signal has another name (`checked`, `pressed`, `targetKeys`) or the component already extends a class, own an `AndesValueAccessor` instead and let the provider pick it, so the component's public API does not gain `writeValue` and friends:
+
+```ts
+@Component({
+  selector: 'andes-switch',
+  providers: [
+    provideAndesValueAccessor(
+      () => AndesSwitch,
+      (self) => self.accessor,
+    ),
+  ],
+})
+export class AndesSwitch {
+  readonly checked = model(false);
+  readonly disabled = input(false, { transform: booleanAttribute });
+  protected readonly accessor = new AndesValueAccessor({
+    value: this.checked,
+    disabled: this.disabled,
+    coerce: Boolean,
+  });
+
+  protected toggle(): void {
+    this.accessor.commit(!this.checked());
+  }
+}
+```
+
+Array and object values supply an `equals` (`andesShallowArrayEquals` for arrays) so committing an equal value is not reported. State derived from a written value that is not the value itself (the text shown in a field, a discarded draft) goes in `onWrite` (or the base class's `onWritten()`); it runs on form writes only.
+
+The validation status lets a component paint its own error state, instead of the page binding `[aria-invalid]` by hand:
+
+```ts
+protected readonly invalid = computed(() => this.ariaInvalid() || this.status.showError());
+```
+
+`showError` is `invalid && (touched || dirty)`. It does not know about a submitted form; `AndesFormField` still owns that rule.
+
+### Signal forms
+
+`AndesFormControlBase` also satisfies signal forms' custom-control contract (`value` model, `disabled` input, `touch` output). A subclass that **omits** `provideAndesValueAccessor` binds to `[formField]` natively but cannot be used with reactive or template-driven forms; one that **provides** it works with all three, signal forms going through the accessor (a provided accessor wins over the contract). Components that must keep working with `formControl` / `ngModel` should provide it.
+
+### Which components should adopt this
+
+Every item below re-implements `writeValue` / `registerOnChange` / `registerOnTouched` / `setDisabledState`, a `disabledByForm` / `cvaDisabled` / `formDisabled` signal and an `isDisabled` computed of `disabled() || thatSignal()`, and a `providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(...), multi: true }]` block. Migrating deletes all of it. File names are under `packages/ui/src/lib/`.
+
+| Component (file)                                        | Value signal                     | `writeValue` does today / what stays component-specific                                                      |
+| ------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `input/input-base.ts` (`andes-input`, password, search) | `value` (`''`)                   | `null -> ''`, `String(value)`; text commits from `onInput` / `onCompositionEnd`; touched in `onBlur`         |
+| `input/input-otp.ts`                                    | `value` (`''`)                   | `null -> ''`, `String(value)`; touched when focus leaves the slots                                           |
+| `textarea/textarea.ts`                                  | `value` (`''`)                   | same as input; `onChange('')` on clear                                                                       |
+| `mentions/mentions.ts`                                  | `value` (`''`)                   | same, plus `context.set(null)` (use `onWrite`)                                                               |
+| `input-number/input-number.ts`                          | `value` (`number\|null`)         | `coerce(value)`, resets `editing`, `syncText()` (use `coerce` + `onWrite`)                                   |
+| `rate/rate.ts`                                          | `value` (`0`)                    | `normalizeValue(value, total())` (use `coerce`); `onChangeFn` / `onTouchedFn` naming                         |
+| `slider/slider.ts`                                      | `value` + `values` linked signal | number or array, normalized to the range; `setValues` skips equal arrays (use `equals`); touched at drag end |
+| `segmented/segmented.ts`                                | `value` (`T\|null`)              | passthrough; commit + touched on pick                                                                        |
+| `radio-group/radio-group.ts`                            | `value` (`T\|null`)              | passthrough; `(focusout)` -> touched                                                                         |
+| `toggle/toggle-group.ts`                                | `value` (`T\|T[]\|null`)         | passthrough; single or multiple                                                                              |
+| `checkbox/checkbox-group.ts`                            | `value` (`T[]`)                  | `value ?? []` (use `emptyValue` + `andesShallowArrayEquals`)                                                 |
+| `select/select.ts`                                      | `value` (`unknown`)              | `value ?? ([] or null by mode)` (use `coerce`); commit, touched on select and on close                       |
+| `tree-select/tree-select.ts`                            | `value`                          | `value ?? ([] or null by mode)`; touched on close                                                            |
+| `cascader/cascader.ts`                                  | `value`                          | passthrough; touched on close                                                                                |
+| `combobox/combobox.ts`                                  | `value` (`T\|null`)              | `value ?? null`, also resets the query text and backfill (use `onWrite`)                                     |
+| `color-picker/color-picker.ts`                          | `value` (`color\|null`)          | `value ?? null`; touched on close                                                                            |
+| `date-picker/date-picker.ts`                            | single or range value            | `applyValue`, clears both drafts (use `onWrite`); touched on close/blur                                      |
+| `transfer/transfer.ts`                                  | `targetKeys` (`string[]`)        | `Array.isArray(v) ? [...v] : []` (use `coerce`); array `equals`                                              |
+| `upload/upload-base.ts` (`upload`, dragger)             | `fileList` (`File[]`)            | `Array.isArray(v) ? v : []`; commits from many paths (add, remove, status change)                            |
+| `checkbox/checkbox.ts`                                  | `checked` (`boolean`)            | `!!value`; also group participation and `indeterminate` stay in the component                                |
+| `switch/switch.ts`                                      | `checked` (`boolean`)            | `!!value`; `loading` still gates the toggle                                                                  |
+| `toggle/toggle.ts`                                      | `pressed` (`boolean`)            | `!!value`                                                                                                    |
+
+The ones whose signal is not called `value` (`checkbox`, `switch`, `toggle`, `transfer`, `upload-base`) use `AndesValueAccessor` with the provider's second argument; the rest can extend `AndesFormControlBase`, except those that already extend a class (`input-base`, `upload-base`), which also use `AndesValueAccessor`.
+
+Not covered by the primitive and left to the components: the form-field wrapper's `id` / `aria-describedby` forwarding (`form-field/form-control.ts`), which reads `NgControl` through the `andesFormControl` directive and can later read the same signals, and the page-level "submitted" rule.
+
+### Decisions worth knowing
+
+- `model()` cannot be written without emitting its `valueChange` output, so a form write also fires `valueChange` (it keeps a `[(value)]` binding next to a form control in sync). `commit()` and `onChange` are what tell a form about _user_ changes; use the component's own event output for user-only notifications.
+- `commit()` does not check `disabled`. Whether an interaction may happen at all is the component's call, since only it knows which interactions count.
+- Status updates need one change detection pass to attach. Reads before the first pass see the unbound defaults.
+
+## Selection model
+
+`AndesSelectionModel<T>` and `AndesCheckedTree<T, K>` hold the selection state that lists, tables, trees, transfer panes, cascaders and multi-selects each used to re-implement. They are plain signal-based classes: no DOM, no injection context, no teardown. Create one in a component field and bind its signals in the template.
+
+### `AndesSelectionModel<T>`
+
+```ts
+readonly rows = signal<readonly Row[]>([]);
+
+readonly selection = new AndesSelectionModel<Row>({
+  mode: 'multiple',                       // or 'single'; may be a Signal
+  max: this.maxSelected,                  // number | undefined; may be a Signal
+  keyOf: (row) => row.id,                 // identity by key (or compareWith for custom equality)
+  isDisabled: (row) => row.locked,        // blocks user changes
+  onChange: (change) => {                 // { added, removed, source }
+    if (change.source === 'interaction') this.selectionChange.emit(change);
+  },
+});
+
+readonly headerState = computed(() => this.selection.stateOf(this.rows())); // 'none' | 'some' | 'all'
+
+onRowClick(row: Row, event: MouseEvent) {
+  const anchor = this.selection.anchor();
+  if (event.shiftKey && anchor) {
+    this.selection.selectRange(this.rows(), anchor, row, !this.selection.isSelected(row));
+  } else {
+    this.selection.toggle(row);
+  }
+}
+```
+
+- Signals: `selected()` (in selection order), `size()`, `isEmpty()`, `mode()`, `max()`, `anchor()`, `changes()`.
+- Queries: `isSelected(item)`, `isDisabled(item)`, `stateOf(items)`, `allSelected(items)`, `someSelected(items)` (strictly partial, i.e. indeterminate).
+- Interaction methods (honor `isDisabled` and `max`, report `source: 'interaction'`): `select`, `deselect`, `toggle`, `clear`, `selectAll(items)`, `deselectAll(items)`, `toggleAll(items)`, `invert(items)`, `selectRange(items, from, to, selected = true)`. Each returns whether the selection changed.
+- Programmatic methods (ignore `isDisabled`, report `source: 'programmatic'`): `setSelection(items)` for form writes and two-way bindings, `retainOnly(items)` to drop entries that left the source list.
+- Locked items stay put: `clear()` and "select all" never touch them, and `stateOf` ignores them so the header checkbox cannot get stuck in the mixed state.
+- `mode` and `max` can be signals; narrowing them shows only the earliest items selected, so a component can bind them straight to inputs.
+
+### `AndesCheckedTree<T, K>`
+
+```ts
+readonly tree = new AndesCheckedTree<Folder, string>({
+  nodes: this.folders,                    // array or signal of root nodes
+  childrenOf: (folder) => folder.children,
+  keyOf: (folder) => folder.id,
+  isDisabled: (folder) => folder.locked,
+  strict: this.checkStrictly,             // true = no propagation; may be a Signal
+});
+// [checked]="tree.stateOf(id) === 'checked'"  [indeterminate]="tree.stateOf(id) === 'mixed'"
+```
+
+- Checking a node checks everything below it; a parent is checked once all its unlocked children are and is `mixed` while only some are. Unchecking clears the subtree and the ancestors that depended on the node.
+- A locked node keeps its state and takes no part in propagation: a cascade neither reaches it nor anything below it, and a parent aggregates only its unlocked children. A parent whose children are all locked behaves like a leaf.
+- Signals: `checked()`, `halfChecked()`, `checkedKeys()` (tree order, then keys that match no node), `overallState()`, `strict()`, `changes()`. Queries: `stateOf(key)`, `isChecked`, `isHalfChecked`, `isDisabled`, `has`, `parentKeyOf`, `childKeysOf`, `checkedKeysByStrategy('all' | 'parent' | 'child')`.
+- Methods: `check`, `uncheck`, `toggle`, `checkAll`, `clear`, `setChecked(keys)` (programmatic), `prune()`.
+- The value is a list of keys. Keys that match no node (a lazy branch not loaded yet, a page that is not rendered) are kept until `prune()`, and come back to life when the node reappears.
+- The tree is indexed once per `nodes` change; every update is a single linear pass without recursion, so thousands of nodes (or a very deep chain) are fine. Treat nodes as immutable: replace the array or the node rather than mutating `children` in place.
+
+### Which components should adopt this
+
+Each item names the duplicated code in `packages/ui/src/lib/` and what the migration replaces.
+
+| Component                                           | Duplicated code today                                                                                                                                                                                 | Replace with                                                                                                                                                                                                                                     |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `table/table.ts`, `table/table-selection.ts`        | `selectedKeys`, `selectedSet`, `selectAllState`, `toggleSelected` with its own `rangeAnchor` and Shift slice, `toggleAllSelected`, `selectAll`, `invertSelection`, `clearSelection`, `applySelection` | An `AndesSelectionModel<AndesTableRowKey>` (`mode` from `selectionType`; `isDisabled` from the disabled controls; `stateOf(enabledKeys())`, `selectRange`, `toggleAll`, `invert`, `clear`)                                                       |
+| `table/table.ts` (`selectionTree`)                  | `partialSet`, `withDescendants`, `reconcileAncestors` and the depth sort                                                                                                                              | An `AndesCheckedTree<AndesTableRowKey>` fed with the existing `childrenOf` map (keys are the nodes)                                                                                                                                              |
+| `checkbox/checkbox-group-state.ts`                  | `_value`, `selectableValues`, `selectedCount`, `allSelected`, `someSelected`, `indeterminate`, `toggleItem`, `setAllSelected`                                                                         | An `AndesSelectionModel<AndesCheckboxValue>`; items still register themselves, the group passes their values to `stateOf`/`toggleAll`. Its `order()` (template order instead of click order) is not part of the model: sort, then `setSelection` |
+| `transfer/transfer.ts`                              | `selectedKeys`, `selectedSet`, the per-pane `allChecked`/`someChecked`, `toggleItem`, `setListSelection`, `toggleAll`, and the `anchors` record with `selectRange`                                    | One model shared by both panes (or one per pane); `stateOf(pane.items())`, `selectRange`, `deselectAll(pane.items())`, `retainOnly` after items move                                                                                             |
+| `list/list.ts`                                      | `selected` with `Object.is` matching, `toggle` for single and multiple, `selectAll`, `clearSelection`                                                                                                 | `AndesSelectionModel<unknown>` with `mode` from `selectable`; `select` for single, `toggle` for multiple                                                                                                                                         |
+| `select/select.ts`, `select/select-state.ts`        | `selectedValues`, `compareWith` matching in `isSelected`/`isSelectedValue`, `maxCount` handling in the toggle path, removing a tag                                                                    | `AndesSelectionModel<unknown>` with `compareWith` and `max: maxCount`; `toggle`, `deselect` for tag removal, `setSelection` for the value input                                                                                                  |
+| `tree-select/tree-select.ts`                        | `checkedSet`, `fromCheckState`, `strategy` and calls to `andesToggleCheck`/`andesCheckedKeysByStrategy`                                                                                               | The same `AndesCheckedTree` used by the embedded tree, `checkedKeysByStrategy(showCheckedStrategy)`                                                                                                                                              |
+| `tree/tree.ts`, `tree/tree-utils.ts`                | `andesConductCheck`, `andesToggleCheck`, `andesCheckedKeysByStrategy`, `checkState`, `halfCheckedKeys`, `setAllChecked`, `toggleCheck`                                                                | `AndesCheckedTree` with `strict` bound to `checkStrictly`; `checked`/`halfChecked`/`checkedKeys` replace the derived sets. Note that a locked node here does not pass a cascade down even when it is itself pre-checked                          |
+| `cascader/cascader.ts`, `cascader/cascader-tree.ts` | Multiple-value checking over leaves, branch aggregation and `showCheckedStrategy`/`collectTerminals`                                                                                                  | An `AndesCheckedTree<AndesCascaderNode, string>` keyed by `pathKey`, `checkedKeysByStrategy` for `showCheckedStrategy`                                                                                                                           |
+| `color-picker/color-picker.ts`                      | `isPresetSelected` (single preset selection)                                                                                                                                                          | Optional: a `mode: 'single'` model if presets gain multiple selection                                                                                                                                                                            |
+
+### Decisions and limits
+
+- `setSelection` and `setChecked` ignore locking on purpose: a form must be able to pre-select a disabled option. Use the interaction methods for anything the user does.
+- A parent aggregates only its unlocked children, so a partially locked parent can read as checked while a locked child is not. This matches how the trees behaved before; change `conduct` if a design needs locked children to count.
+- With a `max` smaller than the number of selectable items, `stateOf` can never reach `all`. `toggleAll` handles it by clearing when nothing more can be added.
+- Selection order is the order of selection, not the order of the source list; sort before `setSelection` when a stable order is needed.

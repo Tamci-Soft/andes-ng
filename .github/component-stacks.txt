@@ -1,0 +1,8 @@
+# One line per component branch that is built on top of another one: <branch> <base branch>.
+# A pull request for <branch> targets <base branch> until the base is merged, then develop.
+feature/context-menu-component feature/dropdown-menu-component
+feature/menubar-component feature/dropdown-menu-component
+feature/breadcrumb-component feature/dropdown-menu-component
+feature/tree-select-component feature/tree-component
+feature/select-component feature/overlay-flexible-dimensions
+feature/combobox-component feature/overlay-flexible-dimensions

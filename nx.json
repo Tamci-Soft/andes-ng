@@ -94,14 +94,16 @@
   "release": {
     "groups": {
       "andes": {
-        "projects": ["tokens", "ui", "testing"],
-        "projectsRelationship": "independent",
+        "projects": ["tokens", "primitives", "ui", "testing"],
+        "projectsRelationship": "fixed",
+        "releaseTag": { "pattern": "v{version}" },
         "versionPlans": true,
         "changelog": { "projectChangelogs": true }
       }
     },
     "version": {
-      "preVersionCommand": "pnpm nx run-many -t build"
+      "preVersionCommand": "pnpm nx run-many -t build",
+      "versionActionsOptions": { "skipLockFileUpdate": true }
     }
   }
 }

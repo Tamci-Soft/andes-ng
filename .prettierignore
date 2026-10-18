@@ -5,3 +5,6 @@
 /.nx/workspace-data
 .nx/self-healing
 .angular
+
+# pnpm-managed, machine-generated — reformatting it fights pnpm's own writer on every install.
+pnpm-lock.yaml

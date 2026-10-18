@@ -11,21 +11,14 @@ export default [
       '@nx/dependency-checks': [
         'error',
         {
-          // The package declares its peers and Brain ahead of the first
-          // component, so the ADR 0004 contract stays reserved. Until a
-          // component imports them, every entry here is intentionally
-          // declared without being used.
           ignoredDependencies: [
+            // Relied on only through --andes-* CSS custom properties, never a TS import.
             '@andes-ng/tokens',
+            // Not used by any component yet.
             '@angular/cdk',
             '@angular/common',
-            '@angular/core',
             '@angular/forms',
-            '@spartan-ng/brain',
-            'clsx',
             'rxjs',
-            'tailwindcss',
-            'tw-animate-css',
           ],
           ignoredFiles: ['{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}'],
         },

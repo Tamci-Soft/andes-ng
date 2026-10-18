@@ -1,0 +1,10 @@
+# CVE IDs to exclude from Trivy scans, one per line, with a reason.
+
+# braces: no patched release exists; only reachable through the build's local-registry tooling, not the published packages.
+CVE-2026-93687
+
+# @angular/router: fixed in 22.2.0, which breaks this workspace's Nx unit-test builder; only the playground app uses the router.
+CVE-2026-101896
+
+# webpack-dev-middleware: the fixed 7.4.6 is rejected by the workspace trust policy (trust downgrade, see pnpm-workspace.yaml); dev server only.
+CVE-2026-76844

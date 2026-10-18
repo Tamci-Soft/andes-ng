@@ -8,7 +8,46 @@ allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
   esbuild: true
+  lefthook: true
   lmdb: true
   msgpackr-extract: true
   nx: true
   unrs-resolver: true
+blockExoticSubdeps: true
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - 'nx'
+  - '@nx/*'
+trustPolicy: no-downgrade
+
+overrides:
+  'smol-toml@<1.8.1': '>=1.8.1'
+  'webpack-dev-middleware@<7.4.5': '7.4.5'
+  'webpack-dev-middleware@>=7.4.6 <8.0.0': '7.4.5'
+  'webpack-dev-middleware@>=8.0.0 <8.3.0': '>=8.3.0'
+  'qs@<6.16.0': '>=6.16.0'
+  'uuid@8.3.2': '>=11.1.1'
+  'axios@<1.20.0': '>=1.20.0'
+  'piscina@>=5.0.0 <5.3.2': '>=5.3.2'
+  'proxy-addr@<2.0.8': '>=2.0.8'
+  'shell-quote@<1.11.0': '>=1.11.0'
+  'handlebars@<4.7.10': '>=4.7.10'
+  'brace-expansion@<1.1.20': '>=1.1.20'
+  'brace-expansion@>=4.0.0 <5.0.12': '5.0.12'
+  'compression@<1.8.2': '>=1.8.2'
+  'http-cache-semantics@<4.2.1': '>=4.2.1'
+  'source-map-js@<1.2.2': '>=1.2.2'
+  '@modelcontextprotocol/sdk@<1.31.0': '>=1.31.0'
+  'js-yaml@>=5.0.0 <5.4.1': '>=5.4.1'
+  'fast-uri@>=3.0.0 <3.1.8': '>=3.1.8'
+  'serialize-javascript@>=7.1.1 <7.1.2': '>=7.1.2'
+
+# - braces: no patched release exists (GHSA-vfj7-8cjw-p6xm affects every published version); it is reachable only
+#   through the local-registry tooling of the build, never from the published packages. Remove once a fix ships.
+# - @angular/router: fixed in 22.2.0, but Angular 22.2 breaks the unit-test builder of this workspace's Nx
+#   (TestBed is never initialised). Only the playground app uses the router; no published package depends on it.
+#   Remove when the workspace moves to Angular 22.2.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
+    - GHSA-ff3f-86qr-9cv3

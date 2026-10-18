@@ -1,0 +1,193 @@
+import { AndesButtonPrimitive } from '@andes-ng/primitives';
+import { NgTemplateOutlet } from '@angular/common';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DOCUMENT,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  Renderer2,
+  signal,
+  TemplateRef,
+} from '@angular/core';
+import clsx from 'clsx';
+
+import { ANDES_BUTTON_GROUP } from './button-group';
+
+export type AndesButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'danger'
+  | 'outline'
+  | 'dashed'
+  | 'filled'
+  | 'ghost'
+  | 'link';
+export type AndesButtonSize =
+  'xs' | 'sm' | 'md' | 'lg' | 'icon-xs' | 'icon-sm' | 'icon' | 'icon-lg';
+/** `full` and `round` are the same pill shape; `circle` is fully rounded with equal sides. */
+export type AndesButtonShape = 'default' | 'full' | 'round' | 'circle';
+/**
+ * Semantic color that tints the `primary` (solid), `outline`, `dashed`, `filled`, `ghost` and
+ * `link` variants. The `secondary` and `danger` variants keep their own palette.
+ */
+export type AndesButtonColor =
+  'primary' | 'danger' | 'success' | 'warning' | 'info';
+export type AndesButtonType = 'button' | 'submit' | 'reset';
+
+const RIPPLE_DURATION_MS = 400;
+
+@Component({
+  selector: 'andes-button',
+  imports: [AndesButtonPrimitive, NgTemplateOutlet],
+  templateUrl: './button.html',
+  styleUrl: './button.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(pointerdown)': 'onPointerDown($event)',
+    // Forwarded to the real button/anchor in the template instead - a screen reader never
+    // sees this non-interactive host element, so leaving these here would do nothing.
+    '[attr.aria-label]': 'null',
+    '[attr.aria-labelledby]': 'null',
+    '[attr.aria-describedby]': 'null',
+    '[attr.aria-invalid]': 'null',
+  },
+})
+export class AndesButton {
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly renderer = inject(Renderer2);
+  private readonly document = inject(DOCUMENT);
+  private readonly group = inject(ANDES_BUTTON_GROUP, { optional: true });
+
+  readonly variant = input<AndesButtonVariant>('primary');
+  /**
+   * Control size. Left unset, the button takes the size of an enclosing `andes-button-group`,
+   * or `md` outside one.
+   */
+  readonly size = input<AndesButtonSize | undefined>(undefined);
+  readonly shape = input<AndesButtonShape>('default');
+  readonly color = input<AndesButtonColor | undefined>(undefined);
+  /** Shorthand for `color="danger"`: a destructive action in any variant. Wins over `color`. */
+  readonly danger = input(false, { transform: booleanAttribute });
+  /** Press feedback ripple. Turn it off for dense toolbars or custom press styling. */
+  readonly ripple = input(true, { transform: booleanAttribute });
+  readonly disabled = input(false, { transform: booleanAttribute });
+  readonly loading = input(false, { transform: booleanAttribute });
+  readonly loadingDelay = input(0);
+  readonly loadingIcon = input<TemplateRef<unknown> | undefined>(undefined);
+  readonly fullWidth = input(false, { transform: booleanAttribute });
+  readonly href = input<string | undefined>(undefined);
+  readonly target = input<string | undefined>(undefined);
+  readonly type = input<AndesButtonType>('button');
+  readonly ghost = input(false, { transform: booleanAttribute });
+  readonly ariaLabel = input<string | undefined>(undefined, {
+    alias: 'aria-label',
+  });
+  readonly ariaLabelledby = input<string | undefined>(undefined, {
+    alias: 'aria-labelledby',
+  });
+  readonly ariaDescribedby = input<string | undefined>(undefined, {
+    alias: 'aria-describedby',
+  });
+  readonly ariaInvalid = input(false, {
+    alias: 'aria-invalid',
+    transform: booleanAttribute,
+  });
+
+  protected readonly visibleLoading = signal(false);
+  private loadingTimeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  protected readonly isDisabled = computed(
+    () => this.disabled() || this.visibleLoading(),
+  );
+
+  protected readonly resolvedSize = computed<AndesButtonSize>(
+    () => this.size() ?? this.group?.size() ?? 'md',
+  );
+
+  protected readonly resolvedColor = computed<AndesButtonColor | undefined>(
+    () => (this.danger() ? 'danger' : this.color()),
+  );
+
+  protected readonly classes = computed(() => {
+    const shape = this.shape();
+    const color = this.resolvedColor();
+    return clsx(
+      'andes-button',
+      `andes-button--${this.variant()}`,
+      `andes-button--${this.resolvedSize()}`,
+      (shape === 'full' || shape === 'round') && 'andes-button--full',
+      shape === 'circle' && 'andes-button--circle',
+      color && `andes-button--colored andes-button--color-${color}`,
+      this.visibleLoading() && 'andes-button--loading',
+      this.fullWidth() && 'andes-button--full-width',
+      this.ariaInvalid() && 'andes-button--invalid',
+      this.ghost() && 'andes-button--ghost-mode',
+    );
+  });
+
+  constructor() {
+    effect((onCleanup) => {
+      const loading = this.loading();
+      const delay = this.loadingDelay();
+      clearTimeout(this.loadingTimeoutId);
+
+      if (!loading || delay <= 0) {
+        this.visibleLoading.set(loading);
+        return;
+      }
+
+      this.loadingTimeoutId = setTimeout(
+        () => this.visibleLoading.set(true),
+        delay,
+      );
+      onCleanup(() => clearTimeout(this.loadingTimeoutId));
+    });
+  }
+
+  protected onPointerDown(event: PointerEvent): void {
+    // A press ripple is decorative motion - skip it entirely for users who ask for less.
+    if (this.isDisabled() || !this.ripple() || this.prefersReducedMotion()) {
+      return;
+    }
+
+    const host = this.elementRef.nativeElement.querySelector(
+      '[andesbuttonprimitive]',
+    ) as HTMLElement | null;
+    if (!host) {
+      return;
+    }
+
+    const rect = host.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const ripple = this.renderer.createElement('span') as HTMLSpanElement;
+    this.renderer.addClass(ripple, 'andes-button__ripple');
+    this.renderer.setStyle(ripple, 'width', `${size}px`);
+    this.renderer.setStyle(ripple, 'height', `${size}px`);
+    this.renderer.setStyle(
+      ripple,
+      'left',
+      `${event.clientX - rect.left - size / 2}px`,
+    );
+    this.renderer.setStyle(
+      ripple,
+      'top',
+      `${event.clientY - rect.top - size / 2}px`,
+    );
+    this.renderer.appendChild(host, ripple);
+
+    setTimeout(() => ripple.remove(), RIPPLE_DURATION_MS);
+  }
+
+  private prefersReducedMotion(): boolean {
+    return (
+      this.document.defaultView?.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+      ).matches ?? false
+    );
+  }
+}
