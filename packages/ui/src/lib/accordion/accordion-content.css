@@ -9,7 +9,7 @@
 :host {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--andes-motion-duration-slow, 0.3s)
+  transition: grid-template-rows var(--andes-motion-duration-slow, 0.2s)
     var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
 }
 
@@ -76,4 +76,12 @@
 
 .andes-accordion-content__body[data-variant='bordered'][data-size='lg'] {
   padding: 1.5rem;
+}
+
+/* Reduced motion: the panel opens and closes instantly. The state change itself stays plain -
+   the content appears or goes, and the chevron still flips (see accordion-trigger.css). */
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: none;
+  }
 }

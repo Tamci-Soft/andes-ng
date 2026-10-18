@@ -1211,3 +1211,198 @@ describe('AndesAccordion - extended features', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// Per-item class/style from the items input, and nested accordions
+// ---------------------------------------------------------------------------------------------
+
+@Component({
+  imports: [AndesAccordion],
+  template: `<andes-accordion [items]="items()" [(activeKey)]="activeKey" />`,
+})
+class StyledItemsHostComponent {
+  readonly activeKey = signal<string[]>([]);
+  readonly items = signal<AndesAccordionItemConfig[]>([
+    {
+      key: 'card',
+      label: 'Card',
+      content: 'Card body',
+      class: 'my-card',
+      style: 'margin-bottom: 12px',
+    },
+    {
+      key: 'map',
+      label: 'Map',
+      content: 'Map body',
+      style: { 'background-color': 'red' },
+    },
+  ]);
+}
+
+@Component({
+  imports: [
+    AndesAccordion,
+    AndesAccordionItem,
+    AndesAccordionTrigger,
+    AndesAccordionContent,
+  ],
+  template: `<andes-accordion
+    class="outer"
+    type="multiple"
+    [(activeKey)]="outerKeys"
+    arrowNavigation
+  >
+    <andes-accordion-item value="parent">
+      <andes-accordion-trigger>Parent</andes-accordion-trigger>
+      <andes-accordion-content>
+        <andes-accordion class="inner" [(activeKey)]="innerKeys">
+          <andes-accordion-item value="child">
+            <andes-accordion-trigger>Child</andes-accordion-trigger>
+            <andes-accordion-content>Child body</andes-accordion-content>
+          </andes-accordion-item>
+          <andes-accordion-item value="parent">
+            <andes-accordion-trigger
+              >Same key as parent</andes-accordion-trigger
+            >
+            <andes-accordion-content>Inner body</andes-accordion-content>
+          </andes-accordion-item>
+        </andes-accordion>
+      </andes-accordion-content>
+    </andes-accordion-item>
+    <andes-accordion-item value="sibling">
+      <andes-accordion-trigger>Sibling</andes-accordion-trigger>
+      <andes-accordion-content>Sibling body</andes-accordion-content>
+    </andes-accordion-item>
+  </andes-accordion>`,
+})
+class NestedHostComponent {
+  readonly outerKeys = signal<string[]>(['parent']);
+  readonly innerKeys = signal<string[]>([]);
+}
+
+describe('AndesAccordion - item styling and nesting', () => {
+  describe('items class and style', () => {
+    it('merges a config class with the item own classes and keeps it across toggles', () => {
+      const fixture = TestBed.createComponent(StyledItemsHostComponent);
+      fixture.detectChanges();
+      const item = fixture.nativeElement.querySelector(
+        'andes-accordion-item',
+      ) as HTMLElement;
+
+      expect(item.classList).toContain('my-card');
+      expect(item.classList).toContain('andes-accordion-item');
+
+      (
+        item.querySelector('.andes-accordion-trigger__button') as HTMLElement
+      ).click();
+      fixture.detectChanges();
+
+      expect(item.classList).toContain('my-card');
+      expect(item.classList).toContain('andes-accordion-item--open');
+    });
+
+    it('applies a config style given as a string or as a property map', () => {
+      const fixture = TestBed.createComponent(StyledItemsHostComponent);
+      fixture.detectChanges();
+      const items = Array.from(
+        fixture.nativeElement.querySelectorAll('andes-accordion-item'),
+      ) as HTMLElement[];
+
+      expect(items[0].style.marginBottom).toBe('12px');
+      expect(items[1].style.backgroundColor).toBe('red');
+    });
+  });
+
+  describe('nested accordions', () => {
+    function createNested() {
+      const fixture = TestBed.createComponent(NestedHostComponent);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const outer = root.querySelector('andes-accordion.outer') as HTMLElement;
+      const inner = root.querySelector('andes-accordion.inner') as HTMLElement;
+      const button = (scope: HTMLElement, label: string) =>
+        Array.from(
+          scope.querySelectorAll<HTMLButtonElement>(
+            '.andes-accordion-trigger__button',
+          ),
+        ).find((b) => b.textContent?.includes(label)) as HTMLButtonElement;
+      return { fixture, outer, inner, button };
+    }
+
+    it('keeps the inner open state separate from the outer one', () => {
+      const { fixture, inner, button } = createNested();
+
+      button(inner, 'Child').click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.innerKeys()).toEqual(['child']);
+      expect(fixture.componentInstance.outerKeys()).toEqual(['parent']);
+    });
+
+    it('does not open an inner item that shares a key with an open outer item', () => {
+      const { inner, button } = createNested();
+
+      expect(
+        button(inner, 'Same key as parent').getAttribute('aria-expanded'),
+      ).toBe('false');
+    });
+
+    it('closing an inner item leaves the outer panel open', () => {
+      const { fixture, outer, inner, button } = createNested();
+      fixture.componentInstance.innerKeys.set(['child']);
+      fixture.detectChanges();
+
+      button(inner, 'Child').click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.innerKeys()).toEqual([]);
+      expect(button(outer, 'Parent').getAttribute('aria-expanded')).toBe(
+        'true',
+      );
+    });
+
+    it('moves outer arrow focus past the inner triggers', () => {
+      const { outer, button } = createNested();
+      const parent = button(outer, 'Parent');
+      parent.focus();
+
+      parent.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
+      );
+
+      expect(document.activeElement).toBe(button(outer, 'Sibling'));
+    });
+  });
+});
+
+describe('accordion motion', () => {
+  // Asserted against the stylesheet source: jsdom runs no transitions.
+  const dir = 'packages/ui/src/lib/accordion';
+
+  it('keeps every transition within 200ms and free of overshoot', () => {
+    const offenders: string[] = [];
+    for (const file of readdirSync(dir).filter((f) => f.endsWith('.css'))) {
+      const source = readFileSync(`${dir}/${file}`, 'utf8').replace(
+        /\/\*[\s\S]*?\*\//g,
+        '',
+      );
+      for (const match of source.matchAll(
+        /(?:transition|animation):([^;]+);/g,
+      )) {
+        const value = match[1];
+        for (const time of value.matchAll(/([\d.]+)(m?s)\b/g)) {
+          const ms = Number(time[1]) * (time[2] === 's' ? 1000 : 1);
+          if (ms > 200) offenders.push(`${file}: ${value.trim()}`);
+        }
+        // A cubic-bezier y control point outside 0..1 overshoots (a bounce).
+        for (const curve of value.matchAll(/cubic-bezier\(([^)]*)\)/g)) {
+          const [, y1, , y2] = curve[1].split(',').map(Number);
+          if (y1 < 0 || y1 > 1 || y2 < 0 || y2 > 1) {
+            offenders.push(`${file}: ${value.trim()}`);
+          }
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

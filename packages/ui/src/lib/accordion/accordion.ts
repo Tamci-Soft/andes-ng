@@ -48,6 +48,11 @@ export interface AndesAccordionItemConfig {
   showArrow?: boolean;
   forceRender?: boolean;
   headingLevel?: AndesAccordionHeadingLevel;
+  /** Extra classes for the rendered `andes-accordion-item`, merged with its own - e.g. to turn
+   *  each panel into a separate card. */
+  class?: string;
+  /** Inline styles for the rendered `andes-accordion-item` (a style string or a property map). */
+  style?: string | Record<string, string | number>;
 }
 
 const TRIGGER_CONTROL_SELECTOR =
