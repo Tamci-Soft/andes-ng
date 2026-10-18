@@ -19,6 +19,7 @@ Established Angular component libraries release every package under one version,
 - **Merging into `main` publishes the final release.** The workflow looks up the verified candidate whose tree hash equals the tree of `main` (it fails otherwise), waits for approval in the `npm` environment, publishes `X.Y.Z` under `latest`, tags `vX.Y.Z` with its GitHub Release and opens the back-merge into `develop`. npm versions are immutable and carry their version inside the tarball, so the final release is a rebuild of the same tree, compared by file hash with the candidate.
 - **One publishing workflow.** npm trusted publishing accepts a single workflow file per package, so `release.yml` holds both the candidate and the final jobs. `rollback.yml` only moves dist-tags.
 - **Registry.** The public npm registry, scope `@andes-ng` (npmjs.com/org/andes-ng), with provenance. The first publish of each package uses `NPM_TOKEN`; afterwards each package gets a trusted publisher bound to `release.yml` and the token is kept only for the dist-tag changes of `rollback.yml`.
+- **Environments.** The candidate job runs in `npm-rc` (deployment branches `release/**` and `hotfix/**`, no approval); the final publish and the rollback run in `npm` (branch `main`, required reviewer).
 - **Switch.** The variable `ENABLE_ANDES_PUBLISH` must be `true` for anything to be published or tagged.
 
 ## Consequences

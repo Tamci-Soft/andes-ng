@@ -40,11 +40,4 @@ Create an ADR under `docs/adr` for decisions that affect package boundaries, the
 
 ## Releases
 
-The four npm packages (`tokens`, `primitives`, `ui`, `testing`) share one version and are published to the public npm registry under `@andes-ng` ([ADR 0009](../docs/adr/0009-lockstep-versions-and-release-candidates.md)). Add a version plan with `pnpm nx release plan` to any publishable change.
-
-1. **Cut the release.** Branch `release/X.Y.Z` from `develop` (a `hotfix/X.Y.Z` from `main` for an urgent fix) and run `pnpm release:prepare`: it writes the changelog from the version plans and removes them. Push the branch.
-2. **Candidate.** Every push to the branch runs CI, publishes `X.Y.Z-rc.N` under the `rc` dist-tag (try it with `npm i @andes-ng/ui@rc`), installs it from npm in an empty project and, if that passes, opens the pull request `release/X.Y.Z → main`. Fixes go on the same branch and produce the next candidate.
-3. **Final.** Merging that pull request into `main` (merge commit, not squash) asks for approval in the `npm` environment, publishes `X.Y.Z` under `latest`, tags `vX.Y.Z`, creates its GitHub Release and opens the back-merge into `develop`; merge that one too (merge commit).
-4. **Rollback.** Run the `Rollback` workflow with the earlier version to move `latest` back (and optionally deprecate the bad one), then fix forward with a `hotfix/X.Y.Z`.
-
-Publishing stays off until the repository variable `ENABLE_ANDES_PUBLISH` is `true`. One-time setup: the `@andes-ng` npm organization, the `NPM_TOKEN` secret (first publish and rollback), the `npm` environment with a required reviewer, the release GitHub App (`RELEASE_APP_ID` variable, `RELEASE_APP_PRIVATE_KEY` secret), and branch protection on `main` and `develop` requiring the `verify` check. After each package has been published once, add a trusted publisher for it on npmjs.com pointing at this repository and `release.yml`.
+The four npm packages (`tokens`, `primitives`, `ui`, `testing`) share one version and are published to the public npm registry under `@andes-ng`. Add a version plan with `pnpm nx release plan` to any publishable change. To release: create `release/X.Y.Z`, run `pnpm release:prepare`, push; release candidates are published automatically and the final version ships when the release pull request merges into `main`. The full guide, the settings and the decisions are in [docs/releasing.md](../docs/releasing.md).

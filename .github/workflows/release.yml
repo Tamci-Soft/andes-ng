@@ -125,9 +125,17 @@ jobs:
           echo "content_hash=$(.github/scripts/content-hash.sh)" >> "$GITHUB_OUTPUT"
           ./node_modules/.bin/nx release version "$CANDIDATE" --git-commit=false --git-tag=false --git-push=false
 
-      - name: Publish under the rc dist-tag (or reuse this candidate)
+      - name: Configure npm authentication
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > "$RUNNER_TEMP/.npmrc"
+            echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/.npmrc" >> "$GITHUB_ENV"
+          fi
+
+      - name: Publish under the rc dist-tag (or reuse this candidate)
+        env:
           NPM_CONFIG_PROVENANCE: true
           CANDIDATE: ${{ needs.prepare.outputs.candidate }}
         run: |
@@ -303,9 +311,17 @@ jobs:
           fi
           ./node_modules/.bin/nx release version "$VERSION" --git-commit=false --git-tag=false --git-push=false
 
-      - name: Publish under latest
+      - name: Configure npm authentication
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > "$RUNNER_TEMP/.npmrc"
+            echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/.npmrc" >> "$GITHUB_ENV"
+          fi
+
+      - name: Publish under latest
+        env:
           NPM_CONFIG_PROVENANCE: true
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
