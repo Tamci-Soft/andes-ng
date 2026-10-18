@@ -2,7 +2,9 @@ export {
   andesOverlayPreset,
   andesOverlayZIndex,
   ANDES_OVERLAY_BACKDROP_CLASS,
+  ANDES_OVERLAY_CLOSING_ATTRIBUTE,
   ANDES_OVERLAY_DEFAULT_CONFIG,
+  ANDES_OVERLAY_EXIT_TIMEOUT_MS,
   ANDES_OVERLAY_PANE_CLASS,
   ANDES_OVERLAY_PRESETS,
   ANDES_OVERLAY_SCRIM,
@@ -32,6 +34,9 @@ export {
   andesImpliedSize,
   createAndesPositionStrategy,
 } from './overlay-positioning';
+
+export { AndesOverlayInertRegistry } from './overlay-inert';
+export type { AndesOverlayInertHandle } from './overlay-inert';
 
 export {
   AndesOverlayPrimitive,
