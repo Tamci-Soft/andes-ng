@@ -59,7 +59,7 @@ export * from './lib/button';
 
 // @slot flex
 
-// @slot float-button
+export * from './lib/float-button';
 
 // @slot form-field
 
