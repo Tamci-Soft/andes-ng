@@ -1,0 +1,204 @@
+<ng-template #surface>
+  @if (step(); as current) {
+  <!-- The pane's only element child: the exit animation contract marks it as closing. -->
+  <div
+    class="andes-tour"
+    data-slot="tour"
+    [attr.data-ready]="ready() ? '' : null"
+    [attr.data-masked]="maskSetting().on ? '' : null"
+    [style.--andes-tour-mask-color]="maskColor()"
+    [style.--andes-tour-radius]="spotlightRadius"
+  >
+    @if (maskSetting().on) {
+    <!-- Four strips around the spotlight swallow clicks on the dimmed area; the hole
+             itself stays open only when the target is clickable. -->
+    <div class="andes-tour__mask" data-slot="tour-mask" aria-hidden="true">
+      @for (strip of strips(); track $index) {
+      <div
+        class="andes-tour__strip"
+        [style.left.px]="strip.left"
+        [style.top.px]="strip.top"
+        [style.width.px]="strip.width"
+        [style.height.px]="strip.height"
+        (click)="onMaskClick()"
+      ></div>
+      }
+      <div
+        class="andes-tour__spotlight"
+        data-slot="tour-spotlight"
+        [style.left.px]="maskBox().left"
+        [style.top.px]="maskBox().top"
+        [style.width.px]="maskBox().width"
+        [style.height.px]="maskBox().height"
+      ></div>
+      @if (spot() && !clickable()) {
+      <div
+        class="andes-tour__hole"
+        [style.left.px]="maskBox().left"
+        [style.top.px]="maskBox().top"
+        [style.width.px]="maskBox().width"
+        [style.height.px]="maskBox().height"
+      ></div>
+      }
+    </div>
+    } @else if (spot()) {
+    <div
+      class="andes-tour__ring"
+      data-slot="tour-spotlight"
+      aria-hidden="true"
+      [style.left.px]="maskBox().left"
+      [style.top.px]="maskBox().top"
+      [style.width.px]="maskBox().width"
+      [style.height.px]="maskBox().height"
+    ></div>
+    }
+
+    <div
+      #popup
+      class="andes-tour__popup"
+      andesOverlayContent
+      data-slot="tour-popup"
+      [attr.data-side]="layout().side"
+      [attr.data-type]="cardType()"
+      [attr.aria-label]="dialogLabel()"
+      [attr.aria-labelledby]="hasTitle() ? titleId : null"
+      [attr.aria-describedby]="hasDescription() ? descriptionId : null"
+      [style.transform]="'translate(' + layout().left + 'px, ' + layout().top + 'px)'"
+      [style.--andes-tour-arrow-offset.px]="layout().arrowOffset"
+    >
+      @if (cardArrow() && layout().side !== 'center') {
+      <span class="andes-tour__arrow" aria-hidden="true"></span>
+      } @if (coverUrl(); as url) {
+      <img
+        class="andes-tour__cover"
+        data-slot="tour-cover"
+        [attr.src]="url"
+        [attr.alt]="current.coverAlt ?? ''"
+      />
+      } @else if (coverTemplate(); as cover) {
+      <div class="andes-tour__cover" data-slot="tour-cover">
+        <ng-container
+          [ngTemplateOutlet]="cover"
+          [ngTemplateOutletContext]="stepContext()"
+        />
+      </div>
+      }
+
+      <!-- Takes the initial focus (tabindex -1), so a screen reader reads the card and
+             Tab starts from its first control. -->
+      <div class="andes-tour__body" tabindex="-1" cdkFocusInitial>
+        @if (showClose()) {
+        <button
+          type="button"
+          class="andes-tour__close"
+          data-slot="tour-close"
+          [attr.aria-label]="text().close"
+          (click)="onClose()"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+        } @if (hasTitle()) {
+        <h2
+          class="andes-tour__title"
+          data-slot="tour-title"
+          [attr.id]="titleId"
+        >
+          @if (titleTemplate(); as template) {
+          <ng-container
+            [ngTemplateOutlet]="template"
+            [ngTemplateOutletContext]="stepContext()"
+          />
+          } @else { {{ titleText() }} }
+        </h2>
+        } @if (hasDescription()) {
+        <div
+          class="andes-tour__description"
+          data-slot="tour-description"
+          [attr.id]="descriptionId"
+        >
+          @if (descriptionTemplate(); as template) {
+          <ng-container
+            [ngTemplateOutlet]="template"
+            [ngTemplateOutletContext]="stepContext()"
+          />
+          } @else { {{ descriptionText() }} }
+        </div>
+        }
+      </div>
+
+      <div class="andes-tour__footer" data-slot="tour-footer">
+        <div
+          class="andes-tour__progress"
+          data-slot="tour-indicators"
+          aria-hidden="true"
+        >
+          @if (indicatorsTemplate(); as template) {
+          <ng-container
+            [ngTemplateOutlet]="template"
+            [ngTemplateOutletContext]="indicatorsContext()"
+          />
+          } @else if (indicators() === 'count') {
+          <span class="andes-tour__count"
+            >{{ index() + 1 }} / {{ total() }}</span
+          >
+          } @else if (indicators() === 'dots') { @for (dot of dots(); track dot)
+          {
+          <span
+            class="andes-tour__dot"
+            [class.andes-tour__dot--active]="dot === index()"
+          ></span>
+          } }
+        </div>
+
+        <div class="andes-tour__actions">
+          @if (skipVisible()) {
+          <button
+            type="button"
+            class="andes-tour__button andes-tour__button--ghost"
+            data-slot="tour-skip"
+            (click)="onSkip()"
+          >
+            {{ text().skip }}
+          </button>
+          } @if (!previousButton().hidden) {
+          <button
+            type="button"
+            class="andes-tour__button andes-tour__button--secondary"
+            data-slot="tour-previous"
+            [disabled]="previousButton().disabled"
+            (click)="onPrevious()"
+          >
+            {{ previousButton().label }}
+          </button>
+          } @if (!nextButton().hidden) {
+          <button
+            type="button"
+            class="andes-tour__button andes-tour__button--primary"
+            data-slot="tour-next"
+            [attr.data-last]="isLast() ? '' : null"
+            [disabled]="nextButton().disabled"
+            (click)="onNext()"
+          >
+            {{ nextButton().label }}
+          </button>
+          }
+        </div>
+      </div>
+
+      <div class="andes-tour__sr" role="status" aria-live="polite">
+        {{ announcement() }}
+      </div>
+    </div>
+  </div>
+  }
+</ng-template>
