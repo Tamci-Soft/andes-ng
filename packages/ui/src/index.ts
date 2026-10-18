@@ -29,7 +29,7 @@ export * from './lib/button';
 
 // @slot carousel
 
-// @slot cascader
+export * from './lib/cascader';
 
 // @slot checkbox
 
