@@ -127,7 +127,7 @@ export * from './lib/button';
 
 // @slot statistic
 
-// @slot steps
+export * from './lib/steps';
 
 // @slot switch
 
