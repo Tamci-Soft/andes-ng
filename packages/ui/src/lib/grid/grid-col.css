@@ -1,0 +1,457 @@
+/*
+ * A column is a flex item sized from the row's width W and gutter g. In a 24-column row,
+ * N columns plus their N - 1 gutters span (W + g) * N / 24 - g, so the formula below is exact
+ * and two columns of 12 plus one gutter fill the row with nothing left over.
+ *
+ * Props arrive as custom properties (--andes-col-span, --andes-col-span-md, ...) written by the
+ * component; the media queries pick the one for the current width.
+ */
+
+:host {
+  /* A column nested in a column must not inherit the outer one's inputs. */
+  --andes-col-span: initial;
+  --andes-col-span-xs: initial;
+  --andes-col-span-sm: initial;
+  --andes-col-span-md: initial;
+  --andes-col-span-lg: initial;
+  --andes-col-span-xl: initial;
+  --andes-col-span-xxl: initial;
+  --andes-col-offset: initial;
+  --andes-col-offset-xs: initial;
+  --andes-col-offset-sm: initial;
+  --andes-col-offset-md: initial;
+  --andes-col-offset-lg: initial;
+  --andes-col-offset-xl: initial;
+  --andes-col-offset-xxl: initial;
+  --andes-col-order: initial;
+  --andes-col-order-xs: initial;
+  --andes-col-order-sm: initial;
+  --andes-col-order-md: initial;
+  --andes-col-order-lg: initial;
+  --andes-col-order-xl: initial;
+  --andes-col-order-xxl: initial;
+  --andes-col-push: initial;
+  --andes-col-push-xs: initial;
+  --andes-col-push-sm: initial;
+  --andes-col-push-md: initial;
+  --andes-col-push-lg: initial;
+  --andes-col-push-xl: initial;
+  --andes-col-push-xxl: initial;
+  --andes-col-pull: initial;
+  --andes-col-pull-xs: initial;
+  --andes-col-pull-sm: initial;
+  --andes-col-pull-md: initial;
+  --andes-col-pull-lg: initial;
+  --andes-col-pull-xl: initial;
+  --andes-col-pull-xxl: initial;
+  --andes-col-flex: initial;
+  --andes-col-flex-xs: initial;
+  --andes-col-flex-sm: initial;
+  --andes-col-flex-md: initial;
+  --andes-col-flex-lg: initial;
+  --andes-col-flex-xl: initial;
+  --andes-col-flex-xxl: initial;
+  --andes-col-display: initial;
+  --andes-col-display-xs: initial;
+  --andes-col-display-sm: initial;
+  --andes-col-display-md: initial;
+  --andes-col-display-lg: initial;
+  --andes-col-display-xl: initial;
+  --andes-col-display-xxl: initial;
+
+  --_span: var(--andes-col-span-xs, var(--andes-col-span));
+  --_offset: var(--andes-col-offset-xs, var(--andes-col-offset));
+  --_order: var(--andes-col-order-xs, var(--andes-col-order));
+  --_push: var(--andes-col-push-xs, var(--andes-col-push));
+  --_pull: var(--andes-col-pull-xs, var(--andes-col-pull));
+  --_flex: var(--andes-col-flex-xs, var(--andes-col-flex));
+  --_display: var(--andes-col-display-xs, var(--andes-col-display));
+
+  display: var(--_display, block);
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 1px;
+  flex: var(
+    --_flex,
+    0 0
+      calc(
+        (100% + var(--andes-grid-gutter-x, 0px)) * var(--_span) / 24 -
+          var(--andes-grid-gutter-x, 0px)
+      )
+  );
+  order: var(--_order);
+  margin-inline-start: calc(
+    (100% + var(--andes-grid-gutter-x, 0px)) * var(--_offset) / 24
+  );
+  inset-inline-start: calc(
+    (100% + var(--andes-grid-gutter-x, 0px)) * var(--_push) / 24
+  );
+  inset-inline-end: calc(
+    (100% + var(--andes-grid-gutter-x, 0px)) * var(--_pull) / 24
+  );
+}
+
+@media (min-width: 576px) {
+  :host {
+    --_span: var(
+      --andes-col-span-sm,
+      var(--andes-col-span-xs, var(--andes-col-span))
+    );
+    --_offset: var(
+      --andes-col-offset-sm,
+      var(--andes-col-offset-xs, var(--andes-col-offset))
+    );
+    --_order: var(
+      --andes-col-order-sm,
+      var(--andes-col-order-xs, var(--andes-col-order))
+    );
+    --_push: var(
+      --andes-col-push-sm,
+      var(--andes-col-push-xs, var(--andes-col-push))
+    );
+    --_pull: var(
+      --andes-col-pull-sm,
+      var(--andes-col-pull-xs, var(--andes-col-pull))
+    );
+    --_flex: var(
+      --andes-col-flex-sm,
+      var(--andes-col-flex-xs, var(--andes-col-flex))
+    );
+    --_display: var(
+      --andes-col-display-sm,
+      var(--andes-col-display-xs, var(--andes-col-display))
+    );
+  }
+}
+
+@media (min-width: 768px) {
+  :host {
+    --_span: var(
+      --andes-col-span-md,
+      var(--andes-col-span-sm, var(--andes-col-span-xs, var(--andes-col-span)))
+    );
+    --_offset: var(
+      --andes-col-offset-md,
+      var(
+        --andes-col-offset-sm,
+        var(--andes-col-offset-xs, var(--andes-col-offset))
+      )
+    );
+    --_order: var(
+      --andes-col-order-md,
+      var(
+        --andes-col-order-sm,
+        var(--andes-col-order-xs, var(--andes-col-order))
+      )
+    );
+    --_push: var(
+      --andes-col-push-md,
+      var(--andes-col-push-sm, var(--andes-col-push-xs, var(--andes-col-push)))
+    );
+    --_pull: var(
+      --andes-col-pull-md,
+      var(--andes-col-pull-sm, var(--andes-col-pull-xs, var(--andes-col-pull)))
+    );
+    --_flex: var(
+      --andes-col-flex-md,
+      var(--andes-col-flex-sm, var(--andes-col-flex-xs, var(--andes-col-flex)))
+    );
+    --_display: var(
+      --andes-col-display-md,
+      var(
+        --andes-col-display-sm,
+        var(--andes-col-display-xs, var(--andes-col-display))
+      )
+    );
+  }
+}
+
+@media (min-width: 992px) {
+  :host {
+    --_span: var(
+      --andes-col-span-lg,
+      var(
+        --andes-col-span-md,
+        var(
+          --andes-col-span-sm,
+          var(--andes-col-span-xs, var(--andes-col-span))
+        )
+      )
+    );
+    --_offset: var(
+      --andes-col-offset-lg,
+      var(
+        --andes-col-offset-md,
+        var(
+          --andes-col-offset-sm,
+          var(--andes-col-offset-xs, var(--andes-col-offset))
+        )
+      )
+    );
+    --_order: var(
+      --andes-col-order-lg,
+      var(
+        --andes-col-order-md,
+        var(
+          --andes-col-order-sm,
+          var(--andes-col-order-xs, var(--andes-col-order))
+        )
+      )
+    );
+    --_push: var(
+      --andes-col-push-lg,
+      var(
+        --andes-col-push-md,
+        var(
+          --andes-col-push-sm,
+          var(--andes-col-push-xs, var(--andes-col-push))
+        )
+      )
+    );
+    --_pull: var(
+      --andes-col-pull-lg,
+      var(
+        --andes-col-pull-md,
+        var(
+          --andes-col-pull-sm,
+          var(--andes-col-pull-xs, var(--andes-col-pull))
+        )
+      )
+    );
+    --_flex: var(
+      --andes-col-flex-lg,
+      var(
+        --andes-col-flex-md,
+        var(
+          --andes-col-flex-sm,
+          var(--andes-col-flex-xs, var(--andes-col-flex))
+        )
+      )
+    );
+    --_display: var(
+      --andes-col-display-lg,
+      var(
+        --andes-col-display-md,
+        var(
+          --andes-col-display-sm,
+          var(--andes-col-display-xs, var(--andes-col-display))
+        )
+      )
+    );
+  }
+}
+
+@media (min-width: 1200px) {
+  :host {
+    --_span: var(
+      --andes-col-span-xl,
+      var(
+        --andes-col-span-lg,
+        var(
+          --andes-col-span-md,
+          var(
+            --andes-col-span-sm,
+            var(--andes-col-span-xs, var(--andes-col-span))
+          )
+        )
+      )
+    );
+    --_offset: var(
+      --andes-col-offset-xl,
+      var(
+        --andes-col-offset-lg,
+        var(
+          --andes-col-offset-md,
+          var(
+            --andes-col-offset-sm,
+            var(--andes-col-offset-xs, var(--andes-col-offset))
+          )
+        )
+      )
+    );
+    --_order: var(
+      --andes-col-order-xl,
+      var(
+        --andes-col-order-lg,
+        var(
+          --andes-col-order-md,
+          var(
+            --andes-col-order-sm,
+            var(--andes-col-order-xs, var(--andes-col-order))
+          )
+        )
+      )
+    );
+    --_push: var(
+      --andes-col-push-xl,
+      var(
+        --andes-col-push-lg,
+        var(
+          --andes-col-push-md,
+          var(
+            --andes-col-push-sm,
+            var(--andes-col-push-xs, var(--andes-col-push))
+          )
+        )
+      )
+    );
+    --_pull: var(
+      --andes-col-pull-xl,
+      var(
+        --andes-col-pull-lg,
+        var(
+          --andes-col-pull-md,
+          var(
+            --andes-col-pull-sm,
+            var(--andes-col-pull-xs, var(--andes-col-pull))
+          )
+        )
+      )
+    );
+    --_flex: var(
+      --andes-col-flex-xl,
+      var(
+        --andes-col-flex-lg,
+        var(
+          --andes-col-flex-md,
+          var(
+            --andes-col-flex-sm,
+            var(--andes-col-flex-xs, var(--andes-col-flex))
+          )
+        )
+      )
+    );
+    --_display: var(
+      --andes-col-display-xl,
+      var(
+        --andes-col-display-lg,
+        var(
+          --andes-col-display-md,
+          var(
+            --andes-col-display-sm,
+            var(--andes-col-display-xs, var(--andes-col-display))
+          )
+        )
+      )
+    );
+  }
+}
+
+@media (min-width: 1600px) {
+  :host {
+    --_span: var(
+      --andes-col-span-xxl,
+      var(
+        --andes-col-span-xl,
+        var(
+          --andes-col-span-lg,
+          var(
+            --andes-col-span-md,
+            var(
+              --andes-col-span-sm,
+              var(--andes-col-span-xs, var(--andes-col-span))
+            )
+          )
+        )
+      )
+    );
+    --_offset: var(
+      --andes-col-offset-xxl,
+      var(
+        --andes-col-offset-xl,
+        var(
+          --andes-col-offset-lg,
+          var(
+            --andes-col-offset-md,
+            var(
+              --andes-col-offset-sm,
+              var(--andes-col-offset-xs, var(--andes-col-offset))
+            )
+          )
+        )
+      )
+    );
+    --_order: var(
+      --andes-col-order-xxl,
+      var(
+        --andes-col-order-xl,
+        var(
+          --andes-col-order-lg,
+          var(
+            --andes-col-order-md,
+            var(
+              --andes-col-order-sm,
+              var(--andes-col-order-xs, var(--andes-col-order))
+            )
+          )
+        )
+      )
+    );
+    --_push: var(
+      --andes-col-push-xxl,
+      var(
+        --andes-col-push-xl,
+        var(
+          --andes-col-push-lg,
+          var(
+            --andes-col-push-md,
+            var(
+              --andes-col-push-sm,
+              var(--andes-col-push-xs, var(--andes-col-push))
+            )
+          )
+        )
+      )
+    );
+    --_pull: var(
+      --andes-col-pull-xxl,
+      var(
+        --andes-col-pull-xl,
+        var(
+          --andes-col-pull-lg,
+          var(
+            --andes-col-pull-md,
+            var(
+              --andes-col-pull-sm,
+              var(--andes-col-pull-xs, var(--andes-col-pull))
+            )
+          )
+        )
+      )
+    );
+    --_flex: var(
+      --andes-col-flex-xxl,
+      var(
+        --andes-col-flex-xl,
+        var(
+          --andes-col-flex-lg,
+          var(
+            --andes-col-flex-md,
+            var(
+              --andes-col-flex-sm,
+              var(--andes-col-flex-xs, var(--andes-col-flex))
+            )
+          )
+        )
+      )
+    );
+    --_display: var(
+      --andes-col-display-xxl,
+      var(
+        --andes-col-display-xl,
+        var(
+          --andes-col-display-lg,
+          var(
+            --andes-col-display-md,
+            var(
+              --andes-col-display-sm,
+              var(--andes-col-display-xs, var(--andes-col-display))
+            )
+          )
+        )
+      )
+    );
+  }
+}
