@@ -159,4 +159,4 @@ export * from './lib/button';
 
 // @slot upload
 
-// @slot watermark
+export * from './lib/watermark';
