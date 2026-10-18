@@ -133,6 +133,7 @@ Not covered by the primitive and left to the components: the form-field wrapper'
 - `model()` cannot be written without emitting its `valueChange` output, so a form write also fires `valueChange` (it keeps a `[(value)]` binding next to a form control in sync). `commit()` and `onChange` are what tell a form about _user_ changes; use the component's own event output for user-only notifications.
 - `commit()` does not check `disabled`. Whether an interaction may happen at all is the component's call, since only it knows which interactions count.
 - Status updates need one change detection pass to attach. Reads before the first pass see the unbound defaults.
+
 ## Selection model
 
 `AndesSelectionModel<T>` and `AndesCheckedTree<T, K>` hold the selection state that lists, tables, trees, transfer panes, cascaders and multi-selects each used to re-implement. They are plain signal-based classes: no DOM, no injection context, no teardown. Create one in a component field and bind its signals in the template.
