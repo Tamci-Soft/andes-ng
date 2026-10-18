@@ -69,7 +69,7 @@ function optionalBoolean(value: unknown): boolean | undefined {
  * `minWidth`/`maxWidth`. The handle is a focusable `role="separator"`: Arrow
  * Left/Right resize by 10px (50px with Shift, mirrored in right-to-left), Home/End
  * jump to the limits, and Enter - like a double-click - fits the column to its
- * content. `width` sets a starting width (Ant's column `width`).
+ * content. `width` sets a starting width.
  *
  * Reordering: in a `reorderable` table a keyed, unpinned header in the `<thead>`
  * can be dragged sideways to a new position (a CDK drag inside the header's drop
