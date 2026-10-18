@@ -1,0 +1,70 @@
+@if (placeholderKind() !== 'none' && status() === 'loading') {
+<span
+  class="andes-image__placeholder"
+  data-slot="image-placeholder"
+  aria-hidden="true"
+  [class.andes-image__placeholder--skeleton]="placeholderKind() === 'skeleton'"
+>
+  @switch (placeholderKind()) { @case ('blur') { @if (placeholderSrc(); as
+  blurSrc) {
+  <img
+    class="andes-image__blur"
+    alt=""
+    [attr.src]="blurSrc"
+    [style.object-fit]="fit()"
+  />
+  } } @case ('template') { @if (placeholderTemplate(); as template) {
+  <ng-container [ngTemplateOutlet]="template" />
+  } } }
+</span>
+}
+
+<img
+  #img
+  class="andes-image__img"
+  data-slot="image-img"
+  [class.andes-image__img--pending]="status() === 'loading' && placeholderKind() !== 'none'"
+  [attr.src]="currentSrc() || null"
+  [attr.alt]="alt()"
+  [attr.srcset]="srcset() || null"
+  [attr.sizes]="sizes() || null"
+  [attr.loading]="loading()"
+  [attr.decoding]="decoding()"
+  [attr.crossorigin]="crossOrigin()"
+  [attr.referrerpolicy]="referrerPolicy()"
+  [style.object-fit]="fit()"
+  (load)="onLoad($event)"
+  (error)="onError($event)"
+/>
+
+@if (status() === 'error') {
+<span class="andes-image__error" data-slot="image-error" aria-hidden="true">
+  <andes-image-icon name="imageOff" />
+</span>
+} @if (canPreview()) {
+<button
+  #trigger
+  type="button"
+  class="andes-image__mask"
+  data-slot="image-mask"
+  aria-haspopup="dialog"
+  [class.andes-image__mask--bare]="!maskText() && !maskTemplate()"
+  [attr.aria-label]="triggerLabel()"
+  (click)="openPreview()"
+>
+  @if (maskTemplate(); as template) {
+  <ng-container [ngTemplateOutlet]="template" />
+  } @else if (maskText(); as label) {
+  <andes-image-icon name="eye" class="andes-image__mask-icon" />
+  <span class="andes-image__mask-text">{{ label }}</span>
+  }
+</button>
+} @if (!group && previewConfig()) {
+<andes-image-preview
+  [items]="standaloneItems()"
+  [config]="previewConfig()"
+  [labels]="labels()"
+  [(open)]="previewOpen"
+  (transformChange)="previewTransformChange.emit($event)"
+/>
+}
