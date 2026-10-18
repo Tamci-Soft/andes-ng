@@ -24,6 +24,16 @@ Only these prefixes are used, including for chore-type work — a `chore` commit
 `feature/<description>` branch, never a `chore/` branch. Every PR targets `develop`, never `main`
 directly, except `hotfix/*`.
 
+## Component pull requests
+
+Each component lives on its own `feature/<name>-component` branch and ships as its own pull request.
+
+- A component branch is `develop` plus that component's commits: no merge commits, no copies of other components.
+- Exports: the component owns `packages/ui/src/lib/<name>/index.ts` and replaces its `// @slot <name>` placeholder in `packages/ui/src/index.ts` with `export * from './lib/<name>';`. Placeholders are separated by blank lines, so component pull requests do not conflict with each other and merge in any order.
+- Stacked components (for example the context menu on the dropdown menu) are listed in `.github/component-stacks.txt`; their pull request targets the base branch until it is merged.
+- `.github/scripts/open-component-pr.sh feature/<name>-component` opens the pull request against the right base.
+- Merge with a merge commit, never a squash, so stacked branches keep their history.
+
 ## Component contract
 
 - Public names use the `Andes` class prefix and `andes` selector prefix.
