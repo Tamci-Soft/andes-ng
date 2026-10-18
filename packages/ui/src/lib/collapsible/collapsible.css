@@ -1,0 +1,23 @@
+/* Triggers are directives (so they can sit on any native element), which cannot carry styles of
+   their own: the element form and the focus ring of non-button triggers are styled from here. */
+:host {
+  display: block;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+:host ::ng-deep andes-collapsible-trigger {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+:host ::ng-deep [data-slot='collapsible-trigger'][data-disabled]:not(button) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+:host ::ng-deep [data-slot='collapsible-trigger']:not(button):focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 2px;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+}

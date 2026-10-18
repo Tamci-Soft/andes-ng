@@ -1,0 +1,47 @@
+/* Height animates through a grid row (0fr -> 1fr), which resolves to the content's real height
+   without measuring it. The inner box must be allowed to shrink to nothing (min-height: 0). */
+:host {
+  --_duration: var(
+    --andes-collapsible-duration,
+    var(--andes-motion-duration-slow, 200ms)
+  );
+  --_easing: var(
+    --andes-collapsible-easing,
+    var(--andes-motion-ease-in-out, ease-in-out)
+  );
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  font-family: var(--andes-font-family), sans-serif;
+  /* Hide from focus and assistive tech only once the collapse has played. */
+  transition:
+    grid-template-rows var(--_duration) var(--_easing),
+    visibility 0s linear var(--_duration);
+}
+
+:host([data-state='open']) {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--_duration) var(--_easing),
+    visibility 0s linear 0s;
+}
+
+.andes-collapsible-content__inner {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Once fully open nothing needs clipping, so focus rings and shadows of the content show. */
+:host([data-state='open']:not([data-animating]))
+  .andes-collapsible-content__inner {
+  overflow: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  :host([data-state='open']) {
+    transition: none;
+  }
+}
