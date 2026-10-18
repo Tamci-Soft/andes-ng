@@ -13,7 +13,7 @@ export * from './lib/accordion';
 
 // @slot anchor
 
-// @slot aspect-ratio
+export * from './lib/aspect-ratio';
 
 // @slot avatar
 
