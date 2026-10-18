@@ -1,0 +1,557 @@
+:host {
+  display: block;
+}
+
+.andes-upload {
+  --_andes-upload-card-size: var(--andes-upload-card-size, 6.375rem);
+  --_andes-upload-ease: var(
+    --andes-motion-ease-out,
+    cubic-bezier(0.2, 0, 0, 1)
+  );
+  --_andes-upload-duration: var(--andes-motion-duration-mid, 150ms);
+
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+.andes-upload--lg {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+/* ---------------------------------------------------------------- trigger */
+
+.andes-upload__select {
+  position: relative;
+  display: inline-flex;
+  max-inline-size: 100%;
+  cursor: pointer;
+}
+
+.andes-upload__select[hidden] {
+  display: none;
+}
+
+.andes-upload__select[data-disabled] {
+  cursor: not-allowed;
+}
+
+/* The real file input: invisible, but a normal focusable control with a name. */
+.andes-upload__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+
+.andes-upload__projected {
+  display: contents;
+}
+
+/* The content stands in for the whole control, so it shows the focus ring. */
+.andes-upload__select:has(.andes-upload__input:focus-visible) {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 2px;
+  border-radius: var(--andes-radius-md, 0.375rem);
+}
+
+.andes-upload__default {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  box-sizing: border-box;
+  block-size: var(--andes-control-height-md, 2rem);
+  padding-inline: var(--andes-control-padding-x-md, 0.75rem);
+  border: 1px solid var(--andes-color-input, #d1d5db);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background-color: var(--andes-color-background, #ffffff);
+  transition: border-color var(--_andes-upload-duration) ease;
+}
+
+.andes-upload--sm .andes-upload__default {
+  block-size: var(--andes-control-height-sm, 1.5rem);
+  padding-inline: var(--andes-control-padding-x-sm, 0.5rem);
+}
+
+.andes-upload--lg .andes-upload__default {
+  block-size: var(--andes-control-height-lg, 2.5rem);
+  padding-inline: var(--andes-control-padding-x-lg, 1rem);
+}
+
+.andes-upload__select:not([data-disabled]):hover .andes-upload__default {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 65%,
+    var(--andes-color-input, #d1d5db)
+  );
+}
+
+.andes-upload__select[data-disabled] .andes-upload__default {
+  background-color: var(--andes-color-muted, #f1f5f9);
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+/* --------------------------------------------------------------- dragger */
+
+.andes-upload__select--drag {
+  display: flex;
+  inline-size: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--andes-space-5, 1.25rem) var(--andes-space-4, 1rem);
+  border: 1px dashed var(--andes-color-border, #d1d5db);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-muted, #f1f5f9) 55%,
+    var(--andes-color-background, #ffffff)
+  );
+  text-align: center;
+  transition:
+    border-color var(--_andes-upload-duration) ease,
+    background-color var(--_andes-upload-duration) ease;
+}
+
+.andes-upload__select--drag:not([data-disabled]):hover,
+.andes-upload__select--drag[data-dragging] {
+  border-color: var(--andes-color-primary, #2563eb);
+}
+
+.andes-upload__select--drag[data-dragging] {
+  background-color: var(
+    --andes-color-primary-subtle,
+    color-mix(in srgb, var(--andes-color-primary, #2563eb) 8%, transparent)
+  );
+}
+
+.andes-upload__select--drag[data-disabled] {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-upload__select--invalid {
+  border-color: var(--andes-color-danger, #dc2626);
+}
+
+.andes-upload__drag {
+  display: grid;
+  justify-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+}
+
+.andes-upload__drag-icon {
+  display: inline-flex;
+  margin-block-end: var(--andes-space-1, 0.25rem);
+  font-size: 2rem;
+  color: var(--andes-color-primary-text, var(--andes-color-primary, #2563eb));
+}
+
+.andes-upload__select--drag[data-disabled] .andes-upload__drag-icon {
+  color: inherit;
+}
+
+.andes-upload__drag-title,
+.andes-upload__drag-hint {
+  margin: 0;
+}
+
+.andes-upload__drag-hint {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+/* ------------------------------------------------------------------ list */
+
+.andes-upload__list {
+  display: grid;
+  gap: var(--andes-space-1, 0.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.andes-upload__select + .andes-upload__list {
+  margin-block-start: var(--andes-space-2, 0.5rem);
+}
+
+.andes-upload__item {
+  position: relative;
+  min-inline-size: 0;
+}
+
+.andes-upload__row {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  min-block-size: 1.75rem;
+  padding: 0.125rem var(--andes-space-2, 0.5rem);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  transition: background-color var(--_andes-upload-duration) ease;
+}
+
+.andes-upload__item:hover .andes-upload__row {
+  background-color: var(--andes-color-accent, #f3f4f6);
+}
+
+.andes-upload__thumb {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-upload__img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.andes-upload__meta {
+  display: flex;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  align-items: baseline;
+  gap: var(--andes-space-2, 0.5rem);
+}
+
+.andes-upload__name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+}
+
+.andes-upload__name--link:hover {
+  color: var(--andes-color-primary-text, var(--andes-color-primary, #2563eb));
+  text-decoration: underline;
+}
+
+.andes-upload__name--link:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 2px;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+}
+
+.andes-upload__caption,
+.andes-upload__error {
+  flex: none;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-upload__error {
+  color: var(--andes-color-danger-text, var(--andes-color-danger, #dc2626));
+}
+
+.andes-upload__actions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.andes-upload__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background: transparent;
+  color: var(--andes-color-muted-foreground, #64748b);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color var(--_andes-upload-duration) ease,
+    background-color var(--_andes-upload-duration) ease;
+}
+
+.andes-upload__action:hover {
+  background-color: var(--andes-color-accent-hover, #e5e7eb);
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+.andes-upload__action:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 1px;
+}
+
+/* Error rows: the name and icon take the danger colour. */
+.andes-upload__item[data-status='error'] .andes-upload__thumb,
+.andes-upload__item[data-status='error'] .andes-upload__name {
+  color: var(--andes-color-danger-text, var(--andes-color-danger, #dc2626));
+}
+
+/* -------------------------------------------------------------- progress */
+
+.andes-upload__progress {
+  position: relative;
+  block-size: 4px;
+  margin-block-start: 2px;
+  margin-inline: var(--andes-space-2, 0.5rem);
+  overflow: hidden;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-color-secondary, #e5e7eb);
+}
+
+.andes-upload__progress-bar {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background-color: var(--andes-color-primary, #2563eb);
+  transition: inline-size 200ms var(--_andes-upload-ease);
+}
+
+/* --------------------------------------------------------- picture list */
+
+/* Short selectors on purpose: a selector wrapped onto a line that starts with a combinator
+   is not rewritten correctly by the emulated encapsulation. Layout is keyed off root and row
+   modifier classes instead of long descendant chains. */
+
+.andes-upload__row--boxed {
+  border: 1px solid var(--andes-color-border, #d1d5db);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: var(--andes-color-background, #ffffff);
+}
+
+.andes-upload__item:hover .andes-upload__row--boxed {
+  background-color: var(--andes-color-background, #ffffff);
+}
+
+.andes-upload__item[data-status='error'] .andes-upload__row--boxed {
+  border-color: var(--andes-color-danger, #dc2626);
+}
+
+.andes-upload__item[data-status='uploading'] .andes-upload__row--boxed {
+  border-style: dashed;
+}
+
+.andes-upload--picture .andes-upload__row {
+  min-block-size: 4rem;
+  padding: var(--andes-space-2, 0.5rem);
+  gap: var(--andes-space-3, 0.75rem);
+}
+
+.andes-upload--picture .andes-upload__thumb {
+  inline-size: 3rem;
+  block-size: 3rem;
+  overflow: hidden;
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background-color: var(--andes-color-muted, #f1f5f9);
+  font-size: 1.5rem;
+}
+
+.andes-upload--picture .andes-upload__meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.andes-upload--picture .andes-upload__progress {
+  margin-inline: 0;
+  margin-block-start: -0.375rem;
+}
+
+/* ----------------------------------------------------------------- cards */
+
+.andes-upload__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--andes-space-2, 0.5rem);
+}
+
+.andes-upload--card .andes-upload__list {
+  display: contents;
+}
+
+.andes-upload--card .andes-upload__item {
+  inline-size: var(--_andes-upload-card-size);
+  block-size: var(--_andes-upload-card-size);
+}
+
+.andes-upload__select--card {
+  box-sizing: border-box;
+  inline-size: var(--_andes-upload-card-size);
+  block-size: var(--_andes-upload-card-size);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--andes-space-1, 0.25rem);
+  border: 1px dashed var(--andes-color-border, #d1d5db);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-muted, #f1f5f9) 55%,
+    var(--andes-color-background, #ffffff)
+  );
+  color: var(--andes-color-muted-foreground, #64748b);
+  text-align: center;
+  transition: border-color var(--_andes-upload-duration) ease;
+}
+
+.andes-upload__select--card:not([data-disabled]):hover {
+  border-color: var(--andes-color-primary, #2563eb);
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+.andes-upload__select--card[data-circle] {
+  border-radius: var(--andes-radius-full, 9999px);
+}
+
+.andes-upload--card .andes-upload__row {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--andes-space-1, 0.25rem);
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.andes-upload--circle .andes-upload__row {
+  border-radius: var(--andes-radius-full, 9999px);
+}
+
+.andes-upload--card .andes-upload__thumb {
+  position: absolute;
+  inset: var(--andes-space-1, 0.25rem);
+  border-radius: calc(var(--andes-radius-lg, 0.5rem) - 2px);
+  overflow: hidden;
+  font-size: 1.5rem;
+}
+
+.andes-upload--circle .andes-upload__thumb {
+  border-radius: var(--andes-radius-full, 9999px);
+}
+
+/* A file without a picture: the icon rides at the top, the name and size sit below it. */
+.andes-upload--card .andes-upload__thumb:not(.andes-upload__thumb--picture) {
+  align-items: flex-start;
+  padding-block-start: 0.75rem;
+  box-sizing: border-box;
+  background-color: var(--andes-color-muted, #f1f5f9);
+}
+
+/* The name and caption sit under the file icon; with a picture they are only read out. */
+.andes-upload--card .andes-upload__meta {
+  position: relative;
+  z-index: 1;
+  flex-direction: column;
+  align-items: center;
+  inline-size: 100%;
+  min-inline-size: 0;
+  box-sizing: border-box;
+  padding-inline: var(--andes-space-1, 0.25rem);
+  margin-block-start: 3rem;
+  gap: 0;
+  text-align: center;
+}
+
+.andes-upload--card .andes-upload__name {
+  max-inline-size: 100%;
+}
+
+.andes-upload__meta--sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.andes-upload--card .andes-upload__actions {
+  position: absolute;
+  inset: var(--andes-space-1, 0.25rem);
+  z-index: 2;
+  justify-content: center;
+  border-radius: inherit;
+  background-color: var(--andes-color-overlay, rgb(15 23 42 / 45%));
+  opacity: 0;
+  transition: opacity var(--_andes-upload-duration) ease;
+}
+
+.andes-upload--card .andes-upload__item:hover .andes-upload__actions,
+.andes-upload--card .andes-upload__item:focus-within .andes-upload__actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .andes-upload--card .andes-upload__actions {
+    opacity: 1;
+  }
+}
+
+.andes-upload--card .andes-upload__action {
+  color: #ffffff;
+}
+
+.andes-upload--card .andes-upload__action:hover {
+  background-color: rgb(255 255 255 / 20%);
+  color: #ffffff;
+}
+
+.andes-upload--card .andes-upload__action:focus-visible {
+  outline-color: #ffffff;
+}
+
+.andes-upload--card .andes-upload__progress {
+  position: absolute;
+  inset-inline: var(--andes-space-3, 0.75rem);
+  inset-block-end: var(--andes-space-3, 0.75rem);
+  z-index: 3;
+  margin: 0;
+}
+
+.andes-upload--card .andes-upload__actions--busy {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- misc */
+
+.andes-upload--disabled .andes-upload__name,
+.andes-upload--disabled .andes-upload__row {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-upload__live {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-upload__default,
+  .andes-upload__select--drag,
+  .andes-upload__select--card,
+  .andes-upload__row,
+  .andes-upload__action,
+  .andes-upload__actions,
+  .andes-upload__progress-bar {
+    transition: none;
+  }
+}
