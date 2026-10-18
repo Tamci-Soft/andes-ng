@@ -95,31 +95,29 @@
   >
     {{ action.label }}
   </button>
+  } @if (toast().dismissible) {
+  <button
+    type="button"
+    class="andes-toast__close"
+    [attr.aria-label]="closeLabel()"
+    (click)="dismissRequested.emit()"
+  >
+    @if (toast().closeIcon; as closeIcon) {
+    <span class="andes-toast__close-icon" aria-hidden="true">
+      <ng-container *ngTemplateOutlet="closeIcon; context: iconContext()" />
+    </span>
+    } @else {
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <path d="M6 6 18 18M18 6 6 18" />
+    </svg>
+    }
+  </button>
   }
 </div>
-
-@if (toast().dismissible) {
-<button
-  type="button"
-  class="andes-toast__close"
-  [attr.aria-label]="closeLabel()"
-  (click)="dismissRequested.emit()"
->
-  @if (toast().closeIcon; as closeIcon) {
-  <span class="andes-toast__close-icon" aria-hidden="true">
-    <ng-container *ngTemplateOutlet="closeIcon; context: iconContext()" />
-  </span>
-  } @else {
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2.5"
-    stroke-linecap="round"
-    aria-hidden="true"
-  >
-    <path d="M6 6 18 18M18 6 6 18" />
-  </svg>
-  }
-</button>
-}
