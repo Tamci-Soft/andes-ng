@@ -1,0 +1,47 @@
+<ul class="andes-nav-menu__list" role="list">
+  <ng-content />
+</ul>
+
+<ng-template #viewport>
+  <div
+    class="andes-nav-menu__viewport"
+    role="presentation"
+    #viewportEl
+    [attr.data-menu]="instanceId"
+    (pointerenter)="panelPointerEntered()"
+    (pointerleave)="panelPointerLeft()"
+    (keydown)="panelKeydown($event)"
+    (focusout)="focusLeft($event)"
+  >
+    @if (indicator()) {
+    <span
+      class="andes-nav-menu__arrow"
+      aria-hidden="true"
+      [style.left.px]="arrowX()"
+    ></span>
+    }
+    <div
+      class="andes-nav-menu__panel"
+      #panelEl
+      [attr.data-instant]="instant() ? '' : null"
+      [style.width.px]="size()?.width ?? null"
+      [style.height.px]="size()?.height ?? null"
+    >
+      @for (item of activeItems(); track item.key()) { @if (item.content(); as
+      panel) {
+      <div
+        class="andes-nav-menu__content"
+        #contentEl
+        role="group"
+        [id]="panelId(item.key())"
+        [attr.aria-labelledby]="item.trigger()?.id || null"
+        [attr.data-motion]="motion()"
+        [style.--andes-nav-menu-columns]="panel.columns()"
+        [style.width]="panel.width()"
+      >
+        <ng-container [ngTemplateOutlet]="panel.template() ?? null" />
+      </div>
+      } }
+    </div>
+  </div>
+</ng-template>
