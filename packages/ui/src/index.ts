@@ -145,7 +145,7 @@ export * from './lib/button';
 
 // @slot toggle
 
-// @slot tooltip
+export * from './lib/tooltip';
 
 // @slot tour
 
