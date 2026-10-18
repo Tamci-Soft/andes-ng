@@ -31,7 +31,7 @@ export * from './lib/button';
 
 // @slot cascader
 
-// @slot checkbox
+export * from './lib/checkbox';
 
 // @slot collapsible
 
