@@ -1,4 +1,5 @@
 export { AndesButtonPrimitive } from './lib/button-primitive';
+export * from './lib/overlay';
 export {
   ANDES_LIST_TYPEAHEAD_DEBOUNCE,
   AndesListNavigation,
