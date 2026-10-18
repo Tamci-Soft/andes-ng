@@ -67,7 +67,7 @@ export * from './lib/button';
 
 // @slot hover-card
 
-// @slot image
+export * from './lib/image';
 
 // @slot input
 
