@@ -1,0 +1,45 @@
+@if (hasOpposite()) {
+<div class="andes-timeline-item__label">
+  @if (time() !== undefined) {
+  <time [attr.datetime]="isoTime()">
+    @if (labelTemplate(); as template) {
+    <ng-container *ngTemplateOutlet="template" />
+    } @else {{{ labelText() || time() }}}
+  </time>
+  } @else if (labelTemplate(); as template) {
+  <ng-container *ngTemplateOutlet="template" />
+  } @else {{{ labelText() }}}
+</div>
+}
+<div class="andes-timeline-item__axis" aria-hidden="true">
+  <span class="andes-timeline-item__marker">
+    @if (dot(); as template) {
+    <ng-container *ngTemplateOutlet="template" />
+    } @else if (pending()) {
+    <svg
+      class="andes-timeline-item__spinner"
+      viewBox="0 0 24 24"
+      focusable="false"
+    >
+      <circle
+        class="andes-timeline-item__spinner-track"
+        cx="12"
+        cy="12"
+        r="9"
+      />
+      <circle class="andes-timeline-item__spinner-arc" cx="12" cy="12" r="9" />
+    </svg>
+    } @else {
+    <span class="andes-timeline-item__dot"></span>
+    }
+  </span>
+  @if (!isLast()) {
+  <span class="andes-timeline-item__tail"></span>
+  }
+</div>
+<div class="andes-timeline-item__content">
+  @if (dotLabel(); as text) {
+  <span class="andes-timeline-item__sr">{{ text }}: </span>
+  }
+  <ng-content />
+</div>
