@@ -357,9 +357,8 @@ describe('AndesAccordion / AndesAccordionItem / AndesAccordionTrigger / AndesAcc
   });
 
   describe('keyboard behavior (no roving tabindex/arrow-key navigation)', () => {
-    // Base UI's own docs (the primitive backing shadcn's Accordion) explicitly state that
-    // roving-tabindex/arrow-key navigation between headers was deprecated for Accordion,
-    // unlike Tabs, which still uses it. Every trigger below is therefore a normal, independently
+    // Roving-tabindex/arrow-key navigation between headers is deprecated for accordions,
+    // unlike tabs, which still use it. Every trigger below is therefore a normal, independently
     // focusable <button> - this suite is a regression guard against ever copying the Tabs
     // roving-tabindex pattern onto this component "for consistency".
 

@@ -1,8 +1,8 @@
 /* CSS-only expand/collapse: animating a `grid-template-rows` fraction from `0fr` to `1fr` lets
    the panel transition to its real, dynamic content height without ever measuring it in JS (the
    classic "animate to height: auto" problem). This is a lighter-weight approach than a full
-   starting/ending-style animation-phase state machine (what Base UI itself builds internally,
-   via `data-starting-style`/`data-ending-style` and `--accordion-panel-height`) - sufficient
+   starting/ending-style animation-phase state machine (driven by `data-starting-style` /
+   `data-ending-style` attributes and a panel-height custom property) - sufficient
    here since andes-ng has no shared motion-phase primitive yet; a reusable state machine for
    this class of problem (relevant to more than just Accordion) is flagged as future work,
    matching the research notes for this component. */
