@@ -506,13 +506,25 @@ class FilterPanelDemo {
     if (!query) {
       return [{ text, match: false }];
     }
-    const parts = text.split(new RegExp(`(${escapeRegExp(query)})`, 'i'));
-    return parts
-      .filter((part) => part !== '')
-      .map((part) => ({
-        text: part,
-        match: part.toLowerCase() === query.toLowerCase(),
-      }));
+    const haystack = text.toLowerCase();
+    const needle = query.toLowerCase();
+    const parts: { text: string; match: boolean }[] = [];
+    let from = 0;
+    for (;;) {
+      const at = haystack.indexOf(needle, from);
+      if (at < 0) {
+        break;
+      }
+      if (at > from) {
+        parts.push({ text: text.slice(from, at), match: false });
+      }
+      parts.push({ text: text.slice(at, at + needle.length), match: true });
+      from = at + needle.length;
+    }
+    if (from < text.length) {
+      parts.push({ text: text.slice(from), match: false });
+    }
+    return parts;
   }
 
   /** Focus the panel's input once it is open. */
@@ -527,10 +539,6 @@ class FilterPanelDemo {
   private matches(value: AndesFilterValue, text: string): boolean {
     return text.toLowerCase().includes(String(value).toLowerCase());
   }
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
