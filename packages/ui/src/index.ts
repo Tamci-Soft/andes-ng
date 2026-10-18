@@ -137,7 +137,7 @@ export * from './lib/button';
 
 // @slot tag
 
-// @slot textarea
+export * from './lib/textarea';
 
 // @slot timeline
 
