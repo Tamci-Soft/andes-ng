@@ -6,6 +6,8 @@
   [showArrow]="item.showArrow ?? true"
   [forceRender]="item.forceRender ?? false"
   [headingLevel]="item.headingLevel"
+  [class]="item.class"
+  [style]="item.style"
 >
   <andes-accordion-trigger [extra]="item.extra">
     @if (isTemplate(item.label)) {
