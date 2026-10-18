@@ -42,6 +42,7 @@ const ROWS: readonly Row[] = [
   template: `<andes-table
     [(sort)]="sort"
     [bordered]="bordered()"
+    [framed]="framed()"
     [density]="density()"
     [rowHover]="rowHover()"
     [captionSide]="captionSide()"
@@ -78,6 +79,7 @@ class HostComponent {
   readonly rows = signal<readonly Row[]>(ROWS);
   readonly sort = signal<AndesSortState | null>(null);
   readonly bordered = signal(false);
+  readonly framed = signal(true);
   readonly density = signal<AndesTableDensity>('default');
   readonly rowHover = signal(true);
   readonly captionSide = signal<AndesTableCaptionSide>('bottom');
@@ -245,19 +247,33 @@ describe('AndesTable', () => {
       expect(table.classList).not.toContain('andes-table--hoverable');
     });
 
-    it('draws the rounded bordered frame on the container, not the collapsed table', () => {
+    it('frames the table in a rounded container by default, and keeps the grid lines for bordered', () => {
       const { fixture, table } = createHost();
       const container = table.closest('.andes-table__container') as HTMLElement;
 
+      expect(container.classList).toContain('andes-table__container--framed');
       expect(container.classList).not.toContain(
         'andes-table__container--bordered',
       );
+      expect(table.classList).not.toContain('andes-table--bordered');
 
       fixture.componentInstance.bordered.set(true);
       fixture.detectChanges();
 
+      expect(container.classList).toContain('andes-table__container--framed');
       expect(container.classList).toContain('andes-table__container--bordered');
       expect(table.classList).toContain('andes-table--bordered');
+    });
+
+    it('drops the frame when framed is off', () => {
+      const { fixture, table } = createHost();
+      const container = table.closest('.andes-table__container') as HTMLElement;
+      fixture.componentInstance.framed.set(false);
+      fixture.detectChanges();
+
+      expect(container.classList).not.toContain(
+        'andes-table__container--framed',
+      );
     });
 
     it('applies the alignment class to matching headers and cells', () => {

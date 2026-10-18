@@ -912,6 +912,7 @@ describe('AndesTable layout and states', () => {
     template: `<andes-table
       [loading]="loading()"
       [bordered]="bordered()"
+      [framed]="framed()"
       loadingLabel="Fetching invoices"
       [scrollX]="scrollX()"
       [scrollY]="scrollY()"
@@ -952,6 +953,7 @@ describe('AndesTable layout and states', () => {
     readonly rows = signal<readonly Row[]>(ROWS);
     readonly loading = signal(false);
     readonly bordered = signal(false);
+    readonly framed = signal(true);
     readonly scrollX = signal<string | number | undefined>(undefined);
     readonly scrollY = signal<string | number | undefined>(undefined);
     readonly layout = signal<'auto' | 'fixed'>('auto');
@@ -986,19 +988,19 @@ describe('AndesTable layout and states', () => {
     expect(status.textContent?.trim()).toBe('Fetching invoices');
   });
 
-  it('rounds the loading overlay with the frame of a bordered table', () => {
+  it('rounds the loading overlay with the frame of the table', () => {
     const { fixture, host, root } = setup();
     host.loading.set(true);
     fixture.detectChanges();
     const overlay = () =>
       root.querySelector('.andes-table__loading') as HTMLElement;
 
-    expect(overlay().classList).not.toContain('andes-table__loading--bordered');
+    expect(overlay().classList).toContain('andes-table__loading--framed');
 
-    host.bordered.set(true);
+    host.framed.set(false);
     fixture.detectChanges();
 
-    expect(overlay().classList).toContain('andes-table__loading--bordered');
+    expect(overlay().classList).not.toContain('andes-table__loading--framed');
   });
 
   it('renders the default empty state, or projected text', () => {
