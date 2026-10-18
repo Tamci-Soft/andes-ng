@@ -114,7 +114,10 @@ jobs:
           cache: true
 
       - run: pnpm install --frozen-lockfile
-      - run: npm i -g npm@^11.5.1
+      - name: Use npm 11
+        run: |
+          npm install --prefix "$RUNNER_TEMP/npm" --no-audit --no-fund npm@^11.5.1
+          echo "$RUNNER_TEMP/npm/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Build once and set the candidate version
         id: build
@@ -297,7 +300,10 @@ jobs:
           cache: true
 
       - run: pnpm install --frozen-lockfile
-      - run: npm i -g npm@^11.5.1
+      - name: Use npm 11
+        run: |
+          npm install --prefix "$RUNNER_TEMP/npm" --no-audit --no-fund npm@^11.5.1
+          echo "$RUNNER_TEMP/npm/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Rebuild and confirm it matches the candidate
         env:
