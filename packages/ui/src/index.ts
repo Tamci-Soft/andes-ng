@@ -129,7 +129,7 @@ export * from './lib/button';
 
 // @slot steps
 
-// @slot switch
+export * from './lib/switch';
 
 // @slot table
 
