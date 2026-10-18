@@ -51,7 +51,7 @@ export * from './lib/button';
 
 // @slot divider
 
-// @slot drawer
+export * from './lib/drawer';
 
 // @slot dropdown-menu
 
@@ -113,7 +113,7 @@ export * from './lib/button';
 
 // @slot select
 
-// @slot sheet
+export * from './lib/sheet';
 
 // @slot skeleton
 
