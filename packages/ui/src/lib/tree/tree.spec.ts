@@ -1625,6 +1625,13 @@ describe('AndesTree', () => {
       expect(css).toMatch(/\[data-density='compact'\]\s*{\s*--_gap: 0rem/);
     });
 
+    it('fills a selected directory row with a rounded pseudo-element, not a clipped background', () => {
+      expect(css).not.toContain('background-clip: content-box');
+      expect(css).toMatch(
+        /\[data-directory\] \.andes-tree__row\[data-selected\]::before\s*{[^}]*inset: 0 0 var\(--_gap\);[^}]*border-radius: var\(--andes-radius-md/,
+      );
+    });
+
     it('animates a branch open and shut between 150ms and 200ms, without bounce', () => {
       expect(css).toContain('grid-template-rows: 0fr');
       expect(css).toMatch(

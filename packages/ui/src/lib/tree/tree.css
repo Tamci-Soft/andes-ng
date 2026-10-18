@@ -319,11 +319,22 @@
 
 /* Directory: rows are the highlight, and a selected row is solid. */
 
+/* prettier-ignore */
 .andes-tree[data-directory] .andes-tree__row[data-selected] {
+  isolation: isolate;
+  color: var(--andes-color-primary-foreground, #fff);
+}
+
+/* The fill is a pseudo-element that stops above the row's bottom gap. Clipping the row's own
+   background to its content box would cut the fill square at the bottom. */
+/* prettier-ignore */
+.andes-tree[data-directory] .andes-tree__row[data-selected]::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 var(--_gap);
   border-radius: var(--andes-radius-md, 0.375rem);
   background-color: var(--andes-color-primary, #2563eb);
-  background-clip: content-box;
-  color: var(--andes-color-primary-foreground, #fff);
+  content: '';
 }
 
 /* prettier-ignore */
