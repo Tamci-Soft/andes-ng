@@ -70,8 +70,8 @@ const TRIGGER_CONTROL_SELECTOR =
  *
  * Keyboard: every trigger is a native `<button>` in the natural tab order (Enter/Space toggle).
  * Arrow-key focus movement between triggers is the WAI-ARIA APG's *optional* accordion
- * keyboard support and is opt-in via `arrowNavigation` - Base UI (behind shadcn) dropped it
- * following the APG update, so it stays off by default. Even when on, it never manages
+ * keyboard support and is opt-in via `arrowNavigation` - current guidance dropped it, so it
+ * stays off by default. Even when on, it never manages
  * `tabindex` (no roving focus): Tab still visits every trigger.
  */
 @Component({
@@ -99,8 +99,7 @@ export class AndesAccordion {
   protected readonly state = inject(AndesAccordionState);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** Whether one (`'single'`) or several (`'multiple'`) panels can be open at once -
-   *  named after shadcn's historical `type` prop. */
+  /** Whether one (`'single'`) or several (`'multiple'`) panels can be open at once. */
   readonly type = input<AndesAccordionType>('single');
   readonly disabled = input(false, { transform: booleanAttribute });
   /** Values of the open items. In `single` mode only the first key is honored. */

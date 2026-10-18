@@ -17,8 +17,7 @@ import {
 /**
  * The clickable header for one accordion item. Renders a native heading (`<h3>` unless the root or
  * item sets `headingLevel`) wrapping a native
- * `<button>` - the same structural choice shadcn's Base UI-backed implementation makes
- * (`Accordion.Header` wrapping `Accordion.Trigger`) - so the trigger is a real, natively
+ * `<button>` - a header element wrapping the trigger - so the trigger is a real, natively
  * focusable and activatable control (Enter/Space for free), and `aria-expanded`/`aria-controls`
  * are wired explicitly onto it rather than assumed.
  *
