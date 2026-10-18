@@ -1,0 +1,120 @@
+/*
+ * The command dialog. The overlay creates the pane, its wrapper and the scrim outside this
+ * component's view, so these rules are not scoped to it and every class is namespaced.
+ */
+
+/* A palette sits toward the top of the screen, not in the middle: its height changes with every
+   keystroke, and a centred box would jump up and down as the list shrinks. The overlay centres
+   it with inline styles on the wrapper, hence the !important. */
+.cdk-global-overlay-wrapper:has(> .andes-command-pane) {
+  box-sizing: border-box;
+  align-items: flex-start !important;
+  padding-block-start: var(--andes-command-dialog-top, 15vh);
+}
+
+.andes-command-dialog {
+  /* The dialog draws the edge and the elevation; the command inside only fills it. */
+  --andes-command-border: 0;
+  --andes-command-radius: 0;
+
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--andes-color-border, #e2e8f0);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: var(--andes-color-popover, #fff);
+  color: var(--andes-color-popover-foreground, #0f172a);
+  box-shadow: var(
+    --andes-shadow-lg,
+    0 10px 15px -3px rgb(15 23 42 / 18%),
+    0 4px 6px -4px rgb(15 23 42 / 22%)
+  );
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  outline: none;
+  animation: andes-command-dialog-in var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* The CDK's stylesheet fades every scrim over 400ms; matching the surface's own 150ms lands the
+   two together. Scoped to this dialog's class, so no other overlay's timing changes. */
+.andes-command-backdrop {
+  transition-duration: var(--andes-motion-duration-mid, 150ms);
+  transition-timing-function: var(
+    --andes-motion-ease-out,
+    cubic-bezier(0.2, 0, 0, 1)
+  );
+}
+
+/* Exit: while the overlay plays a close it marks the surface (a direct child of the pane) and
+   the scrim data-andes-closing and waits for the animations below before detaching; where it
+   does not, the attribute never appears and the close is instant. The entry in reverse - a fade
+   and a settle back to 0.97 - quicker and accelerating away; `forwards` holds the last frame. */
+.andes-command-dialog[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-command-dialog-out var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, ease-in) forwards;
+}
+
+.andes-command-backdrop[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-command-scrim-out var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, ease-in) forwards;
+}
+
+@keyframes andes-command-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes andes-command-dialog-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes andes-command-scrim-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: no scale, a plain fade in, and no exit at all (it closes at once). */
+@media (prefers-reduced-motion: reduce) {
+  .andes-command-dialog {
+    animation-name: andes-command-dialog-fade;
+  }
+
+  .andes-command-dialog[data-andes-closing],
+  .andes-command-backdrop[data-andes-closing] {
+    animation: none;
+  }
+
+  .andes-command-backdrop {
+    transition: none;
+  }
+}
+
+@keyframes andes-command-dialog-fade {
+  from {
+    opacity: 0;
+  }
+}

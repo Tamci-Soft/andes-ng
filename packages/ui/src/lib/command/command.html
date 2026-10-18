@@ -1,0 +1,156 @@
+<div class="andes-command" data-slot="command">
+  @if (pages().length > 0) {
+  <div class="andes-command__pages" data-slot="command-pages">
+    <button
+      type="button"
+      class="andes-command__back"
+      [attr.aria-label]="backLabel()"
+      (mousedown)="$event.preventDefault()"
+      (click)="goBack()"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+    </button>
+    <ol class="andes-command__crumbs">
+      @for (page of pages(); track $index) {
+      <li
+        class="andes-command__crumb"
+        [attr.aria-current]="$last ? 'page' : null"
+      >
+        {{ page.label ?? page.value }}
+      </li>
+      }
+    </ol>
+  </div>
+  }
+
+  <div class="andes-command__field" data-slot="command-input">
+    <svg
+      class="andes-command__search-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+    <input
+      #input
+      class="andes-command__input"
+      type="text"
+      role="combobox"
+      aria-expanded="true"
+      aria-autocomplete="list"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      [attr.aria-controls]="listId"
+      [attr.aria-activedescendant]="activeDescendantId()"
+      [attr.aria-label]="label()"
+      [attr.placeholder]="placeholderText()"
+      [value]="search()"
+      (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
+    />
+  </div>
+
+  <div
+    #list
+    class="andes-command__list"
+    role="listbox"
+    data-slot="command-list"
+    [id]="listId"
+    [attr.aria-label]="label()"
+    [attr.aria-busy]="loading() ? 'true' : null"
+    [hidden]="!hasItems()"
+  >
+    @for (row of rows(); track row.key) { @if (row.kind === 'group') {
+    <div
+      class="andes-command__group"
+      role="group"
+      [attr.aria-labelledby]="row.headingId"
+    >
+      <div
+        class="andes-command__heading"
+        role="presentation"
+        [id]="row.headingId"
+      >
+        {{ row.heading }}
+      </div>
+      @for (child of row.items; track child.key) {
+      <ng-container
+        *ngTemplateOutlet="itemRow; context: { $implicit: child }"
+      />
+      }
+    </div>
+    } @else if (row.kind === 'separator') {
+    <div class="andes-command__separator" role="separator"></div>
+    } @else {
+    <ng-container *ngTemplateOutlet="itemRow; context: { $implicit: row }" />
+    } }
+  </div>
+
+  @if (loading()) {
+  <div class="andes-command__status" aria-hidden="true">
+    <span class="andes-command__spinner"></span>
+    {{ loadingText() }}
+  </div>
+  } @else if (!hasItems()) {
+  <div class="andes-command__status" aria-hidden="true">{{ emptyText() }}</div>
+  }
+
+  <span class="andes-command__live" role="status" aria-live="polite"
+    >{{ announcement() }}</span
+  >
+</div>
+
+<ng-template #itemRow let-row>
+  <div [andesCommandOption]="row.item">
+    @if (itemTemplate(); as template) {
+    <ng-container
+      *ngTemplateOutlet="
+        template;
+        context: {
+          $implicit: row.item,
+          search: search(),
+          segments: row.segments,
+          active: row.item.value === value(),
+        }
+      "
+    />
+    } @else { @if (row.item.icon; as icon) {
+    <span class="andes-command__icon" aria-hidden="true">
+      @if (isTemplate(icon)) {
+      <ng-container *ngTemplateOutlet="icon" />
+      } @else { {{ icon }} }
+    </span>
+    }
+    <span class="andes-command__text">
+      <span class="andes-command__label"
+        >@for (segment of row.segments; track $index) { @if (segment.match) {
+        <mark class="andes-command__match">{{ segment.text }}</mark>
+        } @else { {{ segment.text }} } }</span
+      >
+      @if (row.item.description) {
+      <span class="andes-command__description">{{ row.item.description }}</span>
+      }
+    </span>
+    @if (row.item.children) {
+    <svg
+      class="andes-command__chevron"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+    } @else if (row.keys.length) {
+    <span class="andes-command__shortcut" aria-hidden="true">
+      @for (key of row.keys; track $index) {
+      <kbd class="andes-command__key">{{ key }}</kbd>
+      }
+    </span>
+    } }
+  </div>
+</ng-template>
