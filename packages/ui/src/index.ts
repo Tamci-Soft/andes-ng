@@ -87,7 +87,7 @@ export * from './lib/button';
 
 // @slot menubar
 
-// @slot navigation-menu
+export * from './lib/navigation-menu';
 
 // @slot pagination
 
