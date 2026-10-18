@@ -5,6 +5,7 @@
     class="andes-table__container"
     [class.andes-table__container--scroll-y]="scrollYLength()"
     [class.andes-table__container--sticky]="stickyOffsetLength()"
+    [class.andes-table__container--framed]="framed()"
     [class.andes-table__container--bordered]="bordered()"
     [style.max-height]="scrollYLength()"
     (scroll)="onContainerScroll($event)"
@@ -22,7 +23,7 @@
   @if (loading()) {
   <div
     class="andes-table__loading"
-    [class.andes-table__loading--bordered]="bordered()"
+    [class.andes-table__loading--framed]="framed()"
     aria-hidden="true"
   >
     <span class="andes-table__spinner"></span>

@@ -1420,8 +1420,8 @@ const LEDGER: readonly LedgerLine[] = Array.from(
 class AndesTableVirtualDemo {
   protected readonly lines = LEDGER;
   protected readonly allIds = LEDGER.map((line) => line.id);
-  /** Compact density: 8px padding twice, a 20px line and the 1px row rule. */
-  protected readonly rowHeight = 37;
+  /** Compact density: a 32px row, line and separator included. */
+  protected readonly rowHeight = 32;
   readonly selected = signal<readonly AndesTableRowKey[]>([]);
   readonly jump = signal(5000);
   protected readonly money = money;
@@ -2555,8 +2555,8 @@ export const Bordered: Story = {
 };
 
 /**
- * The bordered frame keeps its rounded corners in every state: with a header that
- * sticks inside a scrolling body, while empty, and under the loading overlay.
+ * With the cell grid on, the rounded frame keeps its corners in every state: with a
+ * header that sticks inside a scrolling body, while empty, and under the loading overlay.
  */
 export const BorderedStates: Story = {
   render: () => ({

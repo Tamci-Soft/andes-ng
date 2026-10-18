@@ -19,6 +19,16 @@
   overflow-x: auto;
 }
 
+/* The default look: the table sits in a quiet rounded frame. The frame is drawn here, on
+   the container, because a collapsed-border table ignores `border-radius`; the container
+   also clips the header and footer tints, the row hover and the loading overlay to the
+   rounded corners, and the last row gives up its separator so no edge is drawn twice. */
+.andes-table__container--framed {
+  box-sizing: border-box;
+  border: 1px solid var(--andes-color-border, #d1d5db);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+}
+
 /* `scrollY`: the container becomes the vertical scroller too, which is what lets the
    header row stick to its top. */
 .andes-table__container--scroll-y {
@@ -56,7 +66,7 @@
   justify-content: center;
   background-color: color-mix(
     in srgb,
-    var(--andes-color-background) 60%,
+    var(--andes-color-background, #fff) 60%,
     transparent
   );
   cursor: progress;
@@ -64,8 +74,8 @@
   animation: andes-table-loading-in 150ms cubic-bezier(0.2, 0, 0, 1);
 }
 
-.andes-table__loading--bordered {
-  border-radius: var(--andes-radius-md);
+.andes-table__loading--framed {
+  border-radius: var(--andes-radius-lg, 0.5rem);
 }
 
 @keyframes andes-table-loading-in {
@@ -77,9 +87,9 @@
 .andes-table__spinner {
   width: 1.5rem;
   height: 1.5rem;
-  border: 2px solid var(--andes-color-border);
-  border-top-color: var(--andes-color-primary);
-  border-radius: var(--andes-radius-full);
+  border: 2px solid var(--andes-color-border, #d1d5db);
+  border-top-color: var(--andes-color-primary, #2563eb);
+  border-radius: var(--andes-radius-full, 9999px);
   /* A calm turn: one revolution a second, on a light track. */
   animation: andes-table-spin 1s linear infinite;
 }
@@ -94,8 +104,8 @@
   width: 100%;
   border-collapse: collapse;
   caption-side: bottom;
-  background-color: var(--andes-color-background);
-  color: var(--andes-color-foreground);
+  background-color: var(--andes-color-background, #fff);
+  color: var(--andes-color-foreground, #0f172a);
   font-family: var(--andes-font-family), sans-serif;
   /* Body text scale shared by every component: 14px on a 22px line. */
   font-size: var(--andes-text-font-size, 0.875rem);
@@ -103,6 +113,19 @@
   /* Equal-width digits keep amounts in an end-aligned column lined up place by place. */
   font-variant-numeric: tabular-nums;
   text-align: start;
+  /* Row separators are softer than the frame; the header, footer, row hover and expanded
+     row share one very light tint of the muted colour, opaque so that sticky and pinned
+     cells can paint it over the rows scrolling beneath them. */
+  --andes-table-line: color-mix(
+    in srgb,
+    var(--andes-color-border, #d1d5db) 60%,
+    transparent
+  );
+  --andes-table-tint: color-mix(
+    in srgb,
+    var(--andes-color-muted, #f1f5f9) 55%,
+    var(--andes-color-background, #fff)
+  );
 }
 
 .andes-table--caption-top {
@@ -113,41 +136,53 @@
   table-layout: fixed;
 }
 
-/* Bordered: a collapsed-border table ignores `border-radius`, so the rounded outer frame
-   is drawn by the container instead, which also clips the header fill and row tints to
-   the rounded corners. A `hidden` table border wins every collapsed-border conflict on
-   the table's edge, so the outermost cell borders give way to that frame - whatever the
-   row and column spans - and only the inner grid lines remain. */
-.andes-table__container--bordered {
-  box-sizing: border-box;
-  border: 1px solid var(--andes-color-border);
-  border-radius: var(--andes-radius-md);
+.andes-table--bordered {
+  border: 1px hidden;
 }
 
 /* A page-sticky header needs the container not to scroll, yet the rounded corners still
    need clipping: `clip` does both, since it never creates a scroll container. */
-.andes-table__container--bordered.andes-table__container--sticky {
+.andes-table__container--framed.andes-table__container--sticky {
   overflow: clip;
 }
 
-.andes-table--bordered {
-  border: 1px hidden;
+/* Table bar for the `andesTableTop` / `andesTableBottom` slots: a start side (a title, "n of
+   m rows selected") and an end side (actions, a pager), reachable from projected content. */
+:host ::ng-deep .andes-table__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-3, 0.75rem);
+  padding-block: var(--andes-space-3, 0.75rem);
+  color: var(--andes-color-muted-foreground, #64748b);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
 }
 
 /* Caption */
 
 .andes-table ::ng-deep .andes-table__caption {
-  padding-block: var(--andes-space-3);
-  color: var(--andes-color-muted-foreground);
+  padding: var(--andes-space-3, 0.75rem);
+  color: var(--andes-color-muted-foreground, #64748b);
   font-size: var(--andes-text-font-size, 0.875rem);
   line-height: var(--andes-text-line-height, 1.375rem);
   text-align: start;
 }
 
+/* The caption lives inside the frame, set off from the rows by a hairline. */
+.andes-table--caption-bottom ::ng-deep .andes-table__caption {
+  border-top: 1px solid var(--andes-table-line);
+}
+
+.andes-table--caption-top ::ng-deep .andes-table__caption {
+  border-bottom: 1px solid var(--andes-table-line);
+}
+
 /* Header */
 
 .andes-table ::ng-deep .andes-table__header {
-  background-color: var(--andes-color-muted);
+  background-color: var(--andes-table-tint);
 }
 
 /* Header text is the strong foreground, not `--andes-color-muted-foreground`: that token
@@ -155,8 +190,8 @@
    as a serious color-contrast violation). A strong near-black also reads as a header
    rather than as secondary text, and `font-weight` carries the header emphasis. */
 .andes-table ::ng-deep .andes-table__head {
-  color: var(--andes-color-foreground);
-  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-foreground, #0f172a);
+  font-weight: var(--andes-font-weight-medium, 500);
   text-align: start;
   white-space: nowrap;
   vertical-align: middle;
@@ -175,8 +210,26 @@
 }
 
 .andes-table ::ng-deep .andes-table__head-title {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+}
+
+/* The sort indicator stays beside the title; the filter trigger keeps the inline end. */
+.andes-table ::ng-deep .andes-table__head-content > andes-table-filter {
+  margin-inline-start: auto;
+}
+
+.andes-table ::ng-deep .andes-table__align--center .andes-table__head-content {
+  justify-content: center;
+}
+
+.andes-table ::ng-deep .andes-table__align--end .andes-table__head-content {
+  justify-content: flex-end;
+}
+
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__align--end .andes-table__head-content > andes-table-filter {
+  margin-inline-start: 0;
 }
 
 .andes-table ::ng-deep .andes-table__ellipsis .andes-table__head-title {
@@ -187,26 +240,39 @@
 /* Footer */
 
 .andes-table ::ng-deep .andes-table__footer {
-  background-color: var(--andes-color-muted);
-  font-weight: var(--andes-font-weight-medium);
+  border-top: 1px solid var(--andes-color-border, #d1d5db);
+  background-color: var(--andes-table-tint);
+  font-weight: var(--andes-font-weight-medium, 500);
+}
+
+.andes-table ::ng-deep .andes-table__footer .andes-table__row:last-child {
+  border-bottom: none;
 }
 
 /* Rows and cells */
 
 .andes-table ::ng-deep .andes-table__row {
-  border-bottom: 1px solid var(--andes-color-border);
+  border-bottom: 1px solid var(--andes-table-line);
   transition: background-color var(--andes-motion-duration-fast, 0.1s)
     var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
-.andes-table ::ng-deep .andes-table__body .andes-table__row:last-child {
+/* The header row's rule is the one full-strength line, separating it from the data. */
+.andes-table ::ng-deep .andes-table__header .andes-table__row:last-child {
+  border-bottom-color: var(--andes-color-border, #d1d5db);
+}
+
+/* The last data row has no separator (the frame, footer or caption closes the table); a
+   trailing virtual spacer does not count as a row. */
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__body .andes-table__row:is(:last-child, :has(+ .andes-table__virtual-spacer:last-child)) {
   border-bottom: none;
 }
 
 /* The row holding the empty state is not data, so it does not answer the pointer. */
 /* prettier-ignore */
 .andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row:not(.andes-table__expanded-row, :has(> td > andes-table-empty)):hover {
-  background-color: var(--andes-color-accent);
+  background-color: var(--andes-table-tint);
 }
 
 /* Selected rows: a light primary tint. There is no dedicated
@@ -214,8 +280,8 @@
 .andes-table ::ng-deep .andes-table__row--selected {
   background-color: color-mix(
     in srgb,
-    var(--andes-color-primary) 8%,
-    var(--andes-color-background)
+    var(--andes-color-primary, #2563eb) 8%,
+    var(--andes-color-background, #fff)
   );
 }
 
@@ -223,8 +289,8 @@
 .andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row--selected:not(.andes-table__expanded-row):hover {
   background-color: color-mix(
     in srgb,
-    var(--andes-color-primary) 14%,
-    var(--andes-color-background)
+    var(--andes-color-primary, #2563eb) 14%,
+    var(--andes-color-background, #fff)
   );
 }
 
@@ -232,18 +298,24 @@
   cursor: pointer;
 }
 
+.andes-table ::ng-deep .andes-table__row:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
 /* Expanded detail row: set apart from the data rows around it. */
 .andes-table ::ng-deep .andes-table__expanded-row {
-  background-color: var(--andes-color-muted);
+  background-color: var(--andes-table-tint);
 }
 
 .andes-table ::ng-deep .andes-table__cell {
   vertical-align: middle;
 }
 
+/* Bordered: grid lines between every cell, as light as the row separators. */
 .andes-table--bordered ::ng-deep .andes-table__cell,
 .andes-table--bordered ::ng-deep .andes-table__head {
-  border: 1px solid var(--andes-color-border);
+  border: 1px solid var(--andes-table-line);
 }
 
 /* Alignment */
@@ -260,33 +332,35 @@
   text-align: end;
 }
 
-/* Density. `compact` is a small table (8px all round, 39px rows) and `default`
-   the standard one (16px all round, 55px rows); `comfortable` adds
-   breathing room above that for sparse, reading-heavy tables. */
+/* Density: the cell padding and the row height. `compact` is a dense table (4px / 8px,
+   32px rows), `default` the standard one (8px / 12px, 40px rows) and `comfortable` adds
+   breathing room (12px / 16px, 48px rows). The height is a floor a taller cell still
+   grows past; header and data rows share it. */
 
 .andes-table--compact {
-  --andes-table-cell-padding-inline: var(--andes-space-2);
+  --andes-table-cell-padding-block: var(--andes-space-1, 0.25rem);
+  --andes-table-cell-padding-inline: var(--andes-space-2, 0.5rem);
+  --andes-table-row-height: 2rem;
 }
 
-.andes-table--default,
+.andes-table--default {
+  --andes-table-cell-padding-block: var(--andes-space-2, 0.5rem);
+  --andes-table-cell-padding-inline: var(--andes-space-3, 0.75rem);
+  --andes-table-row-height: 2.5rem;
+}
+
 .andes-table--comfortable {
-  --andes-table-cell-padding-inline: var(--andes-space-4);
+  --andes-table-cell-padding-block: var(--andes-space-3, 0.75rem);
+  --andes-table-cell-padding-inline: var(--andes-space-4, 1rem);
+  --andes-table-row-height: 3rem;
 }
 
-.andes-table--compact ::ng-deep .andes-table__head,
-.andes-table--compact ::ng-deep .andes-table__cell {
-  padding: var(--andes-space-2);
-}
-
-.andes-table--default ::ng-deep .andes-table__head,
-.andes-table--default ::ng-deep .andes-table__cell {
-  padding: var(--andes-space-4);
-}
-
-.andes-table--comfortable ::ng-deep .andes-table__head,
-.andes-table--comfortable ::ng-deep .andes-table__cell {
-  padding-block: var(--andes-space-5);
-  padding-inline: var(--andes-space-4);
+.andes-table ::ng-deep .andes-table__head,
+.andes-table ::ng-deep .andes-table__cell {
+  box-sizing: border-box;
+  height: var(--andes-table-row-height, 2.5rem);
+  padding-block: var(--andes-table-cell-padding-block, 0.5rem);
+  padding-inline: var(--andes-table-cell-padding-inline, 0.75rem);
 }
 
 /* Sortable headers */
@@ -297,19 +371,19 @@
 }
 
 .andes-table ::ng-deep .andes-table__head--sortable:hover {
-  background-color: var(--andes-color-accent-hover);
+  background-color: var(--andes-color-muted, #f1f5f9);
 }
 
 .andes-table ::ng-deep .andes-table__head--sortable:focus-visible {
-  outline: 2px solid var(--andes-color-focus-ring);
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
   outline-offset: -2px;
 }
 
-.andes-table ::ng-deep .andes-table__head--sorted {
-  background-color: var(--andes-color-accent-hover);
+.andes-table ::ng-deep .andes-table__head--sortable:hover .andes-table__sorter {
+  color: var(--andes-color-foreground, #0f172a);
 }
 
-/* Direction indicator: stacked 12px carets, the active one in the primary
+/* Direction indicator: stacked 12px carets beside the title, the active one in the primary
    color. Hidden from assistive tech, which reads the header's `aria-sort` instead. The
    resting color is the muted foreground, which still clears the 3:1 non-text contrast
    minimum on the header background. */
@@ -318,7 +392,7 @@
   flex: none;
   flex-direction: column;
   align-items: center;
-  color: var(--andes-color-muted-foreground);
+  color: var(--andes-color-muted-foreground, #64748b);
 }
 
 .andes-table ::ng-deep .andes-table__sorter-caret {
@@ -355,7 +429,7 @@
   ::ng-deep
   .andes-table__head[data-sort='desc']
   .andes-table__sorter-caret--down {
-  color: var(--andes-color-primary-text);
+  color: var(--andes-color-primary-text, #2563eb);
 }
 
 /* Column resizing. `:where()` keeps `position: relative` below the sticky header and
@@ -394,7 +468,7 @@
   content: '';
   width: 1px;
   height: 1.6em;
-  background-color: var(--andes-color-border);
+  background-color: var(--andes-color-border, #d1d5db);
   transition:
     height var(--andes-motion-duration-fast, 0.1s)
       var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
@@ -402,10 +476,8 @@
       var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
-.andes-table
-  ::ng-deep
-  .andes-table__head:last-child
-  > .andes-table__resize-handle::after {
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__head:last-child > .andes-table__resize-handle::after {
   background-color: transparent;
 }
 
@@ -418,7 +490,7 @@
 .andes-table ::ng-deep .andes-table__resize-handle--active::after {
   width: 2px;
   height: 100%;
-  background-color: var(--andes-color-primary);
+  background-color: var(--andes-color-primary, #2563eb);
 }
 
 .andes-table--resizing {
@@ -436,13 +508,13 @@
 }
 
 .andes-table ::ng-deep .andes-table__head--reorderable:focus-visible {
-  outline: 2px solid var(--andes-color-focus-ring);
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
   outline-offset: -2px;
 }
 
 .andes-table ::ng-deep .andes-table__drag-preview {
   box-sizing: border-box;
-  background-color: var(--andes-color-muted);
+  background-color: var(--andes-color-muted, #f1f5f9);
   box-shadow:
     0 6px 16px 0 rgb(0 0 0 / 8%),
     0 3px 6px -4px rgb(0 0 0 / 12%),
@@ -451,7 +523,7 @@
 }
 
 .andes-table ::ng-deep .andes-table__head.cdk-drag-placeholder {
-  background-color: var(--andes-color-accent-hover);
+  background-color: var(--andes-color-muted, #f1f5f9);
 }
 
 .andes-table ::ng-deep .andes-table__head.cdk-drag-placeholder > * {
@@ -471,7 +543,7 @@
 /* prettier-ignore */
 .andes-table ::ng-deep .andes-table__cell.andes-table__cell--indent {
   padding-inline-start: calc(
-    var(--andes-table-cell-padding-inline, var(--andes-space-4)) +
+    var(--andes-table-cell-padding-inline, 0.75rem) +
       var(--andes-table-level, 0) * var(--andes-table-indent-size, 1rem)
   );
   white-space: nowrap;
@@ -517,8 +589,8 @@
     var(--andes-table-sticky-offset, 0px) + var(--andes-table-header-top, 0px)
   );
   z-index: 2;
-  background-color: var(--andes-color-muted);
-  box-shadow: inset 0 -1px 0 var(--andes-color-border);
+  background-color: var(--andes-table-tint);
+  box-shadow: inset 0 -1px 0 var(--andes-color-border, #d1d5db);
 }
 
 /* Chrome paints scrolled-away rows past the top of the scroll container when sticky
@@ -549,19 +621,31 @@
   border-bottom-width: 0;
 }
 
+/* The stand-in shadow is the header's one bottom rule, so its row drops the separator
+   it would draw on top of it. */
+/* prettier-ignore */
+.andes-table--sticky-header ::ng-deep .andes-table__header .andes-table__row:last-child {
+  border-bottom: none;
+}
+
 /* The header's own bottom border now travels with it; drop the stand-in shadow. */
 .andes-table--sticky-header.andes-table--bordered ::ng-deep thead th {
   box-shadow: none;
 }
 
-/* Fixed summary row (tfoot fixed + scrollY). */
+/* Fixed summary row (tfoot fixed + scrollY). Its inset shadow is the top rule that
+   travels with the stuck cells, so the footer's own border steps aside. */
+.andes-table ::ng-deep .andes-table__footer--fixed {
+  border-top: none;
+}
+
 .andes-table ::ng-deep .andes-table__footer--fixed td,
 .andes-table ::ng-deep .andes-table__footer--fixed th {
   position: sticky;
   bottom: 0;
   z-index: 2;
-  background-color: var(--andes-color-muted);
-  box-shadow: inset 0 1px 0 var(--andes-color-border);
+  background-color: var(--andes-table-tint);
+  box-shadow: inset 0 1px 0 var(--andes-color-border, #d1d5db);
 }
 
 /* Fixed (pinned) columns. Pinned cells need an opaque background of their own, which
@@ -569,7 +653,7 @@
 .andes-table ::ng-deep .andes-table__fixed {
   position: sticky;
   z-index: 1;
-  background-color: var(--andes-color-background);
+  background-color: var(--andes-color-background, #fff);
 }
 
 .andes-table ::ng-deep .andes-table__fixed-start {
@@ -582,28 +666,24 @@
 
 .andes-table ::ng-deep thead .andes-table__fixed {
   z-index: 3;
-  background-color: var(--andes-color-muted);
+  background-color: var(--andes-table-tint);
 }
 
 .andes-table ::ng-deep .andes-table__footer .andes-table__fixed {
   z-index: 3;
-  background-color: var(--andes-color-muted);
-}
-
-.andes-table ::ng-deep thead .andes-table__head--sorted.andes-table__fixed {
-  background-color: var(--andes-color-accent-hover);
+  background-color: var(--andes-table-tint);
 }
 
 /* prettier-ignore */
 .andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row:not(.andes-table__expanded-row):hover > .andes-table__fixed {
-  background-color: var(--andes-color-accent);
+  background-color: var(--andes-table-tint);
 }
 
 .andes-table ::ng-deep .andes-table__row--selected > .andes-table__fixed {
   background-color: color-mix(
     in srgb,
-    var(--andes-color-primary) 8%,
-    var(--andes-color-background)
+    var(--andes-color-primary, #2563eb) 8%,
+    var(--andes-color-background, #fff)
   );
 }
 
@@ -611,8 +691,8 @@
 .andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row--selected:not(.andes-table__expanded-row):hover > .andes-table__fixed {
   background-color: color-mix(
     in srgb,
-    var(--andes-color-primary) 14%,
-    var(--andes-color-background)
+    var(--andes-color-primary, #2563eb) 14%,
+    var(--andes-color-background, #fff)
   );
 }
 
@@ -622,7 +702,7 @@
 .andes-table ::ng-deep .andes-table__fixed::before {
   --andes-table-edge-shadow: color-mix(
     in srgb,
-    var(--andes-color-overlay) 33%,
+    var(--andes-color-overlay, rgb(15 23 42 / 45%)) 33%,
     transparent
   );
 

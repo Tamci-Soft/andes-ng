@@ -194,8 +194,11 @@ let nextTableId = 0;
  * - `filters` - `andes-table-filter` inside a header cell.
  *
  * Content placed with an `andesTableTop` / `andesTableBottom` attribute renders
- * above / below the table (title, toolbar, pagination). The `andes-table__sr-only`
- * class visually hides projected text, e.g. to name an icon-only header cell.
+ * above / below the table (title, toolbar, pagination); give such a bar the
+ * `andes-table__toolbar` class for a start side ("3 of 10 rows selected") and an end
+ * side (actions, a pager). The table itself sits in a rounded frame (`framed`).
+ * The `andes-table__sr-only` class visually hides projected text, e.g. to name an
+ * icon-only header cell.
  *
  * "Select all" finds the row checkboxes through a content query, so
  * `andes-table-selection` must be written in the same template as the
@@ -210,8 +213,18 @@ let nextTableId = 0;
 export class AndesTable {
   private readonly destroyRef = inject(DestroyRef);
 
-  /** Draw borders around every cell instead of row separators only. */
+  /**
+   * Draw borders around every cell (a full grid) instead of row separators only.
+   * The outer frame is controlled by `framed`.
+   */
   readonly bordered = input(false, { transform: booleanAttribute });
+
+  /**
+   * Set the table in a rounded, bordered frame that clips the header and footer
+   * tints, the row hover and the loading overlay to the corners. On by default;
+   * turn it off when the table already sits in a card or panel of its own.
+   */
+  readonly framed = input(true, { transform: booleanAttribute });
 
   /** Cell padding scale. */
   readonly density = input<AndesTableDensity>('default');
