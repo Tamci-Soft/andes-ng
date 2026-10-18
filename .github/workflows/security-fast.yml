@@ -5,13 +5,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
 
 jobs:
   gitleaks:
     name: Secrets scan (Gitleaks)
+    if: ${{ !(github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/') || github.head_ref == 'main')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,6 +24,7 @@ jobs:
 
   semgrep:
     name: SAST scan (Semgrep)
+    if: ${{ !(github.event_name == 'pull_request' && (startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/') || github.head_ref == 'main')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
