@@ -89,7 +89,7 @@ export * from './lib/button';
 
 // @slot navigation-menu
 
-// @slot pagination
+export * from './lib/pagination';
 
 // @slot palette
 
