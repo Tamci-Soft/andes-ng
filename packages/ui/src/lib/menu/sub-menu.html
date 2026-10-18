@@ -1,0 +1,121 @@
+<ng-template #children><ng-content /></ng-template>
+
+<ng-template #inner>
+  <span class="andes-menu__icon" aria-hidden="true"
+    ><ng-content select="[slot=icon]" />@if (iconTemplate(); as tpl)
+    {<ng-container [ngTemplateOutlet]="tpl" />} @else if (iconText(); as glyph)
+    {{{ glyph }}}</span
+  >
+  <span class="andes-menu__short" aria-hidden="true">{{ shortLabel() }}</span>
+  @if (overflowRoot()) {
+  <span class="andes-menu__label andes-menu__overflow-indicator" #labelEl>
+    @if (menu.overflowIndicator(); as tpl) {
+    <ng-container [ngTemplateOutlet]="tpl" />
+    } @else {
+    <svg
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="5" cy="12" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="19" cy="12" r="1.75" />
+    </svg>
+    }
+  </span>
+  } @else {
+  <span class="andes-menu__label" #labelEl
+    ><ng-content select="[slot=label]" />@if (labelTemplate(); as tpl)
+    {<ng-container [ngTemplateOutlet]="tpl" />} @else if (labelString(); as
+    text) {{{ text }}}</span
+  >
+  <span class="andes-menu__extra"
+    ><ng-content select="[slot=extra]" />@if (extra(); as text) {{{ text
+    }}}</span
+  >
+  }
+  <span class="andes-menu__arrow" aria-hidden="true">
+    @if (menu.expandIcon(); as tpl) {
+    <ng-container
+      [ngTemplateOutlet]="tpl"
+      [ngTemplateOutletContext]="{ $implicit: isOpen(), popup: usesPopup() }"
+    />
+    } @else {
+    <svg
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+    }
+  </span>
+</ng-template>
+
+<ng-template #view>
+  <div
+    class="andes-menu__row andes-menu__sub-title"
+    [andesMenuRow]="binding"
+    [attr.aria-label]="overflowRoot() ? menu.overflowLabel() : null"
+    [attr.data-popup]="usesPopup() ? '' : null"
+    [attr.data-overflow]="overflowRoot() ? '' : null"
+    [attr.data-descendant-selected]="descendantSelected() ? '' : null"
+    [style.--andes-menu-indent]="indent()"
+  >
+    <ng-container [ngTemplateOutlet]="inner" />
+  </div>
+  @if (!usesPopup()) {
+  <div
+    class="andes-menu__inline"
+    [attr.data-state]="isOpen() ? 'open' : 'closed'"
+    [attr.inert]="isOpen() ? null : ''"
+  >
+    <ul
+      class="andes-menu__sublist"
+      #inlineList
+      [attr.role]="menu.navigation() ? null : 'menu'"
+      [attr.aria-labelledby]="rowId"
+    >
+      <ng-container [ngTemplateOutlet]="children" />
+    </ul>
+  </div>
+  }
+</ng-template>
+
+<ng-template #panel>
+  <div
+    class="andes-menu__popup"
+    [class]="popupClassName()"
+    [attr.data-andes-theme]="menu.theme() === 'dark' ? 'dark' : null"
+    [attr.data-menu]="menu.instanceId"
+    [attr.data-size]="menu.size()"
+    [attr.data-side]="placementSide()"
+    (pointerenter)="onPanelPointerEnter()"
+    (pointerleave)="onPanelPointerLeave()"
+  >
+    <ul
+      class="andes-menu__list"
+      data-andes-menu-list
+      andesOverlayContent
+      [attr.aria-labelledby]="rowId"
+    >
+      @if (overflowRoot()) { @for (unit of menu.overflowUnits(); track unit) {
+      @if (unit.view(); as unitView) {
+      <ng-container [ngTemplateOutlet]="unitView" />
+      } } } @else {
+      <ng-container [ngTemplateOutlet]="children" />
+      }
+    </ul>
+  </div>
+</ng-template>
+
+@if (!overflowed()) {
+<ng-container [ngTemplateOutlet]="view" />
+}

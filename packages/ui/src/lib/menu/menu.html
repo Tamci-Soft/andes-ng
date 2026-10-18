@@ -1,0 +1,25 @@
+<ul
+  class="andes-menu__list"
+  #list
+  data-andes-menu-list
+  [attr.data-mode]="mode()"
+  [attr.role]="listRole()"
+  [attr.aria-label]="navigation() ? null : ariaLabel()"
+>
+  <ng-content />
+  @if (items().length) {
+  <andes-menu-nodes [nodes]="items()" />
+  } @if (overflowUnits().length) {
+  <andes-sub-menu [overflowRoot]="true" [key]="overflowKey" />
+  }
+</ul>
+
+<ng-template #tip>
+  <div
+    class="andes-menu__tooltip"
+    role="tooltip"
+    [attr.data-andes-theme]="theme() === 'dark' ? 'dark' : null"
+  >
+    {{ tooltipText() }}
+  </div>
+</ng-template>
