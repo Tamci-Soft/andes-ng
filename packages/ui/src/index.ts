@@ -41,7 +41,7 @@ export * from './lib/button';
 
 // @slot command
 
-// @slot context-menu
+export * from './lib/context-menu';
 
 // @slot date-picker
 
