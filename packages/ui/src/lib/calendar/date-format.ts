@@ -289,6 +289,9 @@ export function parseWithPattern(
     }
   }
 
+  // Every literal in `source` went through escapeRegExp and the rest is fixed token classes, so the
+  // pattern never contains user text.
+  // nosemgrep
   const match = new RegExp(`^\\s*${source}\\s*$`, 'iu').exec(input);
   if (!match) {
     return null;
