@@ -49,7 +49,7 @@ export * from './lib/button';
 
 // @slot dialog
 
-// @slot divider
+export * from './lib/divider';
 
 // @slot drawer
 
