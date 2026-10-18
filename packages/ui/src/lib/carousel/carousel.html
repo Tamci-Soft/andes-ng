@@ -1,0 +1,126 @@
+@if (playing() || (autoplay() && count() > 1)) {
+<!-- First in the document, as the pattern asks: the control that stops the movement comes
+       before the thing that moves. -->
+<button
+  type="button"
+  class="andes-carousel__control"
+  data-slot="carousel-pause"
+  [attr.aria-label]="playing() ? resolvedLabels().pause : resolvedLabels().play"
+  (click)="togglePlay()"
+>
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    focusable="false"
+  >
+    @if (playing()) {
+    <rect x="6" y="5" width="4" height="14" rx="1" />
+    <rect x="14" y="5" width="4" height="14" rx="1" />
+    } @else {
+    <path
+      d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"
+    />
+    }
+  </svg>
+</button>
+} @if (arrowMode()) {
+<button
+  type="button"
+  class="andes-carousel__arrow andes-carousel__arrow--previous"
+  data-slot="carousel-previous"
+  [attr.aria-label]="resolvedLabels().previous"
+  [attr.aria-disabled]="canPrev() ? null : 'true'"
+  (click)="userPrev()"
+>
+  <svg
+    class="andes-carousel__chevron"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="m15 18-6-6 6-6" />
+  </svg>
+</button>
+<button
+  type="button"
+  class="andes-carousel__arrow andes-carousel__arrow--next"
+  data-slot="carousel-next"
+  [attr.aria-label]="resolvedLabels().next"
+  [attr.aria-disabled]="canNext() ? null : 'true'"
+  (click)="userNext()"
+>
+  <svg
+    class="andes-carousel__chevron"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+</button>
+}
+
+<!-- The live region: silent while the carousel rotates by itself, polite otherwise, so a
+     user stepping through slides hears them and an autoplaying one does not talk over
+     everything else. -->
+<div
+  #viewport
+  class="andes-carousel__viewport"
+  data-slot="carousel-viewport"
+  role="group"
+  tabindex="0"
+  aria-atomic="false"
+  [attr.aria-label]="resolvedLabels().slides"
+  [attr.aria-live]="liveMode()"
+  (pointerdown)="onPointerDown($event)"
+  (pointermove)="onPointerMove($event)"
+  (pointerup)="onPointerEnd($event)"
+  (pointercancel)="onPointerEnd($event)"
+  (dragstart)="onDragStart($event)"
+>
+  <ng-content />
+</div>
+
+@if (dotPlacement(); as placement) {
+<div
+  class="andes-carousel__dots"
+  data-slot="carousel-dots"
+  role="group"
+  [attr.data-position]="placement"
+  [attr.aria-label]="resolvedLabels().dots"
+>
+  @for (dot of dotItems(); track dot.index) {
+  <button
+    type="button"
+    class="andes-carousel__dot"
+    data-slot="carousel-dot"
+    [class.andes-carousel__dot--active]="dot.active"
+    [class.andes-carousel__dot--progress]="dotProgress() && dot.active && rotating()"
+    [attr.aria-label]="resolvedLabels().goTo(dot.index + 1, count())"
+    [attr.aria-current]="dot.active ? 'true' : null"
+    [style.--andes-carousel-progress-duration]="progressDuration()"
+    (click)="dot.goTo()"
+  >
+    @if (dotTemplate(); as template) {
+    <ng-container
+      [ngTemplateOutlet]="template"
+      [ngTemplateOutletContext]="dot"
+    />
+    } @else {
+    <span class="andes-carousel__marker" aria-hidden="true"></span>
+    }
+  </button>
+  }
+</div>
+}
