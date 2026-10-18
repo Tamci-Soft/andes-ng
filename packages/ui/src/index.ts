@@ -155,7 +155,7 @@ export * from './lib/button';
 
 // @slot tree-select
 
-// @slot typography
+export * from './lib/typography';
 
 // @slot upload
 
