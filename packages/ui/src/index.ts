@@ -81,7 +81,7 @@ export * from './lib/button';
 
 // @slot masonry
 
-// @slot mentions
+export * from './lib/mentions';
 
 // @slot menu
 
