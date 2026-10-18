@@ -69,7 +69,7 @@ export * from './lib/button';
 
 // @slot image
 
-// @slot input
+export * from './lib/input';
 
 // @slot input-number
 
