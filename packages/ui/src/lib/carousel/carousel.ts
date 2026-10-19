@@ -59,6 +59,8 @@ const INERTIA_MS = 220;
 const EDGE_RESISTANCE = 0.35;
 /** Length of the coast after a free drag, unless `--andes-carousel-release-duration` says. */
 const RELEASE_MS = 700;
+/** Length of a change when neither `speed` nor `--andes-carousel-duration` says otherwise. */
+const DEFAULT_SPEED_MS = 550;
 /** Quiet time after a wheel step, so one flick of a trackpad moves one stop. */
 const WHEEL_LOCK_MS = 120;
 /** Slack for float comparisons between positions. */
@@ -257,7 +259,7 @@ export class AndesCarousel implements AndesCarouselContext {
 
   // --- Motion --------------------------------------------------------------------------
 
-  /** Length of a change in ms (default 400; or set `--andes-carousel-duration`). */
+  /** Length of a change in ms (default 550; or set `--andes-carousel-duration`). */
   readonly speed = input<number | null, unknown>(null, {
     transform: toNullableNumber,
   });
@@ -498,7 +500,7 @@ export class AndesCarousel implements AndesCarouselContext {
     }
     return this.releasing()
       ? `var(--andes-carousel-release-duration, ${RELEASE_MS}ms)`
-      : 'var(--andes-carousel-duration, 400ms)';
+      : `var(--andes-carousel-duration, ${DEFAULT_SPEED_MS}ms)`;
   });
   protected readonly cssDuration = computed(() => {
     const speed = this.speed();
@@ -680,8 +682,9 @@ export class AndesCarousel implements AndesCarouselContext {
   protected readonly progressDuration = computed(
     () => `${this.autoplayOptions().speed}ms`,
   );
+  /** The fill is drawn whenever autoplay is wanted; it freezes in place while held. */
   protected readonly progressOn = computed(
-    () => this.dotProgress() && this.isPlaying(),
+    () => this.dotProgress() && this.autoplayEnabled() && !this.reducedActive(),
   );
   /** Alternates, so the progress animation restarts when the delay does. */
   protected readonly progressAlt = computed(
@@ -743,17 +746,30 @@ export class AndesCarousel implements AndesCarouselContext {
       });
     });
 
-    // The timer runs only while autoplay is `running`, and starts over whenever the
-    // position moves, the user interacts or any pause source lets go.
+    // The timer counts down only while autoplay is `running`. A pause keeps what is left of
+    // the delay and the next run carries on from there; only a change of position, a
+    // deliberate interaction or a new delay starts over from a full one.
+    let remaining = -1;
+    let lastKey = '';
     effect((onCleanup) => {
-      if (this.autoplayState() !== 'running') {
+      const state = this.autoplayState();
+      const position = this.position();
+      const epoch = this.interactionEpoch();
+      const delay = this.autoplayOptions().speed;
+      const key = `${position}|${epoch}|${delay}`;
+      if (key !== lastKey || remaining < 0) {
+        lastKey = key;
+        remaining = delay;
+      }
+      if (state !== 'running') {
         return;
       }
-      this.position();
-      this.interactionEpoch();
-      const delay = this.autoplayOptions().speed;
-      const id = setTimeout(() => this.advanceAutomatically(), delay);
-      onCleanup(() => clearTimeout(id));
+      const startedAt = Date.now();
+      const id = setTimeout(() => this.advanceAutomatically(), remaining);
+      onCleanup(() => {
+        clearTimeout(id);
+        remaining = Math.max(0, remaining - (Date.now() - startedAt));
+      });
     });
 
     // Pause while the carousel is scrolled out of view.
@@ -943,9 +959,13 @@ export class AndesCarousel implements AndesCarouselContext {
 
   /** Starts autoplay again after a pause or an interaction stop. */
   play(): void {
+    // After a plain pause it carries on from where it stopped; after an interaction stop
+    // it starts over from a full delay.
+    if (this.stopped()) {
+      this.interactionEpoch.update((n) => n + 1);
+    }
     this.userPaused.set(false);
     this.stopped.set(false);
-    this.interactionEpoch.update((n) => n + 1);
   }
 
   /** Pauses autoplay until `play()`. */
@@ -1071,7 +1091,11 @@ export class AndesCarousel implements AndesCarouselContext {
         this.readCssTime('--andes-carousel-release-duration') ?? RELEASE_MS
       );
     }
-    return this.readCssTime('--andes-carousel-duration') ?? this.speed() ?? 400;
+    return (
+      this.readCssTime('--andes-carousel-duration') ??
+      this.speed() ??
+      DEFAULT_SPEED_MS
+    );
   }
 
   private scheduleSettle(index: number, animate: boolean): void {

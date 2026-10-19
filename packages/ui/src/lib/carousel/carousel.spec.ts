@@ -480,7 +480,7 @@ describe('AndesCarousel', () => {
       carousel.next();
       vi.advanceTimersByTime(100);
       carousel.next();
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(600);
       expect(f.componentInstance.before).toHaveLength(2);
       expect(f.componentInstance.after).toEqual([2]);
     });
@@ -1180,6 +1180,89 @@ describe('AndesCarousel autoplay state machine', () => {
     });
   const idx = (f: ComponentFixture<Host>) => f.componentInstance.active();
 
+  describe('a pause keeps what is left of the delay', () => {
+    const enter = (f: ComponentFixture<Host>) => {
+      root(f).dispatchEvent(
+        new PointerEvent('pointerenter', { pointerType: 'mouse' }),
+      );
+      f.detectChanges();
+    };
+    const leave = (f: ComponentFixture<Host>) => {
+      root(f).dispatchEvent(
+        new PointerEvent('pointerleave', { pointerType: 'mouse' }),
+      );
+      f.detectChanges();
+    };
+
+    it('carries on from where hover stopped it instead of starting over', () => {
+      const f = autoplaying();
+      run(f, 2000);
+      enter(f);
+      run(f, 10_000);
+      expect(idx(f)).toBe(0);
+      leave(f);
+      run(f, 999);
+      expect(idx(f)).toBe(0);
+      run(f, 1);
+      expect(idx(f)).toBe(1);
+    });
+
+    it('keeps adding up across several pauses', () => {
+      const f = autoplaying();
+      run(f, 1000);
+      enter(f);
+      run(f, 5000);
+      leave(f);
+      run(f, 1000);
+      enter(f);
+      run(f, 5000);
+      leave(f);
+      run(f, 999);
+      expect(idx(f)).toBe(0);
+      run(f, 1);
+      expect(idx(f)).toBe(1);
+    });
+
+    it('starts over from a full delay after a change of slide', () => {
+      const f = autoplaying();
+      run(f, 3000);
+      expect(idx(f)).toBe(1);
+      run(f, 1000);
+      enter(f);
+      run(f, 5000);
+      leave(f);
+      run(f, 1999);
+      expect(idx(f)).toBe(1);
+      run(f, 1);
+      expect(idx(f)).toBe(2);
+    });
+
+    it('freezes the progress fill while held instead of removing it', () => {
+      const f = setup((h) => {
+        h.autoplay.set(true);
+        h.autoplaySpeed.set(3000);
+        h.dotProgress.set(true);
+      });
+      const dot = () =>
+        f.nativeElement.querySelector(
+          '.andes-carousel__dot--progress',
+        ) as HTMLElement;
+      expect(dot()).not.toBeNull();
+      expect(dot().classList).not.toContain(
+        'andes-carousel__dot--progress-held',
+      );
+      run(f, 1000);
+      enter(f);
+      expect(dot()).not.toBeNull();
+      expect(dot().classList).toContain('andes-carousel__dot--progress-held');
+      leave(f);
+      f.detectChanges();
+      expect(dot().classList).not.toContain(
+        'andes-carousel__dot--progress-held',
+      );
+    });
+  });
+
   it('folds the pause sources in a fixed order', () => {
     const none = {
       enabled: true,
@@ -1262,7 +1345,7 @@ describe('AndesCarousel autoplay state machine', () => {
     expect(f.componentInstance.carousel().isPlaying()).toBe(false);
   });
 
-  it('running -> paused-by-hover -> running, restarting from a full delay', () => {
+  it('running -> paused-by-hover -> running, carrying on from where it stopped', () => {
     const f = autoplaying();
     run(f, 2000);
     hover(f, 'enter');
@@ -1271,7 +1354,7 @@ describe('AndesCarousel autoplay state machine', () => {
     expect(idx(f)).toBe(0);
     hover(f, 'leave');
     expect(state(f)).toBe('running');
-    run(f, 2999);
+    run(f, 999);
     expect(idx(f)).toBe(0);
     run(f, 1);
     expect(idx(f)).toBe(1);
@@ -1604,7 +1687,7 @@ describe('AndesCarousel autoplay state machine', () => {
     expect(button(f, 'carousel-pause')).not.toBeNull();
   });
 
-  it('restarts the progress animation when the delay restarts', () => {
+  it('restarts the progress animation when the delay restarts, and only holds it on a pause', () => {
     const f = setup((h) => {
       h.autoplay.set(true);
       h.dotProgress.set(true);
@@ -1618,7 +1701,10 @@ describe('AndesCarousel autoplay state machine', () => {
       dots(f)[0].classList.contains('andes-carousel__dot--progress-alt'),
     ).toBe(!before);
     hover(f, 'enter');
-    expect(dots(f)[0].classList).not.toContain('andes-carousel__dot--progress');
+    expect(dots(f)[0].classList).toContain('andes-carousel__dot--progress');
+    expect(dots(f)[0].classList).toContain(
+      'andes-carousel__dot--progress-held',
+    );
   });
 });
 
@@ -1876,7 +1962,7 @@ describe('AndesCarousel drag', () => {
       pointer(v, 'pointermove', 250, 50, 500);
       pointer(v, 'pointerup', 250, 50, 1000);
       f.detectChanges();
-      vi.advanceTimersByTime(500);
+      vi.advanceTimersByTime(600);
       expect(f.componentInstance.dragEnds).toEqual([{ from: 0, to: 0 }]);
       expect(f.componentInstance.settled).toEqual([0]);
       expect(f.componentInstance.after).toEqual([]);

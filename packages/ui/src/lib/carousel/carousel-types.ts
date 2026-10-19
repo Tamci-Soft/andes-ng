@@ -32,10 +32,11 @@ export type AndesCarouselArrowSize = 'sm' | 'md' | 'lg';
 export type AndesCarouselAlign = 'start' | 'center' | 'end';
 
 /**
- * Timing curve of a change: a named preset (`out`, the default, `ease`, `ease-in-out`,
+ * Timing curve of a change: a named preset (`smooth`, the default, `out` for a sharper stop, `ease`, `ease-in-out`,
  * `linear`, `spring` for a soft overshoot) or any CSS easing string.
  */
 export type AndesCarouselEasing =
+  | 'smooth'
   | 'out'
   | 'ease'
   | 'ease-in-out'
@@ -127,6 +128,7 @@ export function resolveCarouselLabels(
 
 /** Named easing presets; anything else is used as given. */
 export const ANDES_CAROUSEL_EASINGS: Readonly<Record<string, string>> = {
+  smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
   out: 'cubic-bezier(0.2, 0, 0, 1)',
   ease: 'ease',
   'ease-in-out': 'cubic-bezier(0.45, 0, 0.25, 1)',

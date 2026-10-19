@@ -84,10 +84,13 @@
   visibility: hidden;
   z-index: 0;
   will-change: opacity;
+
+  /* The slide that leaves stays fully opaque under the one arriving on top of it and
+     only then disappears: fading both at once would let the page show through the
+     middle of the change. */
   transition:
-    opacity var(--andes-carousel-speed, 400ms)
-      var(--andes-carousel-easing, cubic-bezier(0.2, 0, 0, 1)),
-    visibility 0s linear var(--andes-carousel-speed, 400ms);
+    opacity 0s linear var(--andes-carousel-speed, 550ms),
+    visibility 0s linear var(--andes-carousel-speed, 550ms);
 }
 
 :host([data-effect='fade'][data-state='active']) {
@@ -95,7 +98,7 @@
   visibility: visible;
   z-index: 1;
   transition:
-    opacity var(--andes-carousel-speed, 400ms)
-      var(--andes-carousel-easing, cubic-bezier(0.2, 0, 0, 1)),
+    opacity var(--andes-carousel-speed, 550ms)
+      var(--andes-carousel-easing, cubic-bezier(0.4, 0, 0.2, 1)),
     visibility 0s;
 }

@@ -30,8 +30,8 @@
   color: var(--andes-color-foreground, #0f172a);
 
   /* A `<number>` custom property only interpolates if something transitions it. */
-  transition: --andes-carousel-position var(--andes-carousel-speed, 400ms)
-    var(--andes-carousel-easing, cubic-bezier(0.2, 0, 0, 1));
+  transition: --andes-carousel-position var(--andes-carousel-speed, 550ms)
+    var(--andes-carousel-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 :host(:dir(rtl)) {
@@ -82,8 +82,8 @@
 :host([data-adaptive]) .andes-carousel__viewport {
   align-self: start;
   height: var(--andes-carousel-height, auto);
-  transition: height var(--andes-carousel-speed, 400ms)
-    var(--andes-carousel-easing, cubic-bezier(0.2, 0, 0, 1));
+  transition: height var(--andes-carousel-speed, 550ms)
+    var(--andes-carousel-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .andes-carousel__viewport:focus-visible {
@@ -435,9 +435,9 @@
   background: var(--andes-carousel-dot-color, var(--_track));
   box-shadow: var(--_marker-shadow);
   transition:
-    width var(--andes-motion-duration-mid, 150ms) ease,
-    height var(--andes-motion-duration-mid, 150ms) ease,
-    background-color var(--andes-motion-duration-mid, 150ms) ease;
+    width 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    height 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 250ms ease;
 }
 
 .andes-carousel__marker--rail {
@@ -485,6 +485,11 @@
 
 .andes-carousel__dot--progress-alt .andes-carousel__marker::after {
   animation-name: andes-carousel-fill-b;
+}
+
+/* Hovered, focused, paused: the fill stays where it got to and carries on from there. */
+.andes-carousel__dot--progress-held .andes-carousel__marker::after {
+  animation-play-state: paused;
 }
 
 .andes-carousel__dot--progress .andes-carousel__marker:dir(rtl)::after {

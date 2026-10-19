@@ -129,6 +129,7 @@
     [class.andes-carousel__dot--active]="dot.active"
     [class.andes-carousel__dot--progress]="progressOn() && dot.active"
     [class.andes-carousel__dot--progress-alt]="progressAlt()"
+    [class.andes-carousel__dot--progress-held]="!isPlaying()"
     [attr.aria-label]="resolvedLabels().goTo(dot.index + 1, dot.count)"
     [attr.aria-current]="dot.active ? 'true' : null"
     [style.--andes-carousel-progress-duration]="progressDuration()"
