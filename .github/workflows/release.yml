@@ -141,17 +141,12 @@ jobs:
             echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/.npmrc" >> "$GITHUB_ENV"
           fi
 
-      - name: Publish under the rc dist-tag (or reuse this candidate)
+      - name: Publish under the rc dist-tag (packages already on npm are skipped)
         env:
-          NPM_CONFIG_PROVENANCE: true
           CANDIDATE: ${{ needs.prepare.outputs.candidate }}
         run: |
-          if [ "$(npm view "@andes-ng/ui@$CANDIDATE" version 2>/dev/null || true)" = "$CANDIDATE" ]; then
-            echo "Reusing $CANDIDATE: it is already on npm for this commit." >> "$GITHUB_STEP_SUMMARY"
-          else
-            ./node_modules/.bin/nx release publish --tag rc
-            echo "Published \`$CANDIDATE\` under the \`rc\` dist-tag." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          .github/scripts/publish.sh rc
+          echo "Candidate \`$CANDIDATE\` is on npm under the \`rc\` dist-tag." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Record the candidate as a pre-release
         env:
@@ -328,10 +323,9 @@ jobs:
 
       - name: Publish under latest
         env:
-          NPM_CONFIG_PROVENANCE: true
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          ./node_modules/.bin/nx release publish --tag latest
+          .github/scripts/publish.sh latest
           echo "Published \`@andes-ng/*@$VERSION\` under \`latest\`." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Tag and publish the GitHub Release
