@@ -2,6 +2,23 @@
   "name": "@andes-ng/primitives",
   "version": "0.0.1",
   "description": "Andes NG's own behavior primitives: accessible, unstyled Angular directives.",
+  "keywords": [
+    "angular",
+    "headless",
+    "directives",
+    "accessibility",
+    "a11y",
+    "primitives"
+  ],
+  "homepage": "https://github.com/andes-ng/andes/tree/main/packages/primitives#readme",
+  "bugs": {
+    "url": "https://github.com/andes-ng/andes/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andes-ng/andes.git",
+    "directory": "packages/primitives"
+  },
   "license": "MIT",
   "publishConfig": {
     "access": "public"

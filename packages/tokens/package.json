@@ -2,6 +2,22 @@
   "name": "@andes-ng/tokens",
   "version": "0.0.1",
   "description": "Framework-agnostic design tokens for Andes NG.",
+  "keywords": [
+    "design-tokens",
+    "css-custom-properties",
+    "theme",
+    "dark-mode",
+    "design-system"
+  ],
+  "homepage": "https://github.com/andes-ng/andes/tree/main/packages/tokens#readme",
+  "bugs": {
+    "url": "https://github.com/andes-ng/andes/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andes-ng/andes.git",
+    "directory": "packages/tokens"
+  },
   "type": "module",
   "license": "MIT",
   "publishConfig": {
