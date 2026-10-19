@@ -136,7 +136,7 @@ export class AndesAvatarGroupCount {
 
   /**
    * The hidden avatars as faces: a photo, else initials, else a person glyph,
-   * named for assistive technology and in the caption under the grid. When
+   * named for assistive technology and in the label floating beside the panel. When
    * non-empty (and there is no `panelTemplate`) the panel is a grid of these
    * faces instead of a list of names - a scrolling grid for many, or one
    * line (`panelLayout="row"`) for a few. `AndesAvatarGroup`'s `max` fills it

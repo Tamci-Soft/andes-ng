@@ -720,7 +720,7 @@ export const GroupOverflowFew: Story = {
     docs: {
       description: {
         story:
-          'The `+N` panel shows the hidden avatars as faces - photo, else initials - not as a list of names. Each face is named for assistive technology (`aria-label`) and its name is shown in a caption under the faces while it is hovered or focused. With a handful of faces the panel is a single compact block with no heading. Tab to the chip (or hover it), then Arrow Down moves into the faces; arrow keys move across them, Escape closes the panel and returns to the chip.',
+          'The `+N` panel shows the hidden avatars as faces - photo, else initials - not as a list of names. Each face is named for assistive technology (`aria-label`) and its name is shown in a small label floating past the panel edge while it is hovered or focused. With a handful of faces the panel is a single compact block with no heading. Tab to the chip (or hover it), then Arrow Down moves into the faces; arrow keys move across them, Escape closes the panel and returns to the chip.',
       },
     },
   },

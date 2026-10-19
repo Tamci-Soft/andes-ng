@@ -134,21 +134,41 @@
   display: none;
 }
 
-/* The name of the hovered or focused face. Its line is always reserved so the
-   panel does not jump, and `inline-size: 0` + `min-inline-size: 100%` keeps a
-   long name from widening the panel - it is cut with an ellipsis instead. */
+/* The name of the hovered or focused face, as a small label floating past the
+   panel's far edge (away from the chip, which the panel hangs off). It takes no
+   room in the panel, so the panel hugs the faces whether or not one is hovered;
+   the group's panel sets which edge it sits on. It positions against the panel
+   (this host is not positioned), and the pointer passes through it. */
 .andes-avatar-face-grid__caption {
-  min-height: 1.25rem;
-  min-inline-size: 100%;
-  inline-size: 0;
-  margin: var(--andes-space-1) 0 0;
+  position: absolute;
+  inset-block-start: var(--_andes-avatar-caption-start, auto);
+  inset-block-end: var(--_andes-avatar-caption-end, calc(100% + 0.25rem));
+  inset-inline-start: 50%;
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: min(16rem, 90vw);
+  margin: 0;
+  padding: 0.125rem var(--andes-space-2);
   overflow: hidden;
-  color: var(--andes-color-popover-foreground);
+  translate: -50% 0;
+  border-radius: var(--andes-radius-md);
+  background-color: var(--andes-color-foreground);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 18%);
+  color: var(--andes-color-background);
   font-size: 0.75rem;
   line-height: 1.25rem;
+  pointer-events: none;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.andes-avatar-face-grid__caption:dir(rtl) {
+  translate: 50% 0;
+}
+
+.andes-avatar-face-grid__caption[hidden] {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

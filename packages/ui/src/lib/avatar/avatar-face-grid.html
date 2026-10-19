@@ -77,6 +77,10 @@
     }
   </div>
 </div>
-<p class="andes-avatar-face-grid__caption" aria-hidden="true">
+<p
+  class="andes-avatar-face-grid__caption"
+  aria-hidden="true"
+  [hidden]="!caption()"
+>
   {{ caption() }}
 </p>

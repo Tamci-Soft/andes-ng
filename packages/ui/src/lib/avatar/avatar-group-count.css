@@ -183,6 +183,9 @@
   inset-block-start: calc(100% + var(--andes-space-2));
   inset-block-end: auto;
   --_andes-avatar-panel-nudge: -0.25rem;
+  /* The face name floats on the far side from the chip: below this panel. */
+  --_andes-avatar-caption-start: calc(100% + 0.25rem);
+  --_andes-avatar-caption-end: auto;
 }
 
 .andes-avatar-group-count__panel-label {
@@ -203,7 +206,7 @@
   min-width: 0;
   max-width: none;
   max-height: none;
-  padding: var(--andes-space-2) var(--andes-space-2) var(--andes-space-1);
+  padding: var(--andes-space-2);
   overflow: visible;
 }
 

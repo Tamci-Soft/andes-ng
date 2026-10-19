@@ -57,7 +57,7 @@ interface Row {
  * (left/right continue into the next row), Up/Down move by a row, Home/End
  * go to the start/end of the row, Ctrl+Home/End to the first/last face and
  * PageUp/PageDown by a screenful. The hovered or focused face's name is
- * shown in a caption under the grid.
+ * shown in a small label floating past the panel edge.
  */
 @Component({
   selector: 'andes-avatar-face-grid',
