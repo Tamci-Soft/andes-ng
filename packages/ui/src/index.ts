@@ -159,4 +159,6 @@ export * from './lib/button';
 
 // @slot upload
 
+export * from './lib/video-player';
+
 // @slot watermark
