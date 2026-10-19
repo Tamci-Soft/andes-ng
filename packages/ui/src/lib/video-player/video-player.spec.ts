@@ -422,7 +422,7 @@ describe('AndesVideoPlayer: autoplay policy', () => {
 
 describe('AndesVideoPlayer: errors and retry', () => {
   it('maps media errors, shows the panel, announces and emits', () => {
-    const p = renderPlayer();
+    const p = renderPlayer({ retryAttempts: 0 });
     p.ready(60);
     p.fake().fail(2, 'connection reset');
     p.render();

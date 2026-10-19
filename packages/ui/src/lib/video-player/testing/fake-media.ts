@@ -131,6 +131,7 @@ export class FakeMedia {
   videoWidth = 0;
   videoHeight = 0;
   policy: FakePlayPolicy = 'allow';
+  preservesPitch = true;
   readonly textTracks = new FakeTextTrackList();
   audioTracks: FakeAudioTrackList | undefined;
   readonly calls = { play: 0, pause: 0, load: 0 };
@@ -339,6 +340,12 @@ const ACCESSORS: Record<string, Accessor> = {
     get: (f) => f.defaultPlaybackRate,
     set: (f, value) => {
       f.defaultPlaybackRate = Number(value);
+    },
+  },
+  preservesPitch: {
+    get: (f) => f.preservesPitch,
+    set: (f, value) => {
+      f.preservesPitch = Boolean(value);
     },
   },
   src: {

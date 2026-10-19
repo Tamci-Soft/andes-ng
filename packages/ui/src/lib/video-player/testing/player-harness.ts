@@ -3,9 +3,11 @@ import { TestBed } from '@angular/core/testing';
 
 import type { AndesMediaAdapterFactory } from '../core/media-adapter';
 import type { AndesPlayerKeyMap } from '../core/player-hotkeys';
-import type { AndesPlayerLabels } from '../core/player-labels';
+import type { AndesPlayerLabelOverrides } from '../core/player-labels';
 import type { AndesPlayerStore } from '../core/player-store';
+import { ANDES_CAPTION_STYLE_DEFAULT } from '../core/caption-style';
 import type {
+  AndesCaptionStyle,
   AndesCaptionsRenderer,
   AndesChapter,
   AndesMediaSource,
@@ -13,6 +15,9 @@ import type {
   AndesPlayerControls,
   AndesPlayerError,
   AndesPlayerHotkeysMode,
+  AndesPlayerRepeat,
+  AndesPlayerResume,
+  AndesPlaylistItem,
   AndesQualityRendition,
   AndesStreamType,
   AndesTextTrackInfo,
@@ -52,6 +57,20 @@ import { fakeOf, type FakeMedia } from './fake-media';
       [playbackRates]="rates()"
       [skipControls]="skipControls()"
       [compact]="compact()"
+      [playlist]="playlist()"
+      [autoAdvance]="autoAdvance()"
+      [upNextDelay]="upNextDelay()"
+      [resume]="resume()"
+      [retryAttempts]="retryAttempts()"
+      [frameRate]="frameRate()"
+      [preservesPitch]="preservesPitch()"
+      [miniPlayer]="miniPlayer()"
+      [contextMenu]="contextMenu()"
+      [loop]="loop()"
+      [(playlistIndex)]="playlistIndex"
+      [(repeat)]="repeat"
+      [(shuffle)]="shuffle"
+      [(captionStyle)]="captionStyle"
       [(currentTime)]="currentTime"
       [(volume)]="volume"
       [(muted)]="muted"
@@ -68,6 +87,7 @@ import { fakeOf, type FakeMedia } from './fake-media';
       (qualityChanged)="qualities.push($event)"
       (previousRequested)="events.push('previous')"
       (nextRequested)="events.push('next')"
+      (playlistCompleted)="events.push('playlist-completed')"
     >
       @if (customControls()) {
         <div slot="controls" class="custom-controls">custom</div>
@@ -88,7 +108,7 @@ export class PlayerHost {
   readonly background = signal(false);
   readonly hotkeys = signal<AndesPlayerHotkeysMode>('focus');
   readonly keyMap = signal<Partial<AndesPlayerKeyMap> | null>(null);
-  readonly labels = signal<Partial<AndesPlayerLabels> | null>(null);
+  readonly labels = signal<AndesPlayerLabelOverrides | null>(null);
   readonly persistKey = signal<string | null>(null);
   readonly adapters = signal<readonly AndesMediaAdapterFactory[] | null>(null);
   readonly thumbnails = signal<AndesThumbnailsConfig | null>(null);
@@ -103,6 +123,22 @@ export class PlayerHost {
   readonly skipControls = signal(false);
   readonly compact = signal(false);
   readonly customControls = signal(false);
+  readonly playlist = signal<readonly AndesPlaylistItem[]>([]);
+  readonly autoAdvance = signal(true);
+  readonly upNextDelay = signal(5);
+  readonly resume = signal<AndesPlayerResume>('prompt');
+  readonly retryAttempts = signal(3);
+  readonly frameRate = signal(30);
+  readonly preservesPitch = signal(true);
+  readonly miniPlayer = signal(false);
+  readonly contextMenu = signal(true);
+  readonly loop = signal(false);
+  readonly playlistIndex = signal(0);
+  readonly repeat = signal<AndesPlayerRepeat>('off');
+  readonly shuffle = signal(false);
+  readonly captionStyle = signal<AndesCaptionStyle>(
+    ANDES_CAPTION_STYLE_DEFAULT,
+  );
   readonly currentTime = signal(0);
   readonly volume = signal(1);
   readonly muted = signal(false);

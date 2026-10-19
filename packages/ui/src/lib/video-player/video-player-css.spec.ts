@@ -149,7 +149,13 @@ describe('video player stylesheet contract', () => {
       'background-color: var(--andes-video-captions-background)',
     );
     expect(cue).toContain('color: var(--andes-video-captions-color)');
-    expect(cue).toContain('font-size: var(--andes-video-captions-font-size)');
+    // The viewer's size choice scales the theme's size.
+    expect(cue).toMatch(
+      /font-size: calc\(\s*var\(--andes-video-captions-font-size\) \* var\(--andes-video-captions-scale\)/,
+    );
+    expect(cue).toContain(
+      'text-shadow: var(--andes-video-captions-text-shadow)',
+    );
     expect(cue).toContain(
       'font-family: var(--andes-video-captions-font-family)',
     );
@@ -248,5 +254,64 @@ describe('video player stylesheet contract', () => {
         }
       }
     }
+  });
+
+  it('centres the big play on the frame (glass) or above the opaque bar (solid), on a steady disc', () => {
+    const button = rule(overlays, '.andes-player-big-play__button');
+    expect(button).toContain(
+      'background-color: var(--andes-video-big-play-background)',
+    );
+    expect(button).toContain('var(--andes-video-big-play-blur)');
+    expect(button).toMatch(
+      /clamp\(2\.75rem, 16cqw, var\(--andes-video-big-play-size/,
+    );
+    // No per-glyph nudge: the icons are centred by their area centroid.
+    expect(overlays).not.toMatch(/data-icon='play'\][^{]*\{[^}]*translate/);
+    expect(
+      rule(
+        overlays,
+        ".andes-video-player[data-skin='solid'] .andes-player-big-play",
+      ),
+    ).toContain('var(--andes-video-bar-block-size, 0px)');
+    expect(rule(layout, '.andes-video-player')).toMatch(
+      /--andes-video-big-play-background: color-mix\(\s*in srgb,\s*var\(--andes-video-backdrop\) 72%/,
+    );
+  });
+
+  it('measures container queries on the viewport so the mini player can float', () => {
+    expect(rule(layout, '.andes-video-player')).not.toContain('container-type');
+    expect(rule(layout, '.andes-video-player__viewport')).toContain(
+      'container-type: inline-size',
+    );
+    const mini = rule(
+      layout,
+      '.andes-video-player[data-mini] .andes-video-player__viewport',
+    );
+    expect(mini).toContain('position: fixed');
+    expect(mini).toContain('width: var(--andes-video-mini-width)');
+    expect(mini).toContain('aspect-ratio: var(--andes-video-ratio, 16 / 9)');
+  });
+
+  it('grows bar controls to touch-target size on coarse pointers', () => {
+    const coarse = layout.slice(layout.indexOf('@media (pointer: coarse)'));
+    expect(coarse).toContain('--andes-video-button-size: 2.75rem');
+    expect(coarse).toContain('--andes-video-button-size: 2.5rem');
+  });
+
+  it('hides the bar behind the error panel and keeps cards and the help reduced-motion safe', () => {
+    expect(
+      rule(
+        layout,
+        '.andes-video-player[data-error] .andes-video-player__bottom',
+      ),
+    ).toContain('visibility: hidden');
+    const reduced = overlays.slice(
+      overlays.indexOf('@media (prefers-reduced-motion: reduce)'),
+    );
+    expect(reduced).toContain('.andes-player-up-next__card');
+    expect(reduced).toContain('.andes-player-shortcuts__dialog');
+    expect(reduced).toMatch(
+      /\.andes-player-up-next__progress\s*\{\s*display: none/,
+    );
   });
 });

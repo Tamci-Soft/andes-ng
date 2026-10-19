@@ -514,10 +514,15 @@ describe('menus', () => {
       'quality',
       'audio',
       'captions',
+      'caption-style',
       'playback-rate',
+      'repeat',
     ]);
     expect(entries[0].textContent).toContain('Auto (1080p)');
-    expect(entries[3].textContent).toContain('Normal');
+    expect(entries[3].textContent).toContain('Default');
+    expect(entries[4].textContent).toContain('Normal');
+    expect(entries[5].textContent).toContain('Loop');
+    expect(entries[5].textContent).toContain('Off');
     expect(document.activeElement).toBe(entries[0]);
     expect(p.store.menuOpen()).toBe(true);
   });
@@ -686,9 +691,20 @@ describe('menus', () => {
   });
 
   it('hides a menu with nothing to choose', () => {
-    const p = attached({ rates: [1] });
+    const p = attached({ rates: [1], src: null });
+    expect(
+      p.q('andes-player-menu[data-type=settings]')?.hasAttribute('hidden'),
+    ).toBe(true);
+    p.host.src.set('media/clip.mp4');
+    p.render();
     p.ready(60);
-    expect(p.q('andes-player-menu')?.hasAttribute('hidden')).toBe(true);
+    // Settings still offers Loop once a source plays; the playlist menu has nothing.
+    expect(
+      p.q('andes-player-menu[data-type=settings]')?.hasAttribute('hidden'),
+    ).toBe(false);
+    expect(
+      p.q('andes-player-menu[data-type=playlist]')?.hasAttribute('hidden'),
+    ).toBe(true);
   });
 });
 
