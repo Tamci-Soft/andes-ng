@@ -1,0 +1,259 @@
+/* This component only ever wraps a header row - it should never introduce its own box in the
+   layout.
+
+   Every size/variant/mode rule below keys off a `data-*` attribute on the element it styles
+   (a single compound selector, no combinators), for the same reason as the chevron rule at the
+   bottom of this file - see its comment. */
+:host {
+  display: contents;
+}
+
+/* The header row: owns the size padding, so it is identical whichever part of it is the actual
+   button (see accordion-trigger.ts). `position: relative` anchors the stretched `::after` of a
+   whole-row button. Metrics: a 14px / 22px label in a 46px row, 38px at sm, and a 16px / 24px
+   label in a 56px row at lg - the same in every variant.
+
+   The row's height comes from a per-size `min-block-size`, with the content centered in it, not
+   from the padding: a taller extra (a 32px button at md) sits inside the row's spare space
+   instead of growing it, so every header of an accordion is the same height whatever its extra
+   holds. The block padding is only the small breathing room kept around an extra that is as tall
+   as the row allows.
+
+   The inline padding comes from `--andes-accordion-pad-x`, set by the accordion root from its
+   size (and, for an accordion nested in a panel, aligned with the parent's - see accordion.css).
+   The arrow column sits right at that inset: the row is `[title ... extra arrow]` for the
+   default end position, `[arrow title ... extra]` for the start position. */
+.andes-accordion-trigger__header {
+  --_pad-x: var(--andes-accordion-pad-x, var(--andes-space-4));
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  box-sizing: border-box;
+  min-block-size: 2.875rem;
+  padding-block: 0.375rem;
+  padding-inline: var(--_pad-x);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  font-weight: var(--andes-font-weight-medium);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+.andes-accordion-trigger__header[data-size='sm'] {
+  min-block-size: 2.375rem;
+  padding-block: 0.1875rem;
+}
+
+.andes-accordion-trigger__header[data-size='lg'] {
+  min-block-size: 3.5rem;
+  padding-block: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+/* Bordered: a tinted header band, set apart from the panel body. */
+.andes-accordion-trigger__header[data-variant='bordered'] {
+  background-color: var(--andes-color-muted);
+}
+
+.andes-accordion-trigger__heading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--andes-space-2);
+  min-width: 0;
+  margin: 0;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.andes-accordion-trigger__button {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--andes-space-2);
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+/* Default (and disabled) mode: the button fills the heading, and its `::after` is stretched over
+   the whole header row, so the row's padding toggles (or shows the disabled cursor) too. */
+.andes-accordion-trigger__button[data-collapsible='full'],
+.andes-accordion-trigger__button[data-collapsible='disabled'] {
+  flex: 1;
+}
+
+.andes-accordion-trigger__button[data-collapsible='full']::after,
+.andes-accordion-trigger__button[data-collapsible='disabled']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.andes-accordion-trigger__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.andes-accordion-trigger__button:hover:not(:disabled) {
+  color: var(--andes-color-primary-text);
+}
+
+.andes-accordion-trigger__button:focus-visible,
+.andes-accordion-trigger__icon-button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* A whole-row button draws its focus ring around the row (its stretched `::after`), so the ring
+   still outlines the full clickable area now that the padding lives on the row. */
+.andes-accordion-trigger__button[data-collapsible='full']:focus-visible {
+  outline: none;
+}
+
+.andes-accordion-trigger__button[data-collapsible='full']:focus-visible::after {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--andes-radius-sm);
+}
+
+/* A bordered accordion clips its children to its rounded corners (see accordion.css), which
+   would cut an outward ring off - draw it just inside the row instead. */
+.andes-accordion-trigger__button[data-variant='bordered'][data-collapsible='full']:focus-visible::after {
+  outline-offset: -2px;
+}
+
+.andes-accordion-trigger__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-accordion-trigger__icon-button {
+  display: inline-flex;
+  inline-size: 1rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  color: inherit;
+  cursor: pointer;
+}
+
+.andes-accordion-trigger__icon-button:hover {
+  color: var(--andes-color-primary-text);
+}
+
+/* `collapsible="icon"` with the arrow at the end: the button lives inside the heading (which
+   ends before the extra), so it is pinned to the row's end inset instead - the same spot the
+   other modes give their arrow after the extra - and the row reserves that column. */
+.andes-accordion-trigger__icon-button[data-icon-position='end'] {
+  position: absolute;
+  inset-inline-end: var(--_pad-x);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.andes-accordion-trigger__header[data-collapsible='icon'][data-icon-position='end'] {
+  padding-inline-end: calc(var(--_pad-x) + 1rem + var(--andes-space-2));
+}
+
+/* The trailing arrow, after the extra. */
+.andes-accordion-trigger__icon-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* The arrow was part of the (dimmed) button before it moved out of it. */
+.andes-accordion-trigger__icon-toggle[data-collapsible='disabled'] {
+  opacity: 0.6;
+}
+
+/* The arrow's column is a fixed 1rem wide whatever icon is drawn in it (a custom icon is
+   centered in it), and `showArrow=false` rows hold an empty box of the same width, so titles
+   (start) and extras (end) line up across rows. */
+.andes-accordion-trigger__icon-spacer {
+  display: inline-flex;
+  flex-shrink: 0;
+  inline-size: 1rem;
+}
+
+.andes-accordion-trigger__icon-slot {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Interactive extras must sit above a whole-row button's stretched `::after`, otherwise clicks
+   on them would toggle the panel. */
+.andes-accordion-trigger__extra {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--andes-space-2);
+  font-weight: normal;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-accordion-trigger__extra:empty {
+  display: none;
+}
+
+.andes-accordion-trigger__icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--andes-color-muted-foreground);
+  transition: transform var(--andes-motion-duration-slow, 0.2s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+/* Keyed off the icon's own `data-state` rather than a descendant of the expanded button, so this
+   stays a single compound selector. The descendant form
+   (`.andes-accordion-trigger__button[aria-expanded='true'] .andes-accordion-trigger__icon`) is
+   87 characters, which Prettier wraps onto two lines - and Angular's emulated-encapsulation shim
+   (ShadowCss) mis-compiles a combinator chain broken across lines. It appends the `_ngcontent-*`
+   scope attribute per compound selector by walking the selector text, treating the newline as
+   the separator it emits the attribute *after*, producing
+   `button[aria-expanded='true']\n[_ngcontent-x]   .icon[_ngcontent-x]`: the button compound
+   loses its scope attribute and the lone `[_ngcontent-x]` becomes its own descendant step,
+   matching no element between the button and the icon, so the rule silently never applies and
+   the chevron never rotates. That is the bug this replaced; simply unwrapping the selector did
+   not hold, because `prettier --write` re-wraps it straight back.
+
+   Only pipelines that hand ShadowCss the raw source hit that - notably Storybook's webpack
+   build, where it was caught. `nx test`/`nx build` minify the newline away first, so neither
+   would have caught it. accordion.spec.ts guards the folder at the source level instead. */
+.andes-accordion-trigger__icon[data-state='open'] {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-accordion-trigger__button,
+  .andes-accordion-trigger__icon {
+    transition: none;
+  }
+}

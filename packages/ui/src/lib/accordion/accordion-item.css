@@ -1,0 +1,18 @@
+/* The `andes-accordion-item--*` classes are applied to this component's own host element (see
+   accordion-item.ts), so any rule keying off them must use :host(...) - a plain
+   `.andes-accordion-item--open .foo { ... }` rule never matches under Angular's emulated view
+   encapsulation, since the host carries an `_nghost-*` attribute rather than the `_ngcontent-*`
+   attribute Angular appends to plain class selectors used inside the template. */
+:host {
+  display: block;
+  border-bottom: 1px solid var(--andes-color-border);
+}
+
+:host(:last-child) {
+  border-bottom: none;
+}
+
+/* Ghost: no dividers at all - the whole accordion reads as plain text on its backdrop. */
+:host([data-variant='ghost']) {
+  border-bottom: none;
+}

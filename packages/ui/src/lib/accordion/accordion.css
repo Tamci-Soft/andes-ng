@@ -1,0 +1,35 @@
+:host {
+  /* The inline inset shared by this accordion's headers and panel bodies - and so the arrow
+     column's distance from the edge. */
+  --_own-pad-x: var(--andes-space-4);
+  --andes-accordion-pad-x: var(--_own-pad-x);
+  display: block;
+  font-family: var(--andes-font-family), sans-serif;
+  color: var(--andes-color-foreground);
+}
+
+:host([data-size='sm']) {
+  --_own-pad-x: var(--andes-space-3);
+}
+
+:host([data-size='lg']) {
+  --_own-pad-x: 1.5rem;
+}
+
+/* An accordion nested in a panel (whose body publishes its inline inset as
+   `--andes-accordion-inset`) runs flush to the parent's edges and takes the parent's inset
+   instead of its own, so its arrows and titles line up with the parent's columns whatever
+   the sizes. A bordered one stays an inset box. */
+:host([data-variant='default']),
+:host([data-variant='ghost']) {
+  --andes-accordion-pad-x: var(--andes-accordion-inset, var(--_own-pad-x));
+  margin-inline: calc(-1 * var(--andes-accordion-inset, 0px));
+}
+
+/* Bordered: one rounded, outlined block around all panels. `overflow: hidden`
+   clips the tinted header bands to the rounded corners. */
+:host([data-variant='bordered']) {
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  overflow: hidden;
+}
