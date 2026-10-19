@@ -109,6 +109,11 @@ export class AndesButton {
     () => this.size() ?? this.group?.size() ?? 'md',
   );
 
+  /** An icon-only button has no label, so its spinner replaces the projected icon outright. */
+  protected readonly iconOnly = computed(() =>
+    this.resolvedSize().startsWith('icon'),
+  );
+
   protected readonly resolvedColor = computed<AndesButtonColor | undefined>(
     () => (this.danger() ? 'danger' : this.color()),
   );
