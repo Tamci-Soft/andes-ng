@@ -35,7 +35,7 @@ Dark mode is on when `data-andes-theme="dark"` is set on `<html>` or any ancesto
 
 ## Components
 
-The package exports every component from its single entry point, `@andes-ng/ui`. This release ships `AndesButton` (variants, colors, shapes, the 24 / 32 / 40px sizes, loading state, and `AndesButtonGroup`). New components are added in each release; see the changelog and the Storybook for the current list.
+The package exports every component from its single entry point, `@andes-ng/ui`. This release ships `AndesButton` (variants, colors, shapes, the 24 / 32 / 40px sizes, loading state, and `AndesButtonGroup`). New components are added in each release; see the changelog for what changed, and browse every component, state and variant in the [Storybook](https://andes-ng.github.io/andes/).
 
 Components follow the WAI-ARIA authoring practices, support right-to-left layouts and honor `prefers-reduced-motion`.
 
