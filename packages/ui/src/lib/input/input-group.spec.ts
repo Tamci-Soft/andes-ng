@@ -128,12 +128,47 @@ describe('AndesInputGroup', () => {
           ':host ::ng-deep > :is(andes-input, andes-input-password, andes-input-search) .andes-input-group::after',
         ),
       ).toMatch(/display: none;/);
+    });
+
+    it('marks a focused button of the row with a 2px inset outline, on keyboard focus only', () => {
+      const selector =
+        ':host ::ng-deep > :is(select, button, a[href]):focus-visible';
+      // Shared with the projected button's selector: the last selector owns the `{`.
+      const body = ruleBody(css, selector);
+      expect(body).toMatch(
+        /outline: 2px solid var\(--andes-color-focus-ring\);/,
+      );
+      expect(body).toMatch(/outline-offset: -\d+px;/);
+      expect(body).not.toContain('box-shadow');
+      expect(css).toMatch(
+        /:host ::ng-deep > andes-button \.andes-button:focus-visible,\s*:host ::ng-deep > :is\(select, button, a\[href\]\):focus-visible/,
+      );
+      expect(css).not.toMatch(/:focus\s*[{,]/);
+      expect(css).not.toMatch(
+        /\.andes-button:focus-visible\s*\{\s*outline: none/,
+      );
+    });
+
+    it('draws the mark in its own text colour on a solid primary or danger button', () => {
       expect(
         ruleBody(
           css,
-          ':host ::ng-deep > andes-button .andes-button:focus-visible',
+          ':host ::ng-deep > andes-button :is(.andes-button--primary, .andes-button--danger):focus-visible',
         ),
-      ).toMatch(/outline: none;/);
+      ).toContain('outline-color: currentColor');
+    });
+
+    it('falls back to a Highlight outline for the focused button in forced-colors mode', () => {
+      const forced = css.slice(
+        css.indexOf(
+          '@media (forced-colors: active)',
+          css.indexOf('.andes-button:focus-visible'),
+        ),
+      );
+      expect(forced).toContain(
+        ':host ::ng-deep > andes-button .andes-button:focus-visible',
+      );
+      expect(forced).toMatch(/outline: 2px solid Highlight;/);
     });
 
     it('keeps the corner radius of the row in step with the fields size', () => {
@@ -159,7 +194,7 @@ describe('AndesInputGroup', () => {
       expect(sized('md')).not.toContain('andes-input-compact--lg');
     });
 
-    it('takes the status colour of a field in error or warning', () => {
+    it('flags a field in error or warning on the row', () => {
       @Component({
         imports: [AndesInputGroup, AndesInput],
         template: `<andes-input-group
@@ -185,12 +220,50 @@ describe('AndesInputGroup', () => {
       fixture.componentInstance.status.set(undefined);
       fixture.detectChanges();
       expect(classes).not.toContain('andes-input-compact--warning');
-      expect(ruleBody(css, ':host(.andes-input-compact--invalid)')).toMatch(
+    });
+
+    it('colours the ring after the status of the child that has focus', () => {
+      const text = css.replace(/\/\*[\s\S]*?\*\//g, '');
+      const invalid = ruleBody(
+        css,
+        ":host(:has(> :focus-within .andes-input-group--invalid, > [aria-invalid='true']:focus-within))",
+      );
+      const warning = ruleBody(
+        css,
+        ':host(:has(> :focus-within .andes-input-group--warning))',
+      );
+
+      expect(invalid).toMatch(
         /--_andes-compact-border-focus: var\(--andes-color-danger\);/,
       );
-      expect(ruleBody(css, ':host(.andes-input-compact--warning)')).toMatch(
+      expect(invalid).toContain('var(--andes-color-danger) 20%');
+      expect(warning).toMatch(
         /--_andes-compact-border-focus: var\(--andes-color-warning-hover\);/,
       );
+      expect(warning).toContain('var(--andes-color-warning-hover) 20%');
+      // The invalid rule comes last, so it wins when a child carries both.
+      expect(text.indexOf('--warning))')).toBeLessThan(
+        text.indexOf('aria-invalid'),
+      );
+      // The row's own status classes no longer re-point the focus colours: a valid sibling that
+      // holds the focus falls back to the primary ring.
+      expect(
+        ruleBody(
+          css,
+          ':host(:has(.andes-input-group--invalid, .andes-input-group--warning))',
+        ),
+      ).not.toMatch(/border-focus|compact-ring/);
+      expect(ruleBody(css, ':host')).toMatch(
+        /--_andes-compact-border-focus: var\(--andes-color-primary\);/,
+      );
+    });
+
+    it('keeps each child its own border on hover when any child has a status', () => {
+      const hover = ruleBody(
+        css,
+        ':host(:has(.andes-input-group--invalid, .andes-input-group--warning))',
+      );
+      expect(hover).toMatch(/--_andes-compact-border-hover: transparent;/);
     });
 
     it('no longer lifts individual children above their neighbours', () => {

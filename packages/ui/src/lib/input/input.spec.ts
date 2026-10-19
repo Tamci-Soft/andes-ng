@@ -1303,13 +1303,69 @@ describe('AndesInput group parts', () => {
     ).toContain('box-sizing: border-box');
   });
 
-  it('shows no keyboard outline on the search button: the group ring is the indicator', () => {
-    expect(
-      ruleBody(
-        css(),
-        '.andes-input__search-button ::ng-deep .andes-button:focus-visible',
-      ),
-    ).toContain('outline: none');
+  describe('keyboard focus on a button inside the group', () => {
+    const buttonSelector =
+      '.andes-input__search-button ::ng-deep .andes-button:focus-visible';
+    const addonSelector =
+      ".andes-input__addon ::ng-deep :is(button, a[href], [role='button'], select):focus-visible";
+
+    it('marks the focused search button and addon control with a 2px inset outline', () => {
+      // The two selectors share one declaration block (the last selector owns the `{`).
+      const body = ruleBody(css(), addonSelector);
+      expect(body).toContain(
+        'outline: 2px solid var(--_andes-input-focus-mark)',
+      );
+      expect(body).toMatch(/outline-offset: -\d+px/);
+      expect(css()).toMatch(
+        /\.andes-input__search-button ::ng-deep \.andes-button:focus-visible,\s*\.andes-input__addon ::ng-deep/,
+      );
+    });
+
+    it('is keyboard-only: no rule marks the buttons on plain focus', () => {
+      expect(css()).not.toMatch(
+        /\.andes-input__(search-button|addon) ::ng-deep[^{,]*:focus\s*[{,]/,
+      );
+    });
+
+    it('takes the status colour from the group, and the focus-ring token otherwise', () => {
+      const text = css();
+      expect(ruleBody(text, '.andes-input-group')).toContain(
+        '--_andes-input-focus-mark: var(--andes-color-focus-ring)',
+      );
+      expect(ruleBody(text, '.andes-input-group--invalid')).toContain(
+        '--_andes-input-focus-mark: var(--andes-color-danger)',
+      );
+      expect(ruleBody(text, '.andes-input-group--warning')).toContain(
+        '--_andes-input-focus-mark: var(--andes-color-warning-hover)',
+      );
+    });
+
+    it('draws the mark in its own text colour on a solid primary or danger button', () => {
+      const text = css();
+      const selector =
+        '.andes-input__addon ::ng-deep :is(.andes-button--primary, .andes-button--danger):focus-visible';
+      expect(ruleBody(text, selector)).toContain('outline-color: currentColor');
+      expect(text).toContain('@media not (forced-colors: active)');
+    });
+
+    it('falls back to a Highlight outline in forced-colors mode', () => {
+      const forced = css().slice(
+        css().indexOf(
+          '@media (forced-colors: active)',
+          css().indexOf(buttonSelector),
+        ),
+      );
+      expect(forced).toContain(buttonSelector);
+      expect(forced).toContain(addonSelector);
+      expect(forced).toMatch(/outline: 2px solid Highlight;/);
+    });
+
+    it('adds no second outer ring: the group keeps the one box-shadow', () => {
+      expect(ruleBody(css(), addonSelector)).not.toContain('box-shadow');
+      expect(ruleBody(css(), '.andes-input-group:focus-within')).toContain(
+        'box-shadow: 0 0 0 var(--_andes-input-ring-width, 2px)',
+      );
+    });
   });
 
   it('colours the addons and the search button edge from the group state', () => {

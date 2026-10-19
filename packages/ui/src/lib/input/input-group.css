@@ -82,24 +82,36 @@
   --_andes-compact-font-size: var(--andes-control-font-size-lg, 1rem);
 }
 
-/* A child in error or warning keeps its own status border on hover; the focus border and ring
-   take the status colour. */
-:host(.andes-input-compact--invalid) {
+/* Hover keeps each child's own border: with a child in error or warning the row's hover overlay
+   stays clear, so a status border is never painted over by the primary tint. The `:has` forms
+   also catch a field flagged only by going over its `countMax`. */
+:host(.andes-input-compact--invalid),
+:host(.andes-input-compact--warning),
+:host(:has(.andes-input-group--invalid, .andes-input-group--warning)) {
   --_andes-compact-border-hover: transparent;
-  --_andes-compact-border-focus: var(--andes-color-danger);
-  --_andes-compact-ring: color-mix(
-    in srgb,
-    var(--andes-color-danger) 20%,
-    transparent
-  );
 }
 
-:host(.andes-input-compact--warning) {
-  --_andes-compact-border-hover: transparent;
+/* The focus border and ring follow the status of the child that HAS the focus, not of the row:
+   a valid sibling focused beside a field in error keeps the primary ring. A child is in error
+   when its field group carries the invalid class (`status="error"`, `aria-invalid` or a value
+   past `countMax`) or it is itself marked `aria-invalid`; a warning is the group's warning
+   class. Declared invalid last so it wins if a child ever carries both. */
+/* prettier-ignore */
+:host(:has(> :focus-within .andes-input-group--warning)) {
   --_andes-compact-border-focus: var(--andes-color-warning-hover);
   --_andes-compact-ring: color-mix(
     in srgb,
     var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+/* prettier-ignore */
+:host(:has(> :focus-within .andes-input-group--invalid, > [aria-invalid='true']:focus-within)) {
+  --_andes-compact-border-focus: var(--andes-color-danger);
+  --_andes-compact-ring: color-mix(
+    in srgb,
+    var(--andes-color-danger) 20%,
     transparent
   );
 }
@@ -125,7 +137,8 @@
    a row lines up even where the button and field size scales differ. The height is left to the
    row's stretch: the button's own height is dropped and so is everything that would give it a
    natural height of its own taller than the smallest field (vertical padding, a tall line), or
-   an `sm` row would grow by the button's border. The row's ring is the only focus indicator. */
+   an `sm` row would grow by the button's border. The row's ring is the only outer focus indicator;
+   a focused button also gets the inset mark below. */
 /* prettier-ignore */
 :host(.andes-input-compact--fields) ::ng-deep > andes-button {
   display: flex;
@@ -141,9 +154,33 @@
   line-height: 1;
 }
 
+/* Keyboard focus on a button (or a native control) in the row: the row's ring is already on, so
+   a 2px inset outline marks which part holds the focus. It stays inside the control's own box,
+   inside the row's single ring, and follows the control's corners (the row's outer radius at the
+   ends). The -3px offset keeps the whole band clear of the 1px border overlay on the row's edge.
+   Not for a mouse click, and not for the fields - their ring is the row's. */
 /* prettier-ignore */
-:host ::ng-deep > andes-button .andes-button:focus-visible {
-  outline: none;
+:host ::ng-deep > andes-button .andes-button:focus-visible,
+:host ::ng-deep > :is(select, button, a[href]):focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -3px;
+}
+
+/* A solid primary or danger button swallows a mark in the focus-ring colour, so it draws the
+   mark in its own text colour instead (white on the fill). */
+@media not (forced-colors: active) {
+  /* prettier-ignore */
+  :host ::ng-deep > andes-button :is(.andes-button--primary, .andes-button--danger):focus-visible {
+    outline-color: currentColor;
+  }
+}
+
+@media (forced-colors: active) {
+  /* prettier-ignore */
+  :host ::ng-deep > andes-button .andes-button:focus-visible,
+  :host ::ng-deep > :is(select, button, a[href]):focus-visible {
+    outline: 2px solid Highlight;
+  }
 }
 
 /* Neighbours overlap by their 1px border, so two adjoining edges read as one line. */

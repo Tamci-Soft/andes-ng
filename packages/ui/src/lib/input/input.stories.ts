@@ -254,6 +254,12 @@ export const Addons: Story = {
           <span slot="prefix">≈</span>
           <span slot="addon-after">kg</span>
         </andes-input>
+        <andes-input aria-label="Coupon" placeholder="Coupon code">
+          <button slot="addon-after" type="button" style="border: 0; background: none; padding: 0 0.25rem; color: inherit; font: inherit; cursor: pointer;">Apply</button>
+        </andes-input>
+        <andes-input aria-label="Coupon, in error" status="error" placeholder="Coupon code">
+          <button slot="addon-after" type="button" style="border: 0; background: none; padding: 0 0.25rem; color: inherit; font: inherit; cursor: pointer;">Apply</button>
+        </andes-input>
         <andes-input aria-label="Website, filled" variant="filled" addonBefore="https://" placeholder="filled variant" />
         <andes-input aria-label="Website, disabled" addonBefore="https://" addonAfter=".com" disabled placeholder="disabled" />
       </div>
@@ -541,6 +547,15 @@ export const Compact: Story = {
         <andes-input-group block aria-label="Search orders">
           <andes-input aria-label="Order field" value="Order #" style="flex: 0 0 7rem;" />
           <andes-input-search aria-label="Search orders" placeholder="Search…" enterButton />
+        </andes-input-group>
+        <andes-input-group block aria-label="Email and code">
+          <andes-input aria-label="Email" status="error" value="not-an-email" />
+          <andes-input aria-label="Code" placeholder="Code" />
+          <andes-button>Send</andes-button>
+        </andes-input-group>
+        <andes-input-group block aria-label="Name and nickname">
+          <andes-input aria-label="Name" placeholder="Name" [countMax]="3" value="too long" />
+          <andes-input aria-label="Nickname" placeholder="Nickname" />
         </andes-input-group>
         <andes-input-group block aria-label="Small row">
           <andes-input size="sm" aria-label="From" placeholder="From" />

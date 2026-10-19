@@ -20,8 +20,10 @@ import { AndesInputSearch } from './input-search';
  *
  * The host is the `role="group"` element, so `aria-label` / `aria-labelledby` set on it name
  * the whole row. The row is one control: hovering any part tints its outline and focusing any
- * part draws one focus border and ring around the whole row (its colour follows a field in
- * error or warning), instead of each child drawing its own.
+ * part draws one focus border and ring around the whole row, instead of each child drawing its
+ * own. The ring takes the status of the part that has focus (error or warning, including a value
+ * past `countMax`) and the primary colour when that part has none, so a valid field beside one
+ * in error keeps the normal ring. A focused button gets a 2px inset mark on keyboard focus.
  */
 @Component({
   selector: 'andes-input-group',

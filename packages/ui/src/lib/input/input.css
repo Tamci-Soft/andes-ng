@@ -27,6 +27,8 @@
     var(--andes-color-primary) 20%,
     transparent
   );
+  /* The mark on the part (button, addon control) that holds keyboard focus inside the group. */
+  --_andes-input-focus-mark: var(--andes-color-focus-ring);
 
   /* `isolation` keeps the state border below (z-index 2) inside this row's own stacking
      context, so it never paints over a popup that overlaps the field. */
@@ -81,6 +83,37 @@
    leave a focused field looking unfocused; a real outline is the one indicator there. */
 @media (forced-colors: active) {
   .andes-input-group:focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* Keyboard focus on a button inside the group - the search button, or a control projected into
+   an addon. The group's ring is already on, so it cannot say which part holds the focus; this
+   2px inset outline can. It sits inside the button's own box (never outside the group's single
+   ring) and follows the button's corners, so the group's outer radius clips it. The -3px offset
+   puts the whole 2px band inside the 1px state border drawn over the group's edge. `:focus-visible`
+   keeps it off a mouse click, and the text box needs none - the ring marks it. */
+/* prettier-ignore */
+.andes-input__search-button ::ng-deep .andes-button:focus-visible,
+.andes-input__addon ::ng-deep :is(button, a[href], [role='button'], select):focus-visible {
+  outline: 2px solid var(--_andes-input-focus-mark);
+  outline-offset: -3px;
+}
+
+/* A solid primary or danger button swallows a mark in the focus-ring or status colour, so it
+   draws the mark in its own text colour instead (white on the fill). */
+@media not (forced-colors: active) {
+  /* prettier-ignore */
+  .andes-input__search-button ::ng-deep :is(.andes-button--primary, .andes-button--danger):focus-visible,
+  .andes-input__addon ::ng-deep :is(.andes-button--primary, .andes-button--danger):focus-visible {
+    outline-color: currentColor;
+  }
+}
+
+@media (forced-colors: active) {
+  /* prettier-ignore */
+  .andes-input__search-button ::ng-deep .andes-button:focus-visible,
+  .andes-input__addon ::ng-deep :is(button, a[href], [role='button'], select):focus-visible {
     outline: 2px solid Highlight;
   }
 }
@@ -175,6 +208,7 @@
   --_andes-input-border: var(--andes-color-danger);
   --_andes-input-border-hover: var(--andes-color-danger);
   --_andes-input-border-focus: var(--andes-color-danger);
+  --_andes-input-focus-mark: var(--andes-color-danger);
   --_andes-input-ring: color-mix(
     in srgb,
     var(--andes-color-danger) 20%,
@@ -186,6 +220,7 @@
   --_andes-input-border: var(--andes-color-warning-hover);
   --_andes-input-border-hover: var(--andes-color-warning-hover);
   --_andes-input-border-focus: var(--andes-color-warning-hover);
+  --_andes-input-focus-mark: var(--andes-color-warning-hover);
   --_andes-input-ring: color-mix(
     in srgb,
     var(--andes-color-warning-hover) 20%,
@@ -479,7 +514,8 @@
 /* The button is sized from the field, not from its own size scale: it is exactly the field's
    height (`border-box`, no vertical padding, so its border and line height never add to it),
    takes the field's font-size (the icon is 1em) and corner radius, and an icon-only button is
-   square. It is part of the group, so the group's ring is the only focus indicator. */
+   square. It is part of the group, so the group's ring is the only outer focus indicator (the
+   focused button also gets the inset mark above). */
 /* prettier-ignore */
 .andes-input__search-button ::ng-deep .andes-button {
   box-sizing: border-box;
@@ -497,11 +533,6 @@
 .andes-input__search-button ::ng-deep .andes-button[class*='andes-button--icon'] {
   width: var(--_andes-input-height);
   padding-inline: 0;
-}
-
-/* prettier-ignore */
-.andes-input__search-button ::ng-deep .andes-button:focus-visible {
-  outline: none;
 }
 
 /* The loading spinner is sized 1em like the icon it replaces; its 2px border would otherwise be
