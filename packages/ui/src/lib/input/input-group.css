@@ -2,12 +2,112 @@
    reaching them goes through ::ng-deep, anchored on :host so nothing leaks out of the row. Each
    selector stays on one line - Angular's style shim mis-scopes one split before a combinator. */
 
+/* The row is one control: the hover tint and the focus border + ring belong to the row, not to
+   whichever child is under the pointer or holds the focus. The children keep their own 1px
+   borders (they are the dividers between them, and carry each child's variant and status
+   colours); the row adds an overlay with its own outer edge and a ring around it. */
 :host {
+  --_andes-compact-radius: var(--andes-control-radius-md, 0.375rem);
+  --_andes-compact-border-hover: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+  --_andes-compact-border-focus: var(--andes-color-primary);
+  --_andes-compact-ring: color-mix(
+    in srgb,
+    var(--andes-color-primary) 20%,
+    transparent
+  );
+  --_andes-compact-font-size: var(--andes-control-font-size-md, 0.875rem);
+  /* Inherited by the fields inside: with no ring width they draw none of their own. */
+  --_andes-input-ring-width: 0px;
+
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: stretch;
   vertical-align: middle;
   max-width: 100%;
+  border-radius: var(--_andes-compact-radius);
   font-family: var(--andes-font-family), sans-serif;
+  transition: box-shadow 150ms ease;
+}
+
+:host::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color 150ms ease;
+}
+
+:host(:hover)::after {
+  border-color: var(--_andes-compact-border-hover);
+}
+
+:host(:focus-within)::after {
+  border-color: var(--_andes-compact-border-focus);
+}
+
+:host(:focus-within) {
+  box-shadow: 0 0 0 2px var(--_andes-compact-ring);
+}
+
+@media (forced-colors: active) {
+  :host(:focus-within) {
+    outline: 2px solid Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host,
+  :host::after {
+    transition: none;
+  }
+}
+
+/* The corner radius and the buttons' text size follow the fields' size. */
+:host(.andes-input-compact--sm) {
+  --_andes-compact-radius: var(--andes-control-radius-sm, 0.25rem);
+  --_andes-compact-font-size: var(--andes-control-font-size-sm, 0.875rem);
+}
+
+:host(.andes-input-compact--lg) {
+  --_andes-compact-radius: var(--andes-control-radius-lg, 0.5rem);
+  --_andes-compact-font-size: var(--andes-control-font-size-lg, 1rem);
+}
+
+/* A child in error or warning keeps its own status border on hover; the focus border and ring
+   take the status colour. */
+:host(.andes-input-compact--invalid) {
+  --_andes-compact-border-hover: transparent;
+  --_andes-compact-border-focus: var(--andes-color-danger);
+  --_andes-compact-ring: color-mix(
+    in srgb,
+    var(--andes-color-danger) 20%,
+    transparent
+  );
+}
+
+:host(.andes-input-compact--warning) {
+  --_andes-compact-border-hover: transparent;
+  --_andes-compact-border-focus: var(--andes-color-warning-hover);
+  --_andes-compact-ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+/* The fields draw no state border of their own inside a row (their ring width is 0 above). */
+/* prettier-ignore */
+:host ::ng-deep > :is(andes-input, andes-input-password, andes-input-search) .andes-input-group::after {
+  display: none;
 }
 
 :host(.andes-input-compact--block) {
@@ -22,7 +122,10 @@
 }
 
 /* Buttons take the height of the fields beside them (the same way the search button does), so
-   a row lines up even where the button and field size scales differ. */
+   a row lines up even where the button and field size scales differ. The height is left to the
+   row's stretch: the button's own height is dropped and so is everything that would give it a
+   natural height of its own taller than the smallest field (vertical padding, a tall line), or
+   an `sm` row would grow by the button's border. The row's ring is the only focus indicator. */
 /* prettier-ignore */
 :host(.andes-input-compact--fields) ::ng-deep > andes-button {
   display: flex;
@@ -30,7 +133,17 @@
 
 /* prettier-ignore */
 :host(.andes-input-compact--fields) ::ng-deep > andes-button .andes-button {
+  box-sizing: border-box;
   height: auto;
+  min-height: 0;
+  padding-block: 0;
+  font-size: var(--_andes-compact-font-size);
+  line-height: 1;
+}
+
+/* prettier-ignore */
+:host ::ng-deep > andes-button .andes-button:focus-visible {
+  outline: none;
 }
 
 /* Neighbours overlap by their 1px border, so two adjoining edges read as one line. */
@@ -62,18 +175,4 @@
 :host ::ng-deep > :is(select, input, button):not(:last-child) {
   border-start-end-radius: 0;
   border-end-end-radius: 0;
-}
-
-/* A hovered child is lifted above its neighbours so the shared 1px edge shows its hover colour,
-   and the focused child above that so the overlap doesn't clip its border or focus ring. */
-/* prettier-ignore */
-:host ::ng-deep > :hover {
-  position: relative;
-  z-index: 1;
-}
-
-/* prettier-ignore */
-:host ::ng-deep > :focus-within {
-  position: relative;
-  z-index: 2;
 }

@@ -259,12 +259,24 @@ export abstract class AndesInputBase implements ControlValueAccessor {
     return size === 'md' ? 'icon' : `icon-${size}`;
   });
 
+  /**
+   * The group owns the field's state (variant, status, disabled, read-only): its border, hover
+   * and focus ring cover the addons and the search button too, so it reads as one control.
+   */
   protected readonly groupClasses = computed(() =>
     clsx(
       'andes-input-group',
       `andes-input-group--${this.size()}`,
+      `andes-input-group--${this.variant()}`,
       this.searchButton() && 'andes-input-group--search',
+      // Includes going over `countMax`: it is a soft limit, so the error border, the red
+      // counter and `aria-invalid` are what tell the user - typing is never blocked.
+      this.isInvalid() && 'andes-input-group--invalid',
+      this.status() === 'warning' &&
+        !this.isInvalid() &&
+        'andes-input-group--warning',
       this.isDisabled() && 'andes-input-group--disabled',
+      this.readOnly() && 'andes-input-group--readonly',
     ),
   );
 
@@ -272,15 +284,6 @@ export abstract class AndesInputBase implements ControlValueAccessor {
     clsx(
       'andes-input-wrapper',
       `andes-input-wrapper--${this.size()}`,
-      `andes-input-wrapper--${this.variant()}`,
-      // Includes going over `countMax`: it is a soft limit, so the error border, the red
-      // counter and `aria-invalid` are what tell the user - typing is never blocked.
-      this.isInvalid() && 'andes-input-wrapper--invalid',
-      this.status() === 'warning' &&
-        !this.isInvalid() &&
-        'andes-input-wrapper--warning',
-      this.isDisabled() && 'andes-input-wrapper--disabled',
-      this.readOnly() && 'andes-input-wrapper--readonly',
       this.variantClass,
     ),
   );

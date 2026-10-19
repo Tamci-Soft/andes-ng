@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 
 import { AndesInput } from './input';
+import type { AndesInputBase, AndesInputSize } from './input-base';
 import { AndesInputPassword } from './input-password';
 import { AndesInputSearch } from './input-search';
 
@@ -18,7 +19,9 @@ import { AndesInputSearch } from './input-search';
  * a field stretch to the field's height, so they line up whatever their own size.
  *
  * The host is the `role="group"` element, so `aria-label` / `aria-labelledby` set on it name
- * the whole row.
+ * the whole row. The row is one control: hovering any part tints its outline and focusing any
+ * part draws one focus border and ring around the whole row (its colour follows a field in
+ * error or warning), instead of each child drawing its own.
  */
 @Component({
   selector: 'andes-input-group',
@@ -30,6 +33,10 @@ import { AndesInputSearch } from './input-search';
     class: 'andes-input-compact',
     '[class.andes-input-compact--block]': 'block()',
     '[class.andes-input-compact--fields]': 'hasFields()',
+    '[class.andes-input-compact--sm]': 'fieldSize() === "sm"',
+    '[class.andes-input-compact--lg]': 'fieldSize() === "lg"',
+    '[class.andes-input-compact--invalid]': 'hasInvalid()',
+    '[class.andes-input-compact--warning]': 'hasWarning()',
   },
 })
 export class AndesInputGroup {
@@ -40,10 +47,30 @@ export class AndesInputGroup {
   private readonly passwords = contentChildren(AndesInputPassword);
   private readonly searches = contentChildren(AndesInputSearch);
 
+  private readonly fields = computed<readonly AndesInputBase[]>(() => [
+    ...this.inputs(),
+    ...this.passwords(),
+    ...this.searches(),
+  ]);
+
   /** A text field sets the row's height; buttons only stretch to it when there is one. */
-  protected readonly hasFields = computed(
+  protected readonly hasFields = computed(() => this.fields().length > 0);
+
+  /** The fields' common size, which sets the row's corner radius; `md` when they differ. */
+  protected readonly fieldSize = computed<AndesInputSize>(() => {
+    const sizes = new Set(this.fields().map((field) => field.size()));
+    return sizes.size === 1 ? [...sizes][0] : 'md';
+  });
+
+  protected readonly hasInvalid = computed(() =>
+    this.fields().some(
+      (field) => field.status() === 'error' || field.ariaInvalid(),
+    ),
+  );
+
+  protected readonly hasWarning = computed(
     () =>
-      this.inputs().length + this.passwords().length + this.searches().length >
-      0,
+      !this.hasInvalid() &&
+      this.fields().some((field) => field.status() === 'warning'),
   );
 }

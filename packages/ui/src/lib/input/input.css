@@ -1,18 +1,13 @@
 /* The outermost element: lays the optional addon-before / field / addon-after / search button
-   out as one attached row. It is the component's surface root, so it carries the font-family
-   too (the wrapper keeps its own copy so the field reads the same with or without addons).
-   `--_andes-input-radius` is the size's corner radius, shared by the field, the addons and the
-   search button so the row's outer corners match (set per size at the end of this file). */
+   out as one attached row, and it is what reads as "the field": it owns the state (variant,
+   status, disabled, read-only), so the hover tint and the focus border + ring wrap the whole
+   row - addons and search button included - instead of the inner text box alone. It is the
+   component's surface root, so it carries the font-family too.
+   `--_andes-input-radius` is the size's corner radius, shared by the field, the addons, the
+   search button and the group itself so the row's outer corners match (set per size at the end
+   of this file). */
 .andes-input-group {
   --_andes-input-radius: var(--andes-control-radius-md, 0.375rem);
-  display: inline-flex;
-  align-items: stretch;
-  width: 100%;
-  font-family: var(--andes-font-family), sans-serif;
-  line-height: var(--andes-control-line-height, 1.375rem);
-}
-
-.andes-input-wrapper {
   /* State colours are resolved through these private properties so one `:hover` and one
      `:focus-within` rule serve every variant, status and the disabled/read-only states: each
      of those only re-points the properties, never re-declares the hover/focus rules (which
@@ -33,6 +28,74 @@
     transparent
   );
 
+  /* `isolation` keeps the state border below (z-index 2) inside this row's own stacking
+     context, so it never paints over a popup that overlaps the field. */
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--_andes-input-radius);
+  font-family: var(--andes-font-family), sans-serif;
+  line-height: var(--andes-control-line-height, 1.375rem);
+  transition: box-shadow 150ms ease;
+}
+
+/* The state border: an overlay with the group's own outer edge, transparent at rest. Hover and
+   focus colour it, so the whole outline changes as one while the dividers between the parts
+   (each part's own 1px border) stay as they are. The ring is the group's own box-shadow, drawn
+   outside that edge, so there is exactly one indicator whichever part holds the focus. */
+.andes-input-group::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color 150ms ease;
+}
+
+.andes-input-group:hover::after {
+  border-color: var(--_andes-input-border-hover);
+}
+
+/* Keyed off `:focus-within` on the group - not on the text control - so focusing the field, the
+   clear or visibility button, an addon's control or the search button all show the one ring, and
+   a mouse click shows it as well as the keyboard. No `outline`: an outline drawn a few pixels
+   outside the border reads as a second, detached frame. The ring width is a hook so a compact
+   row (`andes-input-group`) can turn it off on its fields and draw one ring around itself. */
+.andes-input-group:focus-within {
+  box-shadow: 0 0 0 var(--_andes-input-ring-width, 2px) var(--_andes-input-ring);
+  outline: none;
+}
+
+.andes-input-group:focus-within::after {
+  border-color: var(--_andes-input-border-focus);
+}
+
+/* Forced-colors mode drops `box-shadow` and repaints borders in one system colour, which would
+   leave a focused field looking unfocused; a real outline is the one indicator there. */
+@media (forced-colors: active) {
+  .andes-input-group:focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-input-group,
+  .andes-input-group::after,
+  .andes-input-wrapper {
+    transition: none;
+  }
+}
+
+/* The field's own box: the border at rest and the fill. It fills whatever room the addons and
+   the search button leave. */
+.andes-input-wrapper {
   /* The size rules below set the field's outer height (24/32/40px) like every other text field;
      content-box sizing would add the 1px border on top (a 34px md input) and make
      `width: 100%` overflow by the padding and border. */
@@ -41,6 +104,7 @@
   align-items: center;
   /* Prefix/suffix/clear/count sit 4px from the text, kept tight. */
   gap: var(--andes-space-1);
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   border-radius: var(--_andes-input-radius);
@@ -49,48 +113,21 @@
   color: var(--andes-color-foreground);
   font-family: var(--andes-font-family), sans-serif;
   line-height: var(--andes-control-line-height, 1.375rem);
-  transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    background-color 150ms ease;
+  transition: background-color 150ms ease;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .andes-input-wrapper {
-    transition: none;
-  }
-}
-
-.andes-input-wrapper:hover {
-  border-color: var(--_andes-input-border-hover);
+.andes-input-group:hover > .andes-input-wrapper {
   background-color: var(--_andes-input-bg-hover);
 }
 
-/* The field is one box with one focus indicator: its own border turns the focus colour and a
-   soft 2px ring hugs it from outside. It lives on the wrapper - not `.andes-input__control` -
-   because the wrapper is what reads as "the field" (it also encloses the prefix/suffix slots
-   and the clear button), and it follows `:focus-within` so a mouse click shows it as well as
-   the keyboard. No `outline` here: an outline drawn a few pixels outside the border reads as a
-   second, detached frame. */
-.andes-input-wrapper:focus-within {
-  border-color: var(--_andes-input-border-focus);
+.andes-input-group:focus-within > .andes-input-wrapper {
   background-color: var(--_andes-input-bg-focus);
-  box-shadow: 0 0 0 2px var(--_andes-input-ring);
-  outline: none;
-}
-
-/* Forced-colors mode drops `box-shadow` and repaints borders in one system colour, which would
-   leave a focused field looking unfocused; a real outline is the one indicator there. */
-@media (forced-colors: active) {
-  .andes-input-wrapper:focus-within {
-    outline: 2px solid Highlight;
-  }
 }
 
 /* Variants. Declared before the status rules, which must win over a variant's border colour at
    equal specificity. */
 
-.andes-input-wrapper--filled {
+.andes-input-group--filled {
   --_andes-input-border: transparent;
   --_andes-input-border-hover: transparent;
   --_andes-input-bg: var(--andes-color-muted);
@@ -103,7 +140,7 @@
 }
 
 /* No border at all: focus shows only the soft ring. */
-.andes-input-wrapper--borderless {
+.andes-input-group--borderless {
   --_andes-input-border: transparent;
   --_andes-input-border-hover: transparent;
   --_andes-input-border-focus: transparent;
@@ -113,20 +150,28 @@
 /* Only the bottom edge is drawn, so status/focus border colours (set on all four sides) keep
    applying to just that edge without per-variant overrides. The edge itself is the focus
    indicator, so no ring. */
-.andes-input-wrapper--underlined {
+.andes-input-group--underlined {
   --_andes-input-bg: transparent;
-  border-width: 0 0 1px;
   border-radius: 0;
 }
 
-.andes-input-wrapper--underlined:focus-within {
+.andes-input-group--underlined::after {
+  border-width: 0 0 1px;
+}
+
+.andes-input-group--underlined:focus-within {
   box-shadow: none;
+}
+
+.andes-input-group--underlined > .andes-input-wrapper {
+  border-width: 0 0 1px;
+  border-radius: 0;
 }
 
 /* Status: `--invalid` (aria-invalid or status="error") and the warning tier. Hover keeps the
    status colour; focus keeps it too and tints the ring to match. */
 
-.andes-input-wrapper--invalid {
+.andes-input-group--invalid {
   --_andes-input-border: var(--andes-color-danger);
   --_andes-input-border-hover: var(--andes-color-danger);
   --_andes-input-border-focus: var(--andes-color-danger);
@@ -137,7 +182,7 @@
   );
 }
 
-.andes-input-wrapper--warning {
+.andes-input-group--warning {
   --_andes-input-border: var(--andes-color-warning-hover);
   --_andes-input-border-hover: var(--andes-color-warning-hover);
   --_andes-input-border-focus: var(--andes-color-warning-hover);
@@ -149,14 +194,14 @@
 }
 
 /* Read-only: still focusable (so it gets the ring) but nothing else reacts. */
-.andes-input-wrapper--readonly {
+.andes-input-group--readonly {
   --_andes-input-border-hover: var(--_andes-input-border);
   --_andes-input-border-focus: var(--_andes-input-border);
   --_andes-input-bg-hover: var(--_andes-input-bg);
   --_andes-input-bg-focus: var(--_andes-input-bg);
 }
 
-.andes-input-wrapper--disabled {
+.andes-input-group--disabled {
   --_andes-input-bg: var(--andes-color-muted);
   --_andes-input-border-hover: var(--_andes-input-border);
   --_andes-input-bg-hover: var(--_andes-input-bg);
@@ -356,17 +401,20 @@
   color: var(--andes-color-danger-text, var(--andes-color-danger));
 }
 
-/* Addons (addonBefore / addonAfter): attached segments outside the field's own border, as
-   opposed to prefix/suffix, which sit inside it. An addon with nothing projected and no text
-   input is `:empty` and takes no room at all. */
+/* Addons (addonBefore / addonAfter): attached segments outside the field's own box, as opposed
+   to prefix/suffix, which sit inside it. An addon with nothing projected and no text input is
+   `:empty` and takes no room at all. Like the field, an addon is exactly the group's height
+   (24/32/40px): `border-box` with the size's height, so its own borders never add to it. */
 
 .andes-input__addon {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   gap: var(--andes-space-2);
+  height: var(--_andes-input-height, var(--andes-control-height-md, 2rem));
   padding-inline: var(--andes-control-padding-x-md, 0.6875rem);
-  border: 1px solid var(--andes-color-input);
+  border: 1px solid var(--_andes-input-border);
   background-color: var(--andes-color-muted);
   color: var(--andes-color-foreground);
   white-space: nowrap;
@@ -408,14 +456,6 @@
   border-end-end-radius: 0;
 }
 
-/* Lift the hovered/focused field above its siblings so the after-addon / search button (later in
-   paint order) doesn't cover the right edge of its border or focus ring. */
-.andes-input-group > .andes-input-wrapper:hover,
-.andes-input-group > .andes-input-wrapper:focus-within {
-  position: relative;
-  z-index: 1;
-}
-
 .andes-input-group--search > .andes-input-wrapper,
 .andes-input-group--search > .andes-input__addon--after {
   border-start-end-radius: 0;
@@ -436,12 +476,15 @@
   margin-inline-start: -1px;
 }
 
-/* The button is sized from the field, not from its own size scale: it stretches to the row's
-   height, takes the field's font-size (the icon is 1em) and corner radius, and an icon-only
-   button is square. */
+/* The button is sized from the field, not from its own size scale: it is exactly the field's
+   height (`border-box`, no vertical padding, so its border and line height never add to it),
+   takes the field's font-size (the icon is 1em) and corner radius, and an icon-only button is
+   square. It is part of the group, so the group's ring is the only focus indicator. */
 /* prettier-ignore */
 .andes-input__search-button ::ng-deep .andes-button {
-  height: auto;
+  box-sizing: border-box;
+  height: var(--_andes-input-height);
+  padding-block: 0;
   padding-inline: var(--_andes-input-search-padding-x);
   border-start-start-radius: 0;
   border-end-start-radius: 0;
@@ -456,10 +499,22 @@
   padding-inline: 0;
 }
 
-/* The outline button shares the field's border color so the joined edge reads as one line. */
+/* prettier-ignore */
+.andes-input__search-button ::ng-deep .andes-button:focus-visible {
+  outline: none;
+}
+
+/* The loading spinner is sized 1em like the icon it replaces; its 2px border would otherwise be
+   added on top (18px instead of 14px) and the icon would jump when loading starts. */
+/* prettier-ignore */
+.andes-input__search-button ::ng-deep .andes-button__spinner {
+  box-sizing: border-box;
+}
+
+/* The outline button shares the field's border colour so the joined edge reads as one line. */
 /* prettier-ignore */
 .andes-input__search-button ::ng-deep .andes-button--outline {
-  border-color: var(--andes-color-input);
+  border-color: var(--_andes-input-border);
 }
 
 /* prettier-ignore */
@@ -469,31 +524,32 @@
 
 /* Variants with addons: a filled/borderless field drops its border, so its addons do too (a
    lone addon border next to a borderless field read as a stray frame). The filled addon keeps
-   a hairline divider on its inner edge. The underlined field keeps only its bottom edge. */
+   a hairline divider on its inner edge and follows the field's fill on hover. The underlined
+   field keeps only its bottom edge. */
 
-/* prettier-ignore */
-.andes-input-group:has(> .andes-input-wrapper--filled) > .andes-input__addon {
+.andes-input-group--filled > .andes-input__addon {
   border-color: transparent;
+  background-color: var(--_andes-input-bg);
 }
 
-/* prettier-ignore */
-.andes-input-group:has(> .andes-input-wrapper--borderless) > .andes-input__addon {
+.andes-input-group--filled:hover > .andes-input__addon {
+  background-color: var(--_andes-input-bg-hover);
+}
+
+.andes-input-group--borderless > .andes-input__addon {
   border-color: transparent;
   background-color: transparent;
 }
 
-/* prettier-ignore */
-.andes-input-group:has(> .andes-input-wrapper--filled) > .andes-input__addon--before {
+.andes-input-group--filled > .andes-input__addon--before {
   border-inline-end: 1px solid var(--andes-color-border);
 }
 
-/* prettier-ignore */
-.andes-input-group:has(> .andes-input-wrapper--filled) > .andes-input__addon--after {
+.andes-input-group--filled > .andes-input__addon--after {
   border-inline-start: 1px solid var(--andes-color-border);
 }
 
-/* prettier-ignore */
-.andes-input-group:has(> .andes-input-wrapper--underlined) > .andes-input__addon {
+.andes-input-group--underlined > .andes-input__addon {
   border-width: 0 0 1px;
   border-radius: 0;
   background-color: transparent;

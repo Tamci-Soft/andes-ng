@@ -14,6 +14,7 @@ import {
   AndesInputType,
   AndesInputVariant,
 } from './input';
+import { AndesInputSearch } from './input-search';
 
 @Component({
   imports: [AndesInput],
@@ -51,7 +52,10 @@ describe('AndesInput', () => {
     const wrapper = fixture.nativeElement.querySelector(
       '.andes-input-wrapper',
     ) as HTMLElement;
-    return { fixture, input, wrapper };
+    const group = fixture.nativeElement.querySelector(
+      '.andes-input-group',
+    ) as HTMLElement;
+    return { fixture, input, wrapper, group };
   }
 
   it('renders a native input', () => {
@@ -101,12 +105,12 @@ describe('AndesInput', () => {
   );
 
   it('reflects disabled state on the native input', () => {
-    const { fixture, input, wrapper } = createHost();
+    const { fixture, input, group } = createHost();
     fixture.componentInstance.disabled.set(true);
     fixture.detectChanges();
 
     expect(input.disabled).toBe(true);
-    expect(wrapper.classList).toContain('andes-input-wrapper--disabled');
+    expect(group.classList).toContain('andes-input-group--disabled');
   });
 
   it('reflects required state on the native input', () => {
@@ -171,12 +175,12 @@ describe('AndesInput', () => {
     fixture.detectChanges();
     const host = fixture.nativeElement.querySelector('andes-input');
     const input = fixture.nativeElement.querySelector('input');
-    const wrapper = fixture.nativeElement.querySelector('.andes-input-wrapper');
+    const group = fixture.nativeElement.querySelector('.andes-input-group');
 
     expect(input.getAttribute('aria-label')).toBe('Email');
     expect(input.getAttribute('aria-describedby')).toBe('email-hint');
     expect(input.getAttribute('aria-invalid')).toBe('true');
-    expect(wrapper.classList).toContain('andes-input-wrapper--invalid');
+    expect(group.classList).toContain('andes-input-group--invalid');
     expect(host.hasAttribute('aria-label')).toBe(false);
     expect(host.hasAttribute('aria-describedby')).toBe(false);
     expect(host.hasAttribute('aria-invalid')).toBe(false);
@@ -298,34 +302,55 @@ describe('AndesInput', () => {
         'utf-8',
       ).replace(/\/\*[\s\S]*?\*\//g, '');
 
-    it('keys the ring off `:focus-within` on the wrapper, so mouse focus shows it too', () => {
-      const { input, wrapper } = createHost();
+    it('keys the ring off `:focus-within` on the group, so mouse focus shows it too', () => {
+      const { input, group } = createHost();
 
-      expect(wrapper.matches(':focus-within')).toBe(false);
       input.focus();
 
       expect(document.activeElement).toBe(input);
-      expect(getComputedStyle(wrapper).outline).toBe('none');
-      expect(getComputedStyle(wrapper).boxShadow).toBe(
-        '0 0 0 2px var(--_andes-input-ring)',
+      expect(getComputedStyle(group).outline).toBe('none');
+      expect(getComputedStyle(group).boxShadow).toBe(
+        '0 0 0 var(--_andes-input-ring-width, 2px) var(--_andes-input-ring)',
       );
     });
 
     it('paints the ring as a 2px shadow, never as an outline around the bordered box', () => {
-      const ruleBody = /\.andes-input-wrapper:focus-within\s*{([^}]*)}/.exec(
+      const ruleBody = /\.andes-input-group:focus-within\s*{([^}]*)}/.exec(
         css(),
       )?.[1];
 
       expect(ruleBody).toContain(
-        'border-color: var(--_andes-input-border-focus)',
-      );
-      expect(ruleBody).toContain(
-        'box-shadow: 0 0 0 2px var(--_andes-input-ring)',
+        'box-shadow: 0 0 0 var(--_andes-input-ring-width, 2px) var(--_andes-input-ring)',
       );
       expect(ruleBody).toContain('outline: none');
+      expect(css()).toMatch(
+        /\.andes-input-group:focus-within::after\s*{\s*border-color: var\(--_andes-input-border-focus\);/,
+      );
       expect(css()).not.toMatch(/outline-offset:\s*2px/);
       // Only the inner buttons (clear, visibility toggle) keep a keyboard outline of their own.
       expect(css()).not.toMatch(/andes-input-wrapper[^{]*:focus-visible/);
+    });
+
+    it('draws no ring or state border on the inner text box, only on the group', () => {
+      const { input, wrapper, group } = createHost();
+
+      input.focus();
+
+      expect(getComputedStyle(wrapper).boxShadow).toBe('');
+      expect(css()).not.toMatch(
+        /\.andes-input-wrapper:(hover|focus-within)\s*{/,
+      );
+      expect(css()).not.toMatch(/\.andes-input-wrapper:focus-within\s*,/);
+      expect(wrapper.parentElement).toBe(group);
+    });
+
+    it('tints the whole group on hover, not just the text box', () => {
+      expect(css()).toMatch(
+        /\.andes-input-group:hover::after\s*{\s*border-color: var\(--_andes-input-border-hover\);/,
+      );
+      expect(css()).toMatch(
+        /\.andes-input-group:hover > \.andes-input-wrapper\s*{\s*background-color: var\(--_andes-input-bg-hover\);/,
+      );
     });
 
     it('resolves the default ring and focus border to the primary colour at 20%', () => {
@@ -351,20 +376,20 @@ describe('AndesInput', () => {
 
     it('swaps in a real outline only under forced colours, where box-shadow is dropped', () => {
       expect(css()).toMatch(
-        /@media \(forced-colors: active\)\s*{\s*\.andes-input-wrapper:focus-within\s*{\s*outline: 2px solid Highlight;/,
+        /@media \(forced-colors: active\)\s*{\s*\.andes-input-group:focus-within\s*{\s*outline: 2px solid Highlight;/,
       );
     });
 
     it('tints the border and ring with the status colour', () => {
       const body = (selector: string) => ruleBody(css(), `.${selector}`);
 
-      expect(body('andes-input-wrapper--invalid')).toMatch(
+      expect(body('andes-input-group--invalid')).toMatch(
         /--_andes-input-ring: color-mix\(\s*in srgb,\s*var\(--andes-color-danger\) 20%/,
       );
-      expect(body('andes-input-wrapper--warning')).toMatch(
+      expect(body('andes-input-group--warning')).toMatch(
         /--_andes-input-border: var\(--andes-color-warning-hover\)/,
       );
-      expect(body('andes-input-wrapper--warning')).toMatch(
+      expect(body('andes-input-group--warning')).toMatch(
         /--_andes-input-ring: color-mix\(\s*in srgb,\s*var\(--andes-color-warning-hover\) 20%/,
       );
     });
@@ -373,11 +398,9 @@ describe('AndesInput', () => {
       const fixture = TestBed.createComponent(AndesInput);
       fixture.componentRef.setInput('readOnly', true);
       fixture.detectChanges();
-      const wrapper = fixture.nativeElement.querySelector(
-        '.andes-input-wrapper',
-      );
+      const group = fixture.nativeElement.querySelector('.andes-input-group');
 
-      expect(wrapper.classList).toContain('andes-input-wrapper--readonly');
+      expect(group.classList).toContain('andes-input-group--readonly');
     });
   });
 
@@ -491,9 +514,9 @@ describe('AndesInput', () => {
 
   describe('variant', () => {
     it('defaults to outlined', () => {
-      const { wrapper } = createHost();
+      const { group } = createHost();
 
-      expect(wrapper.classList).toContain('andes-input-wrapper--outlined');
+      expect(group.classList).toContain('andes-input-group--outlined');
     });
 
     it.each(['filled', 'borderless', 'underlined'] as const)(
@@ -509,14 +532,10 @@ describe('AndesInput', () => {
 
         const fixture = TestBed.createComponent(VariantHost);
         fixture.detectChanges();
-        const wrapper = fixture.nativeElement.querySelector(
-          '.andes-input-wrapper',
-        );
+        const group = fixture.nativeElement.querySelector('.andes-input-group');
 
-        expect(wrapper.classList).toContain(`andes-input-wrapper--${variant}`);
-        expect(wrapper.classList).not.toContain(
-          'andes-input-wrapper--outlined',
-        );
+        expect(group.classList).toContain(`andes-input-group--${variant}`);
+        expect(group.classList).not.toContain('andes-input-group--outlined');
       },
     );
 
@@ -552,39 +571,39 @@ describe('AndesInput', () => {
       return {
         fixture,
         input: fixture.nativeElement.querySelector('input') as HTMLInputElement,
-        wrapper: fixture.nativeElement.querySelector(
-          '.andes-input-wrapper',
+        group: fixture.nativeElement.querySelector(
+          '.andes-input-group',
         ) as HTMLElement,
       };
     }
 
     it('status="error" paints the invalid state and announces it via aria-invalid', () => {
-      const { input, wrapper } = createStatusHost('error');
+      const { input, group } = createStatusHost('error');
 
-      expect(wrapper.classList).toContain('andes-input-wrapper--invalid');
+      expect(group.classList).toContain('andes-input-group--invalid');
       expect(input.getAttribute('aria-invalid')).toBe('true');
     });
 
     it('status="warning" paints the warning state without marking the field invalid', () => {
-      const { input, wrapper } = createStatusHost('warning');
+      const { input, group } = createStatusHost('warning');
 
-      expect(wrapper.classList).toContain('andes-input-wrapper--warning');
-      expect(wrapper.classList).not.toContain('andes-input-wrapper--invalid');
+      expect(group.classList).toContain('andes-input-group--warning');
+      expect(group.classList).not.toContain('andes-input-group--invalid');
       expect(input.hasAttribute('aria-invalid')).toBe(false);
     });
 
-    it('keeps the single wrapper focus ring, recolored, for status="warning"', () => {
-      const { input, wrapper } = createStatusHost('warning');
+    it('keeps the single group focus ring, recolored, for status="warning"', () => {
+      const { input, group } = createStatusHost('warning');
 
       input.focus();
 
       expect(getComputedStyle(input).outline).toBe('0');
-      expect(getComputedStyle(wrapper).outline).toBe('none');
-      expect(getComputedStyle(wrapper).boxShadow).toBe(
-        '0 0 0 2px var(--_andes-input-ring)',
+      expect(getComputedStyle(group).outline).toBe('none');
+      expect(getComputedStyle(group).boxShadow).toBe(
+        '0 0 0 var(--_andes-input-ring-width, 2px) var(--_andes-input-ring)',
       );
       expect(
-        getComputedStyle(wrapper).getPropertyValue('--_andes-input-ring'),
+        getComputedStyle(group).getPropertyValue('--_andes-input-ring'),
       ).toContain('var(--andes-color-warning-hover) 20%');
     });
   });
@@ -929,31 +948,29 @@ describe('AndesInput count limits', () => {
     ) as HTMLInputElement;
     const count = () =>
       fixture.nativeElement.querySelector('.andes-input__count') as HTMLElement;
-    const wrapper = () =>
-      fixture.nativeElement.querySelector(
-        '.andes-input-wrapper',
-      ) as HTMLElement;
+    const group = () =>
+      fixture.nativeElement.querySelector('.andes-input-group') as HTMLElement;
     const type = (value: string) => {
       input.value = value;
       input.dispatchEvent(new Event('input'));
       fixture.detectChanges();
     };
-    return { fixture, input, count, wrapper, type };
+    return { fixture, input, count, group, type };
   }
 
   it('countMax is a soft limit: it is counted against and flagged, never enforced natively', () => {
-    const { fixture, input, count, wrapper, type } = createCountHost();
+    const { fixture, input, count, group, type } = createCountHost();
 
     expect(input.getAttribute('maxlength')).toBeNull();
     type('abc');
     expect(count().textContent?.trim()).toBe('3 / 5');
-    expect(wrapper().classList).not.toContain('andes-input-wrapper--invalid');
+    expect(group().classList).not.toContain('andes-input-group--invalid');
 
     type('abcdefg');
     expect(fixture.componentInstance.text()).toBe('abcdefg');
     expect(count().textContent?.trim()).toBe('7 / 5');
     expect(count().classList).toContain('andes-input__count--exceeded');
-    expect(wrapper().classList).toContain('andes-input-wrapper--invalid');
+    expect(group().classList).toContain('andes-input-group--invalid');
     // Over the soft limit is announced as well as painted - the same rule as AndesTextarea.
     expect(input.getAttribute('aria-invalid')).toBe('true');
 
@@ -1168,6 +1185,150 @@ describe('AndesInput text alignment hook', () => {
       ),
     ).toMatch(
       /\.andes-input__control\s*{[^}]*text-align:\s*var\(--andes-input-text-align,\s*start\);/,
+    );
+  });
+});
+
+describe('AndesInput group parts', () => {
+  @Component({
+    imports: [AndesInput, AndesInputSearch],
+    template: `
+      <andes-input
+        class="with-addons"
+        aria-label="Website"
+        addonBefore="https://"
+        addonAfter=".com"
+      />
+      <andes-input-search
+        class="search"
+        aria-label="Search"
+        size="sm"
+        variant="filled"
+        enterButton
+      />
+    `,
+  })
+  class PartsHost {}
+
+  const css = () =>
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'input.css'),
+      'utf-8',
+    ).replace(/\/\*[\s\S]*?\*\//g, '');
+
+  function createParts() {
+    const fixture = TestBed.createComponent(PartsHost);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('keeps the addons, the field and the search button as siblings inside one group', () => {
+    const root = createParts();
+    const addons = root.querySelector('.with-addons .andes-input-group');
+    const search = root.querySelector('.search .andes-input-group');
+
+    expect(
+      [...(addons?.children ?? [])].map((child) => child.className),
+    ).toEqual([
+      'andes-input__addon andes-input__addon--before',
+      'andes-input-wrapper andes-input-wrapper--md',
+      'andes-input__addon andes-input__addon--after',
+    ]);
+    expect(search?.querySelector(':scope > andes-button')).toBeTruthy();
+    expect(search?.querySelector(':scope > .andes-input-wrapper')).toBeTruthy();
+  });
+
+  it('carries variant, size and the search flag on the group, not on the field', () => {
+    const root = createParts();
+    const group = root.querySelector('.search .andes-input-group');
+    const wrapper = root.querySelector('.search .andes-input-wrapper');
+
+    expect(group?.classList).toContain('andes-input-group--sm');
+    expect(group?.classList).toContain('andes-input-group--filled');
+    expect(group?.classList).toContain('andes-input-group--search');
+    expect(wrapper?.classList).not.toContain('andes-input-wrapper--filled');
+  });
+
+  it('sizes the group parts from one height per size (24/32/40px)', () => {
+    const text = css();
+
+    expect(text).toMatch(
+      /\.andes-input-group--sm\s*{[^}]*--_andes-input-height: var\(--andes-control-height-sm, 1\.5rem\)/,
+    );
+    expect(text).toMatch(
+      /\.andes-input-group--md\s*{[^}]*--_andes-input-height: var\(--andes-control-height-md, 2rem\)/,
+    );
+    expect(text).toMatch(
+      /\.andes-input-group--lg\s*{[^}]*--_andes-input-height: var\(--andes-control-height-lg, 2\.5rem\)/,
+    );
+    expect(ruleBody(text, '.andes-input-wrapper--sm')).toContain(
+      'height: 1.5rem',
+    );
+    expect(ruleBody(text, '.andes-input-wrapper--md')).toContain(
+      'height: 2rem',
+    );
+    expect(ruleBody(text, '.andes-input-wrapper--lg')).toContain(
+      'height: 2.5rem',
+    );
+  });
+
+  it('makes an addon exactly as tall as the field: border-box, so its border never adds', () => {
+    const body = ruleBody(css(), '.andes-input__addon');
+
+    expect(body).toContain('box-sizing: border-box');
+    expect(body).toMatch(/height: var\(--_andes-input-height/);
+  });
+
+  it('makes the search button exactly as tall as the field, whatever the button scale', () => {
+    const body = ruleBody(
+      css(),
+      '.andes-input__search-button ::ng-deep .andes-button',
+    );
+
+    expect(body).toContain('box-sizing: border-box');
+    expect(body).toContain('height: var(--_andes-input-height)');
+    expect(body).toContain('padding-block: 0');
+    expect(
+      ruleBody(
+        css(),
+        ".andes-input__search-button ::ng-deep .andes-button[class*='andes-button--icon']",
+      ),
+    ).toContain('width: var(--_andes-input-height)');
+    // The spinner (1em + a 2px border) would otherwise be 4px bigger than the icon it replaces.
+    expect(
+      ruleBody(
+        css(),
+        '.andes-input__search-button ::ng-deep .andes-button__spinner',
+      ),
+    ).toContain('box-sizing: border-box');
+  });
+
+  it('shows no keyboard outline on the search button: the group ring is the indicator', () => {
+    expect(
+      ruleBody(
+        css(),
+        '.andes-input__search-button ::ng-deep .andes-button:focus-visible',
+      ),
+    ).toContain('outline: none');
+  });
+
+  it('colours the addons and the search button edge from the group state', () => {
+    const text = css();
+
+    expect(ruleBody(text, '.andes-input__addon')).toContain(
+      'border: 1px solid var(--_andes-input-border)',
+    );
+    expect(
+      ruleBody(
+        text,
+        '.andes-input__search-button ::ng-deep .andes-button--outline',
+      ),
+    ).toContain('border-color: var(--_andes-input-border)');
+  });
+
+  it('uses logical properties only, so the group mirrors in right-to-left', () => {
+    expect(css()).not.toMatch(
+      /(margin|padding|border)-(left|right)|(^|[\s;{])(left|right)\s*:|border-(top|bottom)-(left|right)-radius/m,
     );
   });
 });
