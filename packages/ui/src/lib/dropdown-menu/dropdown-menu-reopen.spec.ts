@@ -343,3 +343,69 @@ describe('AndesDropdownMenu - opening again after a close', () => {
     }
   });
 });
+
+describe('AndesDropdownMenu - what is highlighted when it opens', () => {
+  withElementGeometry();
+
+  let fixture: ComponentFixture<ManyMenusHost>;
+
+  beforeEach(() => {
+    fixture = TestBed.createComponent(ManyMenusHost);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => fixture.destroy());
+
+  async function settle() {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    fixture.detectChanges();
+  }
+
+  const trigger = () =>
+    fixture.nativeElement.querySelector('#triggerA') as HTMLElement;
+  const activeItems = () =>
+    document.querySelectorAll('.andes-dropdown-menu__item[data-active]');
+
+  it('leaves every item unhighlighted after a click of the pointer, focus on the pane', async () => {
+    trigger().dispatchEvent(
+      new MouseEvent('click', { bubbles: true, detail: 1 }),
+    );
+    await settle();
+
+    expect(document.querySelector('#a1')).not.toBeNull();
+    expect(activeItems()).toHaveLength(0);
+    expect(document.activeElement?.classList).toContain(
+      ANDES_OVERLAY_PANE_CLASS,
+    );
+  });
+
+  it('highlights the first item after a click made with Enter or Space', async () => {
+    trigger().dispatchEvent(
+      new MouseEvent('click', { bubbles: true, detail: 0 }),
+    );
+    await settle();
+
+    expect(activeItems()).toHaveLength(1);
+    expect(activeItems()[0].id).toBe('a1');
+  });
+
+  it('reaches the first item with the arrow key after a pointer open', async () => {
+    trigger().dispatchEvent(
+      new MouseEvent('click', { bubbles: true, detail: 1 }),
+    );
+    await settle();
+    const event = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, 'keyCode', { get: () => 40 });
+    document.activeElement?.dispatchEvent(event);
+    await settle();
+
+    expect(activeItems()).toHaveLength(1);
+    expect(activeItems()[0].id).toBe('a1');
+  });
+});

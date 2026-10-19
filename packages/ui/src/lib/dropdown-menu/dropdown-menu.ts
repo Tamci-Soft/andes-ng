@@ -96,7 +96,11 @@ const CLOSE_REASONS: Partial<
 const TABBABLE_SELECTOR =
   'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-type FocusOnOpen = 'first' | 'last' | 'none';
+/**
+ * Where focus goes on open. `panel` is a pointer open: focus moves into the menu (so Escape and
+ * the arrow keys work) but no item is highlighted until the pointer or a key reaches one.
+ */
+type FocusOnOpen = 'first' | 'last' | 'panel' | 'none';
 
 interface ShowOptions {
   readonly focus?: FocusOnOpen;
@@ -581,22 +585,29 @@ export class AndesDropdownMenu
   }
 
   /** @internal */
-  onTriggerClick(): void {
+  onTriggerClick(event?: MouseEvent): void {
     if (this.isDisabled()) {
       return;
     }
+    // A click made with Enter/Space has no pointer behind it (`detail` is 0): that one
+    // highlights the first item like any keyboard open. A real click opens the menu with
+    // nothing highlighted, so it does not look as if an item were already picked.
+    const focus: FocusOnOpen | undefined =
+      event && event.detail > 0 && this.autoFocus() === undefined
+        ? 'panel'
+        : undefined;
     const actions = this.triggerActions();
     if (actions.has('click')) {
       if (this.overlay.isOpen()) {
         this.hide('trigger');
       } else {
-        this.showMenu('trigger');
+        this.showMenu('trigger', { focus });
       }
     } else if (actions.has('hover')) {
       // A hover menu must still open for keyboard (Enter/Space click the trigger) and
       // touch users - but a click never closes it, or a mouse user who hovered and
       // then clicked would shut the menu they just opened.
-      this.showMenu('trigger');
+      this.showMenu('trigger', { focus });
     }
   }
 
@@ -777,7 +788,12 @@ export class AndesDropdownMenu
     );
     this.overlay.configure({
       positioning: this.positioning(),
-      autoFocus: focus === 'first' ? 'first-tabbable' : 'none',
+      autoFocus:
+        focus === 'first'
+          ? 'first-tabbable'
+          : focus === 'panel'
+            ? 'container'
+            : 'none',
       restoreFocus: true,
     });
     this.overlay.open(this.contentTemplate(), {

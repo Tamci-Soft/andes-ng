@@ -8,6 +8,12 @@
  * directly - `::ng-deep` would be noise, not a requirement.
  */
 
+/* A menu opened with the pointer takes focus on its pane (see `FocusOnOpen`), with no item
+   highlighted. That focus is only there so the keys work, so it draws no ring. */
+.andes-overlay-pane:has(> .andes-dropdown-menu__content):focus {
+  outline: none;
+}
+
 .andes-dropdown-menu__content {
   display: flex;
   flex-direction: column;

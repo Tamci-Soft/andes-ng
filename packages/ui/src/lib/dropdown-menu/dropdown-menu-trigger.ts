@@ -38,7 +38,7 @@ const FOCUSABLE_SELECTOR =
     style: 'display: inline-flex',
     '[attr.aria-disabled]': 'menu.isDisabled() || null',
     '[attr.data-disabled]': 'menu.isDisabled() ? "" : null',
-    '(click)': 'menu.onTriggerClick()',
+    '(click)': 'menu.onTriggerClick($event)',
     '(keydown)': 'menu.onTriggerKeydown($event)',
     '(pointerenter)': 'menu.onTriggerPointerEnter($event)',
     '(pointerleave)': 'menu.onTriggerPointerLeave($event)',
