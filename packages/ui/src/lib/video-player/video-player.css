@@ -91,6 +91,8 @@
     var(--andes-video-backdrop) 76%,
     transparent
   );
+  --andes-video-captions-scale: 1;
+  --andes-video-captions-text-shadow: none;
   --andes-video-captions-bottom: 6%;
   /* How far captions rise while the bar is visible. */
   --andes-video-captions-lift: calc(var(--andes-video-button-size) + 2.75rem);
@@ -101,6 +103,11 @@
   --andes-video-enter-ease: cubic-bezier(0.2, 0, 0, 1);
   --andes-video-exit-ease: ease-in;
 
+  /* Mini player (floating while it plays out of view) */
+  --andes-video-mini-width: min(22rem, calc(100vw - 2rem));
+  --andes-video-mini-offset: var(--andes-space-4, 1rem);
+  --andes-video-mini-z-index: 40;
+
   position: relative;
   display: block;
   box-sizing: border-box;
@@ -108,7 +115,6 @@
   max-width: 100%;
   overflow: hidden;
   isolation: isolate;
-  container-type: inline-size;
   border-radius: var(--andes-video-radius);
   background-color: var(--andes-video-backdrop);
   color: var(--andes-video-control-color);
@@ -168,9 +174,13 @@
 
 /* ---- Viewport and media ---------------------------------------------------------------- */
 
+/* The viewport is the size container (not the host): it can float as the mini player while the
+   host keeps its place, and containment on the host would trap that fixed position inside it. */
 .andes-video-player__viewport {
   position: absolute;
   inset: 0;
+  container-type: inline-size;
+  border-radius: inherit;
 }
 
 .andes-video-player__media {
@@ -293,6 +303,78 @@
   }
 }
 
+/* ---- Mini player ---------------------------------------------------------------------------- */
+
+/* The host keeps its box in the page (a quiet placeholder), the viewport floats in a corner. */
+.andes-video-player[data-mini] {
+  overflow: visible;
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 88%,
+    transparent
+  );
+}
+
+.andes-video-player__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--andes-space-4, 1rem);
+  color: var(--andes-video-control-muted);
+  font-size: var(--andes-video-font-size);
+  text-align: center;
+}
+
+.andes-video-player[data-mini] .andes-video-player__viewport {
+  position: fixed;
+  inset: auto;
+  inset-block-end: var(--andes-video-mini-offset);
+  inset-inline-end: var(--andes-video-mini-offset);
+  z-index: var(--andes-video-mini-z-index);
+  width: var(--andes-video-mini-width);
+  height: auto;
+  aspect-ratio: var(--andes-video-ratio, 16 / 9);
+  overflow: hidden;
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: var(--andes-video-backdrop);
+  box-shadow: var(--andes-shadow-lg, 0 12px 32px rgb(0 0 0 / 0.35));
+  animation: andes-player-mini-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+@keyframes andes-player-mini-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+/* The mini player keeps the essentials: play, the seek bar, time and its own buttons. */
+.andes-video-player[data-mini] .andes-video-player__top,
+.andes-video-player[data-mini] .andes-player-bar__group--end,
+.andes-video-player[data-mini] andes-player-seek-button,
+.andes-video-player[data-mini] .andes-player-bar__chapter {
+  display: none;
+}
+
+.andes-player-mini-controls {
+  position: absolute;
+  inset-block-start: var(--andes-space-1, 0.25rem);
+  inset-inline-end: var(--andes-space-1, 0.25rem);
+  z-index: 3;
+  display: flex;
+  gap: var(--andes-space-1, 0.25rem);
+  --andes-video-button-size: 2rem;
+  --andes-video-icon-size: 1rem;
+}
+
+.andes-player-mini-controls .andes-player-button {
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-video-scrim);
+}
+
 /* ---- Ambient (background) toggle ------------------------------------------------------------ */
 
 .andes-video-player__ambient {
@@ -412,6 +494,10 @@
 @media (prefers-reduced-motion: reduce) {
   .andes-video-player__chrome {
     transition: none;
+  }
+
+  .andes-video-player[data-mini] .andes-video-player__viewport {
+    animation: none;
   }
 }
 

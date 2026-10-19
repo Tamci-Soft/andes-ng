@@ -134,8 +134,10 @@ export class AndesPlayerPoster {
 export const ANDES_PLAYER_BUFFERING_DELAY_MS = 500;
 
 /**
- * Spinner for buffering and initial loading, after a short delay. Decorative: the player root
- * reports `aria-busy` meanwhile, which assistive tech exposes without a spoken interruption.
+ * Spinner for buffering and initial loading, after a short delay, with a short status line when
+ * the wait is the network's (reconnecting after a failure, or data stopped arriving), which is
+ * worth knowing apart from a normal brief load. Decorative: the player root reports
+ * `aria-busy`, and the live region announces reconnecting once.
  */
 @Component({
   selector: 'andes-player-buffering',
@@ -145,14 +147,26 @@ export const ANDES_PLAYER_BUFFERING_DELAY_MS = 500;
     'aria-hidden': 'true',
     '[attr.hidden]': 'visible() ? null : ""',
   },
-  template: `<span
-    class="andes-player-buffering__spinner"
-    data-slot="buffering"
-  ></span>`,
+  template: `
+    <span class="andes-player-buffering__spinner" data-slot="buffering"></span>
+    @if (status(); as text) {
+      <span class="andes-player-buffering__status" data-slot="network-status">{{
+        text
+      }}</span>
+    }
+  `,
 })
 export class AndesPlayerBufferingIndicator {
   protected readonly store = inject(AndesPlayerStore);
   protected readonly visible = signal(false);
+  /** Why it waits, when that is the network: reconnecting, or data stopped arriving. */
+  protected readonly status = computed(() => {
+    const labels = this.store.labels();
+    if (this.store.reconnecting()) {
+      return labels.reconnecting;
+    }
+    return this.store.networkSlow() ? labels.slowNetwork : null;
+  });
 
   constructor() {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -189,6 +203,10 @@ const FEEDBACK_ICONS: Record<string, AndesPlayerIconName> = {
   'seek-backward': 'seek-backward',
   rate: 'speed',
   captions: 'captions',
+  frame: 'frame',
+  chapter: 'chapter',
+  repeat: 'repeat',
+  link: 'link',
 };
 
 /**

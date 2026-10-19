@@ -164,3 +164,23 @@ export function safeMatches(element: Element, selector: string): boolean {
     return false;
   }
 }
+
+/**
+ * Keeps (or drops) pitch correction while the speed changes, with the prefixed property older
+ * engines still read. Elements without either simply ignore it.
+ */
+export function setPreservesPitch(
+  media: HTMLMediaElement,
+  preserve: boolean,
+): void {
+  const target = media as unknown as Record<string, unknown>;
+  try {
+    if ('preservesPitch' in target) {
+      target['preservesPitch'] = preserve;
+    } else if ('webkitPreservesPitch' in target) {
+      target['webkitPreservesPitch'] = preserve;
+    }
+  } catch {
+    // A read-only property in some environment: nothing to do.
+  }
+}

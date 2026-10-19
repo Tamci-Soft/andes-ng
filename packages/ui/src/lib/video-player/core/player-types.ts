@@ -125,7 +125,11 @@ export type AndesPlayerFeedbackKind =
   | 'seek-forward'
   | 'seek-backward'
   | 'rate'
-  | 'captions';
+  | 'captions'
+  | 'frame'
+  | 'chapter'
+  | 'repeat'
+  | 'link';
 
 export interface AndesPlayerFeedback {
   readonly kind: AndesPlayerFeedbackKind;
@@ -163,3 +167,62 @@ export type AndesCaptionsRenderer = 'overlay' | 'native';
 export type AndesPlayerAspectRatio = string;
 
 export type AndesPlayerObjectFit = 'contain' | 'cover' | 'fill';
+
+/**
+ * One entry of a playlist. Only a source is required; everything else falls back to the
+ * player's own inputs (so a playlist of plain URLs still gets the player's `tracks` and poster).
+ */
+export interface AndesPlaylistItem {
+  /** Stable key; defaults to the source URL. */
+  readonly id?: string;
+  /** One media URL (its type is inferred from the extension). Ignored when `sources` is set. */
+  readonly src?: string;
+  readonly sources?: readonly AndesMediaSource[];
+  readonly title?: string;
+  readonly poster?: string;
+  readonly tracks?: readonly AndesMediaTrack[];
+  readonly thumbnails?: AndesThumbnailsConfig | null;
+  readonly chapters?: readonly AndesChapter[] | null;
+  /** Media Session metadata for this entry (`title` falls back to the entry's `title`). */
+  readonly metadata?: AndesPlayerMetadata;
+  /** Seconds, shown next to the title in the playlist menu before the media loads. */
+  readonly duration?: number;
+}
+
+/**
+ * What happens when an entry ends: `off` stops after the last entry, `all` wraps around to the
+ * first one, `one` replays the current entry (the single-video loop).
+ */
+export type AndesPlayerRepeat = 'off' | 'all' | 'one';
+
+/** Where the viewer left off, offered when the same source loads again (`persistKey`). */
+export type AndesPlayerResume = 'prompt' | 'auto' | 'off';
+
+/** Caption text sizes, as a percentage of the player's caption size. */
+export type AndesCaptionSize = 50 | 75 | 100 | 150 | 200;
+
+/** Named caption colours (they map to fixed, high-contrast values). */
+export type AndesCaptionColor =
+  'white' | 'yellow' | 'green' | 'cyan' | 'blue' | 'magenta' | 'red' | 'black';
+
+/** How caption letters are outlined against the picture. */
+export type AndesCaptionEdge =
+  'none' | 'shadow' | 'raised' | 'depressed' | 'outline';
+
+export type AndesCaptionFont = 'default' | 'sans-serif' | 'serif' | 'monospace';
+
+/** Caption background opacity, percent. */
+export type AndesCaptionOpacity = 0 | 25 | 50 | 75 | 100;
+
+/**
+ * The viewer's caption appearance. `null` fields keep the theme's own value (the
+ * `--andes-video-captions-*` variables), so an app's styling stays until the viewer changes it.
+ */
+export interface AndesCaptionStyle {
+  readonly size: AndesCaptionSize | null;
+  readonly color: AndesCaptionColor | null;
+  readonly background: AndesCaptionColor | null;
+  readonly backgroundOpacity: AndesCaptionOpacity | null;
+  readonly edge: AndesCaptionEdge | null;
+  readonly font: AndesCaptionFont | null;
+}

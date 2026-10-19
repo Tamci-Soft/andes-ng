@@ -63,6 +63,17 @@
   outline-offset: 2px;
 }
 
+/* Present but unavailable (the next button at the end of a playlist). */
+.andes-player-button[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.andes-player-button[aria-disabled='true']:hover,
+.andes-player-button[aria-disabled='true']:active {
+  background-color: transparent;
+}
+
 /* A pressed toggle (captions on) gets an accent underline rather than a filled box. */
 .andes-player-button[aria-pressed='true']::after {
   content: '';
@@ -568,6 +579,36 @@
 
 .andes-player-menu__back {
   font-weight: var(--andes-font-weight-semibold, 600);
+}
+
+.andes-player-menu__swatch {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--andes-video-menu-foreground) 24%, transparent);
+}
+
+/* The context menu opens at the pointer instead of above a button. */
+.andes-player-context-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.andes-player-context-menu__panel {
+  position: absolute;
+  bottom: auto;
+  inset-inline-end: auto;
+  pointer-events: auto;
+  transform-origin: top left;
+}
+
+.andes-player-context-menu__panel .andes-player-menu__check {
+  width: auto;
+  margin-inline-start: auto;
 }
 
 .andes-player-menu__separator {

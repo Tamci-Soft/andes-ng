@@ -23,10 +23,15 @@ import {
   nativeAudioTracks,
   readTimeRanges,
   requestElementFullscreen,
+  setPreservesPitch,
   showPlaybackTargetPicker,
   unlockOrientation,
   videoFullscreen,
 } from './browser';
+import {
+  ANDES_CAPTION_STYLE_DEFAULT,
+  isCustomCaptionStyle,
+} from './caption-style';
 import {
   ANDES_MEDIA_ADAPTERS,
   type AndesAdapterError,
@@ -47,16 +52,19 @@ import {
 } from './player-hotkeys';
 import {
   ANDES_PLAYER_LABELS,
+  type AndesPlayerLabelOverrides,
   type AndesPlayerLabels,
   mergeAndesPlayerLabels,
 } from './player-labels';
 import {
   type AndesPlayerPreferences,
   readPlayerPreferences,
+  withPosition,
   writePlayerPreferences,
 } from './player-preferences';
 import type {
   AndesAudioTrackInfo,
+  AndesCaptionStyle,
   AndesCaptionsRenderer,
   AndesChapter,
   AndesMediaSource,
@@ -66,6 +74,9 @@ import type {
   AndesPlayerFeedback,
   AndesPlayerFeedbackKind,
   AndesPlayerMetadata,
+  AndesPlayerRepeat,
+  AndesPlayerResume,
+  AndesPlaylistItem,
   AndesQualityRendition,
   AndesRemotePlaybackState,
   AndesStreamType,
@@ -74,6 +85,7 @@ import type {
   AndesThumbnailsConfig,
   AndesTimeRange,
 } from './player-types';
+import { shuffledOrder, stepPlaylist } from './playlist';
 import { ANDES_REMOTE_PLAYBACK_HANDLER } from './remote-playback';
 import { formatRate, formatTimeText } from './time-format';
 import {
@@ -86,7 +98,7 @@ import {
 
 /** Everything the root component configures on its store. */
 export interface AndesPlayerConfig {
-  readonly labels: Partial<AndesPlayerLabels> | null;
+  readonly labels: AndesPlayerLabelOverrides | null;
   readonly keyMap: AndesPlayerKeyMap;
   /** Arrow-key and hotkey seek step, seconds. */
   readonly seekStep: number;
@@ -115,6 +127,19 @@ export interface AndesPlayerConfig {
   readonly adapters: readonly AndesMediaAdapterFactory[] | null;
   readonly loopRange: readonly [number, number] | null;
   readonly orientationLock: boolean;
+  /** Moves on to the next entry when one ends. */
+  readonly autoAdvance: boolean;
+  /** Seconds the up-next card counts down before moving on; `0` moves on at once. */
+  readonly upNextDelay: number;
+  readonly resume: AndesPlayerResume;
+  /** Automatic reloads after a network failure before the error panel shows. */
+  readonly retryAttempts: number;
+  /** Frames per second assumed by frame stepping. */
+  readonly frameRate: number;
+  /** Keeps the pitch of speech and music when the speed changes. */
+  readonly preservesPitch: boolean;
+  /** Floats the picture in a corner while it plays out of view. */
+  readonly miniPlayer: boolean;
 }
 
 export const ANDES_PLAYER_DEFAULT_CONFIG: AndesPlayerConfig = {
@@ -143,6 +168,13 @@ export const ANDES_PLAYER_DEFAULT_CONFIG: AndesPlayerConfig = {
   adapters: null,
   loopRange: null,
   orientationLock: true,
+  autoAdvance: true,
+  upNextDelay: 5,
+  resume: 'prompt',
+  retryAttempts: 3,
+  frameRate: 30,
+  preservesPitch: true,
+  miniPlayer: false,
 };
 
 /** A message for the live region; `id` changes on every announcement. */
@@ -155,6 +187,14 @@ export interface AndesPlayerAnnouncement {
 const DVR_MIN_WINDOW = 60;
 const FEEDBACK_MS = 700;
 const ANNOUNCE_DEBOUNCE_MS = 400;
+/** First reconnect wait after a network failure; it doubles per attempt up to the cap. */
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 16_000;
+/** "Previous" restarts the entry instead when playback is further in than this, seconds. */
+const RESTART_THRESHOLD_S = 3;
+/** Resume positions this close to either end are not worth offering, seconds. */
+const RESUME_MARGIN_S = 5;
+const POSITION_SAVE_MS = 5000;
 const ANNOUNCED_ORIGINS: ReadonlySet<AndesPlayerChangeOrigin> = new Set([
   'control',
   'hotkey',
@@ -302,9 +342,10 @@ export class AndesPlayerStore {
   /** Waiting for data while playback should be running (show a spinner after a short delay). */
   readonly buffering = computed(
     () =>
-      !this._error() &&
-      ((this._waiting() && !this._paused()) ||
-        (this._seeking() && this._readyState() < 3)),
+      this._reconnecting() ||
+      (!this._error() &&
+        ((this._waiting() && !this._paused()) ||
+          (this._seeking() && this._readyState() < 3))),
   );
   /** Volume 0 counts as muted for icons and labels. */
   readonly effectivelyMuted = computed(
@@ -549,6 +590,106 @@ export class AndesPlayerStore {
   /** The latest live-region message. */
   readonly announcement = this._announcement.asReadonly();
 
+  // ---- playlist --------------------------------------------------------------------------------
+
+  private readonly _playlistIndex = signal(0);
+  private readonly _repeat = signal<AndesPlayerRepeat>('off');
+  private readonly _shuffle = signal(false);
+  private readonly _shuffleOrder = signal<readonly number[]>([]);
+  private readonly _upNext = signal<{
+    readonly index: number;
+    readonly remaining: number;
+  } | null>(null);
+
+  private readonly playlistSource = signal<Signal<
+    readonly AndesPlaylistItem[]
+  > | null>(null);
+  /**
+   * The playlist entries (empty for a single source). Kept apart from the configuration: the
+   * configuration itself depends on the entry playing.
+   */
+  readonly playlist = computed<readonly AndesPlaylistItem[]>(
+    () => this.playlistSource()?.() ?? [],
+  );
+  /** Index of the entry playing, clamped to the playlist. */
+  readonly playlistIndex = computed(() => {
+    const length = this.playlist().length;
+    return length === 0 ? 0 : clamp(this._playlistIndex(), 0, length - 1);
+  });
+  readonly currentItem = computed<AndesPlaylistItem | null>(
+    () => this.playlist()[this.playlistIndex()] ?? null,
+  );
+  /** What happens when the media ends (`one` loops it). */
+  readonly repeat = this._repeat.asReadonly();
+  readonly shuffle = this._shuffle.asReadonly();
+  /** The order entries play in: the list itself, or a shuffled order fixed when shuffle went on. */
+  readonly playOrder = computed<readonly number[]>(() => {
+    const length = this.playlist().length;
+    const order = this._shuffleOrder();
+    if (this._shuffle() && order.length === length) {
+      return order;
+    }
+    return Array.from({ length }, (_, index) => index);
+  });
+  /** The entry `next()` would play, or `null`. */
+  readonly nextIndex = computed(() =>
+    this.playlist().length < 2
+      ? null
+      : stepPlaylist(this.playOrder(), this.playlistIndex(), 1, this._repeat()),
+  );
+  readonly previousIndex = computed(() =>
+    this.playlist().length < 2
+      ? null
+      : stepPlaylist(
+          this.playOrder(),
+          this.playlistIndex(),
+          -1,
+          this._repeat(),
+        ),
+  );
+  readonly hasNext = computed(() => this.nextIndex() !== null);
+  /** Previous always applies in a playlist: at the first entry it restarts it. */
+  readonly hasPrevious = computed(() => this.playlist().length > 1);
+  /** The up-next countdown after an entry ended: the entry and the seconds left. */
+  readonly upNext = this._upNext.asReadonly();
+  readonly upNextItem = computed(() => {
+    const upNext = this._upNext();
+    return upNext ? (this.playlist()[upNext.index] ?? null) : null;
+  });
+
+  // ---- resume, network, captions style, overlays -------------------------------------------------
+
+  private readonly _resumeOffer = signal<number | null>(null);
+  /** A saved position offered for the current source (`resume: 'prompt'`), seconds. */
+  readonly resumeOffer = this._resumeOffer.asReadonly();
+
+  private readonly _reconnecting = signal(false);
+  /** A network failure is being retried automatically (with a growing wait). */
+  readonly reconnecting = this._reconnecting.asReadonly();
+  /** Buffering because the network stopped delivering (not a short wait for data). */
+  readonly networkSlow = computed(
+    () => this._reconnecting() || (this._stalled() && this.buffering()),
+  );
+
+  private readonly _captionStyle = signal<AndesCaptionStyle>(
+    ANDES_CAPTION_STYLE_DEFAULT,
+  );
+  /** The viewer's caption appearance (`null` fields keep the theme's value). */
+  readonly captionStyle = this._captionStyle.asReadonly();
+
+  private readonly _shortcutsOpen = signal(false);
+  /** The keyboard help is open. */
+  readonly shortcutsOpen = this._shortcutsOpen.asReadonly();
+
+  /** Whether the player box is on screen (set by the root's visibility observer). */
+  readonly inViewport = signal(true);
+  private readonly _miniEngaged = signal(false);
+  private readonly _miniDismissed = signal(false);
+  /** The picture floats in a corner because it plays while scrolled out of view. */
+  readonly miniPlayerActive = computed(
+    () => this._miniEngaged() && !this._miniDismissed(),
+  );
+
   // ---- internals -------------------------------------------------------------------------------
 
   private readonly nativeAdapter = new AndesNativeMediaAdapter();
@@ -587,6 +728,13 @@ export class AndesPlayerStore {
   private lastPositionUpdate = 0;
   private orientationLocked = false;
   private destroyed = false;
+  /** Play as soon as the next source attaches (a playlist step while playing). */
+  private playOnNextLoad = false;
+  private upNextTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
+  private reconnectFrom: { time: number | null; play: boolean } | null = null;
+  private lastPositionSave = 0;
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -609,6 +757,10 @@ export class AndesPlayerStore {
         playbackRate: this._playbackRate(),
         captionLanguage: this.activeTextTrack()?.language ?? null,
       };
+      const captionStyle = this._captionStyle();
+      if (isCustomCaptionStyle(captionStyle)) {
+        snapshot.captionStyle = captionStyle;
+      }
       if (!key || key !== this.preferencesKey) {
         return;
       }
@@ -619,7 +771,7 @@ export class AndesPlayerStore {
       const serialized = JSON.stringify(snapshot);
       if (serialized !== this.lastPersisted) {
         this.lastPersisted = serialized;
-        writePlayerPreferences(key, snapshot);
+        untracked(() => this.writePreferences(key, snapshot));
       }
     });
 
@@ -643,6 +795,66 @@ export class AndesPlayerStore {
       }
     });
 
+    // Pitch correction follows the input (the element's own default is on).
+    effect(() => {
+      const media = this._media();
+      const preserve = this.config().preservesPitch;
+      if (media) {
+        untracked(() => setPreservesPitch(media, preserve));
+      }
+    });
+
+    // A shuffled order is drawn when shuffle turns on or the playlist changes, starting with
+    // the entry playing so nothing jumps.
+    effect(() => {
+      const length = this.playlist().length;
+      if (this._shuffle()) {
+        const first = untracked(() => this.playlistIndex());
+        untracked(() => this._shuffleOrder.set(shuffledOrder(length, first)));
+      }
+    });
+
+    // The mini player engages once the player plays out of view and stays (even paused) until
+    // the box scrolls back, the viewer closes it, or another display mode takes over.
+    effect(() => {
+      const config = this.config();
+      const eligible =
+        config.miniPlayer &&
+        !config.audioOnly &&
+        !config.background &&
+        !this.inViewport() &&
+        !this._fullscreen() &&
+        !this._pictureInPicture();
+      const playing = this._started() && !this._paused();
+      untracked(() => {
+        if (this.inViewport()) {
+          this._miniDismissed.set(false);
+        }
+        if (!eligible) {
+          this._miniEngaged.set(false);
+        } else if (playing && !this._miniEngaged()) {
+          this._miniEngaged.set(true);
+          if (!this._miniDismissed()) {
+            this.announce(this.labels().playingInMiniPlayer);
+          }
+        }
+      });
+    });
+
+    // Back online: a pending reconnect does not wait for its timer.
+    const view = this.document.defaultView;
+    if (view && typeof view.addEventListener === 'function') {
+      const onOnline = () => {
+        if (this.reconnectTimer) {
+          clearTimeout(this.reconnectTimer);
+          this.reconnectTimer = null;
+          this.reconnectNow();
+        }
+      };
+      view.addEventListener('online', onOnline);
+      destroyRef.onDestroy(() => view.removeEventListener('online', onOnline));
+    }
+
     // Media Session metadata follows whichever player is playing.
     effect(() => {
       const playing = !this._paused();
@@ -652,9 +864,15 @@ export class AndesPlayerStore {
     });
   }
 
-  /** Called by the root: hands over its configuration signal. */
-  connect(config: Signal<AndesPlayerConfig>): void {
+  /** Called by the root: hands over its configuration and playlist signals. */
+  connect(
+    config: Signal<AndesPlayerConfig>,
+    playlist?: Signal<readonly AndesPlaylistItem[]>,
+  ): void {
     this.configSource.set(config);
+    if (playlist) {
+      this.playlistSource.set(playlist);
+    }
   }
 
   // ---- element lifecycle -----------------------------------------------------------------------
@@ -737,11 +955,24 @@ export class AndesPlayerStore {
 
   /** Clears an error and reloads, resuming from where playback was. */
   retry(): void {
-    const resumeAt =
-      this.streamType() === 'on-demand' && this._currentTime() > 0
-        ? this._currentTime()
-        : null;
-    const resume = this._started() && !this._ended();
+    this.clearReconnect();
+    this.retryFrom(this.playbackPoint());
+  }
+
+  /** Where playback stands, for a reload that should continue from there. */
+  private playbackPoint(): { time: number | null; play: boolean } {
+    return {
+      time:
+        this.streamType() === 'on-demand' && this._currentTime() > 0
+          ? this._currentTime()
+          : null,
+      play: this._started() && !this._ended(),
+    };
+  }
+
+  private retryFrom(point: { time: number | null; play: boolean }): void {
+    const resumeAt = point.time;
+    const resume = point.play;
     this.pendingStartTime = resumeAt;
     this.load(this.sources);
     if (resume && !this.config().autoplay) {
@@ -1112,7 +1343,11 @@ export class AndesPlayerStore {
         : this.lastCaptionLanguage;
     const remembered = language ? this.findTrackByLanguage(language) : null;
     const track =
-      remembered ?? tracks.find((t) => t.default) ?? tracks[0] ?? null;
+      remembered ??
+      this.trackForViewerLanguage() ??
+      tracks.find((t) => t.default) ??
+      tracks[0] ??
+      null;
     if (track) {
       this.selectTextTrack(track.id, origin);
       this.showFeedback('captions', track.label);
@@ -1308,6 +1543,38 @@ export class AndesPlayerStore {
         }
         void this.togglePictureInPicture(origin);
         return true;
+      case 'previousFrame':
+      case 'nextFrame': {
+        const direction = action === 'nextFrame' ? 1 : -1;
+        if (!this.stepFrame(direction, origin)) {
+          return false;
+        }
+        this.showFeedback(
+          'frame',
+          direction > 0 ? '+1' : '-1',
+          direction > 0 ? 'end' : 'start',
+        );
+        return true;
+      }
+      case 'previousChapter':
+      case 'nextChapter': {
+        const chapter = this.seekToChapter(
+          action === 'nextChapter' ? 1 : -1,
+          origin,
+        );
+        if (!chapter) {
+          return false;
+        }
+        this.showFeedback('chapter', chapter.title);
+        return true;
+      }
+      case 'previousItem':
+        return this.previous(origin);
+      case 'nextItem':
+        return this.next(origin);
+      case 'showShortcuts':
+        this._shortcutsOpen.update((open) => !open);
+        return true;
     }
   }
 
@@ -1332,10 +1599,14 @@ export class AndesPlayerStore {
     this._userActive.set(false);
   }
 
+  /** When a menu last closed (ms timestamp): the press that closed it is not also a tap. */
+  menuClosedAt = 0;
+
   /** Called by menus while they are open; an open menu keeps the controls visible. */
   setMenuOpen(open: boolean): void {
     this._openMenus.update((count) => Math.max(0, count + (open ? 1 : -1)));
     if (!open) {
+      this.menuClosedAt = Date.now();
       this.notifyActivity();
     }
   }
@@ -1404,6 +1675,250 @@ export class AndesPlayerStore {
     }
   }
 
+  // ---- playlist actions --------------------------------------------------------------------------
+
+  /**
+   * Plays a playlist entry by index. The new source loads through the root (its `sources`
+   * effect); `play` starts it as soon as it attaches. Picking the entry already playing
+   * restarts it.
+   */
+  selectItem(
+    index: number,
+    origin: AndesPlayerChangeOrigin = 'api',
+    play = true,
+  ): void {
+    const items = this.playlist();
+    if (!Number.isInteger(index) || index < 0 || index >= items.length) {
+      return;
+    }
+    this.cancelUpNext();
+    if (index === this.playlistIndex() && this._source()) {
+      this.seek(0, origin);
+      if (play) {
+        void this.play(origin);
+      }
+      return;
+    }
+    this.playOnNextLoad = play;
+    this._resumeOffer.set(null);
+    this._playlistIndex.set(index);
+    if (ANNOUNCED_ORIGINS.has(origin)) {
+      const item = items[index];
+      this.announce(
+        this.labels().announceItem(
+          item.title ?? item.metadata?.title ?? `${index + 1}`,
+          this.labels().playlistPosition(index + 1, items.length),
+        ),
+      );
+    }
+  }
+
+  /** Moves to the next entry in play order (wrapping with `repeat: 'all'`). */
+  next(origin: AndesPlayerChangeOrigin = 'api'): boolean {
+    const index = this.nextIndex();
+    if (index === null) {
+      return false;
+    }
+    this.selectItem(index, origin, true);
+    return true;
+  }
+
+  /**
+   * Restarts the entry when playback is a few seconds in (the familiar "previous" button);
+   * otherwise moves to the previous entry in play order.
+   */
+  previous(origin: AndesPlayerChangeOrigin = 'api'): boolean {
+    if (this.playlist().length < 2) {
+      return false;
+    }
+    const index = this.previousIndex();
+    if (this._currentTime() > RESTART_THRESHOLD_S || index === null) {
+      this.seek(0, origin);
+      return true;
+    }
+    this.selectItem(index, origin, !this._paused() || this._ended());
+    return true;
+  }
+
+  /** Called by the root when its `playlistIndex` binding changes (no autoplay, no announcement). */
+  syncPlaylistIndex(index: number): void {
+    if (index !== this._playlistIndex()) {
+      this.cancelUpNext();
+      this._resumeOffer.set(null);
+      this._playlistIndex.set(index);
+    }
+  }
+
+  setRepeat(
+    mode: AndesPlayerRepeat,
+    origin: AndesPlayerChangeOrigin = 'api',
+  ): void {
+    if (mode === this._repeat()) {
+      return;
+    }
+    this._repeat.set(mode);
+    if (ANNOUNCED_ORIGINS.has(origin)) {
+      this.announce(this.labels().announceRepeat(this.repeatLabel(mode)));
+    }
+  }
+
+  /** The visible name of a repeat mode (`Off`, `All`, `One`; `On` for a single source). */
+  repeatLabel(mode: AndesPlayerRepeat): string {
+    const labels = this.labels();
+    if (mode === 'off') {
+      return labels.off;
+    }
+    if (this.playlist().length < 2) {
+      return labels.on;
+    }
+    return mode === 'all' ? labels.repeatAll : labels.repeatOne;
+  }
+
+  setShuffle(on: boolean, origin: AndesPlayerChangeOrigin = 'api'): void {
+    if (on === this._shuffle()) {
+      return;
+    }
+    this._shuffle.set(on);
+    if (ANNOUNCED_ORIGINS.has(origin)) {
+      this.announce(this.labels().announceShuffle(on));
+    }
+  }
+
+  /** Stops the up-next countdown; the player stays on the entry that ended. */
+  cancelUpNext(): void {
+    if (this.upNextTimer) {
+      clearTimeout(this.upNextTimer);
+      this.upNextTimer = null;
+    }
+    this._upNext.set(null);
+  }
+
+  /** Skips the rest of the up-next countdown. */
+  playUpNextNow(origin: AndesPlayerChangeOrigin = 'control'): void {
+    const upNext = this._upNext();
+    if (upNext) {
+      this.selectItem(upNext.index, origin, true);
+    }
+  }
+
+  // ---- resume, captions style, overlays -----------------------------------------------------------
+
+  /** Accepts the resume offer: seeks to the saved position and plays. */
+  acceptResume(): void {
+    const offer = this._resumeOffer();
+    this._resumeOffer.set(null);
+    if (offer !== null) {
+      this.seek(offer, 'control');
+      void this.play('control');
+    }
+  }
+
+  /** Declines the resume offer and plays from the start. */
+  declineResume(): void {
+    this._resumeOffer.set(null);
+    this.forgetPosition();
+    void this.play('control');
+  }
+
+  /** Changes some caption appearance fields (`null` restores the theme's value). */
+  setCaptionStyle(patch: Partial<AndesCaptionStyle>): void {
+    this._captionStyle.update((style) => ({ ...style, ...patch }));
+  }
+
+  resetCaptionStyle(): void {
+    this._captionStyle.set(ANDES_CAPTION_STYLE_DEFAULT);
+  }
+
+  openShortcuts(): void {
+    this._shortcutsOpen.set(true);
+  }
+
+  closeShortcuts(): void {
+    this._shortcutsOpen.set(false);
+  }
+
+  /** Closes the mini player: playback pauses and the picture returns to its box. */
+  closeMiniPlayer(): void {
+    this._miniDismissed.set(true);
+    this.pause('control');
+  }
+
+  /** Steps one frame forward (`1`) or back (`-1`), pausing first. */
+  stepFrame(
+    direction: 1 | -1,
+    origin: AndesPlayerChangeOrigin = 'api',
+  ): boolean {
+    if (!this.canSeek()) {
+      return false;
+    }
+    this.pause(origin);
+    const frame = 1 / Math.max(1, this.config().frameRate);
+    this.seek(this._currentTime() + direction * frame, 'media');
+    return true;
+  }
+
+  /**
+   * Jumps to the next chapter, or back to the start of the current one (to the previous one
+   * when already within two seconds of its start). Returns the chapter, or `null`.
+   */
+  seekToChapter(
+    direction: 1 | -1,
+    origin: AndesPlayerChangeOrigin = 'api',
+  ): AndesChapter | null {
+    const chapters = this.chapters();
+    if (chapters.length === 0 || !this.canSeek()) {
+      return null;
+    }
+    const time = this._currentTime();
+    let target: AndesChapter | undefined;
+    if (direction > 0) {
+      target = chapters.find((chapter) => chapter.start > time + 0.5);
+    } else {
+      const before = chapters.filter((chapter) => chapter.start <= time - 2);
+      target = before[before.length - 1] ?? chapters[0];
+    }
+    if (!target) {
+      return null;
+    }
+    this.seek(target.start, origin);
+    return target;
+  }
+
+  /**
+   * The address of the current source, absolute; with `atTime`, a media fragment
+   * (`#t=83`) that browsers honour as the start time when the address is opened.
+   */
+  mediaLink(atTime = false): string | null {
+    const source = this._source();
+    if (!source) {
+      return null;
+    }
+    let url: string;
+    try {
+      url = new URL(source.src, this.document.baseURI).href.split('#')[0];
+    } catch {
+      url = source.src;
+    }
+    return atTime ? `${url}#t=${Math.floor(this._currentTime())}` : url;
+  }
+
+  /** Copies the media address to the clipboard; resolves whether it worked. */
+  async copyLink(atTime = false): Promise<boolean> {
+    const link = this.mediaLink(atTime);
+    const clipboard = this.document.defaultView?.navigator?.clipboard;
+    if (!link || !clipboard || typeof clipboard.writeText !== 'function') {
+      return false;
+    }
+    try {
+      await clipboard.writeText(link);
+    } catch {
+      return false;
+    }
+    this.showFeedback('link', this.labels().linkCopied);
+    this.announce(this.labels().linkCopied);
+    return true;
+  }
+
   // ---- internals: loading ---------------------------------------------------------------------
 
   private chooseAdapter(
@@ -1470,8 +1985,9 @@ export class AndesPlayerStore {
       this.syncFromMedia(media);
     }
     const config = this.config();
-    const wanted = config.autoplay || this.pendingPlay;
+    const wanted = config.autoplay || this.pendingPlay || this.playOnNextLoad;
     this.pendingPlay = false;
+    this.playOnNextLoad = false;
     if (wanted && !(config.background && this.reducedMotion())) {
       void this.attemptAutoplay(token);
     }
@@ -1554,6 +2070,9 @@ export class AndesPlayerStore {
     if (error.fatal === false) {
       return;
     }
+    if ((error.code ?? 'adapter') === 'network' && this.scheduleReconnect()) {
+      return;
+    }
     const detail =
       error.detail ??
       (error.cause instanceof Error ? error.cause.message : undefined);
@@ -1611,6 +2130,8 @@ export class AndesPlayerStore {
     this._autoplayMuted.set(false);
     this._autoplayBlocked.set(false);
     this._scrubTime.set(null);
+    this._resumeOffer.set(null);
+    this.lastPositionSave = 0;
     this.origins.clear();
   }
 
@@ -1634,6 +2155,8 @@ export class AndesPlayerStore {
       this._ended.set(false);
       this._started.set(true);
       this._autoplayBlocked.set(false);
+      this._resumeOffer.set(null);
+      this.cancelUpNext();
       this.announceOrigin('play', () => this.labels().announcePlaying);
     });
     on(media, 'playing', () => {
@@ -1641,9 +2164,11 @@ export class AndesPlayerStore {
       this._waiting.set(false);
       this._stalled.set(false);
       this._started.set(true);
+      this.endReconnect();
     });
     on(media, 'pause', () => {
       this._paused.set(true);
+      this.savePosition(media, true);
       if (!media.ended) {
         this.announceOrigin('pause', () => this.labels().announcePaused);
       }
@@ -1652,7 +2177,9 @@ export class AndesPlayerStore {
       this._ended.set(true);
       this._paused.set(true);
       this._waiting.set(false);
+      this.forgetPosition();
       this.announce(this.labels().announceEnded);
+      this.advanceAfterEnd();
     });
     on(media, 'waiting', () => this._waiting.set(true));
     on(media, 'stalled', () => this._stalled.set(true));
@@ -1669,6 +2196,7 @@ export class AndesPlayerStore {
     on(media, 'canplay', () => {
       this._readyState.set(media.readyState);
       this._waiting.set(false);
+      this.endReconnect();
     });
     on(media, 'canplaythrough', () => this._readyState.set(media.readyState));
     on(media, 'progress', () => this.syncRanges(media));
@@ -1754,6 +2282,7 @@ export class AndesPlayerStore {
       }
     }
     this.updatePositionState(media);
+    this.savePosition(media, false);
   }
 
   private onLoadedMetadata(media: HTMLMediaElement): void {
@@ -1767,6 +2296,9 @@ export class AndesPlayerStore {
     this.readAudioTracks(media);
     const start = this.pendingStartTime;
     this.pendingStartTime = null;
+    if (start === null) {
+      this.offerResume(media);
+    }
     if (start !== null && start > 0) {
       try {
         media.currentTime = start;
@@ -1804,6 +2336,9 @@ export class AndesPlayerStore {
   private onMediaError(media: HTMLMediaElement): void {
     // Errors from an emptied element (no source) or from a `<track>` are not playback errors.
     if (!media.error || !this._source()) {
+      return;
+    }
+    if (media.error.code === 2 && this.scheduleReconnect()) {
       return;
     }
     this._error.set(playerErrorFromMedia(media, this.labels()));
@@ -1886,6 +2421,24 @@ export class AndesPlayerStore {
     ) {
       this._trackChapters.set(chapters);
     }
+  }
+
+  /** The first caption track in one of the browser's preferred languages, if any. */
+  private trackForViewerLanguage(): AndesTextTrackInfo | null {
+    const navigatorRef = this.document.defaultView?.navigator;
+    const languages =
+      navigatorRef?.languages && navigatorRef.languages.length > 0
+        ? navigatorRef.languages
+        : navigatorRef?.language
+          ? [navigatorRef.language]
+          : [];
+    for (const language of languages) {
+      const track = this.findTrackByLanguage(language);
+      if (track) {
+        return track;
+      }
+    }
+    return null;
   }
 
   private findTrackByLanguage(language: string): AndesTextTrackInfo | null {
@@ -2081,6 +2634,9 @@ export class AndesPlayerStore {
     this.preferencesKey = key;
     this.preferences = key ? readPlayerPreferences(key) : {};
     this.lastPersisted = '';
+    if (this.preferences.captionStyle) {
+      this._captionStyle.set(this.preferences.captionStyle);
+    }
     if (this.preferences.captionLanguage !== undefined) {
       this.captionPreference = this.preferences.captionLanguage;
       this.lastCaptionLanguage =
@@ -2205,11 +2761,19 @@ export class AndesPlayerStore {
       ['seekto', (d) => d.seekTime !== undefined && this.seek(d.seekTime)],
       [
         'previoustrack',
-        config.skipControls ? () => this.skipRequests.next(-1) : null,
+        this.playlist().length > 1
+          ? () => this.previous('api')
+          : config.skipControls
+            ? () => this.skipRequests.next(-1)
+            : null,
       ],
       [
         'nexttrack',
-        config.skipControls ? () => this.skipRequests.next(1) : null,
+        this.playlist().length > 1
+          ? () => this.next('api')
+          : config.skipControls
+            ? () => this.skipRequests.next(1)
+            : null,
       ],
     ];
     for (const [action, handler] of handlers) {
@@ -2254,6 +2818,195 @@ export class AndesPlayerStore {
     return navigatorRef && 'mediaSession' in navigatorRef
       ? navigatorRef.mediaSession
       : null;
+  }
+
+  // ---- internals: playlist, resume, reconnect -----------------------------------------------------
+
+  /** After an entry ends: count down to the next one (or move on at once), or stop. */
+  private advanceAfterEnd(): void {
+    const config = this.config();
+    const index = this.nextIndex();
+    if (!config.autoAdvance || index === null || this._repeat() === 'one') {
+      return;
+    }
+    const delay = Math.max(0, Math.round(config.upNextDelay));
+    if (delay === 0 || !this.isBrowser) {
+      this.selectItem(index, 'media', true);
+      return;
+    }
+    this._upNext.set({ index, remaining: delay });
+    const item = this.playlist()[index];
+    this.announce(
+      this.labels().announceUpNext(
+        item.title ?? item.metadata?.title ?? `${index + 1}`,
+        delay,
+      ),
+    );
+    const tick = () => {
+      const upNext = this._upNext();
+      if (!upNext) {
+        return;
+      }
+      if (upNext.remaining <= 1) {
+        this.upNextTimer = null;
+        this.selectItem(upNext.index, 'media', true);
+        return;
+      }
+      this._upNext.set({ ...upNext, remaining: upNext.remaining - 1 });
+      this.upNextTimer = setTimeout(tick, 1000);
+    };
+    this.upNextTimer = setTimeout(tick, 1000);
+  }
+
+  /** The key a resume position is saved under: the source URL. */
+  private positionKey(): string | null {
+    const key = this.config().persistKey;
+    const source = this._source();
+    return key && key === this.preferencesKey && source ? source.src : null;
+  }
+
+  /** Saves the playback position (throttled unless `force`), or forgets it near the ends. */
+  private savePosition(media: HTMLMediaElement, force: boolean): void {
+    const sourceKey = this.positionKey();
+    const config = this.config();
+    if (
+      !sourceKey ||
+      config.resume === 'off' ||
+      this.streamType() !== 'on-demand'
+    ) {
+      return;
+    }
+    const now = Date.now();
+    if (!force && now - this.lastPositionSave < POSITION_SAVE_MS) {
+      return;
+    }
+    this.lastPositionSave = now;
+    const time = media.currentTime;
+    const duration = media.duration;
+    const worthIt =
+      time > RESUME_MARGIN_S &&
+      time < duration - RESUME_MARGIN_S &&
+      !media.ended;
+    this.updatePositions(sourceKey, worthIt ? time : null);
+  }
+
+  private forgetPosition(): void {
+    const sourceKey = this.positionKey();
+    if (sourceKey && this.preferences.positions?.[sourceKey] !== undefined) {
+      this.updatePositions(sourceKey, null);
+    }
+  }
+
+  private updatePositions(sourceKey: string, time: number | null): void {
+    const key = this.preferencesKey;
+    if (!key) {
+      return;
+    }
+    this.preferences = {
+      ...this.preferences,
+      positions: withPosition(this.preferences.positions, sourceKey, time),
+    };
+    this.writePreferences(key, this.lastSnapshot);
+  }
+
+  private lastSnapshot: AndesPlayerPreferences = {};
+
+  /** Writes the remembered values together with the resume positions. */
+  private writePreferences(
+    key: string,
+    snapshot: AndesPlayerPreferences,
+  ): void {
+    this.lastSnapshot = snapshot;
+    const positions = this.preferences.positions;
+    writePlayerPreferences(
+      key,
+      positions && Object.keys(positions).length > 0
+        ? { ...snapshot, positions }
+        : snapshot,
+    );
+  }
+
+  /** On metadata: offers (or applies) the saved position of this source. */
+  private offerResume(media: HTMLMediaElement): void {
+    const config = this.config();
+    const sourceKey = this.positionKey();
+    const saved = sourceKey
+      ? this.preferences.positions?.[sourceKey]
+      : undefined;
+    const duration = media.duration;
+    if (
+      config.resume === 'off' ||
+      saved === undefined ||
+      !Number.isFinite(duration) ||
+      saved <= RESUME_MARGIN_S ||
+      saved >= duration - RESUME_MARGIN_S
+    ) {
+      return;
+    }
+    if (config.resume === 'auto' || config.autoplay) {
+      try {
+        media.currentTime = saved;
+        this._currentTime.set(saved);
+      } catch {
+        // Not seekable: start from the beginning.
+      }
+      return;
+    }
+    this._resumeOffer.set(saved);
+  }
+
+  /**
+   * A network failure: reload after a wait that doubles per attempt (1s, 2s, 4s... capped),
+   * keeping the position and the play state. Returns `false` when the attempts are used up and
+   * the error should show.
+   */
+  private scheduleReconnect(): boolean {
+    const attempts = this.config().retryAttempts;
+    if (!this.isBrowser || this.reconnectAttempts >= attempts) {
+      this.clearReconnect();
+      return false;
+    }
+    if (!this.reconnectFrom) {
+      this.reconnectFrom = this.playbackPoint();
+      this.announce(this.labels().reconnecting);
+    }
+    const wait = Math.min(
+      RECONNECT_BASE_MS * 2 ** this.reconnectAttempts,
+      RECONNECT_MAX_MS,
+    );
+    this.reconnectAttempts++;
+    this._reconnecting.set(true);
+    this._waiting.set(false);
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+    }
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.reconnectNow();
+    }, wait);
+    return true;
+  }
+
+  private reconnectNow(): void {
+    const from = this.reconnectFrom ?? { time: null, play: false };
+    this.retryFrom(from);
+  }
+
+  /** Playback recovered: the next failure starts a fresh series of attempts. */
+  private endReconnect(): void {
+    if (this._reconnecting() && this.reconnectTimer === null) {
+      this.clearReconnect();
+    }
+  }
+
+  private clearReconnect(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
+    this.reconnectFrom = null;
+    this._reconnecting.set(false);
   }
 
   // ---- internals: misc -------------------------------------------------------------------------
@@ -2312,6 +3065,8 @@ export class AndesPlayerStore {
     }
     this.announceTimers.forEach((timer) => clearTimeout(timer));
     this.announceTimers.clear();
+    this.cancelUpNext();
+    this.clearReconnect();
     if (this.orientationLocked) {
       unlockOrientation(this.document.defaultView);
     }

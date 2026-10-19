@@ -19,6 +19,10 @@ import {
   AndesPlayerSeekButton,
 } from './parts/buttons';
 import { AndesPlayerTimeDisplay } from './parts/displays';
+import {
+  AndesPlayerNextButton,
+  AndesPlayerPreviousButton,
+} from './parts/playlist-parts';
 import { AndesPlayerTimeSlider } from './parts/time-slider';
 import { AndesPlayerVolumeSlider } from './parts/volume-slider';
 
@@ -28,7 +32,8 @@ export type AndesPlayerBarLayout = 'default' | 'minimal' | 'audio';
 /**
  * The player's default control bar, composed from the same public parts an app can arrange
  * itself. `default`: seek bar above one row of controls. `minimal`: one row with the essentials.
- * `audio`: a compact row for audio-only players. Hovering it keeps the controls from auto-hiding.
+ * `audio`: a compact row for audio-only players. Playlist controls (previous, next, the playlist
+ * menu) appear only with a playlist. Hovering it keeps the controls from auto-hiding.
  */
 @Component({
   selector: 'andes-player-control-bar',
@@ -45,6 +50,8 @@ export type AndesPlayerBarLayout = 'default' | 'minimal' | 'audio';
     AndesPlayerPipButton,
     AndesPlayerRemoteButton,
     AndesPlayerFullscreenButton,
+    AndesPlayerPreviousButton,
+    AndesPlayerNextButton,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -68,7 +75,9 @@ export type AndesPlayerBarLayout = 'default' | 'minimal' | 'audio';
       }
       @case ('audio') {
         <div class="andes-player-bar__row">
+          <andes-player-previous-button class="andes-player-bar__optional" />
           <andes-player-play-button />
+          <andes-player-next-button class="andes-player-bar__optional" />
           <andes-player-time type="current" />
           <andes-player-time-slider class="andes-player-bar__grow" />
           <andes-player-live-button />
@@ -85,7 +94,9 @@ export type AndesPlayerBarLayout = 'default' | 'minimal' | 'audio';
         <andes-player-time-slider />
         <div class="andes-player-bar__row">
           <div class="andes-player-bar__group">
+            <andes-player-previous-button />
             <andes-player-play-button />
+            <andes-player-next-button />
             <andes-player-seek-button
               class="andes-player-bar__optional"
               [seconds]="-seekStep()"
@@ -112,6 +123,7 @@ export type AndesPlayerBarLayout = 'default' | 'minimal' | 'audio';
           <div class="andes-player-bar__group andes-player-bar__group--end">
             <andes-player-captions-button />
             <andes-player-menu type="settings" />
+            <andes-player-menu type="playlist" />
             <andes-player-pip-button class="andes-player-bar__optional" />
             <andes-player-remote-button />
             <andes-player-fullscreen-button />

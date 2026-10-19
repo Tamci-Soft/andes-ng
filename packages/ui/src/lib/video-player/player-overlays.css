@@ -140,6 +140,22 @@
   pointer-events: none;
 }
 
+.andes-player-buffering {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+}
+
+.andes-player-buffering__status {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--andes-video-scrim);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+}
+
 .andes-player-buffering__spinner {
   display: block;
   box-sizing: border-box;
@@ -274,8 +290,11 @@
   background-color: var(--andes-video-captions-background);
   color: var(--andes-video-captions-color);
   font-family: var(--andes-video-captions-font-family);
-  font-size: var(--andes-video-captions-font-size);
+  font-size: calc(
+    var(--andes-video-captions-font-size) * var(--andes-video-captions-scale)
+  );
   line-height: 1.35;
+  text-shadow: var(--andes-video-captions-text-shadow);
   white-space: pre-line;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
@@ -286,7 +305,10 @@
   background-color: var(--andes-video-captions-background);
   color: var(--andes-video-captions-color);
   font-family: var(--andes-video-captions-font-family);
-  font-size: var(--andes-video-captions-font-size);
+  font-size: calc(
+    var(--andes-video-captions-font-size) * var(--andes-video-captions-scale)
+  );
+  text-shadow: var(--andes-video-captions-text-shadow);
 }
 
 /* ---- Error panel -------------------------------------------------------------------------- */
@@ -391,6 +413,279 @@
   }
 }
 
+/* ---- Cards over the picture: resume, up next ------------------------------------------------ */
+
+.andes-player-resume,
+.andes-player-up-next {
+  position: absolute;
+  inset-inline-end: var(--andes-space-3, 0.75rem);
+  /* Above the visible bar. */
+  inset-block-end: calc(var(--andes-video-bar-block-size, 4.5rem) + 0.5rem);
+  z-index: 3;
+  max-width: calc(100% - 2 * var(--andes-space-3, 0.75rem));
+}
+
+.andes-player-resume {
+  inset-inline: var(--andes-space-3, 0.75rem) auto;
+}
+
+.andes-player-resume__card,
+.andes-player-up-next__card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-3, 0.75rem);
+  overflow: hidden;
+  padding: var(--andes-space-3, 0.75rem);
+  border: 1px solid
+    color-mix(in srgb, var(--andes-video-control-color) 14%, transparent);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 82%,
+    transparent
+  );
+  backdrop-filter: blur(var(--andes-video-glass-blur, 12px));
+  box-shadow: var(--andes-shadow-lg, 0 8px 24px rgb(0 0 0 / 0.28));
+  color: var(--andes-video-control-color);
+  animation: andes-player-fade-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+.andes-player-resume__card {
+  flex-wrap: wrap;
+}
+
+.andes-player-resume__title,
+.andes-player-up-next__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-semibold, 600);
+  line-height: 1.375rem;
+}
+
+.andes-player-resume__actions,
+.andes-player-up-next__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--andes-space-2, 0.5rem);
+}
+
+.andes-player-up-next__poster {
+  flex-shrink: 0;
+  width: 6rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--andes-radius-md, 0.375rem);
+}
+
+.andes-player-up-next__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.andes-player-up-next__eyebrow,
+.andes-player-up-next__count {
+  margin: 0;
+  color: var(--andes-video-control-muted);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.andes-player-up-next__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.andes-player-up-next__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A thin bar that empties over the countdown (decorative; the text says the same). */
+.andes-player-up-next__progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 2px;
+  background-color: var(--andes-video-accent);
+  transform-origin: left;
+  animation: andes-player-countdown var(--andes-player-up-next-duration, 5s)
+    linear forwards;
+}
+
+@keyframes andes-player-countdown {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@container (max-width: 30rem) {
+  .andes-player-up-next__poster {
+    display: none;
+  }
+
+  .andes-player-up-next__card {
+    flex-wrap: wrap;
+  }
+}
+
+/* Pill buttons of the cards. */
+.andes-player-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2rem;
+  margin: 0;
+  padding-inline: 0.75rem;
+  border: 1px solid
+    color-mix(in srgb, var(--andes-video-control-color) 36%, transparent);
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: transparent;
+  color: var(--andes-video-control-color);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium, 500);
+  white-space: nowrap;
+  cursor: pointer;
+  --andes-video-icon-size: 0.875rem;
+}
+
+.andes-player-pill:hover {
+  background-color: var(--andes-video-control-hover);
+}
+
+.andes-player-pill--primary {
+  border-color: transparent;
+  background-color: var(--andes-video-control-color);
+  color: var(--andes-video-backdrop);
+}
+
+.andes-player-pill--primary:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-control-color) 86%,
+    transparent
+  );
+}
+
+.andes-player-pill:focus-visible {
+  outline: 2px solid var(--andes-video-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Keyboard help -------------------------------------------------------------------------- */
+
+.andes-player-shortcuts {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--andes-space-3, 0.75rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 56%,
+    transparent
+  );
+}
+
+.andes-player-shortcuts__dialog {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(40rem, 100%);
+  max-height: 100%;
+  overflow: hidden;
+  border: 1px solid
+    color-mix(in srgb, var(--andes-video-menu-foreground) 10%, transparent);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: var(--andes-color-popover);
+  box-shadow: var(--andes-shadow-lg, 0 8px 24px rgb(0 0 0 / 0.28));
+  color: var(--andes-video-menu-foreground);
+  animation: andes-player-fade-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+.andes-player-shortcuts__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-2, 0.5rem)
+    var(--andes-space-2, 0.5rem) var(--andes-space-4, 1rem);
+  padding-inline: var(--andes-space-4, 1rem) var(--andes-space-2, 0.5rem);
+  border-bottom: 1px solid var(--andes-color-border);
+  --andes-video-button-size: 2rem;
+  --andes-video-icon-size: 1rem;
+  --andes-video-control-hover: var(--andes-color-accent);
+}
+
+.andes-player-shortcuts__title {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-semibold, 600);
+  line-height: 1.375rem;
+}
+
+.andes-player-shortcuts__body {
+  /* Flowing columns keep the groups balanced whatever their length. */
+  columns: 2 15rem;
+  column-gap: var(--andes-space-5, 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-4, 1rem)
+    var(--andes-space-3, 0.75rem);
+}
+
+.andes-player-shortcuts__group {
+  margin: 0;
+}
+
+.andes-player-shortcuts__row {
+  break-inside: avoid;
+}
+
+.andes-player-shortcuts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-3, 0.75rem);
+  padding-block: 0.3125rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--andes-video-menu-foreground) 8%, transparent);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.andes-player-shortcuts__keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  order: 2;
+}
+
+.andes-player-shortcuts__action {
+  margin: 0;
+}
+
+.andes-player-shortcuts__keys kbd {
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--andes-color-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
 /* ---- Title -------------------------------------------------------------------------------- */
 
 .andes-player-title {
@@ -417,8 +712,16 @@
   }
 
   .andes-player-unmute__button,
-  .andes-player-error__panel {
+  .andes-player-error__panel,
+  .andes-player-resume__card,
+  .andes-player-up-next__card,
+  .andes-player-shortcuts__dialog {
     animation: none;
+  }
+
+  /* The countdown text carries the time; the bar does not move. */
+  .andes-player-up-next__progress {
+    display: none;
   }
 
   .andes-player-captions,

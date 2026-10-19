@@ -16,7 +16,14 @@ export type AndesPlayerHotkeyAction =
   | 'slower'
   | 'faster'
   | 'toggleCaptions'
-  | 'togglePictureInPicture';
+  | 'togglePictureInPicture'
+  | 'previousFrame'
+  | 'nextFrame'
+  | 'previousChapter'
+  | 'nextChapter'
+  | 'previousItem'
+  | 'nextItem'
+  | 'showShortcuts';
 
 /**
  * Keys per action. A key is a `KeyboardEvent.key` value, optionally prefixed with modifiers
@@ -45,6 +52,13 @@ export const ANDES_PLAYER_DEFAULT_KEY_MAP: AndesPlayerKeyMap = {
   faster: ['>'],
   toggleCaptions: ['c'],
   togglePictureInPicture: ['i'],
+  previousFrame: [','],
+  nextFrame: ['.'],
+  previousChapter: ['PageUp'],
+  nextChapter: ['PageDown'],
+  previousItem: ['Shift+p'],
+  nextItem: ['Shift+n'],
+  showShortcuts: ['?'],
 };
 
 interface ParsedKey {
@@ -150,6 +164,33 @@ export function ariaKeyShortcuts(
     .join(' ');
 }
 
+const KEY_SYMBOLS: Readonly<Record<string, string>> = {
+  ' ': 'Space',
+  Space: 'Space',
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  Escape: 'Esc',
+  PageUp: 'PgUp',
+  PageDown: 'PgDn',
+};
+
+/** A key descriptor in its short visible form: `K`, `Space`, `Shift+N`, `←`, `PgDn`. */
+export function displayKey(descriptor: string): string {
+  const parts = descriptor === '+' ? ['+'] : descriptor.split('+');
+  return parts
+    .map((part, index) => {
+      if (index < parts.length - 1) {
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+      }
+      return (
+        KEY_SYMBOLS[part] ?? (part.length === 1 ? part.toUpperCase() : part)
+      );
+    })
+    .join('+');
+}
+
 /** The first key of an action in a short visible form (`K`, `Space`), for tooltips. */
 export function hotkeyHint(
   keyMap: AndesPlayerKeyMap,
@@ -157,14 +198,7 @@ export function hotkeyHint(
 ): string | null {
   const keys = keyMap[action] ?? [];
   const preferred = keys.find((key) => key.length === 1) ?? keys[0];
-  if (!preferred) {
-    return null;
-  }
-  return preferred === ' ' || preferred === 'Space'
-    ? 'Space'
-    : preferred.length === 1
-      ? preferred.toUpperCase()
-      : preferred;
+  return preferred ? displayKey(preferred) : null;
 }
 
 /**

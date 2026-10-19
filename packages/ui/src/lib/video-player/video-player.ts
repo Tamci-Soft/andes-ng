@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   DOCUMENT,
   effect,
   ElementRef,
@@ -20,6 +21,12 @@ import {
 import { andesElementSize } from '@andes-ng/primitives';
 
 import {
+  captionStyleVariables,
+  ANDES_CAPTION_STYLE_DEFAULT,
+} from './core/caption-style';
+import { playlistItemSources } from './core/playlist';
+
+import {
   AndesPlayerControlBar,
   type AndesPlayerBarLayout,
 } from './control-bar';
@@ -31,13 +38,14 @@ import {
   mergeKeyMap,
   ariaKeyShortcuts,
 } from './core/player-hotkeys';
-import type { AndesPlayerLabels } from './core/player-labels';
+import type { AndesPlayerLabelOverrides } from './core/player-labels';
 import {
   ANDES_PLAYER_DEFAULT_CONFIG,
   type AndesPlayerConfig,
   AndesPlayerStore,
 } from './core/player-store';
 import type {
+  AndesCaptionStyle,
   AndesCaptionsRenderer,
   AndesChapter,
   AndesMediaSource,
@@ -48,8 +56,11 @@ import type {
   AndesPlayerHotkeysMode,
   AndesPlayerMetadata,
   AndesPlayerObjectFit,
+  AndesPlayerRepeat,
+  AndesPlayerResume,
   AndesPlayerSize,
   AndesPlayerSkin,
+  AndesPlaylistItem,
   AndesQualityRendition,
   AndesStreamType,
   AndesTextTrackInfo,
@@ -60,6 +71,13 @@ import {
   AndesPlayerPlayButton,
   AndesPlayerUnmuteButton,
 } from './parts/buttons';
+import {
+  AndesPlayerContextMenu,
+  AndesPlayerMiniControls,
+  AndesPlayerResumePrompt,
+  AndesPlayerShortcuts,
+} from './parts/overlays';
+import { AndesPlayerUpNext } from './parts/playlist-parts';
 import {
   AndesPlayerAnnouncer,
   AndesPlayerBufferingIndicator,
@@ -78,6 +96,11 @@ export interface AndesPlayerMetadataEvent {
 }
 
 const DOUBLE_TAP_MS = 300;
+/**
+ * How long a mouse click on the picture waits for a second click before toggling playback.
+ * Without it a double click (full screen) would also start and stop playback.
+ */
+const CLICK_DELAY_MS = 220;
 const TAP_SLOP_PX = 12;
 const CHROME_SELECTOR = '.andes-video-player__chrome, andes-player-control-bar';
 
@@ -129,6 +152,11 @@ function sameSources(
     AndesPlayerTitle,
     AndesPlayerErrorPanel,
     AndesPlayerAnnouncer,
+    AndesPlayerUpNext,
+    AndesPlayerResumePrompt,
+    AndesPlayerShortcuts,
+    AndesPlayerContextMenu,
+    AndesPlayerMiniControls,
   ],
   templateUrl: './video-player.html',
   styleUrls: [
@@ -153,7 +181,19 @@ function sameSources(
     // attribute, and the browser's own tooltip would float over the picture (and linger after
     // the controls hide). The title is shown in the title bar and named in `aria-label`.
     '[attr.title]': 'null',
+    '[attr.data-mini]': 'store.miniPlayerActive() ? "" : null',
     '[style.--andes-video-bar-block-size.px]': 'barSize.height()',
+    '[style.--andes-video-ratio]': 'mediaRatio()',
+    '[style.--andes-video-captions-scale]':
+      'captionVariables()["--andes-video-captions-scale"]',
+    '[style.--andes-video-captions-color]':
+      'captionVariables()["--andes-video-captions-color"]',
+    '[style.--andes-video-captions-background]':
+      'captionVariables()["--andes-video-captions-background"]',
+    '[style.--andes-video-captions-text-shadow]':
+      'captionVariables()["--andes-video-captions-text-shadow"]',
+    '[style.--andes-video-captions-font-family]':
+      'captionVariables()["--andes-video-captions-font-family"]',
     '[attr.tabindex]': 'focusable() ? 0 : null',
     '[attr.data-state]': 'playbackState()',
     '[attr.data-layout]': 'layoutMode()',
@@ -210,6 +250,28 @@ export class AndesVideoPlayer {
   /** How close to the live edge counts as live, seconds. */
   readonly liveEdgeTolerance = input(10, { transform: numberAttribute });
 
+  // ---- playlist ------------------------------------------------------------------------------
+
+  /**
+   * Entries played one after another. Each entry's source, title, poster, tracks, thumbnails and
+   * chapters replace the player's own inputs while it plays (missing ones fall back to them).
+   * Adds previous/next buttons, a playlist menu and the up-next card.
+   */
+  readonly playlist = input<readonly AndesPlaylistItem[]>([]);
+  /** Index of the entry playing (two-way: follows the viewer's choices). */
+  readonly playlistIndex = model(0);
+  /**
+   * `off`, `all` (wrap the playlist) or `one` (loop the media). Two-way, so the settings menu's
+   * Loop / Repeat page stays in step with the app. `loop` is the same as `one`.
+   */
+  readonly repeat = model<AndesPlayerRepeat>('off');
+  /** Plays the playlist in a shuffled order (drawn once each time it turns on). */
+  readonly shuffle = model(false);
+  /** Moves on to the next entry when one ends. */
+  readonly autoAdvance = input(true, { transform: booleanAttribute });
+  /** Seconds the up-next card counts down before moving on; `0` moves on at once. */
+  readonly upNextDelay = input(5, { transform: numberAttribute });
+
   // ---- two-way state -------------------------------------------------------------------------
 
   readonly currentTime = model(0);
@@ -217,6 +279,11 @@ export class AndesVideoPlayer {
   readonly muted = model(false);
   readonly paused = model(true);
   readonly playbackRate = model(1);
+  /**
+   * The viewer's caption appearance (`null` fields keep the theme). Two-way so an app can
+   * store it in a profile; with `persistKey` it is also remembered locally.
+   */
+  readonly captionStyle = model<AndesCaptionStyle>(ANDES_CAPTION_STYLE_DEFAULT);
 
   // ---- presentation --------------------------------------------------------------------------
 
@@ -262,7 +329,7 @@ export class AndesVideoPlayer {
   /** Click/tap/double-tap gestures on the picture. */
   readonly gestures = input(true, { transform: booleanAttribute });
   /** Overrides for the visible and accessible strings. */
-  readonly labels = input<Partial<AndesPlayerLabels> | null>(null);
+  readonly labels = input<AndesPlayerLabelOverrides | null>(null);
   /** Remembers volume, mute, speed and caption language under this key (opt-in). */
   readonly persistKey = input<string | null>(null);
   readonly mediaSession = input(true, { transform: booleanAttribute });
@@ -272,6 +339,27 @@ export class AndesVideoPlayer {
   readonly pictureInPicture = input(true, { transform: booleanAttribute });
   /** Locks phones to landscape in fullscreen for landscape video. */
   readonly orientationLock = input(true, { transform: booleanAttribute });
+  /**
+   * With `persistKey`: `prompt` offers to continue where the viewer left this source,
+   * `auto` continues silently, `off` always starts at the beginning.
+   */
+  readonly resume = input<AndesPlayerResume>('prompt');
+  /**
+   * Automatic reloads after a network failure (waiting 1s, 2s, 4s... between them) before the
+   * error panel shows; `0` shows it at once.
+   */
+  readonly retryAttempts = input(3, { transform: numberAttribute });
+  /** Frames per second assumed by frame stepping (`,` and `.` while paused). */
+  readonly frameRate = input(30, { transform: numberAttribute });
+  /** Keeps the pitch of voices and music natural at other speeds. */
+  readonly preservesPitch = input(true, { transform: booleanAttribute });
+  /**
+   * Floats the picture in a corner while it plays and the player is scrolled out of view, with
+   * buttons to go back to the player or close it. The player keeps its place in the page.
+   */
+  readonly miniPlayer = input(false, { transform: booleanAttribute });
+  /** The player's own right-click menu (loop, copy address, picture-in-picture, shortcuts). */
+  readonly contextMenu = input(true, { transform: booleanAttribute });
 
   // ---- outputs (named apart from the native media events) -------------------------------------
 
@@ -286,16 +374,27 @@ export class AndesVideoPlayer {
   readonly qualityChanged = output<AndesQualityRendition | null>();
   readonly previousRequested = output<void>();
   readonly nextRequested = output<void>();
+  /** The last entry of the playlist ended (and nothing repeats). */
+  readonly playlistCompleted = output<void>();
 
-  private readonly mediaRef = viewChild<ElementRef<HTMLMediaElement>>('media');
+  private readonly contextMenuRef = viewChild(AndesPlayerContextMenu);
   private readonly bottomRef = viewChild<ElementRef<HTMLElement>>('bottom');
   /** Height of the control bar area (the solid skin centres the big play above it). */
   protected readonly barSize = andesElementSize(this.bottomRef, {
     box: 'border-box',
   });
 
+  private readonly mediaRef = viewChild<ElementRef<HTMLMediaElement>>('media');
+
+  /** The playlist entry playing, if any. */
+  private readonly item = computed(() => this.store.currentItem());
+
   private readonly resolvedSources = computed<readonly AndesMediaSource[]>(
     () => {
+      const item = this.item();
+      if (item) {
+        return playlistItemSources(item, this.audioOnly());
+      }
       const sources = this.sources();
       if (sources.length > 0) {
         return sources;
@@ -306,8 +405,14 @@ export class AndesVideoPlayer {
     { equal: sameSources },
   );
 
+  /** `<track>` elements of the entry playing, else the player's own. */
+  protected readonly resolvedTracks = computed(
+    () => this.item()?.tracks ?? this.tracks(),
+  );
+
   private readonly config = computed<AndesPlayerConfig>(() => {
     const background = this.background();
+    const item = this.item();
     return {
       labels: this.labels(),
       keyMap: mergeKeyMap(this.keyMap()),
@@ -325,16 +430,24 @@ export class AndesVideoPlayer {
       liveEdgeTolerance: this.liveEdgeTolerance(),
       captionsRenderer: this.captionsRenderer(),
       persistKey: this.persistKey(),
-      title: this.title(),
-      poster: this.poster(),
-      metadata: this.metadata(),
+      title: item?.title ?? item?.metadata?.title ?? this.title(),
+      poster: item?.poster ?? this.poster(),
+      metadata: item?.metadata ?? this.metadata(),
       mediaSession: this.mediaSession() && !background,
       skipControls: this.skipControls(),
-      thumbnails: this.thumbnails(),
-      chapters: this.chapters(),
+      thumbnails:
+        item?.thumbnails !== undefined ? item.thumbnails : this.thumbnails(),
+      chapters: item?.chapters !== undefined ? item.chapters : this.chapters(),
       adapters: this.adapters(),
       loopRange: this.loopRange(),
       orientationLock: this.orientationLock(),
+      autoAdvance: this.autoAdvance(),
+      upNextDelay: this.upNextDelay(),
+      resume: this.resume(),
+      retryAttempts: this.retryAttempts(),
+      frameRate: this.frameRate(),
+      preservesPitch: this.preservesPitch(),
+      miniPlayer: this.miniPlayer(),
     };
   });
 
@@ -402,6 +515,18 @@ export class AndesVideoPlayer {
       ? 'cover'
       : this.objectFit(),
   );
+  /** The caption appearance as `--andes-video-captions-*` overrides. */
+  protected readonly captionVariables = computed(() =>
+    captionStyleVariables(this.store.captionStyle()),
+  );
+  /** The picture's ratio for the floating mini player (the host keeps its own box). */
+  protected readonly mediaRatio = computed(
+    () => this.resolvedAspectRatio() ?? '16 / 9',
+  );
+  /** The media loops when one entry repeats (the native loop is gapless). */
+  protected readonly loops = computed(
+    () => this.store.repeat() === 'one' || this.background(),
+  );
   protected readonly resolvedAspectRatio = computed(() => {
     if (this.audioOnly() || this.store.fullscreen()) {
       return null;
@@ -426,9 +551,11 @@ export class AndesVideoPlayer {
   } | null = null;
   private lastPointerType = 'mouse';
   private controlsBeforeTap: boolean | null = null;
+  private clickTimer: ReturnType<typeof setTimeout> | null = null;
+  private ignoreTap = false;
 
   constructor() {
-    this.store.connect(this.config);
+    this.store.connect(this.config, this.playlist);
 
     const size = andesElementSize(this.host, { box: 'border-box' });
     effect(() => {
@@ -487,6 +614,41 @@ export class AndesVideoPlayer {
       (value) => this.store.setPlaybackRate(value),
     );
 
+    this.syncModel(
+      'playlistIndex',
+      this.playlistIndex,
+      this.store.playlistIndex,
+      (index) => this.store.syncPlaylistIndex(index),
+    );
+    this.syncModel('repeat', this.repeat, this.store.repeat, (mode) =>
+      this.store.setRepeat(mode),
+    );
+    this.syncModel('shuffle', this.shuffle, this.store.shuffle, (on) =>
+      this.store.setShuffle(on),
+    );
+    this.syncModel(
+      'captionStyle',
+      this.captionStyle,
+      this.store.captionStyle,
+      (style) => this.store.setCaptionStyle(style),
+      (a, b) => JSON.stringify(a) === JSON.stringify(b),
+      // Left at its default, the binding must not erase a style remembered with persistKey.
+      (style) => style === ANDES_CAPTION_STYLE_DEFAULT,
+    );
+    // `loop` is the long-standing spelling of `repeat="one"`.
+    let looped = false;
+    effect(() => {
+      const loop = this.loop();
+      untracked(() => {
+        if (loop) {
+          this.store.setRepeat('one');
+        } else if (looped && this.store.repeat() === 'one') {
+          this.store.setRepeat('off');
+        }
+        looped = loop;
+      });
+    });
+
     this.emitOnChange(this.store.paused, (paused) => {
       if (!paused) {
         this.played.emit();
@@ -495,6 +657,13 @@ export class AndesVideoPlayer {
     this.emitOnChange(this.store.ended, (ended) => {
       if (ended) {
         this.completed.emit();
+        if (
+          this.playlist().length > 0 &&
+          !this.store.hasNext() &&
+          this.store.repeat() !== 'one'
+        ) {
+          this.playlistCompleted.emit();
+        }
       }
     });
     this.emitOnChange(this.store.error, (error) => {
@@ -532,6 +701,34 @@ export class AndesVideoPlayer {
     this.store.skipRequests.subscribe((direction) =>
       direction < 0 ? this.previousRequested.emit() : this.nextRequested.emit(),
     );
+
+    // The mini player needs to know when the player box leaves the screen.
+    effect((onCleanup) => {
+      if (
+        !this.miniPlayer() ||
+        !this.isBrowser ||
+        typeof IntersectionObserver !== 'function'
+      ) {
+        return;
+      }
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[entries.length - 1];
+          // Floats once less than a quarter of the box is visible, docks when it is back.
+          this.store.inViewport.set(
+            entry.isIntersecting && entry.intersectionRatio >= 0.25,
+          );
+        },
+        { threshold: [0, 0.25, 0.5] },
+      );
+      observer.observe(this.host.nativeElement);
+      onCleanup(() => {
+        observer.disconnect();
+        this.store.inViewport.set(true);
+      });
+    });
+
+    inject(DestroyRef).onDestroy(() => this.clearClickTimer());
 
     // Page-wide hotkeys (opt-in).
     effect((onCleanup) => {
@@ -607,6 +804,26 @@ export class AndesVideoPlayer {
     return this.store.captureFrame(type, quality);
   }
 
+  /** Plays the next playlist entry; `false` at the end of a playlist that does not repeat. */
+  next(): boolean {
+    return this.store.next('api');
+  }
+
+  /** Restarts the entry when it is a few seconds in, else plays the previous one. */
+  previous(): boolean {
+    return this.store.previous('api');
+  }
+
+  /** Plays a playlist entry by index. */
+  selectItem(index: number): void {
+    this.store.selectItem(index, 'api');
+  }
+
+  /** Opens the keyboard help. */
+  showShortcuts(): void {
+    this.store.openShortcuts();
+  }
+
   /** Moves focus to the player (its hotkeys then apply). */
   focus(): void {
     this.host.nativeElement.focus();
@@ -631,6 +848,14 @@ export class AndesVideoPlayer {
       return;
     }
     this.store.notifyActivity();
+    if (
+      (event.key === 'ContextMenu' ||
+        (event.shiftKey && event.key === 'F10')) &&
+      this.openContextMenu(null)
+    ) {
+      event.preventDefault();
+      return;
+    }
     if (this.hotkeys() === 'focus' && this.store.handleKeydown(event)) {
       event.preventDefault();
     }
@@ -655,8 +880,37 @@ export class AndesVideoPlayer {
     }
   }
 
+  /**
+   * Right click on the picture: the player's own menu. A second right click while it is open
+   * falls through to the browser's menu.
+   */
+  protected onContextMenu(event: MouseEvent): void {
+    if (this.openContextMenu(event)) {
+      event.preventDefault();
+    }
+  }
+
+  /** Opens the context menu at the pointer (or the player's centre); `false` when it does not apply. */
+  private openContextMenu(event: MouseEvent | null): boolean {
+    const menu = this.contextMenuRef();
+    if (!menu || !this.contextMenu() || this.decorative()) {
+      return false;
+    }
+    if (event && menu.isOpen()) {
+      menu.close(false);
+      return false;
+    }
+    const rect = this.host.nativeElement.getBoundingClientRect();
+    const x = event ? event.clientX - rect.left : rect.width / 2;
+    const y = event ? event.clientY - rect.top : rect.height / 3;
+    menu.openAt(x, y);
+    return true;
+  }
+
   /** Gesture surface: taps, clicks and double taps on the picture itself. */
   protected onSurfacePointerDown(event: PointerEvent): void {
+    // A press that closed a menu only closes it (the menus close on any outside press).
+    this.ignoreTap = Date.now() - this.store.menuClosedAt < 50;
     this.lastPointerType = event.pointerType || 'mouse';
     this.tapStart = {
       x: event.clientX,
@@ -672,6 +926,7 @@ export class AndesVideoPlayer {
     if (
       !start ||
       !this.gestures() ||
+      this.ignoreTap ||
       (event.pointerType === 'mouse' && event.button !== 0)
     ) {
       return;
@@ -682,6 +937,14 @@ export class AndesVideoPlayer {
     }
     if (start.type === 'touch') {
       this.onTap(event);
+    } else if (this.clickTimer) {
+      // The second click of a double click: the double-click handler takes over.
+      this.clearClickTimer();
+    } else if (this.store.fullscreenSupported() && this.isBrowser) {
+      this.clickTimer = setTimeout(() => {
+        this.clickTimer = null;
+        this.togglePlayWithFeedback();
+      }, CLICK_DELAY_MS);
     } else {
       this.togglePlayWithFeedback();
     }
@@ -695,7 +958,15 @@ export class AndesVideoPlayer {
     ) {
       return;
     }
+    this.clearClickTimer();
     void this.store.toggleFullscreen('gesture');
+  }
+
+  private clearClickTimer(): void {
+    if (this.clickTimer) {
+      clearTimeout(this.clickTimer);
+      this.clickTimer = null;
+    }
   }
 
   private onTap(event: PointerEvent): void {
@@ -769,8 +1040,10 @@ export class AndesVideoPlayer {
     source: () => T,
     write: (next: T) => void,
     equal: (a: T, b: T) => boolean = Object.is,
+    keepOnFirstRun?: (next: T) => boolean,
   ): void {
     let first = true;
+    let firstWrite = true;
     effect(() => {
       const next = source();
       untracked(() => {
@@ -788,6 +1061,8 @@ export class AndesVideoPlayer {
     effect(() => {
       const next = value();
       untracked(() => {
+        const isFirst = firstWrite;
+        firstWrite = false;
         if (
           this.modelWrites.has(key) &&
           Object.is(this.modelWrites.get(key), next)
@@ -795,7 +1070,7 @@ export class AndesVideoPlayer {
           return;
         }
         this.modelWrites.delete(key);
-        if (!equal(next, source())) {
+        if (!equal(next, source()) && !(isFirst && keepOnFirstRun?.(next))) {
           write(next);
         }
       });

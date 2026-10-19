@@ -385,12 +385,14 @@ export class AndesPlayerRemoteButton {
 export class AndesPlayerBigPlayButton {
   protected readonly store = inject(AndesPlayerStore);
 
+  /** Paused, not mid-seek, no error, and no up-next card (which offers its own Play now). */
   protected readonly visible = computed(
     () =>
       this.store.paused() &&
       !this.store.scrubbing() &&
       !this.store.seeking() &&
-      this.store.error() === null,
+      this.store.error() === null &&
+      this.store.upNext() === null,
   );
 }
 

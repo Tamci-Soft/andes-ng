@@ -27,6 +27,17 @@ export {
   AndesPlayerTitle,
 } from './parts/displays';
 export type { AndesPlayerTimeDisplayType } from './parts/displays';
+export {
+  AndesPlayerContextMenu,
+  AndesPlayerMiniControls,
+  AndesPlayerResumePrompt,
+  AndesPlayerShortcuts,
+} from './parts/overlays';
+export {
+  AndesPlayerNextButton,
+  AndesPlayerPreviousButton,
+  AndesPlayerUpNext,
+} from './parts/playlist-parts';
 export { AndesPlayerIcon } from './parts/player-icon';
 export type { AndesPlayerIconName } from './parts/player-icon';
 export { AndesPlayerTooltip } from './parts/player-tooltip';
@@ -34,9 +45,25 @@ export { AndesPlayerTimeSlider } from './parts/time-slider';
 export { AndesPlayerVolumeSlider } from './parts/volume-slider';
 export { AndesPlayerMenu } from './menus/player-menu';
 export type {
+  AndesCaptionStyleField,
   AndesPlayerMenuPage,
   AndesPlayerMenuType,
 } from './menus/player-menu';
+export {
+  ANDES_CAPTION_COLORS,
+  ANDES_CAPTION_EDGES,
+  ANDES_CAPTION_FONTS,
+  ANDES_CAPTION_OPACITIES,
+  ANDES_CAPTION_SIZES,
+  ANDES_CAPTION_STYLE_DEFAULT,
+  captionColorValue,
+  captionStyleVariables,
+} from './core/caption-style';
+export {
+  playlistItemKey,
+  playlistItemSources,
+  shuffledOrder,
+} from './core/playlist';
 
 export {
   ANDES_PLAYER_DEFAULT_CONFIG,
@@ -66,10 +93,24 @@ export {
   mergeAndesPlayerLabels,
   provideAndesPlayerLabels,
 } from './core/player-labels';
-export type { AndesPlayerLabels } from './core/player-labels';
+export type {
+  AndesPlayerLabelOverrides,
+  AndesPlayerLabels,
+} from './core/player-labels';
+export {
+  ANDES_PLAYER_LABEL_SETS,
+  ANDES_PLAYER_LABELS_DE,
+  ANDES_PLAYER_LABELS_ES,
+  ANDES_PLAYER_LABELS_FR,
+  ANDES_PLAYER_LABELS_IT,
+  ANDES_PLAYER_LABELS_PT,
+  andesPlayerLabelsFor,
+  provideAndesPlayerLocale,
+} from './core/player-label-sets';
 export {
   ANDES_PLAYER_DEFAULT_KEY_MAP,
   ariaKeyShortcuts,
+  displayKey,
   mergeKeyMap,
 } from './core/player-hotkeys';
 export type {
@@ -91,6 +132,12 @@ export { parseVtt } from './core/vtt';
 export type { AndesVttCue } from './core/vtt';
 export type {
   AndesAudioTrackInfo,
+  AndesCaptionColor,
+  AndesCaptionEdge,
+  AndesCaptionFont,
+  AndesCaptionOpacity,
+  AndesCaptionSize,
+  AndesCaptionStyle,
   AndesCaptionsRenderer,
   AndesChapter,
   AndesMediaSource,
@@ -105,8 +152,11 @@ export type {
   AndesPlayerHotkeysMode,
   AndesPlayerMetadata,
   AndesPlayerObjectFit,
+  AndesPlayerRepeat,
+  AndesPlayerResume,
   AndesPlayerSize,
   AndesPlayerSkin,
+  AndesPlaylistItem,
   AndesQualityRendition,
   AndesRemotePlaybackState,
   AndesStreamType,

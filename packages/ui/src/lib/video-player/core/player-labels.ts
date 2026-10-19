@@ -1,6 +1,12 @@
 import { InjectionToken, type Provider } from '@angular/core';
 
-import type { AndesPlayerErrorCode } from './player-types';
+import type { AndesPlayerHotkeyAction } from './player-hotkeys';
+import type {
+  AndesCaptionColor,
+  AndesCaptionEdge,
+  AndesCaptionFont,
+  AndesPlayerErrorCode,
+} from './player-types';
 import type { AndesSpokenTimeUnits, AndesTimeText } from './time-format';
 
 /**
@@ -93,7 +99,88 @@ export interface AndesPlayerLabels extends AndesSpokenTimeUnits {
   announceSeek(time: AndesTimeText): string;
   announceLive: string;
   announceError(message: string): string;
+
+  /** Generic switch states (shuffle, loop). */
+  readonly on: string;
+  readonly off: string;
+
+  // Playlist
+  readonly previous: string;
+  readonly next: string;
+  readonly playlist: string;
+  /** Where the entry sits, e.g. `2 of 5` (playlist menu value, announcements). */
+  playlistPosition(position: number, total: number): string;
+  readonly upNext: string;
+  /** The visible countdown of the up-next card. */
+  upNextIn(seconds: number): string;
+  readonly playNow: string;
+  readonly cancel: string;
+  readonly repeat: string;
+  readonly repeatAll: string;
+  readonly repeatOne: string;
+  /** The repeat page's name when there is no playlist (Off / On loops the media). */
+  readonly loop: string;
+  readonly shuffle: string;
+  announceItem(title: string, position: string): string;
+  announceUpNext(title: string, seconds: number): string;
+  announceRepeat(mode: string): string;
+  announceShuffle(on: boolean): string;
+
+  // Caption appearance
+  readonly captionStyle: string;
+  readonly captionSize: string;
+  readonly captionColor: string;
+  readonly captionBackground: string;
+  readonly captionOpacity: string;
+  readonly captionEdge: string;
+  readonly captionFont: string;
+  /** The choice that keeps the theme's own value. */
+  readonly captionDefault: string;
+  readonly resetCaptionStyle: string;
+  readonly colors: Readonly<Record<AndesCaptionColor, string>>;
+  readonly edges: Readonly<Record<AndesCaptionEdge, string>>;
+  readonly fonts: Readonly<Record<AndesCaptionFont, string>>;
+  /** A percentage (`150%`). */
+  percent(value: number): string;
+
+  // Resume
+  readonly resumeTitle: string;
+  resumeFrom(time: AndesTimeText): string;
+  readonly startOver: string;
+
+  // Network
+  readonly reconnecting: string;
+  /** Shown under the spinner when the network stops delivering data. */
+  readonly slowNetwork: string;
+
+  // Keyboard help, context menu, mini player
+  readonly keyboardShortcuts: string;
+  readonly close: string;
+  /** What each hotkey does, for the keyboard help. */
+  readonly hotkeyActions: Readonly<Record<AndesPlayerHotkeyAction, string>>;
+  /** The context menu's name. */
+  readonly playerOptions: string;
+  readonly copyLink: string;
+  readonly copyLinkAtTime: string;
+  readonly linkCopied: string;
+  readonly miniPlayer: string;
+  readonly closeMiniPlayer: string;
+  readonly returnToPlayer: string;
+  readonly playingInMiniPlayer: string;
 }
+
+/** The maps inside the labels, which overrides may give in part. */
+type NestedLabelKey = 'errors' | 'colors' | 'edges' | 'fonts' | 'hotkeyActions';
+
+/**
+ * Overrides for some labels. The nested maps (`errors`, `colors`, `edges`, `fonts`,
+ * `hotkeyActions`) may be partial too: they merge entry by entry over the defaults.
+ */
+export type AndesPlayerLabelOverrides = Partial<
+  Omit<AndesPlayerLabels, NestedLabelKey>
+> & {
+  readonly [K in NestedLabelKey]?: Partial<AndesPlayerLabels[K]>;
+};
 
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
@@ -179,23 +266,119 @@ export const ANDES_PLAYER_DEFAULT_LABELS: AndesPlayerLabels = {
   announceSeek: (time) => `Moved to ${time.spoken}`,
   announceLive: 'Jumped to live',
   announceError: (message) => `Error. ${message}`,
+  on: 'On',
+  off: 'Off',
+  previous: 'Previous',
+  next: 'Next',
+  playlist: 'Playlist',
+  playlistPosition: (position, total) => `${position} of ${total}`,
+  upNext: 'Up next',
+  upNextIn: (seconds) => `Next in ${seconds}`,
+  playNow: 'Play now',
+  cancel: 'Cancel',
+  repeat: 'Repeat',
+  repeatAll: 'All',
+  repeatOne: 'One',
+  loop: 'Loop',
+  shuffle: 'Shuffle',
+  announceItem: (title, position) => `Now playing ${title}, ${position}`,
+  announceUpNext: (title, seconds) =>
+    `Up next: ${title}, in ${plural(seconds, 'second', 'seconds')}`,
+  announceRepeat: (mode) => `Repeat ${mode}`,
+  announceShuffle: (on) => (on ? 'Shuffle on' : 'Shuffle off'),
+  captionStyle: 'Caption style',
+  captionSize: 'Text size',
+  captionColor: 'Text colour',
+  captionBackground: 'Background',
+  captionOpacity: 'Background opacity',
+  captionEdge: 'Text edges',
+  captionFont: 'Font',
+  captionDefault: 'Default',
+  resetCaptionStyle: 'Reset to default',
+  colors: {
+    white: 'White',
+    yellow: 'Yellow',
+    green: 'Green',
+    cyan: 'Cyan',
+    blue: 'Blue',
+    magenta: 'Magenta',
+    red: 'Red',
+    black: 'Black',
+  },
+  edges: {
+    none: 'None',
+    shadow: 'Drop shadow',
+    raised: 'Raised',
+    depressed: 'Depressed',
+    outline: 'Outline',
+  },
+  fonts: {
+    default: 'Player font',
+    'sans-serif': 'Sans serif',
+    serif: 'Serif',
+    monospace: 'Monospace',
+  },
+  percent: (value) => `${value}%`,
+  resumeTitle: 'Continue watching?',
+  resumeFrom: (time) => `Resume from ${time.clock}`,
+  startOver: 'Start over',
+  reconnecting: 'Reconnecting…',
+  slowNetwork: 'Waiting for the network…',
+  keyboardShortcuts: 'Keyboard shortcuts',
+  close: 'Close',
+  hotkeyActions: {
+    togglePlay: 'Play or pause',
+    toggleMute: 'Mute or unmute',
+    toggleFullscreen: 'Full screen',
+    exitFullscreen: 'Leave full screen',
+    seekBackward: 'Back a little',
+    seekForward: 'Forward a little',
+    seekBackwardLarge: 'Back further',
+    seekForwardLarge: 'Forward further',
+    seekToStart: 'Go to the start',
+    seekToEnd: 'Go to the end or to live',
+    seekToPercent: 'Jump to 0% to 90%',
+    volumeUp: 'Volume up',
+    volumeDown: 'Volume down',
+    slower: 'Slower',
+    faster: 'Faster',
+    toggleCaptions: 'Captions on or off',
+    togglePictureInPicture: 'Picture in picture',
+    previousFrame: 'Previous frame (paused)',
+    nextFrame: 'Next frame (paused)',
+    previousChapter: 'Previous chapter',
+    nextChapter: 'Next chapter',
+    previousItem: 'Previous in playlist',
+    nextItem: 'Next in playlist',
+    showShortcuts: 'Show keyboard shortcuts',
+  },
+  playerOptions: 'Player options',
+  copyLink: 'Copy video address',
+  copyLinkAtTime: 'Copy address at current time',
+  linkCopied: 'Address copied',
+  miniPlayer: 'Mini player',
+  closeMiniPlayer: 'Close mini player',
+  returnToPlayer: 'Back to the player',
+  playingInMiniPlayer: 'Playing in the mini player',
 };
 
 /** App- or route-level label overrides, merged over the English defaults. */
-export const ANDES_PLAYER_LABELS = new InjectionToken<
-  Partial<AndesPlayerLabels>
->('ANDES_PLAYER_LABELS');
+export const ANDES_PLAYER_LABELS =
+  new InjectionToken<AndesPlayerLabelOverrides>('ANDES_PLAYER_LABELS');
 
 /** Provides label overrides for every player below this injector. */
 export function provideAndesPlayerLabels(
-  labels: Partial<AndesPlayerLabels>,
+  labels: AndesPlayerLabelOverrides,
 ): Provider {
   return { provide: ANDES_PLAYER_LABELS, useValue: labels };
 }
 
-/** Merges overrides over the defaults; `errors` merges per code. */
+/**
+ * Merges overrides over the defaults; the nested maps (`errors`, `colors`, `edges`, `fonts`,
+ * `hotkeyActions`) merge per key, so a translation can override one entry.
+ */
 export function mergeAndesPlayerLabels(
-  ...layers: (Partial<AndesPlayerLabels> | null | undefined)[]
+  ...layers: (AndesPlayerLabelOverrides | null | undefined)[]
 ): AndesPlayerLabels {
   let merged: AndesPlayerLabels = ANDES_PLAYER_DEFAULT_LABELS;
   for (const layer of layers) {
@@ -206,6 +389,13 @@ export function mergeAndesPlayerLabels(
       ...merged,
       ...layer,
       errors: { ...merged.errors, ...(layer.errors ?? {}) },
+      colors: { ...merged.colors, ...(layer.colors ?? {}) },
+      edges: { ...merged.edges, ...(layer.edges ?? {}) },
+      fonts: { ...merged.fonts, ...(layer.fonts ?? {}) },
+      hotkeyActions: {
+        ...merged.hotkeyActions,
+        ...(layer.hotkeyActions ?? {}),
+      },
     };
   }
   return merged;
