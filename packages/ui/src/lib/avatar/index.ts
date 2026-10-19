@@ -22,7 +22,9 @@ export type {
 } from './avatar-group';
 export { AndesAvatarGroupCount } from './avatar-group-count';
 export type {
+  AndesAvatarGroupCountLayout,
   AndesAvatarGroupCountPanelContext,
   AndesAvatarGroupCountPlacement,
   AndesAvatarGroupCountTrigger,
 } from './avatar-group-count';
+export type { AndesAvatarFace } from './avatar-face';

@@ -5,12 +5,15 @@ import {
   contentChildren,
   forwardRef,
   input,
+  signal,
   type TemplateRef,
 } from '@angular/core';
 
 import { AndesAvatar } from './avatar';
+import type { AndesAvatarFace } from './avatar-face';
 import {
   AndesAvatarGroupCount,
+  type AndesAvatarGroupCountLayout,
   type AndesAvatarGroupCountPanelContext,
   type AndesAvatarGroupCountPlacement,
   type AndesAvatarGroupCountTrigger,
@@ -31,9 +34,25 @@ export interface AndesAvatarGroupPopover {
    * opens on keyboard focus and tap only; `click` toggles a disclosure.
    */
   readonly trigger?: AndesAvatarGroupCountTrigger;
-  /** Heading above the names, e.g. "Also in this project". */
+  /**
+   * `grid` (default): the hidden avatars as faces in a wrapping grid, 6-8
+   * wide, that scrolls vertically past five rows - fine for hundreds.
+   * `row`: one horizontal line that scrolls sideways and snaps to faces -
+   * only for a handful.
+   */
+  readonly layout?: AndesAvatarGroupCountLayout;
+  /** Heading above the faces, e.g. "Also in this project". */
   readonly label?: string;
-  /** Custom panel content; see `AndesAvatarGroupCount.panelTemplate`. */
+  /**
+   * Text for the chip's accessible name, the panel's name and the heading of a
+   * scrolling panel; `{count}` becomes the number hidden. Default
+   * `"+{count} more"` - translate it for non-English apps.
+   */
+  readonly moreLabel?: string;
+  /**
+   * Custom panel content replacing the faces; see
+   * `AndesAvatarGroupCount.panelTemplate`.
+   */
   readonly template?: TemplateRef<AndesAvatarGroupCountPanelContext>;
 }
 
@@ -83,10 +102,15 @@ export class AndesAvatarGroup implements AndesAvatarGroupContext {
 
   /**
    * Cap the visible avatars at `max.count` and collapse the rest into a
-   * generated `+N` chip whose panel lists who's hidden (each hidden avatar's
-   * image `alt`, icon `label` or fallback text). Leave unset to show every
-   * avatar - and to keep composing a hand-placed `andes-avatar-group-count`
-   * instead, as before; don't combine the two.
+   * generated `+N` chip whose panel shows who's hidden as faces - photo, else
+   * initials, else a person glyph - each named by the avatar's image `alt`,
+   * icon `label` or fallback text (as its `aria-label` and the caption on
+   * hover/focus). Leave unset to show every avatar - and to keep composing a
+   * hand-placed `andes-avatar-group-count` instead, as before; don't combine
+   * the two.
+   *
+   * Set `max` for any group that can grow: without it the stack never wraps
+   * or shrinks, so 100 avatars make a row 100 avatars wide.
    */
   readonly max = input<AndesAvatarGroupMax | undefined>(undefined);
 
@@ -125,6 +149,20 @@ export class AndesAvatarGroup implements AndesAvatarGroupContext {
           .filter((name) => name !== '')
       : [],
   );
+
+  /** Bumped each time the panel opens, so inline colors are read fresh. */
+  private readonly panelOpens = signal(0);
+
+  protected readonly hiddenFaces = computed<readonly AndesAvatarFace[]>(() => {
+    this.panelOpens();
+    return this.popover()
+      ? this.hiddenAvatars().map((avatar) => avatar.face())
+      : [];
+  });
+
+  protected onPanelOpened(): void {
+    this.panelOpens.update((count) => count + 1);
+  }
 
   isHidden(avatar: unknown): boolean {
     return this.hiddenAvatars().includes(avatar as AndesAvatar);

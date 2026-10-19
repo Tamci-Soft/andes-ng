@@ -3,12 +3,14 @@ import {
   Component,
   computed,
   contentChild,
+  ElementRef,
   inject,
   input,
 } from '@angular/core';
 import clsx from 'clsx';
 
 import { AndesAvatarFallback } from './avatar-fallback';
+import { type AndesAvatarFace, initialsOf } from './avatar-face';
 import type { AndesAvatarShape } from './avatar-group-context';
 import { AndesAvatarIcon } from './avatar-icon';
 import { AndesAvatarImage } from './avatar-image';
@@ -63,6 +65,7 @@ export type AndesAvatarSize = AndesAvatarSizePreset;
 })
 export class AndesAvatar {
   protected readonly state = inject(AndesAvatarState);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /**
    * `circular`, `rounded` or `square`. Left unset, the
@@ -104,10 +107,8 @@ export class AndesAvatar {
 
   /**
    * Who this avatar stands for, as text: the image's `alt`, else the icon's
-   * `label`, else the fallback's text. `AndesAvatarGroup` lists these in its
-   * `+N` overflow panel for the avatars `max.count` hides - the panel can't
-   * show the hidden avatars themselves, since projected content can only be
-   * rendered in one place.
+   * `label`, else the fallback's text. It is the accessible name of the
+   * avatar's face in `AndesAvatarGroup`'s `+N` overflow panel.
    */
   accessibleName(): string {
     return (
@@ -116,5 +117,34 @@ export class AndesAvatar {
       this.fallback()?.text() ||
       ''
     ).trim();
+  }
+
+  /**
+   * This avatar as a plain description the `+N` overflow panel can draw as a
+   * face (photo, else initials, else the person glyph) - the panel can't
+   * show the avatar itself, since projected content can only be rendered in
+   * one place. Colors are read from the avatar's own inline
+   * `--andes-avatar-background` / `--andes-avatar-foreground`; ones set by a
+   * stylesheet rule on the avatar are not seen (set them on the group, which
+   * the panel inherits from).
+   */
+  face(): AndesAvatarFace {
+    const name = this.accessibleName();
+    const src = this.image()?.src() || undefined;
+    const text =
+      this.fallback()?.text() || (this.icon() ? '' : initialsOf(name));
+    const style = this.host.nativeElement.style;
+    const background =
+      style.getPropertyValue('--andes-avatar-background').trim() || undefined;
+    const foreground =
+      style.getPropertyValue('--andes-avatar-foreground').trim() || undefined;
+    return {
+      name,
+      src,
+      text: text || undefined,
+      icon: !text,
+      background,
+      foreground,
+    };
   }
 }

@@ -2,23 +2,28 @@
 <!--
     A real <button>, not a tabindex'd host: the trigger has to be reachable by
     keyboard and expose a button role and an accessible name ("+N", its own
-    text). With the default hover trigger this is the WAI-ARIA tooltip
-    pattern - hover comes from the host (so the pointer can cross the chip's
-    ring without flicker), focus/blur and Escape from the button, and a tap
-    counts as a focus so touch users get the panel too. With trigger="click"
-    it's a disclosure button instead (aria-expanded/aria-controls).
+    text). With the default hover trigger and a names-only panel this is the
+    WAI-ARIA tooltip pattern - hover comes from the host (so the pointer can
+    cross the chip's ring without flicker), focus/blur and Escape from the
+    button, and a tap counts as a focus so touch users get the panel too. With
+    trigger="click", or whenever the panel holds faces (focusable content, so
+    never a tooltip), it's a disclosure button instead
+    (aria-expanded/aria-controls).
   -->
 <button
   #triggerButton
   type="button"
   class="andes-avatar-group-count__trigger"
-  [attr.aria-describedby]="!isClick() && open() ? panelId : null"
-  [attr.aria-expanded]="isClick() ? open() : null"
-  [attr.aria-controls]="isClick() && open() ? panelId : null"
+  [attr.aria-label]="facesMode() ? moreText() : null"
+  [attr.aria-describedby]="!isClick() && !facesMode() && open() ? panelId : null"
+  [attr.aria-expanded]="isClick() || facesMode() ? open() : null"
+  [attr.aria-controls]="(isClick() || facesMode()) && open() ? panelId : null"
   (focus)="onFocus()"
   (blur)="onFocusLeave($event)"
   (click)="onClick()"
-  (keydown.escape)="onEscape(triggerButton)"
+  (keydown.arrowdown)="onTriggerArrow($event)"
+  (keydown.arrowup)="onTriggerArrow($event)"
+  (keydown.escape)="onEscape($event, triggerButton)"
 >
   {{ label() }}
 </button>
@@ -26,17 +31,30 @@
 @if (open()) {
 <div
   [id]="panelId"
-  [attr.role]="isClick() ? null : 'tooltip'"
-  [attr.tabindex]="isClick() ? -1 : null"
+  [attr.role]="facesMode() || isClick() ? null : 'tooltip'"
+  [attr.tabindex]="isClick() || facesMode() ? -1 : null"
   class="andes-avatar-group-count__panel"
+  [class.andes-avatar-group-count__panel--faces]="facesMode()"
+  [class.andes-avatar-group-count__panel--below]="placement() === 'bottom'"
+  [style.--_andes-avatar-panel-shift]="panelShift() + 'px'"
   animate.leave="andes-avatar-group-count__panel--leave"
   (focusout)="onFocusLeave($event)"
-  (keydown.escape)="onEscape(triggerButton)"
+  (keydown.escape)="onEscape($event, triggerButton)"
 >
   @if (panelTemplate(); as template) {
   <ng-container
     [ngTemplateOutlet]="template"
     [ngTemplateOutletContext]="panelContext()"
+  />
+  } @else if (facesMode()) { @if (heading()) {
+  <p class="andes-avatar-group-count__panel-label">{{ heading() }}</p>
+  }
+  <andes-avatar-face-grid
+    [faces]="hiddenFaces()"
+    [layout]="panelLayout()"
+    [faceSize]="faceSize()"
+    [shape]="appearance.shape()"
+    [label]="overflowLabel() || moreText()"
   />
   } @else { @if (overflowLabel()) {
   <p class="andes-avatar-group-count__panel-label">{{ overflowLabel() }}</p>

@@ -1,0 +1,158 @@
+/* The hidden faces of a group's `+N` panel: a wrapping grid that scrolls
+   vertically, or one horizontal row. Sizes come from custom properties the
+   component binds (face edge, gap, edge room, visible columns). */
+
+:host {
+  display: grid;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-avatar-face-grid__scroller {
+  box-sizing: border-box;
+  /* As wide as the faces plus `edge` room on each side (so a focus ring at the
+     outer faces is not clipped), and the scrollbar gutter when there is one. */
+  width: max-content;
+  max-width: 100%;
+  padding: var(--_andes-avatar-face-edge);
+  overflow: hidden;
+  /* A scrolled-to-the-end list must not hand the wheel to the page behind. */
+  overscroll-behavior: contain;
+  scrollbar-color: var(--andes-color-border) transparent;
+  scrollbar-width: thin;
+}
+
+/* Focus parks here only while Angular draws the row a key jump scrolled to;
+   it is not a stop of its own, so it gets no ring. */
+.andes-avatar-face-grid__scroller:focus {
+  outline: none;
+}
+
+/* Vertical scrolling only when there are more rows than fit. The gutter is
+   reserved up front (both edges, so the faces stay centered) rather than
+   appearing on the first scroll and narrowing the grid. */
+.andes-avatar-face-grid__scroller--scrolls {
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+}
+
+:host([data-layout='row']) .andes-avatar-face-grid__scroller {
+  /* One line, as wide as the first screenful of faces; the rest scrolls. */
+  width: calc(
+    var(--_andes-avatar-face-cols) * var(--_andes-avatar-face) +
+      (var(--_andes-avatar-face-cols) - 1) * var(--_andes-avatar-face-gap) + 2 *
+      var(--_andes-avatar-face-edge)
+  );
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: var(--_andes-avatar-face-edge);
+  scroll-snap-type: x proximity;
+}
+
+.andes-avatar-face-grid__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--_andes-avatar-face-gap);
+}
+
+.andes-avatar-face-grid__row {
+  display: flex;
+  gap: var(--_andes-avatar-face-gap);
+}
+
+:host([data-layout='row']) .andes-avatar-face-grid__row {
+  width: max-content;
+}
+
+.andes-avatar-face-grid__face {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--_andes-avatar-face);
+  height: var(--_andes-avatar-face);
+  overflow: hidden;
+  border-radius: var(--andes-radius-full);
+  background-color: var(
+    --andes-avatar-background,
+    var(--andes-color-secondary)
+  );
+  color: var(--andes-avatar-foreground, var(--andes-color-foreground));
+  font-size: max(0.625rem, calc(var(--_andes-avatar-face) * 0.4));
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1;
+  scroll-snap-align: start;
+  text-transform: uppercase;
+  user-select: none;
+  transition: box-shadow var(--andes-duration-fast, 150ms) ease;
+}
+
+:host([data-shape='rounded']) .andes-avatar-face-grid__face {
+  border-radius: var(--andes-radius-lg);
+}
+
+:host([data-shape='square']) .andes-avatar-face-grid__face {
+  border-radius: var(--andes-radius-md);
+}
+
+.andes-avatar-face-grid__face:hover {
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-primary) 45%, transparent);
+}
+
+/* A control, not a text box: it keeps the outline ring. The scroller's
+   padding leaves room for it. */
+.andes-avatar-face-grid__face:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-avatar-face-grid__text {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* The glyph takes the same share of the face as in AndesAvatarIcon. */
+.andes-avatar-face-grid__glyph {
+  width: calc(var(--_andes-avatar-face) * var(--andes-avatar-icon-scale, 0.66));
+  height: calc(
+    var(--_andes-avatar-face) * var(--andes-avatar-icon-scale, 0.66)
+  );
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-avatar-face-grid__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.andes-avatar-face-grid__image[hidden] {
+  display: none;
+}
+
+/* The name of the hovered or focused face. Its line is always reserved so the
+   panel does not jump, and `inline-size: 0` + `min-inline-size: 100%` keeps a
+   long name from widening the panel - it is cut with an ellipsis instead. */
+.andes-avatar-face-grid__caption {
+  min-height: 1.25rem;
+  min-inline-size: 100%;
+  inline-size: 0;
+  margin: var(--andes-space-1) 0 0;
+  overflow: hidden;
+  color: var(--andes-color-popover-foreground);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-avatar-face-grid__face {
+    transition: none;
+  }
+}

@@ -413,9 +413,11 @@ describe('AndesAvatarGroup max', () => {
     chip.dispatchEvent(new Event('mouseenter'));
     fixture.detectChanges();
 
-    const names = [
-      ...chip.querySelectorAll('.andes-avatar-group-count__name'),
-    ].map((name) => name.textContent?.trim());
+    // Faces, not a list of names: each one is named by its aria-label.
+    expect(chip.querySelector('.andes-avatar-group-count__name')).toBeNull();
+    const names = [...chip.querySelectorAll('[role="gridcell"]')].map((cell) =>
+      cell.getAttribute('aria-label'),
+    );
     expect(names).toEqual(['Chika Adeyemi', 'Unassigned seat', 'EB']);
   });
 
@@ -462,9 +464,12 @@ describe('AndesAvatarGroup max', () => {
 
     expect(chip.classList).toContain('andes-avatar-group-count--bottom');
     expect(chip.getAttribute('data-placement')).toBe('bottom');
-    expect(chip.querySelector('[role="tooltip"]')?.textContent).toContain(
-      'Also here',
-    );
+    expect(
+      chip.querySelector('.andes-avatar-group-count__panel-label')?.textContent,
+    ).toContain('Also here');
+    expect(
+      chip.querySelector('[role="grid"]')?.getAttribute('aria-label'),
+    ).toBe('Also here');
   });
 
   it('renders a custom panel template with the hidden names and count', () => {
@@ -1020,7 +1025,7 @@ describe('AndesAvatarGroupCount focus trigger', () => {
     chip.querySelector('button')?.dispatchEvent(new Event('focus'));
     fixture.detectChanges();
     expect(
-      chip.querySelector('.andes-avatar-group-count__panel')?.textContent,
-    ).toContain('B');
+      chip.querySelector('[role="gridcell"]')?.getAttribute('aria-label'),
+    ).toBe('B');
   });
 });

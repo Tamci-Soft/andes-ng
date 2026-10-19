@@ -109,7 +109,11 @@
 .andes-avatar-group-count__panel {
   position: absolute;
   inset-block-end: calc(100% + var(--andes-space-2));
-  inset-inline-start: 50%;
+  /* Centered on the chip with `left`, not `inset-inline-start`: a logical
+     start edge lands on the right in RTL, where the same -50% shift would
+     then push the panel off to the side instead of centering it. The shift
+     var slides a wide panel back inside the viewport (see keepInViewport). */
+  left: 50%;
   z-index: var(--andes-z-index-tooltip);
   display: flex;
   flex-direction: column;
@@ -120,7 +124,7 @@
   max-height: 12rem;
   overflow-y: auto;
   padding: var(--andes-space-2) var(--andes-space-3);
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--_andes-avatar-panel-shift, 0px)));
   border: 1px solid var(--andes-color-border);
   border-radius: var(--andes-radius-md);
   background-color: var(--andes-color-popover);
@@ -190,4 +194,30 @@
 
 .andes-avatar-group-count__name {
   display: block;
+}
+
+/* A panel of faces: the grid inside does the scrolling and sizes itself, so
+   the panel only pads and stacks. */
+.andes-avatar-group-count__panel--faces {
+  gap: var(--andes-space-1);
+  min-width: 0;
+  max-width: none;
+  max-height: none;
+  padding: var(--andes-space-2) var(--andes-space-2) var(--andes-space-1);
+  overflow: visible;
+}
+
+/* The pointer must be able to cross the gap between the chip and the panel
+   without leaving the chip's hover area, or the panel would close before a
+   mouse user could reach (and scroll) it. */
+.andes-avatar-group-count__panel--faces::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(-1 * var(--andes-space-2));
+  block-size: var(--andes-space-2);
+}
+
+.andes-avatar-group-count__panel--below::before {
+  inset-block: calc(-1 * var(--andes-space-2)) auto;
 }
