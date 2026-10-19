@@ -1513,9 +1513,7 @@ describe('accordion arrow column (CSS contract)', () => {
   const css = (file: string) =>
     readFileSync(`${dir}/${file}`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const rule = (file: string, selector: string) =>
-    css(file).match(
-      new RegExp(`${selector.replace(/[.[\]()]/g, '\\$&')} \\{([^}]*)\\}`),
-    )?.[1] ?? '';
+    ruleBody(css(file), selector);
 
   it('sizes the arrow column independently of the icon or the extra', () => {
     for (const selector of [
@@ -1590,10 +1588,7 @@ describe('accordion header height (CSS contract)', () => {
     'packages/ui/src/lib/accordion/accordion-trigger.css',
     'utf8',
   ).replace(/\/\*[\s\S]*?\*\//g, '');
-  const rule = (selector: string) =>
-    css.match(
-      new RegExp(`${selector.replace(/[.[\]()]/g, '\\$&')} \\{([^}]*)\\}`),
-    )?.[1] ?? '';
+  const rule = (selector: string) => ruleBody(css, selector);
   const header = '.andes-accordion-trigger__header';
 
   it('takes the row height from a per-size min-block-size, centered', () => {
@@ -1626,3 +1621,12 @@ describe('accordion header height (CSS contract)', () => {
     );
   });
 });
+
+function ruleBody(source: string, selector: string): string {
+  const at = source.indexOf(`${selector} {`);
+  if (at < 0) {
+    return '';
+  }
+  const open = at + selector.length + 2;
+  return source.slice(open, source.indexOf('}', open));
+}
