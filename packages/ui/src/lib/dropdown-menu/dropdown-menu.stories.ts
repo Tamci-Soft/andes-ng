@@ -899,8 +899,11 @@ export const DropdownButtonStates: Story = {
       imports: [NgIcon, AndesDropdownButton],
       providers: [ICONS],
     },
+    // Not `loading`: Storybook writes a prop that is not an input of the meta component
+    // (`AndesDropdownMenu`) straight onto the first instance provided under that token -
+    // here the first dropdown button, whose `loading` input it would replace.
     props: {
-      loading: false,
+      saving: false,
       items: [
         { key: 'draft', label: 'Save as draft' },
         { key: 'template', label: 'Save as template' },
@@ -918,11 +921,11 @@ export const DropdownButtonStates: Story = {
         <div style="display: flex; gap: 1rem; align-items: center;">
           <andes-dropdown-button
             variant="primary"
-            [loading]="loading"
+            [loading]="saving"
             [items]="items"
-            (buttonClick)="loading = !loading"
+            (buttonClick)="saving = !saving"
           >
-            {{ loading ? 'Saving… (click to stop)' : 'Save (click me)' }}
+            {{ saving ? 'Saving… (click to stop)' : 'Save (click me)' }}
           </andes-dropdown-button>
           <andes-dropdown-button loading [loadingDelay]="1000" [items]="items">Spinner after 1s</andes-dropdown-button>
           <andes-dropdown-button loading [loadingIcon]="dots" [items]="items">Custom loading icon</andes-dropdown-button>
