@@ -7,15 +7,22 @@ import type {
 
 /** What `andes-carousel` offers the slides inside it. */
 export interface AndesCarouselContext {
-  readonly count: Signal<number>;
-  /** Index of the first visible slide. */
-  readonly index: Signal<number>;
-  /** How many slides are visible at once (rounded up). */
-  readonly visibleCount: Signal<number>;
+  readonly slideCount: Signal<number>;
+  /**
+   * Where the slides are headed, in slide units: the slide at this coordinate sits at the
+   * start edge of the view. Unbounded when looping.
+   */
+  readonly position: Signal<number>;
+  /** Slides shown at once (may be fractional). */
+  readonly perView: Signal<number>;
   /** Whether slides loop seamlessly past the ends. */
   readonly wraps: Signal<boolean>;
+  /** First slot a looping slide may occupy, relative to the start edge. */
+  readonly windowStart: Signal<number>;
   readonly effect: Signal<AndesCarouselEffect>;
   readonly isVertical: Signal<boolean>;
+  /** Slides stretch to the viewport's height (set by an aspect ratio or a slide height). */
+  readonly fill: Signal<boolean>;
   /** Slides kept rendered on each side of the visible ones. */
   readonly preload: Signal<number>;
   readonly resolvedLabels: Signal<Required<AndesCarouselLabels>>;

@@ -1,9 +1,10 @@
 :host {
-  /* One slot of the shared grid cell; its offset from the first visible slide decides where
-     it sits. `100%` inside `translate` is the slide's own size, so a step is one slide plus
-     the gap. */
+  /* One slot of the shared grid cell; its offset from the start edge decides where it
+     sits. `100%` inside `translate` is the slide's own size, so a step is one slide plus
+     the gap. The shift lines the selected slide up with `align`. */
   --_distance: calc(
-    var(--andes-carousel-index, 0) - var(--andes-carousel-position, 0)
+    var(--andes-carousel-index, 0) - var(--andes-carousel-position, 0) +
+      var(--andes-carousel-shift, 0)
   );
   --_offset: var(--_distance);
 
@@ -29,6 +30,11 @@
     0
   );
   will-change: transform;
+}
+
+/* A fixed viewport shape: slides stretch to fill it. */
+:host([data-fill]) {
+  align-self: stretch;
 }
 
 /* Looping: slides leaving one end re-enter at the other, off screen, so the shared position
@@ -59,6 +65,17 @@
   );
 }
 
+/* Slide and fade: the part of a slide outside the view fades out the further it is. */
+:host([data-effect='slide-fade']) {
+  --_out: max(
+    0,
+    calc(var(--_offset) * -1),
+    calc(var(--_offset) - (var(--andes-carousel-per-view, 1) - 1))
+  );
+
+  opacity: calc(1 - min(1, var(--_out)));
+}
+
 /* Cross-fade: every slide fills the same cell and only opacity changes. */
 :host([data-effect='fade']) {
   width: 100%;
@@ -81,11 +98,4 @@
     opacity var(--andes-carousel-speed, 400ms)
       var(--andes-carousel-easing, cubic-bezier(0.2, 0, 0, 1)),
     visibility 0s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :host([data-effect='fade']),
-  :host([data-effect='fade'][data-state='active']) {
-    transition: none;
-  }
 }

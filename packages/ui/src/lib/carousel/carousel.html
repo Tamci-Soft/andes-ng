@@ -1,11 +1,11 @@
-@if (playing() || (autoplay() && count() > 1)) {
+@if (showPlayControl()) {
 <!-- First in the document, as the pattern asks: the control that stops the movement comes
        before the thing that moves. -->
 <button
   type="button"
   class="andes-carousel__control"
   data-slot="carousel-pause"
-  [attr.aria-label]="playing() ? resolvedLabels().pause : resolvedLabels().play"
+  [attr.aria-label]="autoplayWanted() ? resolvedLabels().pause : resolvedLabels().play"
   (click)="togglePlay()"
 >
   <svg
@@ -14,7 +14,7 @@
     aria-hidden="true"
     focusable="false"
   >
-    @if (playing()) {
+    @if (autoplayWanted()) {
     <rect x="6" y="5" width="4" height="14" rx="1" />
     <rect x="14" y="5" width="4" height="14" rx="1" />
     } @else {
@@ -29,10 +29,18 @@
   type="button"
   class="andes-carousel__arrow andes-carousel__arrow--previous"
   data-slot="carousel-previous"
+  [attr.data-outside]="arrowPlacement() === 'outside' ? '' : null"
+  [attr.data-vertical]="isVertical() ? '' : null"
   [attr.aria-label]="resolvedLabels().previous"
-  [attr.aria-disabled]="canPrev() ? null : 'true'"
+  [attr.aria-disabled]="canScrollPrev() ? null : 'true'"
   (click)="userPrev()"
 >
+  @if (arrowTemplate(); as template) {
+  <ng-container
+    [ngTemplateOutlet]="template"
+    [ngTemplateOutletContext]="prevContext()"
+  />
+  } @else {
   <svg
     class="andes-carousel__chevron"
     viewBox="0 0 24 24"
@@ -46,15 +54,24 @@
   >
     <path d="m15 18-6-6 6-6" />
   </svg>
+  }
 </button>
 <button
   type="button"
   class="andes-carousel__arrow andes-carousel__arrow--next"
   data-slot="carousel-next"
+  [attr.data-outside]="arrowPlacement() === 'outside' ? '' : null"
+  [attr.data-vertical]="isVertical() ? '' : null"
   [attr.aria-label]="resolvedLabels().next"
-  [attr.aria-disabled]="canNext() ? null : 'true'"
+  [attr.aria-disabled]="canScrollNext() ? null : 'true'"
   (click)="userNext()"
 >
+  @if (arrowTemplate(); as template) {
+  <ng-container
+    [ngTemplateOutlet]="template"
+    [ngTemplateOutletContext]="nextContext()"
+  />
+  } @else {
   <svg
     class="andes-carousel__chevron"
     viewBox="0 0 24 24"
@@ -68,6 +85,7 @@
   >
     <path d="m9 18 6-6-6-6" />
   </svg>
+  }
 </button>
 }
 
@@ -92,12 +110,15 @@
   <ng-content />
 </div>
 
-@if (dotPlacement(); as placement) {
+@if (dotsPlacement(); as placement) {
 <div
   class="andes-carousel__dots"
   data-slot="carousel-dots"
   role="group"
+  [class]="dotsClass()"
   [attr.data-position]="placement"
+  [attr.data-style]="dotStyle()"
+  [attr.data-outside]="dotPosition() === 'outside' ? '' : null"
   [attr.aria-label]="resolvedLabels().dots"
 >
   @for (dot of dotItems(); track dot.index) {
@@ -106,8 +127,9 @@
     class="andes-carousel__dot"
     data-slot="carousel-dot"
     [class.andes-carousel__dot--active]="dot.active"
-    [class.andes-carousel__dot--progress]="dotProgress() && dot.active && rotating()"
-    [attr.aria-label]="resolvedLabels().goTo(dot.index + 1, count())"
+    [class.andes-carousel__dot--progress]="progressOn() && dot.active"
+    [class.andes-carousel__dot--progress-alt]="progressAlt()"
+    [attr.aria-label]="resolvedLabels().goTo(dot.index + 1, dot.count)"
     [attr.aria-current]="dot.active ? 'true' : null"
     [style.--andes-carousel-progress-duration]="progressDuration()"
     (click)="dot.goTo()"
@@ -118,7 +140,11 @@
       [ngTemplateOutletContext]="dot"
     />
     } @else {
-    <span class="andes-carousel__marker" aria-hidden="true"></span>
+    <span
+      class="andes-carousel__marker"
+      aria-hidden="true"
+      [class.andes-carousel__marker--rail]="placement === 'start' || placement === 'end'"
+    ></span>
     }
   </button>
   }

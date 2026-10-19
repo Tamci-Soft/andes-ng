@@ -5,6 +5,7 @@ import {
   computed,
   contentChild,
   effect,
+  ElementRef,
   inject,
   input,
   signal,
@@ -12,6 +13,9 @@ import {
 
 import { ANDES_CAROUSEL } from './carousel-context';
 import { AndesCarouselLazy } from './carousel-lazy';
+
+/** Slack for float arithmetic when deciding whether a slide is in view. */
+const EPSILON = 1e-6;
 
 /**
  * One slide of an `andes-carousel`. Announced as "slide, 2 of 5" and made inert while it is
@@ -40,6 +44,7 @@ import { AndesCarouselLazy } from './carousel-lazy';
     '[attr.data-state]': 'visible() ? "active" : "inactive"',
     '[attr.data-wrap]': 'carousel.wraps() ? "" : null',
     '[attr.data-effect]': 'carousel.effect()',
+    '[attr.data-fill]': 'carousel.fill() ? "" : null',
     '[attr.data-orientation]':
       'carousel.isVertical() ? "vertical" : "horizontal"',
     '[style.--andes-carousel-index]': 'index()',
@@ -47,6 +52,8 @@ import { AndesCarouselLazy } from './carousel-lazy';
 })
 export class AndesCarouselSlide {
   protected readonly carousel = inject(ANDES_CAROUSEL);
+  /** The slide's own element, for height measuring. */
+  readonly element = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   /** Extra description appended to the slide's name ("2 of 5: Autumn"). */
   readonly label = input<string | null>(null);
@@ -56,30 +63,33 @@ export class AndesCarouselSlide {
   /** 0-based position among the carousel's slides. */
   readonly index = computed(() => this.carousel.indexOf(this));
 
-  /** Slides ahead of the first visible one, going round when the carousel loops. */
-  private readonly ahead = computed(() => {
-    const count = this.carousel.count();
-    const delta = this.index() - this.carousel.index();
-    return this.carousel.wraps() && count > 0
-      ? ((delta % count) + count) % count
-      : delta;
+  /**
+   * Where the slide sits relative to the start edge, in slide steps: 0 is flush with it,
+   * a looping slide that left one end shows up at the other.
+   */
+  private readonly offset = computed(() => {
+    const count = this.carousel.slideCount();
+    const delta = this.index() - this.carousel.position();
+    if (!this.carousel.wraps() || count <= 0) {
+      return delta;
+    }
+    const start = this.carousel.windowStart();
+    return start + ((((delta - start) % count) + count) % count);
   });
 
-  /** Whether the slide is one of the visible ones. */
+  /** Whether any part of the slide is inside the view. */
   readonly visible = computed(() => {
-    const ahead = this.ahead();
-    return ahead >= 0 && ahead < this.carousel.visibleCount();
+    const offset = this.offset();
+    return offset > -1 + EPSILON && offset < this.carousel.perView() - EPSILON;
   });
 
   private readonly near = computed(() => {
-    const ahead = this.ahead();
+    const offset = this.offset();
     const preload = this.carousel.preload();
-    const count = this.carousel.count();
-    const reach = this.carousel.visibleCount() + preload;
-    if (this.carousel.wraps()) {
-      return ahead < reach || ahead >= count - preload;
-    }
-    return ahead >= -preload && ahead < reach;
+    return (
+      offset > -1 - preload + EPSILON &&
+      offset < this.carousel.perView() + preload - EPSILON
+    );
   });
 
   private readonly seen = signal(false);
@@ -88,7 +98,7 @@ export class AndesCarouselSlide {
   protected readonly name = computed(() => {
     const base = this.carousel
       .resolvedLabels()
-      .slide(this.index() + 1, this.carousel.count());
+      .slide(this.index() + 1, this.carousel.slideCount());
     const label = this.label();
     return label ? `${base}: ${label}` : base;
   });
