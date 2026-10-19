@@ -44,9 +44,9 @@
   <span class="andes-button__spinner" aria-hidden="true"></span>
   } } @else {
   <ng-content select="[slot=icon-start]" />
-  }
+  } @if (!(visibleLoading() && iconOnly())) {
   <ng-content />
-  @if (!visibleLoading()) {
+  } @if (!visibleLoading()) {
   <ng-content select="[slot=icon-end]" />
   }
 </ng-template>

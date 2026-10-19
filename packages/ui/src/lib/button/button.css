@@ -517,11 +517,16 @@
   cursor: wait;
 }
 
+/* The spinner stands in for the icon, so it is exactly the icon's box: 1em square, border
+   inside it (border-box) and scaled with the type size. A content-box 1em plus a fixed 2px
+   border came out 4px larger than the icon it replaced and resized the button. */
 .andes-button__spinner {
+  box-sizing: border-box;
   display: inline-block;
+  flex-shrink: 0;
   width: 1em;
   height: 1em;
-  border: 2px solid currentcolor;
+  border: max(1.5px, 0.12em) solid currentcolor;
   border-right-color: transparent;
   border-radius: var(--andes-radius-full);
   /* One turn a second reads as "working" without looking frantic. */
