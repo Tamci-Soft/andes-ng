@@ -54,6 +54,10 @@ jobs:
             echo "### Promote v$version (tree \`${tree:0:12}\`)" >> "$GITHUB_STEP_SUMMARY"
           else
             version=$(.github/scripts/candidate.sh branch "$BRANCH")
+            if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" >/dev/null 2>&1; then
+              echo "::error title=Already released::v$version is already released. Start a new release/X.Y.Z or a hotfix instead of pushing to this branch."
+              exit 1
+            fi
             next=$(.github/scripts/candidate.sh next "$version" "$GITHUB_SHA")
             read -r rc reused <<<"$next"
             {
@@ -108,7 +112,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           runtime: node@22
           cache: true
@@ -137,17 +141,12 @@ jobs:
             echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/.npmrc" >> "$GITHUB_ENV"
           fi
 
-      - name: Publish under the rc dist-tag (or reuse this candidate)
+      - name: Publish under the rc dist-tag (packages already on npm are skipped)
         env:
-          NPM_CONFIG_PROVENANCE: true
           CANDIDATE: ${{ needs.prepare.outputs.candidate }}
         run: |
-          if [ "$(npm view "@andes-ng/ui@$CANDIDATE" version 2>/dev/null || true)" = "$CANDIDATE" ]; then
-            echo "Reusing $CANDIDATE: it is already on npm for this commit." >> "$GITHUB_STEP_SUMMARY"
-          else
-            ./node_modules/.bin/nx release publish --tag rc
-            echo "Published \`$CANDIDATE\` under the \`rc\` dist-tag." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          .github/scripts/publish.sh rc
+          echo "Candidate \`$CANDIDATE\` is on npm under the \`rc\` dist-tag." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Record the candidate as a pre-release
         env:
@@ -241,7 +240,7 @@ jobs:
 
       - name: Mint the release bot token
         id: bot
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
@@ -290,7 +289,7 @@ jobs:
           echo "content_hash=$(jq -r .content_hash <<<"$json")" >> "$GITHUB_OUTPUT"
           echo "From candidate \`$(jq -r .tag <<<"$json")\`." >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           runtime: node@22
           cache: true
@@ -324,10 +323,9 @@ jobs:
 
       - name: Publish under latest
         env:
-          NPM_CONFIG_PROVENANCE: true
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          ./node_modules/.bin/nx release publish --tag latest
+          .github/scripts/publish.sh latest
           echo "Published \`@andes-ng/*@$VERSION\` under \`latest\`." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Tag and publish the GitHub Release
@@ -362,7 +360,7 @@ jobs:
 
       - name: Mint the release bot token
         id: bot
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}

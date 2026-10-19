@@ -9,6 +9,7 @@ first=()
 git describe --tags --match 'v[0-9]*' --abbrev=0 >/dev/null 2>&1 || first=(--first-release)
 
 pnpm exec nx release changelog "$version" ${first[@]+"${first[@]}"} --git-commit=false --git-tag=false --git-push=false
+pnpm exec prettier --write CHANGELOG.md 'packages/*/CHANGELOG.md' >/dev/null
 git rm -q --ignore-unmatch .nx/version-plans/*.md
 git add -A
 git commit -m "chore(release): prepare $version" -m "- write the $version changelog entries from the version plans

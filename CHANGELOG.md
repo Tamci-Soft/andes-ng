@@ -1,3 +1,23 @@
+## 0.2.0 (2026-10-19)
+
+### 🚀 Features
+
+- **ui:** AndesAccordion: headers and panel text now default to 14px, with a 46px single-line header by default (sm 38px, lg with 16px text). Under reduced motion, panels open and close without the height and chevron animations. Entries of the `items` input accept `class` and `style`, applied to their rendered item, so data-driven panels can be styled individually (for example as separate cards). ([69d9d74e](https://github.com/andes-ng/andes/commit/69d9d74e))
+- **ui:** Add a headingLevel input (2-6, default 3) to AndesAccordion, inherited by every item and overridable per item (and per items entry), so trigger headings fit the page outline; honor prefers-reduced-motion for the panel height transition and the chevron rotation. ([615fc6e6](https://github.com/andes-ng/andes/commit/615fc6e6))
+
+### 🩹 Fixes
+
+- **primitives:** Rewrite the package pages shown on npm (README of ui, primitives and testing) and add the repository, homepage, bugs and keywords fields to the four package manifests. ([a2b91719](https://github.com/andes-ng/andes/commit/a2b91719))
+- **testing:** Rewrite the package pages shown on npm (README of ui, primitives and testing) and add the repository, homepage, bugs and keywords fields to the four package manifests. ([a2b91719](https://github.com/andes-ng/andes/commit/a2b91719))
+- **tokens:** Rewrite the package pages shown on npm (README of ui, primitives and testing) and add the repository, homepage, bugs and keywords fields to the four package manifests. ([a2b91719](https://github.com/andes-ng/andes/commit/a2b91719))
+- **ui:** AndesAccordion resizes to a 14px / 22px header with 12px 16px padding (8px 12px at sm, 16px 24px at lg), aligned panel padding, and a collapse and chevron turn on the motion tokens (200ms). The arrow always sits in one column at the row's end inset, after the extra (before the title with `expandIconPosition="start"`), so rows with extras of different widths line up; `showArrow=false` rows keep an empty arrow-sized box, and a nested accordion runs flush with its parent panel so its arrows and titles line up with the parent's. Every header of a given size is the same height (46px at md, 38px at sm, 56px at lg) whatever its extra holds: the height comes from a per-size minimum with the content centered, so a button in the extra no longer makes its row taller. ([6371bd16](https://github.com/andes-ng/andes/commit/6371bd16))
+- **ui:** Rewrite the package pages shown on npm (README of ui, primitives and testing) and add the repository, homepage, bugs and keywords fields to the four package manifests. ([a2b91719](https://github.com/andes-ng/andes/commit/a2b91719))
+- **ui:** The button loading spinner is now exactly the size of the icon it replaces, so toggling `loading` no longer resizes the button. ([2e3e894d](https://github.com/andes-ng/andes/commit/2e3e894d))
+
+### ❤️ Thank You
+
+- Gutierrez Soto Jhosepmyr Orlando @jhosepmyr
+
 ## 0.1.0 (2026-10-18)
 
 ### 🚀 Features

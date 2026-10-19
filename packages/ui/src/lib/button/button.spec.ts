@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
@@ -381,6 +384,63 @@ describe('AndesButton', () => {
 
     expect(button.querySelector('.my-loader')).toBeTruthy();
     expect(button.querySelector('.andes-button__spinner')).toBeFalsy();
+  });
+
+  describe('spinner sizing', () => {
+    // jsdom does not resolve em/max() against a real font, so the contract is asserted on the
+    // stylesheet text: the spinner must be the icon's 1em box, border included.
+    const css = readFileSync(
+      resolve(process.cwd(), 'packages/ui/src/lib/button/button.css'),
+      'utf8',
+    );
+    const rule =
+      (/\.andes-button__spinner\s*{([^}]*)}/.exec(css) ?? [])[1] ?? '';
+
+    it('is a border-box 1em square that cannot shrink', () => {
+      expect(rule).toMatch(/box-sizing:\s*border-box/);
+      expect(rule).toMatch(/\bwidth:\s*1em/);
+      expect(rule).toMatch(/\bheight:\s*1em/);
+      expect(rule).toMatch(/flex-shrink:\s*0/);
+    });
+
+    it('scales its border with the type size instead of a fixed 2px', () => {
+      expect(rule).toMatch(/border:\s*max\(1\.5px,\s*0\.12em\)\s+solid/);
+    });
+
+    it('replaces the projected icon of an icon-only button while loading', () => {
+      @Component({
+        imports: [AndesButton],
+        template: `<andes-button
+          size="icon"
+          [loading]="loading()"
+          aria-label="Search"
+          ><svg class="projected-icon"></svg
+        ></andes-button>`,
+      })
+      class IconOnlyHost {
+        readonly loading = signal(false);
+      }
+
+      const fixture = TestBed.createComponent(IconOnlyHost);
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector('button');
+
+      expect(button.querySelector('.projected-icon')).toBeTruthy();
+
+      fixture.componentInstance.loading.set(true);
+      fixture.detectChanges();
+
+      expect(button.querySelector('.andes-button__spinner')).toBeTruthy();
+      expect(button.querySelector('.projected-icon')).toBeFalsy();
+    });
+
+    it('keeps the label next to the spinner on a text button', () => {
+      const { fixture, button } = createHost();
+      fixture.componentInstance.loading.set(true);
+      fixture.detectChanges();
+
+      expect(button.textContent).toContain('Save');
+    });
   });
 
   describe('press ripple', () => {
