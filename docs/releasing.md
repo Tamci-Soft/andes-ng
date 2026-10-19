@@ -81,7 +81,7 @@ It is also a reusable workflow (`workflow_call`): `Release` calls it so a candid
 | Event                                                                  | Runs                                                                                                                                                                                                                               |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pull request to `develop`                                              | CI (affected lint and tests, build, Storybook), CodeQL, all four security scans, plan-check                                                                                                                                        |
-| Merge into `develop`                                                   | CI in full (catches breakage from combining pull requests)                                                                                                                                                                         |
+| Merge into `develop`                                                   | CI in full (catches breakage from combining pull requests) and the Storybook deploy to GitHub Pages                                                                                                                                |
 | Push to `release/**` or `hotfix/**`                                    | `Release` only; it calls CI once before publishing                                                                                                                                                                                 |
 | Pull request `release/**`, `hotfix/**` → `main`, or `main` → `develop` | The two dependency scans only. CI, CodeQL, Gitleaks and Semgrep are skipped: that tree was already tested by the candidate and scanned in the pull requests that built it. A skipped job counts as passed for the required checks. |
 | Merge into `main`                                                      | `Release` only (the promotion). No CI, no CodeQL, no scans.                                                                                                                                                                        |
@@ -106,6 +106,10 @@ One file on purpose: npm lets a package trust exactly one workflow file for toke
 ### `rollback.yml` (Rollback)
 
 Manual. Moves `latest` back and optionally deprecates a version. Environment `npm`.
+
+### `storybook.yml` (Storybook)
+
+On every push to `develop` (and on demand) it builds the Storybook of `@andes-ng/ui` and deploys it to GitHub Pages at https://andes-ng.github.io/andes/. It is the live view of what is merged, ahead of any npm release; the packages themselves do not contain the Storybook. The `github-pages` environment only accepts deployments from `develop` and `main`.
 
 ### Scripts (`.github/scripts`)
 
