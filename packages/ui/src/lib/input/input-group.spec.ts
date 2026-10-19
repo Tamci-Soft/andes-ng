@@ -106,6 +106,20 @@ describe('AndesInputGroup', () => {
     expect(body).toMatch(/font-size: var\(--_andes-compact-font-size\);/);
   });
 
+  describe('status borders', () => {
+    it('raises a field in error or warning above its neighbours so its shared edge shows', () => {
+      const body = ruleBody(
+        css,
+        ':host ::ng-deep > :has(.andes-input-group--invalid, .andes-input-group--warning)',
+      );
+      expect(body).toMatch(/position: relative;/);
+      expect(body).toMatch(/z-index: 1;/);
+      expect(ruleBody(css, ":host ::ng-deep > [aria-invalid='true']")).toMatch(
+        /z-index: 1;/,
+      );
+    });
+  });
+
   describe('single focus ring', () => {
     it('draws one border overlay and one ring on the row, keyed off :focus-within', () => {
       expect(ruleBody(css, ':host(:focus-within)')).toMatch(

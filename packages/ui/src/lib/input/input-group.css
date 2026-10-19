@@ -183,6 +183,20 @@
   }
 }
 
+/* A field in error or warning rises above its neighbours, so its whole border shows in the status
+   colour, including the edge it shares with the next field (which would otherwise paint over it). */
+/* prettier-ignore */
+:host ::ng-deep > :has(.andes-input-group--invalid, .andes-input-group--warning) {
+  position: relative;
+  z-index: 1;
+}
+
+/* prettier-ignore */
+:host ::ng-deep > [aria-invalid='true'] {
+  position: relative;
+  z-index: 1;
+}
+
 /* Neighbours overlap by their 1px border, so two adjoining edges read as one line. */
 /* prettier-ignore */
 :host ::ng-deep > :not(:first-child) {
