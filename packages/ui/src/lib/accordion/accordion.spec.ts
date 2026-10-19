@@ -663,7 +663,7 @@ describe('AndesAccordion - extended features', () => {
         '.andes-accordion-content__body',
       ) as HTMLElement;
       expect(body.getAttribute('data-variant')).toBe('bordered');
-      expect(getComputedStyle(body).getPropertyValue('padding')).toBe(
+      expect(getComputedStyle(body).getPropertyValue('padding-block')).toBe(
         'var(--andes-space-4)',
       );
     });
@@ -714,19 +714,110 @@ describe('AndesAccordion - extended features', () => {
       expect(icon().textContent).toBe('a:open');
     });
 
-    it('places the icon after the text by default and before it with position "start"', () => {
-      const order = (button: HTMLElement) =>
-        Array.from(button.children).map((c) =>
-          c.classList.contains('andes-accordion-trigger__text')
-            ? 'text'
-            : 'icon',
-        );
+    it('places the icon first with position "start" and last in the row by default', () => {
+      const order = (header: HTMLElement) =>
+        Array.from(header.querySelectorAll('*'))
+          .map((el) => {
+            if (el.matches('.andes-accordion-trigger__text')) return 'text';
+            if (el.matches('.andes-accordion-trigger__extra')) return 'extra';
+            if (
+              el.matches(
+                '.andes-accordion-trigger__icon, .andes-accordion-trigger__icon-spacer',
+              )
+            ) {
+              return 'icon';
+            }
+            return null;
+          })
+          .filter((name) => name !== null);
 
       const end = createFeatureHost();
-      expect(order(end.buttons()[0])).toEqual(['text', 'icon']);
+      // The arrow comes after the extra, so it is the same column in every row.
+      expect(order(end.headers()[0])).toEqual(['text', 'extra', 'icon']);
+      expect(order(end.headers()[1])).toEqual(['text', 'extra', 'icon']);
+      expect(order(end.headers()[2])).toEqual(['text', 'extra', 'icon']);
+      expect(
+        end.buttons()[0].querySelector('.andes-accordion-trigger__icon'),
+      ).toBeNull();
 
       const start = createFeatureHost((h) => h.iconPosition.set('start'));
-      expect(order(start.buttons()[0])).toEqual(['icon', 'text']);
+      expect(order(start.headers()[0])).toEqual(['icon', 'text', 'extra']);
+      expect(
+        start.buttons()[0].querySelector('.andes-accordion-trigger__icon'),
+      ).not.toBeNull();
+    });
+
+    it('keeps the arrow after the extra in every collapsible mode', () => {
+      for (const mode of ['header', 'icon', 'disabled'] as const) {
+        const { headers } = createFeatureHost((h) => h.collapsible.set(mode));
+        const header = headers()[0];
+        const arrow = header.querySelector(
+          '.andes-accordion-trigger__icon',
+        ) as Element;
+        const extra = header.querySelector(
+          '.andes-accordion-trigger__extra',
+        ) as Element;
+
+        if (mode === 'icon') {
+          // The button stays inside the heading (CSS pins it to the end inset).
+          expect(arrow.closest('h3')).not.toBeNull();
+          expect(
+            header
+              .querySelector('.andes-accordion-trigger__icon-button')
+              ?.getAttribute('data-icon-position'),
+          ).toBe('end');
+        } else {
+          expect(arrow.closest('h3')).toBeNull();
+          expect(
+            extra.compareDocumentPosition(arrow) &
+              Node.DOCUMENT_POSITION_FOLLOWING,
+          ).toBeTruthy();
+        }
+      }
+    });
+
+    it('keeps the extra aligned in a showArrow=false row with an empty arrow-sized box', () => {
+      const end = createFeatureHost((h) => h.itemAShowArrow.set(false));
+      const endRow = end.headers()[0];
+      const spacer = endRow.querySelector(
+        '.andes-accordion-trigger__icon-spacer',
+      ) as HTMLElement;
+
+      expect(endRow.querySelector('.andes-accordion-trigger__icon')).toBeNull();
+      expect(spacer.getAttribute('aria-hidden')).toBe('true');
+      expect(spacer.textContent?.trim()).toBe('');
+      expect(spacer.previousElementSibling?.className).toContain(
+        'andes-accordion-trigger__extra',
+      );
+
+      const start = createFeatureHost((h) => {
+        h.itemAShowArrow.set(false);
+        h.iconPosition.set('start');
+      });
+      const button = start.buttons()[0];
+      expect(button.firstElementChild?.className).toContain(
+        'andes-accordion-trigger__icon-spacer',
+      );
+    });
+
+    it('toggles from the trailing arrow in "header" mode', () => {
+      const { host, root, click } = createFeatureHost((h) =>
+        h.collapsible.set('header'),
+      );
+      const arrow = () =>
+        root.querySelector('.andes-accordion-trigger__icon-toggle') as Element;
+
+      click(arrow());
+      expect(host.activeKey()).toEqual(['a']);
+      click(arrow());
+      expect(host.activeKey()).toEqual([]);
+    });
+
+    it('keeps the extra clickable without toggling the panel', () => {
+      const { host, root, click } = createFeatureHost();
+
+      click(root.querySelector('.extra-action') as Element);
+      expect(host.activeKey()).toEqual([]);
     });
 
     it('hides the arrow of an item with showArrow=false', () => {
@@ -748,8 +839,16 @@ describe('AndesAccordion - extended features', () => {
       // `data-collapsible="full"` is what stretches the button's ::after over the row (jsdom
       // can't compute pseudo-element styles - verified in a live Storybook instead).
       expect(buttons()[0].getAttribute('data-collapsible')).toBe('full');
+      // The arrow is the last item of the row (after the extra), not part of the button.
       expect(
         buttons()[0].querySelector('.andes-accordion-trigger__icon'),
+      ).toBeNull();
+      expect(
+        buttons()[0]
+          .closest('.andes-accordion-trigger__header')
+          ?.querySelector(
+            '.andes-accordion-trigger__icon-toggle .andes-accordion-trigger__icon',
+          ),
       ).not.toBeNull();
     });
 
@@ -1403,5 +1502,82 @@ describe('accordion motion', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('accordion arrow column (CSS contract)', () => {
+  // Asserted against the stylesheet source: jsdom does no layout, so the live measurements
+  // (every arrow at the same right offset whatever the extra's width) were taken in a built
+  // Storybook, and these pin the rules that produce them.
+  const dir = 'packages/ui/src/lib/accordion';
+  const css = (file: string) =>
+    readFileSync(`${dir}/${file}`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const rule = (file: string, selector: string) =>
+    css(file).match(
+      new RegExp(`${selector.replace(/[.[\]()]/g, '\\$&')} \\{([^}]*)\\}`),
+    )?.[1] ?? '';
+
+  it('sizes the arrow column independently of the icon or the extra', () => {
+    for (const selector of [
+      '.andes-accordion-trigger__icon-slot',
+      '.andes-accordion-trigger__icon-spacer',
+      '.andes-accordion-trigger__icon-button',
+    ]) {
+      expect(rule('accordion-trigger.css', selector)).toMatch(
+        /inline-size: 1rem;/,
+      );
+    }
+    expect(
+      rule('accordion-trigger.css', '.andes-accordion-trigger__icon'),
+    ).toMatch(/width: 1rem;/);
+  });
+
+  it('does not push the trailing arrow with an auto margin', () => {
+    expect(css('accordion-trigger.css')).not.toMatch(
+      /margin-inline-start:\s*auto/,
+    );
+  });
+
+  it('insets headers and panel bodies by the same property, with logical properties only', () => {
+    expect(
+      rule('accordion-trigger.css', '.andes-accordion-trigger__header'),
+    ).toMatch(/padding-inline: var\(--_pad-x\);/);
+    expect(
+      rule('accordion-content.css', '.andes-accordion-content__body'),
+    ).toMatch(/padding-inline: var\(--_pad-x\);/);
+    for (const file of readdirSync(dir).filter((f) => f.endsWith('.css'))) {
+      expect(css(file)).not.toMatch(
+        /(?:^|[\s{;])(?:margin|padding|border)-(?:left|right)\s*:|(?:^|[\s{;])(?:left|right)\s*:/,
+      );
+    }
+  });
+
+  it('pins the icon-only arrow button to the same end inset and reserves its column', () => {
+    expect(
+      rule(
+        'accordion-trigger.css',
+        ".andes-accordion-trigger__icon-button[data-icon-position='end']",
+      ),
+    ).toMatch(/inset-inline-end: var\(--_pad-x\);/);
+    expect(css('accordion-trigger.css')).toMatch(
+      /\[data-collapsible='icon'\]\[data-icon-position='end'\] \{\s*padding-inline-end: calc\(var\(--_pad-x\) \+ 1rem \+ var\(--andes-space-2\)\);/,
+    );
+  });
+
+  it('aligns a nested accordion with its parent panel inset', () => {
+    expect(
+      rule('accordion-content.css', '.andes-accordion-content__body'),
+    ).toMatch(/--andes-accordion-inset: var\(--_pad-x\);/);
+    const accordion = css('accordion.css');
+    expect(accordion).toMatch(
+      /margin-inline: calc\(-1 \* var\(--andes-accordion-inset, 0px\)\);/,
+    );
+    expect(accordion).toMatch(
+      /--andes-accordion-pad-x: var\(--andes-accordion-inset, var\(--_own-pad-x\)\);/,
+    );
+    // A bordered nested accordion stays an inset box: the flush rule only targets the others.
+    expect(accordion).not.toMatch(
+      /data-variant='bordered'\][^{]*\{[^}]*margin-inline/,
+    );
   });
 });
