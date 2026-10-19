@@ -682,17 +682,17 @@ describe('AndesAccordion - extended features', () => {
     });
 
     it.each([
-      ['sm', 'var(--andes-space-2)', 'var(--andes-text-font-size, 0.875rem)'],
-      ['md', 'var(--andes-space-3)', 'var(--andes-text-font-size, 0.875rem)'],
-      ['lg', 'var(--andes-space-4)', '1rem'],
+      ['sm', '2.375rem', 'var(--andes-text-font-size, 0.875rem)'],
+      ['md', '2.875rem', 'var(--andes-text-font-size, 0.875rem)'],
+      ['lg', '3.5rem', '1rem'],
     ] as const)(
-      'applies the %s header padding and font size',
-      (size, padding, fontSize) => {
+      'applies the %s header min height and font size',
+      (size, minHeight, fontSize) => {
         const { headers } = createFeatureHost((h) => h.size.set(size));
         const style = getComputedStyle(headers()[0]);
 
         expect(headers()[0].getAttribute('data-size')).toBe(size);
-        expect(style.getPropertyValue('padding-block')).toBe(padding);
+        expect(style.getPropertyValue('min-block-size')).toBe(minHeight);
         expect(style.fontSize).toBe(fontSize);
       },
     );
@@ -1578,6 +1578,51 @@ describe('accordion arrow column (CSS contract)', () => {
     // A bordered nested accordion stays an inset box: the flush rule only targets the others.
     expect(accordion).not.toMatch(
       /data-variant='bordered'\][^{]*\{[^}]*margin-inline/,
+    );
+  });
+});
+
+describe('accordion header height (CSS contract)', () => {
+  // Asserted against the stylesheet source: jsdom does no layout and does not resolve var(), so
+  // the live heights (every header of a size identical whatever its extra holds) were measured
+  // in a built Storybook, and these pin the rules that produce them.
+  const css = readFileSync(
+    'packages/ui/src/lib/accordion/accordion-trigger.css',
+    'utf8',
+  ).replace(/\/\*[\s\S]*?\*\//g, '');
+  const rule = (selector: string) =>
+    css.match(
+      new RegExp(`${selector.replace(/[.[\]()]/g, '\\$&')} \\{([^}]*)\\}`),
+    )?.[1] ?? '';
+  const header = '.andes-accordion-trigger__header';
+
+  it('takes the row height from a per-size min-block-size, centered', () => {
+    expect(rule(header)).toMatch(/align-items: center;/);
+    // The minimum is the whole row, padding included.
+    expect(rule(header)).toMatch(/box-sizing: border-box;/);
+    expect(rule(header)).toMatch(/min-block-size: 2\.875rem;/);
+    expect(rule(`${header}[data-size='sm']`)).toMatch(
+      /min-block-size: 2\.375rem;/,
+    );
+    expect(rule(`${header}[data-size='lg']`)).toMatch(
+      /min-block-size: 3\.5rem;/,
+    );
+  });
+
+  it('keeps the block padding small enough for a 32px control to fit inside the row', () => {
+    // md: 32px + 2 * 6px = 44px <= 46px; sm: 32px + 2 * 3px = 38px; lg: 40px + 2 * 8px = 56px.
+    expect(rule(header)).toMatch(/padding-block: 0\.375rem;/);
+    expect(rule(`${header}[data-size='sm']`)).toMatch(
+      /padding-block: 0\.1875rem;/,
+    );
+    expect(rule(`${header}[data-size='lg']`)).toMatch(
+      /padding-block: 0\.5rem;/,
+    );
+  });
+
+  it('never sizes the row from the extra', () => {
+    expect(rule('.andes-accordion-trigger__extra')).not.toMatch(
+      /(?:^|[\s;])(?:block-size|height|min-block-size|min-height|padding-block|margin-block)\s*:/,
     );
   });
 });
