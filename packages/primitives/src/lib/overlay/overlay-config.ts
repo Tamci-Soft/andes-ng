@@ -348,7 +348,9 @@ export const ANDES_OVERLAY_PANE_CLASS = 'andes-overlay-pane';
  * backdrop, if there is one. The pane and backdrop also stop receiving pointer
  * events. The primitive then waits for every animation or transition running in
  * the pane (and on the backdrop) to finish, at most
- * {@link ANDES_OVERLAY_EXIT_TIMEOUT_MS}, before detaching.
+ * {@link ANDES_OVERLAY_EXIT_TIMEOUT_MS}, before detaching. The attribute is removed
+ * again on detach, so content projected into the panel - which outlives the pane and
+ * is moved into the next one - opens un-faded the next time.
  *
  * A component opts in by styling its panel root, for example
  *

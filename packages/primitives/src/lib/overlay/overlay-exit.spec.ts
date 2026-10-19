@@ -150,6 +150,33 @@ class ExitHost {
   readonly other = viewChild.required<TemplateRef<unknown>>('other');
 }
 
+/**
+ * Renders its projected content as the overlay's content, the way Dropdown Menu does.
+ * Projected nodes belong to the consumer's view, so the same element is moved into
+ * every new pane instead of being created afresh on each open.
+ */
+@Component({
+  selector: 'andes-test-projecting-overlay',
+  providers: [provideAndesOverlay()],
+  template: `<ng-template #content><ng-content /></ng-template>`,
+})
+class ProjectingOverlay {
+  readonly overlay = inject(AndesOverlayPrimitive);
+  readonly content = viewChild.required<TemplateRef<unknown>>('content');
+}
+
+@Component({
+  imports: [ProjectingOverlay],
+  template: `
+    <andes-test-projecting-overlay>
+      <div class="projected">Projected</div>
+    </andes-test-projecting-overlay>
+  `,
+})
+class ProjectedExitHost {
+  readonly projecting = viewChild.required(ProjectingOverlay);
+}
+
 describe('AndesOverlayPrimitive exit animations', () => {
   withElementGeometry();
 
@@ -484,6 +511,91 @@ describe('AndesOverlayPrimitive exit animations', () => {
         expect(reasons).toEqual(['imperative']);
         expect(overlay.isOpen()).toBe(true);
         expect(overlay.panelElement()?.querySelector('.other')).not.toBeNull();
+      });
+    });
+
+    describe('content that outlives the pane', () => {
+      function createProjectedHost() {
+        const fixture = TestBed.createComponent(ProjectedExitHost);
+        fixture.detectChanges();
+        const { overlay, content } = fixture.componentInstance.projecting();
+        const reopen = () => {
+          overlay.open(content());
+          fixture.detectChanges();
+        };
+        // Projected nodes stay out of the document until something renders them.
+        reopen();
+        const projected = overlay
+          .panelElement()
+          ?.querySelector('.projected') as HTMLElement;
+        return { overlay, content, projected, reopen };
+      }
+
+      it('clears the closing state when the exit animation finishes', async () => {
+        const { overlay, projected, reopen } = createProjectedHost();
+        expect(overlay.panelElement()?.contains(projected)).toBe(true);
+
+        const exit = new FakeAnimation();
+        animations.pane = [exit];
+        overlay.close();
+        expect(isClosing(projected)).toBe(true);
+        exit.finish();
+        await flushMicrotasks();
+        expect(overlay.panelElement()).toBeNull();
+
+        // The same element goes into the next pane; a leftover closing attribute
+        // would replay the exit animation on it and hide the re-opened panel.
+        animations.pane = [];
+        reopen();
+        expect(overlay.panelElement()?.contains(projected)).toBe(true);
+        expect(isClosing(projected)).toBe(false);
+      });
+
+      it('clears the closing state when the exit timeout detaches the pane', () => {
+        const { overlay, projected } = createProjectedHost();
+
+        animations.pane = [new FakeAnimation()];
+        vi.useFakeTimers();
+        try {
+          overlay.close();
+          vi.advanceTimersByTime(ANDES_OVERLAY_EXIT_TIMEOUT_MS);
+        } finally {
+          vi.useRealTimers();
+        }
+        expect(overlay.panelElement()).toBeNull();
+        expect(isClosing(projected)).toBe(false);
+      });
+
+      it('clears the closing state when opening different content ends the exit', () => {
+        const { overlay, content, projected } = createProjectedHost();
+        animations.pane = [new FakeAnimation()];
+        overlay.close();
+
+        // A different context counts as different content: the closing pane is
+        // detached first and a fresh one attached.
+        overlay.open(content(), { context: {} });
+
+        expect(overlay.panelElement()?.contains(projected)).toBe(true);
+        expect(isClosing(projected)).toBe(false);
+      });
+
+      it('marks and detaches again on every later close', async () => {
+        const { overlay, projected, reopen } = createProjectedHost();
+        for (let cycle = 0; cycle < 3; cycle++) {
+          if (cycle > 0) {
+            reopen();
+          }
+          expect(isClosing(projected)).toBe(false);
+          const exit = new FakeAnimation();
+          animations.pane = [exit];
+          overlay.close();
+          expect(isClosing(projected)).toBe(true);
+          expect(overlay.panelElement()).not.toBeNull();
+          exit.finish();
+          await flushMicrotasks();
+          expect(overlay.panelElement()).toBeNull();
+          expect(isClosing(projected)).toBe(false);
+        }
       });
     });
 
