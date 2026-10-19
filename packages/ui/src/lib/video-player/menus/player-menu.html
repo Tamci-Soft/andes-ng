@@ -1,0 +1,88 @@
+<button
+  #trigger
+  type="button"
+  class="andes-player-button"
+  data-slot="menu-trigger"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="isOpen()"
+  [attr.aria-controls]="isOpen() ? menuId : null"
+  [attr.aria-label]="triggerLabel()"
+  [andesPlayerTooltip]="triggerLabel()"
+  [andesPlayerTooltipDisabled]="isOpen()"
+  (click)="toggle()"
+  (keydown)="onTriggerKeydown($event)"
+>
+  <andes-player-icon [name]="triggerIcon()" />
+</button>
+
+@if (rendered()) {
+<div
+  #panel
+  class="andes-player-menu__panel"
+  data-slot="menu"
+  role="menu"
+  tabindex="-1"
+  andesListNavigationKeys
+  [id]="menuId"
+  [attr.aria-label]="pageTitle(page())"
+  [attr.data-state]="isOpen() ? 'open' : 'closed'"
+  [attr.data-page]="page()"
+  [style.max-height.px]="maxHeight()"
+  (keydown)="onPanelKeydown($event)"
+>
+  @if (canGoBack()) {
+  <button
+    type="button"
+    role="menuitem"
+    class="andes-player-menu__item andes-player-menu__back"
+    data-slot="menu-back"
+    andesListNavigationItem
+    [attr.aria-label]="store.labels().back + ', ' + pageTitle(page())"
+    (click)="back()"
+  >
+    <andes-player-icon name="chevron-start" />
+    <span class="andes-player-menu__label">{{ pageTitle(page()) }}</span>
+  </button>
+  <div class="andes-player-menu__separator" role="separator"></div>
+  } @if (page() === 'settings') { @for (entry of entries(); track entry.page) {
+  <button
+    type="button"
+    role="menuitem"
+    class="andes-player-menu__item"
+    data-slot="menu-entry"
+    aria-haspopup="menu"
+    andesListNavigationItem
+    [attr.data-page]="entry.page"
+    [typeaheadLabel]="entry.label"
+    (click)="openPage(entry.page)"
+  >
+    <andes-player-icon [name]="entry.icon" />
+    <span class="andes-player-menu__label">{{ entry.label }}</span>
+    <span class="andes-player-menu__value">{{ entry.value }}</span>
+    <andes-player-icon name="chevron-end" class="andes-player-menu__chevron" />
+  </button>
+  } } @else {
+  <div role="group" [attr.aria-label]="pageTitle(page())">
+    @for (option of options(); track option.key) {
+    <button
+      type="button"
+      role="menuitemradio"
+      class="andes-player-menu__item"
+      data-slot="menu-option"
+      andesListNavigationItem
+      [attr.aria-checked]="option.checked"
+      [attr.data-key]="option.key"
+      (click)="choose(option)"
+    >
+      <span class="andes-player-menu__check" aria-hidden="true">
+        @if (option.checked) {
+        <andes-player-icon name="check" />
+        }
+      </span>
+      <span class="andes-player-menu__label">{{ option.label }}</span>
+    </button>
+    }
+  </div>
+  }
+</div>
+}
