@@ -169,6 +169,16 @@ describe('AndesAvatar size', () => {
     expect(avatarFontSizeFor(40)).toBe(16);
   });
 
+  it('publishes the pixel box as --andes-avatar-box for glyphs sized from it', () => {
+    expect(create(64).avatar.style.getPropertyValue('--andes-avatar-box')).toBe(
+      '64px',
+    );
+    // A preset's box comes from avatar.css instead.
+    expect(
+      create('lg').avatar.style.getPropertyValue('--andes-avatar-box'),
+    ).toBe('');
+  });
+
   it('leaves presets to CSS - no inline box size', () => {
     const { avatar } = create('lg');
 
@@ -828,6 +838,36 @@ describe('AndesAvatarFallback text auto-scaling', () => {
 
   it('does not scale while unmeasurable (hidden, zero-sized)', async () => {
     const { content } = await create(0, 64);
+
+    expect(content.style.transform).toBe('');
+  });
+
+  it('never scales a glyph with no text: its size is a share of the avatar already', async () => {
+    @Component({
+      imports: [AndesAvatar, AndesAvatarFallback],
+      template: `<andes-avatar size="xs">
+        <andes-avatar-fallback>
+          <svg viewBox="0 0 24 24"></svg>
+        </andes-avatar-fallback>
+      </andes-avatar>`,
+    })
+    class GlyphHost {}
+
+    const fixture = TestBed.createComponent(GlyphHost);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const fallback = fixture.nativeElement.querySelector(
+      'andes-avatar-fallback',
+    ) as HTMLElement;
+    const content = fallback.querySelector(
+      '.andes-avatar-fallback__content',
+    ) as HTMLElement;
+    // 20px avatar, glyph 13.2px wide: text fitting (20 - 2 * 4 = 12) would
+    // shrink it.
+    setOffsetWidth(fallback, 20);
+    setOffsetWidth(content, 13.2);
+    FakeResizeObserver.instances[0].fire();
+    fixture.detectChanges();
 
     expect(content.style.transform).toBe('');
   });

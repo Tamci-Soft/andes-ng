@@ -85,34 +85,48 @@
    an avatar lines up with a button or input of the same size; `xs` (20px) and
    `xl` (56px) extend it either way. A pixel `size`
    (`andes-avatar--custom-size`) has no rule here: its width, height and
-   font-size are bound inline on the host instead. */
+   font-size are bound inline on the host instead.
+
+   Every size also publishes its box as `--andes-avatar-box`, which a part
+   sized by its content (a glyph inside the fallback) reads to take a
+   proportion of the avatar. */
 
 :host(.andes-avatar--xs) {
-  width: 1.25rem;
-  height: 1.25rem;
+  --andes-avatar-box: 1.25rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
   font-size: 0.625rem;
 }
 
 :host(.andes-avatar--sm) {
-  width: 1.5rem;
-  height: 1.5rem;
+  --andes-avatar-box: 1.5rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
   font-size: 0.75rem;
 }
 
 :host(.andes-avatar--md) {
-  width: 2rem;
-  height: 2rem;
+  --andes-avatar-box: 2rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
   font-size: 0.875rem;
 }
 
 :host(.andes-avatar--lg) {
-  width: 2.5rem;
-  height: 2.5rem;
+  --andes-avatar-box: 2.5rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
   font-size: 1rem;
 }
 
 :host(.andes-avatar--xl) {
-  width: 3.5rem;
-  height: 3.5rem;
+  --andes-avatar-box: 3.5rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
   font-size: 1.25rem;
 }

@@ -100,8 +100,14 @@ export class AndesAvatarFallback {
       const host = this.host.nativeElement;
       const content = this.content().nativeElement;
       const observer = new ResizeObserver(() => {
+        // A glyph with no text is already sized as a share of the avatar
+        // (avatar-fallback.css); fitting it to the text gap would shrink it
+        // below that share in the smallest avatars.
+        const glyphOnly =
+          content.querySelector('svg') !== null &&
+          !(content.textContent ?? '').trim();
         this.hostWidth.set(host.offsetWidth);
-        this.contentWidth.set(content.offsetWidth);
+        this.contentWidth.set(glyphOnly ? 0 : content.offsetWidth);
       });
       observer.observe(host);
       observer.observe(content);

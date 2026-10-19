@@ -174,12 +174,15 @@ describe('AndesAvatar', () => {
         const style = getComputedStyle(avatar);
 
         // jsdom's CSSOM reports the specified value verbatim (it doesn't
-        // resolve rem to px), so these compare against avatar.css's literal
-        // rem values rather than a resolved pixel size - either way, a
-        // non-empty match here proves `:host(.andes-avatar--${size})`
-        // actually matched, which is what was dead before the fix.
-        expect(style.width).toBe(width);
-        expect(style.height).toBe(height);
+        // resolve rem to px or var() to a value), so the box reads as the
+        // `--andes-avatar-box` reference and the property holds avatar.css's
+        // literal rem value - either way, a match here proves
+        // `:host(.andes-avatar--${size})` actually matched, which is what
+        // was dead before the fix.
+        expect(style.width).toBe('var(--andes-avatar-box)');
+        expect(style.height).toBe('var(--andes-avatar-box)');
+        expect(style.getPropertyValue('--andes-avatar-box')).toBe(width);
+        expect(style.getPropertyValue('--andes-avatar-box')).toBe(height);
         // Not asserting the literal --andes-radius-* value: jsdom's CSSOM
         // doesn't resolve custom properties, but a non-empty, non-zero
         // border-radius still proves `:host(.andes-avatar--${shape})`
@@ -623,8 +626,15 @@ describe('AndesAvatarIcon', () => {
 
     const style = getComputedStyle(svg);
 
-    expect(style.width).toBe('60%');
-    expect(style.height).toBe('60%');
+    // A share of the avatar box (the host is 100% of it), tunable through
+    // --andes-avatar-icon-scale; 0.66 makes a padded person glyph cover a
+    // little over half the avatar.
+    expect(style.width).toBe(
+      'calc(100% * var(--andes-avatar-icon-scale, 0.66))',
+    );
+    expect(style.height).toBe(
+      'calc(100% * var(--andes-avatar-icon-scale, 0.66))',
+    );
   });
 
   it('does not leak its icon sizing onto an unrelated svg elsewhere in the DOM', () => {
@@ -821,12 +831,16 @@ describe('AndesAvatarFallback', () => {
     const fallbackStyle = getComputedStyle(fallbackIcon);
     const unrelatedStyle = getComputedStyle(unrelatedIcon);
 
-    expect(fallbackStyle.width).toBe('1em');
-    expect(fallbackStyle.height).toBe('1em');
+    // The same share of the avatar as the icon avatar's glyph, taken from the
+    // box (not `em`: the text size steps are not proportional to the boxes).
+    const glyphSize =
+      'calc(var(--andes-avatar-box, 2rem) * var(--andes-avatar-icon-scale, 0.66))';
+    expect(fallbackStyle.width).toBe(glyphSize);
+    expect(fallbackStyle.height).toBe(glyphSize);
     // The bug under regression: with a leading `::ng-deep`, this unrelated
     // svg - not a descendant of andes-avatar-fallback at all - would ALSO
-    // get forced to 1em, because the compiled rule has no host scope left.
-    expect(unrelatedStyle.width).not.toBe('1em');
-    expect(unrelatedStyle.height).not.toBe('1em');
+    // get forced to that size, because the compiled rule has no host scope left.
+    expect(unrelatedStyle.width).not.toBe(glyphSize);
+    expect(unrelatedStyle.height).not.toBe(glyphSize);
   });
 });

@@ -143,6 +143,49 @@ export const IconAvatar: Story = {
   }),
 };
 
+export const IconFallbackSizes: Story = {
+  name: 'Icon fallback at every size',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'A person glyph used as the fallback (top row) or as an icon avatar (middle row) is drawn at the same share of the avatar at every preset and pixel size - about two thirds of the box, so a glyph with the usual padding inside its viewBox covers a little over half of the avatar - and reads at the same weight as the initials (bottom row). Tune it with `--andes-avatar-icon-scale` (a unitless share of the box, default `0.66`) for an icon set whose glyphs fill the viewBox edge to edge.',
+      },
+    },
+  },
+  render: () => {
+    const boxes: Record<string, number> = {
+      xs: 20,
+      sm: 24,
+      md: 32,
+      lg: 40,
+      xl: 56,
+      16: 16,
+      48: 48,
+      64: 64,
+      96: 96,
+    };
+    const sizes = Object.keys(boxes);
+    const attr = (size: string) =>
+      /^\d+$/.test(size) ? `[size]="${size}"` : `size="${size}"`;
+    const row = (title: string, content: (size: string) => string) =>
+      `<div style="display: flex; align-items: center; gap: 1rem;">
+        <span style="width: 7rem; font-size: 0.75rem; color: var(--andes-color-muted-foreground);">${title}</span>
+        ${sizes.map((size) => `<andes-avatar ${attr(size)}>${content(size)}</andes-avatar>`).join('\n        ')}
+      </div>`;
+    return {
+      template: `<div style="display: grid; gap: 1rem;">
+      <div style="display: flex; gap: 1rem; padding-inline-start: 8rem; font-size: 0.75rem; color: var(--andes-color-muted-foreground);">
+        ${sizes.map((size) => `<span style="width: ${boxes[size]}px; text-align: center;">${size}</span>`).join('')}
+      </div>
+      ${row('Fallback glyph', () => `<andes-avatar-fallback>${USER_ICON}</andes-avatar-fallback>`)}
+      ${row('Icon avatar', () => `<andes-avatar-icon label="Unassigned">${USER_ICON}</andes-avatar-icon>`)}
+      ${row('Initials', () => '<andes-avatar-fallback>JD</andes-avatar-fallback>')}
+    </div>`,
+    };
+  },
+};
+
 export const WithStatusBadge: Story = {
   name: 'With a status badge',
   parameters: {

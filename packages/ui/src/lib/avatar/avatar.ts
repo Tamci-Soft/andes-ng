@@ -55,6 +55,10 @@ export type AndesAvatarSize = AndesAvatarSizePreset;
     '[style.width.px]': 'appearance.px()',
     '[style.height.px]': 'appearance.px()',
     '[style.font-size.px]': 'appearance.fontPx()',
+    // The box size as a custom property, so a part whose own box is sized by
+    // its content (a glyph inside the fallback) can still take a proportion
+    // of the avatar. Presets publish it from avatar.css.
+    '[style.--andes-avatar-box]': 'boxVar()',
   },
 })
 export class AndesAvatar {
@@ -83,6 +87,11 @@ export class AndesAvatar {
   protected readonly hiddenInGroup = computed(
     () => this.appearance.group?.isHidden(this) ?? false,
   );
+
+  protected readonly boxVar = computed(() => {
+    const px = this.appearance.px();
+    return px === null ? null : `${px}px`;
+  });
 
   protected readonly classes = computed(() => {
     const preset = this.appearance.preset();
