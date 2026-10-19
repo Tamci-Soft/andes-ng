@@ -6,8 +6,16 @@ import type {
   AndesMediaAdapterFactory,
   AndesMediaAdapterHooks,
 } from './core/media-adapter';
-import type { AndesPlayerLabels } from './core/player-labels';
-import type { AndesMediaSource, AndesMediaTrack } from './core/player-types';
+import {
+  ANDES_PLAYER_LABELS_ES,
+  andesPlayerLabelsFor,
+} from './core/player-label-sets';
+import type {
+  AndesCaptionStyle,
+  AndesMediaSource,
+  AndesMediaTrack,
+  AndesPlaylistItem,
+} from './core/player-types';
 import { AndesPlayerMenu } from './menus/player-menu';
 import {
   AndesPlayerCaptionsButton,
@@ -173,77 +181,6 @@ const renditionsAdapter: AndesMediaAdapterFactory = () =>
 const liveDvrAdapter: AndesMediaAdapterFactory = () =>
   new DemoLiveAdapter(true);
 const liveAdapter: AndesMediaAdapterFactory = () => new DemoLiveAdapter(false);
-
-const SPANISH: Partial<AndesPlayerLabels> = {
-  videoPlayer: 'Reproductor de video',
-  audioPlayer: 'Reproductor de audio',
-  play: 'Reproducir',
-  pause: 'Pausar',
-  replay: 'Volver a reproducir',
-  mute: 'Silenciar',
-  unmute: 'Activar sonido',
-  volume: 'Volumen',
-  seek: 'Buscar',
-  currentTime: 'Tiempo actual',
-  duration: 'Duración',
-  remainingTime: 'Tiempo restante',
-  seekForward: (s) => `Adelantar ${s} segundos`,
-  seekBackward: (s) => `Retroceder ${s} segundos`,
-  seekValueText: (current, duration) =>
-    `${current.spoken} de ${duration.spoken}`,
-  liveSeekValueText: (behind, atLive) =>
-    atLive ? 'En vivo' : `${behind.spoken} detrás del directo`,
-  playbackRate: 'Velocidad',
-  normalRate: 'Normal',
-  captions: 'Subtítulos',
-  captionsOff: 'Desactivados',
-  captionsOn: 'Activados',
-  enableCaptions: 'Activar subtítulos',
-  disableCaptions: 'Desactivar subtítulos',
-  audioTrack: 'Audio',
-  quality: 'Calidad',
-  qualityAuto: 'Automática',
-  qualityAutoWith: (current) => `Automática (${current})`,
-  settings: 'Configuración',
-  back: 'Atrás',
-  enterFullscreen: 'Pantalla completa',
-  exitFullscreen: 'Salir de pantalla completa',
-  enterPictureInPicture: 'Imagen en imagen',
-  exitPictureInPicture: 'Salir de imagen en imagen',
-  remotePlayback: 'Reproducir en otro dispositivo',
-  live: 'En vivo',
-  goToLive: 'Ir al directo',
-  atLiveEdge: 'Viendo en directo',
-  tapToUnmute: 'Toca para activar el sonido',
-  loading: 'Cargando',
-  retry: 'Reintentar',
-  errorTitle: 'No se pudo reproducir este contenido',
-  errors: {
-    aborted: 'La reproducción se detuvo antes de terminar de cargar.',
-    network: 'Un problema de red interrumpió la descarga.',
-    decode: 'El archivo está dañado o usa algo que este navegador no admite.',
-    unsupported: 'Este formato no es compatible o no se encontró el archivo.',
-    adapter: 'El motor de streaming informó un problema.',
-    unknown: 'Algo salió mal al reproducir este contenido.',
-  },
-  chapter: 'Capítulo',
-  hours: (n) => (n === 1 ? '1 hora' : `${n} horas`),
-  minutes: (n) => (n === 1 ? '1 minuto' : `${n} minutos`),
-  seconds: (n) => (n === 1 ? '1 segundo' : `${n} segundos`),
-  announcePlaying: 'Reproduciendo',
-  announcePaused: 'En pausa',
-  announceEnded: 'Finalizado',
-  announceMuted: 'Silenciado',
-  announceUnmuted: 'Sonido activado',
-  announceVolume: (p) => `Volumen ${p}%`,
-  announceRate: (r) => `Velocidad ${r}`,
-  announceCaptions: (label) =>
-    label === null ? 'Subtítulos desactivados' : `Subtítulos: ${label}`,
-  announceFullscreen: (on) =>
-    on ? 'Pantalla completa activada' : 'Pantalla completa desactivada',
-  announceSeek: (time) => `Posición ${time.spoken}`,
-  announceError: (message) => `Error. ${message}`,
-};
 
 const meta: Meta<AndesVideoPlayer> = {
   title: 'Video Player',
@@ -541,10 +478,18 @@ export const ErrorAndRetry: Story = {
   }),
 };
 
-/** Every string from one labels object: here Spanish, including spoken times and errors. */
+/**
+ * Every string from one labels object: here the built-in Spanish set
+ * (`ANDES_PLAYER_LABELS_ES`, or `provideAndesPlayerLocale('es')` app-wide), including spoken
+ * times, errors and the keyboard help.
+ */
 export const SpanishLabels: Story = {
   render: () => ({
-    props: { sources: SOURCES, tracks: CAPTIONS, labels: SPANISH },
+    props: {
+      sources: SOURCES,
+      tracks: CAPTIONS,
+      labels: ANDES_PLAYER_LABELS_ES,
+    },
     template: frame(
       `<andes-video-player [sources]="sources" [tracks]="tracks" [labels]="labels" title="Patrón de prueba" />`,
     ),
@@ -593,5 +538,278 @@ export const ReducedMotion: Story = {
         <andes-video-player [sources]="sources" title="Reduced motion" />
         <andes-video-player background [sources]="sources" aspectRatio="21/9" />
       </div>`,
+  }),
+};
+
+const PLAYLIST: AndesPlaylistItem[] = [
+  {
+    title: 'Test pattern',
+    sources: SOURCES,
+    poster: POSTER,
+    tracks: [...CAPTIONS, CHAPTERS],
+    thumbnails: { src: `${MEDIA}/thumbnails.vtt` },
+    duration: 12,
+  },
+  {
+    title: 'Colour bars',
+    src: `${MEDIA}/clip-bars.mp4`,
+    poster: `${MEDIA}/clip-bars.jpg`,
+    duration: 8,
+  },
+  {
+    title: 'Moving pattern',
+    src: `${MEDIA}/clip-pattern.mp4`,
+    poster: `${MEDIA}/clip-pattern.jpg`,
+    duration: 8,
+  },
+];
+
+@Component({
+  selector: 'andes-video-player-playlist-demo',
+  imports: [AndesVideoPlayer],
+  template: `
+    <div
+      style="display: grid; gap: 0.75rem; width: min(720px, calc(100vw - 2rem));"
+    >
+      <andes-video-player
+        [playlist]="playlist"
+        [(playlistIndex)]="index"
+        [(repeat)]="repeat"
+        [(shuffle)]="shuffle"
+        [upNextDelay]="8"
+        (playlistCompleted)="log('playlist completed')"
+      />
+      <p style="margin: 0; font-size: 0.875rem; line-height: 1.375rem;">
+        Playing {{ index() + 1 }} of {{ playlist.length }} · repeat
+        {{ repeat() }} · shuffle {{ shuffle() ? 'on' : 'off' }}. Seek near the
+        end of an entry to see the up-next card; Shift+N / Shift+P skip.
+      </p>
+      <p
+        style="margin: 0; font-size: 0.75rem; line-height: 1.25rem; color: var(--andes-color-muted-foreground);"
+      >
+        {{ events().join(' · ') }}
+      </p>
+    </div>
+  `,
+})
+class PlaylistDemo {
+  readonly playlist = PLAYLIST;
+  readonly index = signal(0);
+  readonly repeat = signal<'off' | 'all' | 'one'>('off');
+  readonly shuffle = signal(false);
+  readonly events = signal<string[]>([]);
+
+  log(entry: string): void {
+    this.events.update((list) => [entry, ...list].slice(0, 5));
+  }
+}
+
+/**
+ * A playlist: previous / next in the bar, a playlist menu, Repeat (off / all / one) and Shuffle
+ * in settings, and an up-next card with a countdown when an entry ends. Each entry brings its
+ * own title, poster, tracks and thumbnails. `playlistIndex`, `repeat` and `shuffle` are two-way.
+ */
+export const Playlist: Story = {
+  render: () => ({
+    moduleMetadata: { imports: [PlaylistDemo] },
+    template: `<andes-video-player-playlist-demo />`,
+  }),
+};
+
+/**
+ * Caption appearance in Settings → Caption style: size, text colour, background and its
+ * opacity, edges and font, each with a Default that keeps the theme. Remembered with
+ * `persistKey` and two-way through `captionStyle`. This one starts as large yellow text with
+ * an outline on a transparent background.
+ */
+export const CaptionStyle: Story = {
+  render: () => ({
+    props: {
+      sources: SOURCES,
+      tracks: CAPTIONS,
+      style: {
+        size: 150,
+        color: 'yellow',
+        background: 'black',
+        backgroundOpacity: 0,
+        edge: 'outline',
+        font: null,
+      } satisfies AndesCaptionStyle,
+    },
+    template: frame(
+      `<andes-video-player [sources]="sources" [tracks]="tracks" [captionStyle]="style" title="Caption style" />`,
+    ),
+  }),
+};
+
+/**
+ * With a `persistKey` the player remembers where the viewer stopped each source and offers to
+ * continue ("Resume from 0:06" / "Start over"). This story saves a position first so the card
+ * shows straight away; `resume="auto"` would continue silently.
+ */
+export const ResumePlayback: Story = {
+  render: () => {
+    try {
+      localStorage.setItem(
+        'andes-player:story-resume',
+        JSON.stringify({ positions: { [WEBM]: 6.5, [MP4]: 6.5 } }),
+      );
+    } catch {
+      // Storage blocked: the story then simply starts at the beginning.
+    }
+    return {
+      props: { sources: SOURCES },
+      template: frame(
+        `<andes-video-player [sources]="sources" persistKey="story-resume" title="Resume" />`,
+      ),
+    };
+  },
+};
+
+/**
+ * `miniPlayer`: start playback, then scroll down. While the player is out of view the picture
+ * floats in the corner with "Back to the player" and "Close mini player"; the player keeps its
+ * place in the page and docks again when it scrolls back.
+ */
+export const MiniPlayer: Story = {
+  render: () => ({
+    props: { sources: SOURCES, tracks: CAPTIONS },
+    template: `
+      <div style="width: min(720px, calc(100vw - 2rem));">
+        <andes-video-player miniPlayer [sources]="sources" [tracks]="tracks" title="Mini player" />
+        <div style="height: 160vh; padding-top: 1rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--andes-color-muted-foreground);">
+          Play the video, then scroll down: it keeps playing in the corner.
+        </div>
+      </div>`,
+  }),
+};
+
+/** A demo adapter whose first two loads fail with a network error. */
+class FlakyNetworkAdapter implements AndesMediaAdapter {
+  readonly name = 'demo-flaky';
+  private attempts = 0;
+
+  canPlay(): boolean {
+    return true;
+  }
+
+  attach(
+    media: HTMLMediaElement,
+    source: AndesMediaSource,
+    hooks: AndesMediaAdapterHooks,
+  ): void {
+    this.attempts++;
+    if (this.attempts <= 2) {
+      setTimeout(
+        () =>
+          hooks.reportError({
+            code: 'network',
+            fatal: true,
+            detail: 'demo outage',
+          }),
+        300,
+      );
+      return;
+    }
+    media.src = source.src;
+  }
+
+  detach(): void {
+    // Nothing to release.
+  }
+}
+
+/**
+ * The first two loads fail with a network error (demo adapter). The player retries on its own
+ * (after 1 s, then 2 s) with "Reconnecting…" under the spinner, then plays; only when every
+ * attempt fails (`retryAttempts`) does the error panel show.
+ */
+export const NetworkRecovery: Story = {
+  render: () => ({
+    props: {
+      src: MP4,
+      adapters: [() => new FlakyNetworkAdapter()],
+    },
+    template: frame(
+      `<andes-video-player [src]="src" [adapters]="adapters" autoplay title="Flaky network" />`,
+    ),
+  }),
+};
+
+/**
+ * Press ? for the keyboard help (it lists the live key map), right-click the picture (or
+ * Shift+F10) for the player's menu: loop, copy the address (also at the current time),
+ * picture-in-picture. While paused, , and . step one frame; PageUp / PageDown jump between
+ * chapters. A single click plays or pauses, a double click toggles full screen without also
+ * toggling playback.
+ */
+export const KeyboardHelpAndContextMenu: Story = {
+  render: () => ({
+    props: { sources: SOURCES, tracks: [...CAPTIONS, CHAPTERS] },
+    template: frame(
+      `<andes-video-player [sources]="sources" [tracks]="tracks" title="Shortcuts" />`,
+    ),
+  }),
+};
+
+/** The built-in label sets (`provideAndesPlayerLocale()` or `[labels]`): en, es, pt, fr, de, it. */
+export const BuiltInLanguages: StoryObj = {
+  argTypes: {
+    locale: {
+      control: 'select',
+      options: ['en', 'es', 'pt', 'fr', 'de', 'it'],
+    },
+  },
+  args: { locale: 'pt' },
+  render: (args) => ({
+    props: {
+      sources: SOURCES,
+      tracks: CAPTIONS,
+      labels: andesPlayerLabelsFor(String(args['locale'])),
+    },
+    template: frame(
+      `<andes-video-player [sources]="sources" [tracks]="tracks" [labels]="labels" title="Labels" />`,
+    ),
+  }),
+};
+
+/**
+ * Theme playground: every look comes from `--andes-video-*` variables. Change the accent,
+ * radius, big play size and caption variables from the controls.
+ */
+export const ThemePlayground: StoryObj = {
+  argTypes: {
+    accent: { control: 'color' },
+    radius: { control: 'text' },
+    bigPlaySize: { control: 'text' },
+    captionsColor: { control: 'color' },
+    captionsBackground: { control: 'color' },
+    skin: { control: 'select', options: ['glass', 'solid'] },
+    size: { control: 'select', options: ['sm', 'md', 'lg'] },
+  },
+  args: {
+    accent: '#e11d48',
+    radius: '1rem',
+    bigPlaySize: '5rem',
+    captionsColor: '#fde047',
+    captionsBackground: 'rgb(0 0 0 / 0.6)',
+    skin: 'glass',
+    size: 'md',
+  },
+  render: (args) => ({
+    props: { ...args, sources: SOURCES, tracks: CAPTIONS },
+    template: frame(`
+      <andes-video-player
+        [sources]="sources"
+        [tracks]="tracks"
+        [skin]="skin"
+        [size]="size"
+        title="Theme playground"
+        [style.--andes-video-accent]="accent"
+        [style.--andes-video-radius]="radius"
+        [style.--andes-video-big-play-size]="bigPlaySize"
+        [style.--andes-video-captions-color]="captionsColor"
+        [style.--andes-video-captions-background]="captionsBackground"
+      />`),
   }),
 };

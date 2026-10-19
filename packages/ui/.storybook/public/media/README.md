@@ -29,6 +29,21 @@ ffmpeg -y -ss 2 -i sample.mp4 -frames:v 1 -q:v 5 poster.jpg
 ffmpeg -y -f lavfi -i "gradients=size=400x400:n=3:seed=7:duration=1" -frames:v 1 -q:v 5 cover.jpg
 ```
 
+Two more short clips for the playlist stories, with small posters:
+
+```sh
+ffmpeg -y -f lavfi -i "smptehdbars=size=640x360:rate=24:duration=8" \
+  -f lavfi -i "sine=frequency=523:beep_factor=3:duration=8:sample_rate=44100" \
+  -c:v libx264 -profile:v main -pix_fmt yuv420p -crf 34 -preset slow -g 24 \
+  -c:a aac -b:a 48k -ac 1 -movflags +faststart -shortest clip-bars.mp4
+ffmpeg -y -f lavfi -i "testsrc2=size=640x360:rate=24:duration=8" \
+  -f lavfi -i "sine=frequency=659:beep_factor=2:duration=8:sample_rate=44100" \
+  -c:v libx264 -profile:v main -pix_fmt yuv420p -crf 40 -preset slow -g 48 \
+  -c:a aac -b:a 48k -ac 1 -movflags +faststart -shortest clip-pattern.mp4
+ffmpeg -y -ss 1 -i clip-bars.mp4 -frames:v 1 -vf scale=320:180 -q:v 6 clip-bars.jpg
+ffmpeg -y -ss 1 -i clip-pattern.mp4 -frames:v 1 -vf scale=320:180 -q:v 6 clip-pattern.jpg
+```
+
 The WebVTT files are written by hand (or by a short script):
 
 - `captions.en.vtt`, `captions.es.vtt`: one cue per second describing the picture.

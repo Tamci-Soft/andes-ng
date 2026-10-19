@@ -106,7 +106,25 @@ export class StreamingAdapter implements AndesMediaAdapter {
 // app.config.ts: tried in order before the native adapter, one instance per player.
 export const appConfig = { providers: [provideAndesMediaAdapters(() => new StreamingAdapter())] };`;
 
-const LABELS = `import { provideAndesPlayerLabels } from '@andes-ng/ui';
+const PLAYLIST = `<andes-video-player
+  [playlist]="[
+    { title: 'Welcome', src: '/media/welcome.mp4', poster: '/media/welcome.jpg' },
+    { title: 'Setup', src: '/media/setup.mp4', tracks: setupCaptions },
+    { title: 'Next steps', sources: nextStepsSources, duration: 312 },
+  ]"
+  [(playlistIndex)]="lesson"
+  [(repeat)]="repeat"
+  [upNextDelay]="8"
+  persistKey="course"
+  (playlistCompleted)="markCourseDone()"
+/>`;
+
+const LABELS = `import { provideAndesPlayerLocale, provideAndesPlayerLabels } from '@andes-ng/ui';
+
+// A built-in set (en, es, pt, fr, de, it), optionally with overrides:
+providers: [provideAndesPlayerLocale('es-PE', { retry: 'Volver a intentar' })]
+
+// Or your own strings (nested maps such as errors merge entry by entry):
 
 providers: [
   provideAndesPlayerLabels({
@@ -157,7 +175,14 @@ const VARIABLES: [string, string][] = [
     'Bar control size (set by size and compact).',
   ],
   ['--andes-video-gap / -bar-padding', 'Spacing in the bar.'],
-  ['--andes-video-big-play-size', 'Diameter of the centred play button.'],
+  [
+    '--andes-video-big-play-size',
+    'Largest diameter of the centred play button (it shrinks to 16% of narrow players).',
+  ],
+  [
+    '--andes-video-big-play-background / -blur / -shadow',
+    'The big play disc: a steady dark fill, a wide desaturated blur and its shadow.',
+  ],
   [
     '--andes-video-menu-background / -foreground / -width',
     'Menu surface (popover tokens).',
@@ -179,6 +204,22 @@ const VARIABLES: [string, string][] = [
     'Motion.',
   ],
   ['--andes-video-glass-blur', 'Backdrop blur of glass surfaces.'],
+  [
+    '--andes-video-captions-scale / -text-shadow',
+    'Set by the caption style menu (text size and edges); themeable too.',
+  ],
+  [
+    '--andes-video-mini-width / -offset / -z-index',
+    'Size, corner distance and stacking of the floating mini player.',
+  ],
+  [
+    '--andes-video-bar-block-size',
+    'Measured height of the bar (read-only; cards and the solid big play sit above it).',
+  ],
+  [
+    '--andes-video-ratio',
+    'The picture ratio (read-only; used by the mini player).',
+  ],
 ];
 
 const KEYS: [string, string][] = [
@@ -194,6 +235,11 @@ const KEYS: [string, string][] = [
   ['< / >', 'Slower / faster through the speed list'],
   ['C', 'Captions on / off (remembers the language)'],
   ['I', 'Picture in picture'],
+  [', / .', 'Previous / next frame (pauses first)'],
+  ['PgUp / PgDn', 'Previous / next chapter'],
+  ['Shift+P / Shift+N', 'Previous / next in the playlist'],
+  ['?', 'Keyboard help (lists the live key map)'],
+  ['Shift+F10, menu key', 'The player menu (also on right click)'],
 ];
 
 @Component({
@@ -282,15 +328,64 @@ const KEYS: [string, string][] = [
       <code>captureFrame()</code>, <code>focus()</code>.
     </p>
 
+    <h2>Playlists</h2>
+    <p>
+      <code>playlist</code> takes entries with a source (<code>src</code> or
+      <code>sources</code>) and optionally a title, poster, tracks, thumbnails,
+      chapters, Media Session metadata and a duration for the menu. Each entry
+      replaces the player's own inputs while it plays. The bar gains previous /
+      next buttons and a playlist menu; Settings gains Repeat (off / all / one)
+      and Shuffle. When an entry ends, an up-next card counts down
+      (<code>upNextDelay</code>, <code>0</code> moves on at once,
+      <code>autoAdvance</code> turns it off) with Play now and Cancel; it is
+      announced once and never takes focus. "Previous" restarts the entry when
+      it is more than three seconds in. <code>playlistIndex</code>,
+      <code>repeat</code> and <code>shuffle</code> are two-way;
+      <code>playlistCompleted</code> fires after the last entry. The system
+      media controls' previous / next track buttons step through the playlist.
+      Without a playlist, Settings → Loop (and the context menu) loop the media;
+      <code>loop</code> is the same as <code>repeat="one"</code>.
+    </p>
+    <pre><code>{{ playlist }}</code></pre>
+
+    <h2>Resume, network recovery, mini player</h2>
+    <ul>
+      <li>
+        With <code>persistKey</code>, the position of each source is saved while
+        it plays (every few seconds and on pause) and dropped near the end.
+        <code>resume="prompt"</code> (default) offers "Resume from 1:23" /
+        "Start over"; <code>"auto"</code> continues silently;
+        <code>"off"</code> never resumes. The newest 20 sources are kept.
+      </li>
+      <li>
+        A network failure (from the element or an adapter) is retried
+        automatically after 1 s, 2 s, 4 s… (<code>retryAttempts</code>, default
+        3) from the same position, with "Reconnecting…" under the spinner and
+        one polite announcement; coming back online retries at once. Only when
+        every attempt fails does the error panel show. A stalled download says
+        "Waiting for the network…" under the spinner.
+      </li>
+      <li>
+        <code>miniPlayer</code> floats the picture in a corner while it plays
+        and the player is scrolled out of view. The player keeps its box (a
+        quiet placeholder), the floating picture is a labelled region with "Back
+        to the player" and "Close mini player" (which pauses); it docks when the
+        player scrolls back. Fullscreen and picture-in-picture take precedence.
+      </li>
+    </ul>
+
     <h2>Composing your own controls</h2>
     <p>
       Set <code>controls="none"</code> and project parts with
       <code>slot="controls"</code> (or <code>slot="top"</code> next to the
       title). Parts: play, mute, volume slider, seek bar, time, seek buttons,
-      live badge, captions toggle, menus (<code>settings</code>,
-      <code>playback-rate</code>, <code>captions</code>, <code>audio</code>,
-      <code>quality</code>), picture-in-picture, remote playback, full screen,
-      big play, poster, buffering, feedback, error panel, title and the tooltip
+      previous / next, live badge, captions toggle, menus
+      (<code>settings</code>, <code>playback-rate</code>, <code>captions</code>,
+      <code>caption-style</code>, <code>audio</code>, <code>quality</code>,
+      <code>repeat</code>, <code>shuffle</code>, <code>playlist</code>),
+      picture-in-picture, remote playback, full screen, big play, poster,
+      buffering, feedback, error panel, title, up-next card, resume card,
+      keyboard help, context menu, mini player buttons and the tooltip
       directive.
     </p>
     <pre><code>{{ custom }}</code></pre>
@@ -306,7 +401,11 @@ const KEYS: [string, string][] = [
       <code>detach</code> tears it down. Factories are registered with
       <code>provideAndesMediaAdapters()</code> or the
       <code>adapters</code> input. <code>resolveMimeType()</code> maps file
-      extensions to types.
+      extensions to types. The "Quality and audio tracks", "Live DVR" and
+      "Network recovery" stories each run a few-line demo adapter over a plain
+      file (fake renditions, a fake live window, scripted network failures): a
+      good starting point and proof that the menus and states work before a real
+      engine is wired in.
     </p>
     <pre><code>{{ adapter }}</code></pre>
 
@@ -334,6 +433,17 @@ const KEYS: [string, string][] = [
       <code>chapters</code> input; storyboard previews from
       <code>thumbnails</code> (a WebVTT sprite map, or a regular grid).
     </p>
+    <p>
+      Viewers restyle captions in Settings → Caption style: text size (50% to
+      200%), text colour, background colour and opacity, edges (drop shadow,
+      raised, depressed, outline) and font, each with a Default that keeps the
+      theme. The choice is two-way through <code>captionStyle</code> and
+      remembered with <code>persistKey</code>. Turning captions on without a
+      remembered choice picks the track in the browser's preferred language
+      first. Cross-origin caption files need CORS headers and
+      <code>crossOrigin</code> on the player, or the browser refuses to load
+      them.
+    </p>
 
     <h2>Theming</h2>
     <p>
@@ -341,7 +451,11 @@ const KEYS: [string, string][] = [
       and dark. Inputs: <code>skin</code> (glass / solid),
       <code>size</code> (bar buttons 32 / 40 / 48px), <code>compact</code> (24 /
       32px), <code>aspectRatio</code>, <code>objectFit</code>,
-      <code>audioOnly</code>, <code>background</code>.
+      <code>audioOnly</code>, <code>background</code>. The big play button is
+      centred on the picture frame in the glass skin (its bar is a translucent
+      overlay that comes and goes, so the circle never jumps) and on the picture
+      above the bar in the solid skin (that bar is opaque and always up while
+      the button shows). Its glyphs are centred by their area centroid.
     </p>
     <table>
       <thead>
@@ -390,7 +504,10 @@ const KEYS: [string, string][] = [
     <p>
       Touch: a tap shows or hides the controls, a double tap on the left or
       right third seeks 10 seconds (in the middle it plays or pauses). Mouse: a
-      click plays or pauses, a double click toggles full screen.
+      click plays or pauses (after a short wait, so a double click toggles full
+      screen without also toggling playback); right click opens the player menu
+      (loop, copy the address, also at the current time, picture in picture,
+      keyboard help), and a second right click shows the browser's own menu.
     </p>
 
     <h2>Accessibility</h2>
@@ -411,7 +528,17 @@ const KEYS: [string, string][] = [
       </li>
       <li>
         Hidden controls stay focusable and reappear on focus; focus is never
-        trapped; menus return focus to their button.
+        trapped; menus return focus to their button; the keyboard help and the
+        context menu return it to where it was.
+      </li>
+      <li>
+        Tooltips only describe a hovered or keyboard-focused control and close
+        when the controls hide, on scroll, Escape or pointer leave; nothing over
+        the picture carries a tooltip (the host never keeps a native
+        <code>title</code>).
+      </li>
+      <li>
+        On coarse pointers (touch) bar controls grow to 44px (compact: 40px).
       </li>
       <li>
         Reduced motion removes scaling and sliding and holds background video
@@ -433,6 +560,7 @@ class VideoPlayerGuide {
   protected readonly custom = CUSTOM;
   protected readonly adapter = ADAPTER;
   protected readonly labels = LABELS;
+  protected readonly playlist = PLAYLIST;
   protected readonly theme = THEME;
   protected readonly variables = VARIABLES;
   protected readonly keys = KEYS;
@@ -446,7 +574,10 @@ const meta: Meta = {
 
 export default meta;
 
-/** Quick start, custom controls, adapters, live, captions, theming, keyboard, accessibility, i18n. */
+/**
+ * Quick start, playlists, resume, network recovery, mini player, custom controls, adapters,
+ * live, captions and caption style, theming, keyboard, accessibility, i18n.
+ */
 export const Guide: StoryObj = {
   render: () => ({
     moduleMetadata: { imports: [VideoPlayerGuide] },
