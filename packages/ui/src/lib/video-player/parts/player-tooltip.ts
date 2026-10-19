@@ -1,6 +1,7 @@
 import {
   DestroyRef,
   Directive,
+  DOCUMENT,
   effect,
   ElementRef,
   inject,
@@ -22,6 +23,12 @@ const EDGE_ROOM_PX = 72;
  * so screen readers do not hear it twice. It renders inside the control, so it also works in
  * fullscreen, and keeps inside the player near its edges.
  *
+ * It only ever describes a hovered or keyboard-focused control: it closes the moment the
+ * controls auto-hide, on pointer leave or press, on Escape, on blur and when the page scrolls,
+ * and reopens only on a fresh hover or focus. (Nothing over the picture itself carries a
+ * tooltip; the player also keeps its host free of a native `title`, whose browser tooltip would
+ * linger over the video.)
+ *
  * ```html
  * <button andesPlayerTooltip="Mute" andesPlayerTooltipHint="M" aria-label="Mute">...</button>
  * ```
@@ -42,6 +49,8 @@ export class AndesPlayerTooltip {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly renderer = inject(Renderer2);
   private readonly store = inject(AndesPlayerStore, { optional: true });
+  private readonly document = inject(DOCUMENT);
+  private readonly onScroll = () => this.hide();
 
   /** The tooltip text; empty hides it. */
   readonly andesPlayerTooltip = input<string | null>('');
@@ -72,6 +81,7 @@ export class AndesPlayerTooltip {
     });
     inject(DestroyRef).onDestroy(() => {
       this.clearTimer();
+      this.document.removeEventListener('scroll', this.onScroll, true);
       this.bubble?.remove();
     });
   }
@@ -95,13 +105,20 @@ export class AndesPlayerTooltip {
   show(): void {
     this.clearTimer();
     const text = this.andesPlayerTooltip();
-    if (!text || this.andesPlayerTooltipDisabled()) {
+    if (
+      !text ||
+      this.andesPlayerTooltipDisabled() ||
+      this.store?.controlsVisible() === false
+    ) {
       return;
     }
     const bubble = this.ensureBubble();
     this.fill(bubble, text, this.andesPlayerTooltipHint());
     this.renderer.setAttribute(bubble, 'data-align', this.alignment());
     this.renderer.setAttribute(bubble, 'data-state', 'open');
+    if (!this.open()) {
+      this.document.addEventListener('scroll', this.onScroll, true);
+    }
     this.open.set(true);
   }
 
@@ -110,6 +127,7 @@ export class AndesPlayerTooltip {
     if (this.bubble) {
       this.renderer.setAttribute(this.bubble, 'data-state', 'closed');
     }
+    this.document.removeEventListener('scroll', this.onScroll, true);
     this.open.set(false);
   }
 

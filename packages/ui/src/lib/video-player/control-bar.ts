@@ -62,7 +62,7 @@ export type AndesPlayerBarLayout = 'default' | 'minimal' | 'audio';
           <andes-player-time-slider class="andes-player-bar__grow" />
           <andes-player-live-button />
           <andes-player-time type="remaining" />
-          <andes-player-mute-button />
+          <andes-player-mute-button class="andes-player-bar__push" />
           <andes-player-fullscreen-button />
         </div>
       }

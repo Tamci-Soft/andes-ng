@@ -54,12 +54,23 @@
   --andes-video-line-height: var(--andes-text-line-height, 1.375rem);
   --andes-video-gap: var(--andes-space-1, 0.25rem);
   --andes-video-bar-padding: var(--andes-space-2, 0.5rem);
+  /* Largest diameter of the big play button; it shrinks with narrow players (16% of the width). */
   --andes-video-big-play-size: 4rem;
+  /* A steady dark disc: mostly opaque so a busy picture behind it reads as an even tint, with a
+     wide, desaturated blur instead of a sharp one that shows the picture's edges as a gradient. */
+  --andes-video-big-play-background: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 72%,
+    transparent
+  );
+  --andes-video-big-play-blur: 24px;
+  --andes-video-big-play-shadow: 0 2px 12px rgb(0 0 0 / 0.24);
 
   /* Overlays */
+  /* Nearly opaque: a busy picture tinted through a lighter glass made the items hard to read. */
   --andes-video-menu-background: color-mix(
     in srgb,
-    var(--andes-color-popover) 88%,
+    var(--andes-color-popover) 94%,
     transparent
   );
   --andes-video-menu-foreground: var(--andes-color-popover-foreground);
@@ -265,6 +276,23 @@
     var(--andes-space-5, 1.5rem);
 }
 
+/* While an error shows, the panel replaces the controls: the bar would only show through its
+   scrim, and stay reachable by Tab behind it. */
+.andes-video-player[data-error] .andes-video-player__bottom {
+  visibility: hidden;
+}
+
+/* Coarse pointers (touch): bar controls grow to the 44px touch-target size, compact ones to 40px. */
+@media (pointer: coarse) {
+  .andes-video-player[data-density='default']:not([data-size='lg']) {
+    --andes-video-button-size: 2.75rem;
+  }
+
+  .andes-video-player[data-density='compact'] {
+    --andes-video-button-size: 2.5rem;
+  }
+}
+
 /* ---- Ambient (background) toggle ------------------------------------------------------------ */
 
 .andes-video-player__ambient {
@@ -341,6 +369,16 @@
 
 .andes-video-player[data-layout='audio'] .andes-player-bar {
   padding: 0;
+}
+
+/* Narrow audio cards: the seek bar keeps the room; the volume slider and duration go first,
+   then the cover art shrinks. */
+@container (max-width: 30rem) {
+  .andes-video-player[data-layout='audio'] .andes-player-volume-slider,
+  .andes-video-player[data-layout='audio']
+    andes-player-time[data-type='duration'] {
+    display: none;
+  }
 }
 
 /* ---- Background layout ---------------------------------------------------------------------- */

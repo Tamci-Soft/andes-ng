@@ -78,7 +78,7 @@
       <ng-content select="[slot=top]" />
     </div>
     }
-    <div class="andes-video-player__bottom">
+    <div #bottom class="andes-video-player__bottom">
       @if (barLayout(); as layout) {
       <andes-player-control-bar [layout]="layout" />
       } @else {

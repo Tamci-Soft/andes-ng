@@ -107,6 +107,12 @@
   min-width: 3rem;
 }
 
+/* Pushes the controls after it to the end when nothing grows (a live minimal bar has no seek
+   bar to take the room). */
+.andes-player-bar__push {
+  margin-inline-start: auto;
+}
+
 .andes-player-bar[data-layout='minimal'] .andes-player-bar__row,
 .andes-player-bar[data-layout='audio'] .andes-player-bar__row {
   justify-content: flex-start;

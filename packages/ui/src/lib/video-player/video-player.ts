@@ -149,6 +149,11 @@ function sameSources(
     '[attr.aria-hidden]': 'decorative() ? "true" : null',
     '[attr.aria-busy]': 'store.buffering() ? "true" : null',
     '[attr.aria-keyshortcuts]': 'keyShortcuts()',
+    // `title` is an input: a static `title="..."` would also stay on the element as a native
+    // attribute, and the browser's own tooltip would float over the picture (and linger after
+    // the controls hide). The title is shown in the title bar and named in `aria-label`.
+    '[attr.title]': 'null',
+    '[style.--andes-video-bar-block-size.px]': 'barSize.height()',
     '[attr.tabindex]': 'focusable() ? 0 : null',
     '[attr.data-state]': 'playbackState()',
     '[attr.data-layout]': 'layoutMode()',
@@ -283,6 +288,11 @@ export class AndesVideoPlayer {
   readonly nextRequested = output<void>();
 
   private readonly mediaRef = viewChild<ElementRef<HTMLMediaElement>>('media');
+  private readonly bottomRef = viewChild<ElementRef<HTMLElement>>('bottom');
+  /** Height of the control bar area (the solid skin centres the big play above it). */
+  protected readonly barSize = andesElementSize(this.bottomRef, {
+    box: 'border-box',
+  });
 
   private readonly resolvedSources = computed<readonly AndesMediaSource[]>(
     () => {

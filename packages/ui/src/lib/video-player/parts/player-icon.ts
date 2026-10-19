@@ -15,11 +15,15 @@ const SPEAKER =
   'M4 9.5v5a1 1 0 0 0 1 1h3l4.3 3.6a.6.6 0 0 0 1-.46V5.36a.6.6 0 0 0-1-.46L8 8.5H5a1 1 0 0 0-1 1Z';
 
 const ICONS = {
+  // The triangle's area centroid sits on the box centre (x = 12), not its bounding box: a
+  // right-pointing triangle centred by its box looks shifted towards its tip. Every play
+  // button, large or small, then looks centred without per-size nudges.
   play: {
     fill: [
-      'M8 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14Z',
+      'M7.5 5.14v13.72a1 1 0 0 0 1.52.85l10.6-6.86a1 1 0 0 0 0-1.7L9.02 4.29A1 1 0 0 0 7.5 5.14Z',
     ],
   },
+
   pause: {
     fill: [
       'M7 5h3.2a.8.8 0 0 1 .8.8v12.4a.8.8 0 0 1-.8.8H7a.8.8 0 0 1-.8-.8V5.8A.8.8 0 0 1 7 5Zm6.8 0H17a.8.8 0 0 1 .8.8v12.4a.8.8 0 0 1-.8.8h-3.2a.8.8 0 0 1-.8-.8V5.8a.8.8 0 0 1 .8-.8Z',
