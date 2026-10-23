@@ -781,10 +781,20 @@ describe('overflow panel stylesheet', () => {
       .replace(/\[_ng(content|host)-[^\]]+\]/g, '');
   }
 
+  /** The declarations of the first rule whose selector starts with `selector`. */
   function rule(css: string, selector: string): string {
-    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = new RegExp(`${escaped}[^{]*\\{([^}]*)\\}`).exec(css);
-    return match?.[1] ?? '';
+    let at = css.indexOf(selector);
+    while (at >= 0) {
+      const open = css.indexOf('{', at + selector.length);
+      if (open < 0) {
+        return '';
+      }
+      if (!css.slice(at + selector.length, open).includes('}')) {
+        return css.slice(open + 1, css.indexOf('}', open));
+      }
+      at = css.indexOf(selector, at + 1);
+    }
+    return '';
   }
 
   it('scrolls the grid vertically with a thin, contained scrollbar', () => {
