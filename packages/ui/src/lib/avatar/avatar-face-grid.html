@@ -1,0 +1,86 @@
+<div
+  #scroller
+  class="andes-avatar-face-grid__scroller"
+  role="grid"
+  tabindex="-1"
+  [attr.aria-label]="label() || null"
+  [attr.aria-rowcount]="rowCount()"
+  [attr.aria-colcount]="visibleColumns()"
+  [class.andes-avatar-face-grid__scroller--scrolls]="scrolls()"
+  [style.height.px]="viewportHeight()"
+  (scroll)="onScroll()"
+  (keydown)="onKeydown($event)"
+  (focusin)="onFocusIn($event)"
+  (focusout)="onFocusOut($event)"
+  (pointerover)="onHover($event)"
+  (pointerleave)="onHover($event)"
+>
+  <div
+    class="andes-avatar-face-grid__rows"
+    [style.padding-block-start.px]="padStart()"
+    [style.padding-block-end.px]="padEnd()"
+  >
+    @for (row of visibleRows(); track row.index) {
+    <div
+      class="andes-avatar-face-grid__row"
+      role="row"
+      [attr.aria-rowindex]="row.index + 1"
+    >
+      @for (cell of row.cells; track cell.index) {
+      <!--
+        Named by aria-label; the photo, initials and glyph are decorative.
+        Unnamed faces keep their text exposed so they are not announced as
+        empty.
+      -->
+      <div
+        class="andes-avatar-face-grid__face"
+        role="gridcell"
+        [attr.data-index]="cell.index"
+        [attr.aria-colindex]="cell.col + 1"
+        [attr.aria-label]="cell.face.name || null"
+        [attr.tabindex]="cell.index === tabStop() ? 0 : -1"
+        [style.--andes-avatar-background]="cell.face.background ?? null"
+        [style.--andes-avatar-foreground]="cell.face.foreground ?? null"
+      >
+        @if (cell.face.icon) {
+        <svg
+          class="andes-avatar-face-grid__glyph"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          [attr.aria-hidden]="cell.face.name ? 'true' : null"
+        >
+          <path d="M20 21a8 8 0 0 0-16 0" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        } @else {
+        <span
+          class="andes-avatar-face-grid__text"
+          [attr.aria-hidden]="cell.face.name ? 'true' : null"
+          >{{ cell.face.text }}</span
+        >
+        } @if (cell.face.src) {
+        <img
+          class="andes-avatar-face-grid__image"
+          [src]="cell.face.src"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable="false"
+          (error)="onImageError($event)"
+        />
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+</div>
+<p
+  class="andes-avatar-face-grid__caption"
+  aria-hidden="true"
+  [hidden]="!caption()"
+>
+  {{ caption() }}
+</p>

@@ -1,0 +1,17 @@
+<ng-content />
+@if (overflowCount() > 0) {
+<andes-avatar-group-count
+  [count]="overflowCount()"
+  [hiddenNames]="hiddenNames()"
+  [hiddenFaces]="hiddenFaces()"
+  [overflowLabel]="popover()?.label ?? ''"
+  [moreLabel]="popover()?.moreLabel ?? '+{count} more'"
+  [panelLayout]="popover()?.layout ?? 'grid'"
+  [placement]="popover()?.placement ?? 'top'"
+  [trigger]="popover()?.trigger ?? 'hover'"
+  [panelTemplate]="popover()?.template"
+  [class]="max()?.class ?? ''"
+  [style]="max()?.style ?? null"
+  (opened)="onPanelOpened()"
+/>
+}

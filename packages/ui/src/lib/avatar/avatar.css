@@ -1,0 +1,132 @@
+:host {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  vertical-align: middle;
+  /* `secondary`, not `muted`: in the dark theme muted is the exact color of
+     --andes-color-card (#1e293b), so an initials or icon avatar inside a card
+     vanished into it. secondary stays distinct from both the page and a card
+     in either theme, and is the same fill AndesSkeleton draws its avatar
+     placeholder in, so nothing changes tone when the real avatar loads. */
+  /* `--andes-avatar-background` / `--andes-avatar-foreground` recolor one
+     avatar or a whole group (they inherit), e.g. a brand color per team. */
+  background-color: var(
+    --andes-avatar-background,
+    var(--andes-color-secondary)
+  );
+  /* `foreground`, not `muted-foreground`: the fallback initials are text and
+     need 4.5:1 (WCAG 1.4.3). Foreground on secondary is ~14:1 light and
+     ~10:1 dark. AndesAvatarIcon keeps muted-foreground: an icon is a graphic
+     (WCAG 1.4.11, 3:1), and it clears that on secondary in both themes. */
+  color: var(--andes-avatar-foreground, var(--andes-color-foreground));
+  font-family: var(--andes-font-family), sans-serif;
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1;
+  user-select: none;
+}
+
+/* `max.count` on AndesAvatarGroup hides the avatars past the limit through
+   the `hidden` attribute; the `display: inline-flex` above would otherwise
+   beat the UA's `[hidden] { display: none }`. */
+:host([hidden]) {
+  display: none;
+}
+
+/* Shapes - `:host(.class)`, not a plain `.class` selector: these rules target
+   this component's OWN host element (the BEM classes are bound via `[class]`
+   directly on the host, not on an element in this component's template), and
+   under Angular's Emulated encapsulation a plain class selector only ever
+   matches elements carrying its `_ngcontent-*` attribute, which the host
+   itself never has (only `_nghost-*` does). `:host(.class)` compiles to
+   something like `[_nghost-xxx].class`, which does match the host. */
+
+/* Each shape also publishes its radius as `--andes-avatar-radius`. Custom
+   properties inherit across both Angular's style encapsulation boundaries and
+   `display: contents` (AndesAvatarImage's host), which makes this the only
+   way the parts can clip themselves to the ROOT's shape without every part
+   re-deriving the shape from its own input. They need to, because a projected
+   `andes-avatar-badge` forces the rule below to drop this host's
+   `overflow: hidden`. */
+
+:host(.andes-avatar--circular) {
+  --andes-avatar-radius: var(--andes-radius-full);
+
+  border-radius: var(--andes-avatar-radius);
+}
+
+:host(.andes-avatar--rounded) {
+  --andes-avatar-radius: var(--andes-radius-lg);
+
+  border-radius: var(--andes-avatar-radius);
+}
+
+:host(.andes-avatar--square) {
+  --andes-avatar-radius: var(--andes-radius-md);
+
+  border-radius: var(--andes-avatar-radius);
+}
+
+/* A corner status dot has to sit ON the avatar's edge, so it must escape this
+   host's clipping box - `overflow: hidden` above would slice it in half.
+   Scoped to `:has(andes-avatar-badge)` rather than dropped outright so the
+   overwhelmingly common badge-less avatar keeps clipping its image the plain
+   way; in the badge case the parts clip themselves instead, via the
+   `--andes-avatar-radius` published above. */
+:host(:has(andes-avatar-badge)) {
+  overflow: visible;
+}
+
+/* Sizes - fixed box dimensions, not the generic space scale, since these are
+   avatar box dimensions rather than gaps between elements. `sm`/`md`/`lg` are
+   the shared control scale (24/32/40px small/default/large), so
+   an avatar lines up with a button or input of the same size; `xs` (20px) and
+   `xl` (56px) extend it either way. A pixel `size`
+   (`andes-avatar--custom-size`) has no rule here: its width, height and
+   font-size are bound inline on the host instead.
+
+   Every size also publishes its box as `--andes-avatar-box`, which a part
+   sized by its content (a glyph inside the fallback) reads to take a
+   proportion of the avatar. */
+
+:host(.andes-avatar--xs) {
+  --andes-avatar-box: 1.25rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
+  font-size: 0.625rem;
+}
+
+:host(.andes-avatar--sm) {
+  --andes-avatar-box: 1.5rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
+  font-size: 0.75rem;
+}
+
+:host(.andes-avatar--md) {
+  --andes-avatar-box: 2rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
+  font-size: 0.875rem;
+}
+
+:host(.andes-avatar--lg) {
+  --andes-avatar-box: 2.5rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
+  font-size: 1rem;
+}
+
+:host(.andes-avatar--xl) {
+  --andes-avatar-box: 3.5rem;
+
+  width: var(--andes-avatar-box);
+  height: var(--andes-avatar-box);
+  font-size: 1.25rem;
+}
