@@ -1,28 +1,78 @@
-# Andes NG
+<div align="center">
 
-Andes NG is an open-source Angular design system for dense, enterprise applications. It owns its public API and visual language while using proven headless primitives behind internal adapters.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="brand/logo-horizontal-dark.svg" />
+  <img src="brand/logo-horizontal.svg" alt="Andes NG" width="320" />
+</picture>
 
-> Status: early development. The npm scope still needs to be reserved before the first public release.
+**Angular components, built to last.**
+
+[![npm](https://img.shields.io/npm/v/@andes-ng/ui?logo=npm&logoColor=white&label=%40andes-ng%2Fui&color=2563eb&labelColor=0f172a)](https://www.npmjs.com/package/@andes-ng/ui)
+[![CI](https://img.shields.io/github/actions/workflow/status/andes-ng/andes/ci.yml?branch=develop&logo=github&label=CI&labelColor=0f172a)](https://github.com/andes-ng/andes/actions/workflows/ci.yml)
+[![Angular](https://img.shields.io/badge/Angular-22-dd0031?logo=angular&logoColor=white&labelColor=0f172a)](https://angular.dev)
+[![Storybook](https://img.shields.io/badge/Storybook-live-ff4785?logo=storybook&logoColor=white&labelColor=0f172a)](https://andes-ng.github.io/andes/)
+[![License](https://img.shields.io/badge/license-MIT-2563eb?labelColor=0f172a)](LICENSE)
+
+[Storybook](https://andes-ng.github.io/andes/) · [npm](https://www.npmjs.com/org/andes-ng) · [Architecture decisions](docs/adr/README.md) · [Releasing](docs/releasing.md)
+
+</div>
+
+Andes NG is an open-source Angular design system for dense, enterprise applications. Components are standalone, signal-based and `OnPush`, styled only through CSS custom properties, and built on behavior primitives that Andes owns, so the public API and the visual language stay under one roof.
+
+- **Accessible by default.** WAI-ARIA authoring practices, complete keyboard support, right-to-left layouts and `prefers-reduced-motion` honored.
+- **Themeable without a build step.** Every color, radius, size and motion value is a CSS custom property; dark mode is one attribute.
+- **No styling toolchain required.** No Tailwind configuration and no generated CSS to wire into the consuming application.
+- **Small, typed public API.** Signals for inputs, outputs and models; no runtime dependencies beyond Angular, the CDK and RxJS.
 
 ## Packages
 
-| Project            | Published package   | Purpose                                                         |
-| ------------------ | ------------------- | --------------------------------------------------------------- |
-| `packages/tokens`  | `@andes-ng/tokens`  | Framework-agnostic CSS Custom Properties                        |
-| `packages/ui`      | `@andes-ng/ui`      | Standalone Angular components; one public entry point initially |
-| `packages/testing` | `@andes-ng/testing` | Stable consumer-facing test helpers                             |
-| `apps/playground`  | Not published       | Consumer-style integration application                          |
+| Package                                                                      | Purpose                                                                                   |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`@andes-ng/ui`](https://www.npmjs.com/package/@andes-ng/ui)                 | Standalone Angular components, exported from a single entry point                         |
+| [`@andes-ng/tokens`](https://www.npmjs.com/package/@andes-ng/tokens)         | Design tokens as CSS custom properties, framework-agnostic                                |
+| [`@andes-ng/primitives`](https://www.npmjs.com/package/@andes-ng/primitives) | Behavior directives and services the components are built on (overlay, focus, navigation) |
+| [`@andes-ng/testing`](https://www.npmjs.com/package/@andes-ng/testing)       | Stable helpers for testing applications that use Andes NG                                 |
 
-Storybook is configured on `packages/ui`; there is intentionally no `apps/docs` yet.
+The four packages share one version and are released together.
 
-**No component, token or test helper has been implemented yet.** The three packages build, pack and release, but their entry points are empty on purpose: this repository is currently the workspace setup, and the public API begins with the first component.
+## Install
 
-## Requirements
+```bash
+npm install @andes-ng/ui @andes-ng/tokens
+```
 
-- Node.js 22.12 or newer
-- pnpm 11.1 or newer
+Peer dependencies: Angular 22 (`@angular/core`, `common`, `forms`, `cdk`) and RxJS 7.
 
-## Get started
+Load the tokens once in the application's global stylesheet:
+
+```css
+@import '@andes-ng/tokens/fonts.css'; /* optional: Geist */
+@import '@andes-ng/tokens/theme.css';
+```
+
+Import the components you need from the public entry point:
+
+```ts
+import { Component } from '@angular/core';
+import { AndesButton } from '@andes-ng/ui';
+
+@Component({
+  selector: 'app-save',
+  imports: [AndesButton],
+  template: `<andes-button variant="primary">Save</andes-button>`,
+})
+export class Save {}
+```
+
+Dark mode is on when `data-andes-theme="dark"` is set on `<html>` or any ancestor.
+
+## Components
+
+Browse every component, state and variant in the [Storybook](https://andes-ng.github.io/andes/). New components land in each release; the changelog lists what changed.
+
+## Develop
+
+Requirements: Node.js 22.12 or newer and pnpm 11.1 or newer.
 
 ```bash
 corepack enable
@@ -30,34 +80,23 @@ pnpm install
 pnpm storybook
 ```
 
-Useful commands:
+| Command                | What it does                           |
+| ---------------------- | -------------------------------------- |
+| `pnpm storybook`       | Storybook for `packages/ui`            |
+| `pnpm playground`      | Consumer-style integration application |
+| `pnpm build`           | Builds every package                   |
+| `pnpm test`            | Runs every test suite                  |
+| `pnpm lint`            | Lints every project                    |
+| `pnpm build:storybook` | Builds the static Storybook            |
 
-```bash
-pnpm playground
-pnpm build
-pnpm test
-pnpm lint
-pnpm build:storybook
-```
-
-## Consume the packages
-
-Import tokens once in the consumer application's global CSS:
-
-```css
-@import '@andes-ng/tokens/theme.css';
-```
-
-Standalone components will be imported only from the Andes public entry point, `@andes-ng/ui`. That entry point exports nothing yet.
-
-Consumers do not import `@spartan-ng/brain` or its selectors. Brain is an internal behavioral dependency. Andes does not require Tailwind configuration or Tailwind-generated CSS, although Brain currently causes Tailwind-related packages to exist in the installation graph. See [ADR 0004](docs/adr/0004-spartan-brain-behind-andes-adapters.md).
+The workspace is an Nx monorepo: `packages/tokens`, `packages/primitives`, `packages/ui`, `packages/testing` and `apps/playground`.
 
 ## Architecture decisions
 
-Accepted decisions live in [`docs/adr`](docs/adr/README.md). Changes to package contracts, styling, dependency boundaries or release policy require a new ADR that supersedes the previous one.
+Accepted decisions live in [`docs/adr`](docs/adr/README.md). Changes to package contracts, styling, dependency boundaries or release policy need a new ADR that supersedes the previous one. For a contributor-oriented tour of the package boundaries and the terminology, see [the component architecture glossary](docs/component-architecture-glossary.md).
 
-For a contributor-oriented explanation of the package boundaries, design tokens, Spartan Brain and dependency terminology, see [the component architecture glossary](docs/component-architecture-glossary.md).
+How a release is cut, from release candidates to the `latest` tag, is in [`docs/releasing.md`](docs/releasing.md).
 
 ## Contributing
 
-Read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a change. This project is available under the [MIT License](LICENSE).
+Read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a change. Security issues go through [SECURITY.md](.github/SECURITY.md). Andes NG is available under the [MIT License](LICENSE).
