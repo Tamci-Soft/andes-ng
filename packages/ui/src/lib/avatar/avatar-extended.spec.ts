@@ -550,7 +550,7 @@ describe('AndesAvatarGroupCount click trigger', () => {
 
     // Angular scopes the keyframes name to the component, so match its tail.
     expect(style.animation).toContain(
-      'andes-avatar-panel-in 0.15s cubic-bezier(0.2, 0, 0, 1)',
+      'andes-avatar-panel-in 280ms cubic-bezier(0.16, 1, 0.3, 1)',
     );
     expect(style.fontSize).toBe('0.875rem');
     expect(style.lineHeight).toBe('1.375rem');
@@ -567,8 +567,8 @@ describe('AndesAvatarGroupCount click trigger', () => {
     const style = getComputedStyle(el);
 
     expect(style.animation).toContain('andes-avatar-panel-out');
-    expect(style.animation).toContain('var(--andes-duration-fast, 120ms)');
-    expect(style.animation).toContain('var(--andes-ease-in, ease-in)');
+    expect(style.animation).toContain('200ms');
+    expect(style.animation).toContain('cubic-bezier(0.4, 0, 0.6, 1)');
     expect(style.animation).toContain('forwards');
     expect(style.pointerEvents).toBe('none');
   });

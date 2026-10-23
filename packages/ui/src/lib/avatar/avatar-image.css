@@ -15,6 +15,22 @@ img {
      AndesAvatarImage used outside any AndesAvatar. */
   border-radius: var(--andes-avatar-radius, 0);
   object-fit: cover;
+
+  /* A photo fades in when it arrives (it is shown only once loaded) rather than popping in
+     over the initials. */
+  animation: andes-avatar-image-in 320ms ease-out;
+}
+
+@keyframes andes-avatar-image-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  img {
+    animation: none;
+  }
 }
 
 img[hidden] {
