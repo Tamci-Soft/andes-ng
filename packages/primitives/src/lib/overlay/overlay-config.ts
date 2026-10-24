@@ -69,6 +69,12 @@ export interface AndesOverlayAnchoredPositioning {
   readonly crossSideFallback?: boolean;
   /** Shift along the cross axis to stay on screen. Default `true`. */
   readonly shift?: boolean;
+  /**
+   * Let the overlay shrink to the room on its side (down to `size.minHeight`/`minWidth`)
+   * instead of being pushed over its anchor when it fits on neither side. The content
+   * then has to scroll within the pane. Default `false`.
+   */
+  readonly flexibleDimensions?: boolean;
   /** Minimum px kept between the overlay and the viewport edge. Default `8`. */
   readonly viewportMargin?: number;
   /** Size the overlay to the anchor's width (Select/Combobox-style). Default `false`. */

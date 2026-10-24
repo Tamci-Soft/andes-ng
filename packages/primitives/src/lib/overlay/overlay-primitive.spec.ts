@@ -1369,6 +1369,30 @@ describe('AndesOverlayPrimitive', () => {
       );
     });
 
+    it('falls back to the perpendicular sides only while crossSideFallback is on', () => {
+      const sides = (crossSideFallback?: boolean) =>
+        andesConnectedPositions(
+          'bottom',
+          'start',
+          4,
+          0,
+          true,
+          crossSideFallback,
+        ).map((p) => `${p.originY}/${p.overlayY}/${p.originX}/${p.overlayX}`);
+
+      // bottom, top (the flip), then right and left.
+      expect(sides()).toEqual([
+        'bottom/top/start/start',
+        'top/bottom/start/start',
+        'top/top/end/start',
+        'top/top/start/end',
+      ]);
+      expect(sides(false)).toEqual([
+        'bottom/top/start/start',
+        'top/bottom/start/start',
+      ]);
+    });
+
     it('lets an explicit size win over the positioning-implied one', () => {
       const { fixture, host, pane } = createHost({
         ...andesOverlayPreset('drawer'),
