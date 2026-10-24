@@ -1,0 +1,218 @@
+<div [class]="rootClass()" data-slot="upload-root" (paste)="onPaste($event)">
+  @if (isCardList()) {
+  <div class="andes-upload__cards" data-slot="upload-cards">
+    <ng-container *ngTemplateOutlet="list" />
+    <ng-container *ngTemplateOutlet="trigger" />
+  </div>
+  } @else {
+  <ng-container *ngTemplateOutlet="trigger" />
+  <ng-container *ngTemplateOutlet="list" />
+  }
+  <span
+    class="andes-upload__live"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    >{{ announcement() }}</span
+  >
+</div>
+
+<ng-template #trigger>
+  <!-- The file input inside is the keyboard stop; the click only forwards pointer users to it. -->
+  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+  <div
+    class="andes-upload__select"
+    data-slot="upload-trigger"
+    [class.andes-upload__select--drag]="dragMode"
+    [class.andes-upload__select--card]="isCardList()"
+    [class.andes-upload__select--invalid]="ariaInvalid()"
+    [attr.data-circle]="listType() === 'picture-circle' ? '' : null"
+    [attr.data-dragging]="dragging() ? '' : null"
+    [attr.data-disabled]="triggerBlocked() ? '' : null"
+    [hidden]="triggerHidden()"
+    (click)="onTriggerClick($event)"
+    (dragenter)="onDragEnter($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+  >
+    <input
+      #fileInput
+      class="andes-upload__input"
+      type="file"
+      [attr.id]="id()"
+      [attr.name]="name()"
+      [attr.accept]="accept() || null"
+      [multiple]="multiple() || directory()"
+      [disabled]="triggerBlocked()"
+      [attr.webkitdirectory]="directory() ? '' : null"
+      [attr.aria-label]="ariaLabelledby() ? null : (ariaLabel() ?? msg().selectFiles)"
+      [attr.aria-labelledby]="ariaLabelledby()"
+      [attr.aria-describedby]="ariaDescribedby()"
+      [attr.aria-invalid]="ariaInvalid() ? 'true' : null"
+      (change)="onInputChange($event)"
+    />
+    @if (dragMode) {
+    <div class="andes-upload__drag" data-slot="upload-dragger">
+      <span class="andes-upload__drag-icon">
+        @if (dropIcon(); as icon) {
+        <ng-container *ngTemplateOutlet="icon" />
+        } @else {
+        <andes-upload-icon name="cloud-upload" />
+        }
+      </span>
+      <p class="andes-upload__drag-title">
+        {{ dropTitle() ?? msg().dropTitle }}
+      </p>
+      @if (dropHint()) {
+      <p class="andes-upload__drag-hint">{{ dropHint() }}</p>
+      }
+    </div>
+    }
+    <div class="andes-upload__projected" #projected><ng-content /></div>
+    @if (!dragMode && !hasContent()) {
+    <span class="andes-upload__default">
+      <andes-upload-icon name="upload" />
+      {{ msg().selectFiles }}
+    </span>
+    }
+  </div>
+</ng-template>
+
+<ng-template #list>
+  @if (listConfig().show && items().length > 0) {
+  <ul
+    class="andes-upload__list"
+    role="list"
+    data-slot="upload-list"
+    [attr.aria-label]="msg().fileList"
+    [attr.data-list-type]="listType()"
+  >
+    @for (item of items(); track item.uid) {
+    <li
+      class="andes-upload__item"
+      role="listitem"
+      data-slot="upload-item"
+      [attr.data-status]="item.status"
+      [attr.data-uid]="item.uid"
+    >
+      @if (itemRender(); as render) {
+      <ng-container *ngTemplateOutlet="render; context: item.ctx" />
+      } @else {
+      <ng-container
+        *ngTemplateOutlet="defaultItem; context: { $implicit: item }"
+      />
+      }
+    </li>
+    }
+  </ul>
+  }
+</ng-template>
+
+<ng-template #defaultItem let-item>
+  <div
+    class="andes-upload__row"
+    [class.andes-upload__row--boxed]="listType() !== 'text'"
+  >
+    <span
+      class="andes-upload__thumb"
+      data-slot="upload-item-icon"
+      [class.andes-upload__thumb--picture]="!!item.thumb"
+    >
+      @if (iconRender(); as render) {
+      <ng-container *ngTemplateOutlet="render; context: item.iconCtx" />
+      } @else if (item.thumb) {
+      <img class="andes-upload__img" [src]="item.thumb" alt="" />
+      } @else {
+      <andes-upload-icon [name]="item.icon" />
+      }
+    </span>
+    <span
+      class="andes-upload__meta"
+      [class.andes-upload__meta--sr]="isCardList() && !!item.thumb"
+    >
+      @if (item.file.url && item.status === 'done') {
+      <a
+        class="andes-upload__name andes-upload__name--link"
+        target="_blank"
+        rel="noopener noreferrer"
+        [attr.href]="item.file.url"
+        [attr.title]="item.file.name"
+        >{{ item.file.name }}</a
+      >
+      } @else {
+      <span class="andes-upload__name" [attr.title]="item.file.name"
+        >{{ item.file.name }}</span
+      >
+      } @if (item.errorText) {
+      <span class="andes-upload__error">{{ item.errorText }}</span>
+      } @else if (item.caption) {
+      <span class="andes-upload__caption">{{ item.caption }}</span>
+      }
+    </span>
+    <span
+      class="andes-upload__actions"
+      [class.andes-upload__actions--busy]="item.status === 'uploading'"
+    >
+      @if (item.canPreview) {
+      <button
+        type="button"
+        class="andes-upload__action"
+        [attr.aria-label]="item.labels.preview"
+        [attr.title]="item.labels.preview"
+        (click)="onPreviewClick(item.file, $event)"
+      >
+        <andes-upload-icon name="eye" />
+      </button>
+      } @if (item.canDownload) {
+      <a
+        class="andes-upload__action"
+        download
+        target="_blank"
+        rel="noopener noreferrer"
+        [attr.href]="item.file.url"
+        [attr.aria-label]="item.labels.download"
+        [attr.title]="item.labels.download"
+        (click)="onDownloadClick(item.file, $event)"
+      >
+        <andes-upload-icon name="download" />
+      </a>
+      } @if (item.canRetry) {
+      <button
+        type="button"
+        class="andes-upload__action"
+        [attr.aria-label]="item.labels.retry"
+        [attr.title]="item.labels.retry"
+        (click)="onRetryClick(item.file)"
+      >
+        <andes-upload-icon name="retry" />
+      </button>
+      } @if (item.canRemove) {
+      <button
+        type="button"
+        class="andes-upload__action"
+        [attr.aria-label]="item.labels.remove"
+        [attr.title]="item.labels.remove"
+        (click)="onRemoveClick(item.file)"
+      >
+        <andes-upload-icon [name]="isCardList() ? 'trash' : 'x'" />
+      </button>
+      }
+    </span>
+  </div>
+  @if (item.status === 'uploading') {
+  <div
+    class="andes-upload__progress"
+    role="progressbar"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    [attr.aria-valuenow]="item.percent"
+    [attr.aria-label]="item.labels.uploading"
+  >
+    <span
+      class="andes-upload__progress-bar"
+      [style.inline-size.%]="item.percent"
+    ></span>
+  </div>
+  }
+</ng-template>

@@ -157,6 +157,6 @@ export * from './lib/tree';
 
 export * from './lib/typography';
 
-// @slot upload
+export * from './lib/upload';
 
 // @slot watermark
