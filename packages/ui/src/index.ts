@@ -27,7 +27,7 @@ export * from './lib/button';
 
 export * from './lib/card';
 
-// @slot carousel
+export * from './lib/carousel';
 
 // @slot cascader
 

@@ -1,0 +1,104 @@
+:host {
+  /* One slot of the shared grid cell; its offset from the start edge decides where it
+     sits. `100%` inside `translate` is the slide's own size, so a step is one slide plus
+     the gap. The shift lines the selected slide up with `align`. */
+  --_distance: calc(
+    var(--andes-carousel-index, 0) - var(--andes-carousel-position, 0) +
+      var(--andes-carousel-shift, 0)
+  );
+  --_offset: var(--_distance);
+
+  display: block;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  grid-area: 1 / 1;
+  justify-self: start;
+  align-self: start;
+  width: calc(
+    (
+        100% - (var(--andes-carousel-per-view, 1) - 1) *
+          var(--andes-carousel-gap, 0px)
+      ) /
+      var(--andes-carousel-per-view, 1)
+  );
+  transform: translate(
+    calc(
+      var(--_offset) * (100% + var(--andes-carousel-gap, 0px)) *
+        var(--andes-carousel-dir, 1)
+    ),
+    0
+  );
+  will-change: transform;
+}
+
+/* A fixed viewport shape: slides stretch to fill it. */
+:host([data-fill]) {
+  align-self: stretch;
+}
+
+/* Looping: slides leaving one end re-enter at the other, off screen, so the shared position
+   alone drives a seamless loop. `window-start` is the first offset a slide may occupy. */
+:host([data-wrap]) {
+  --_offset: calc(
+    var(--andes-carousel-window-start, -1) +
+      mod(
+        var(--_distance) - var(--andes-carousel-window-start, -1),
+        var(--andes-carousel-count, 1)
+      )
+  );
+}
+
+:host([data-orientation='vertical']) {
+  justify-self: stretch;
+  width: auto;
+  height: calc(
+    (
+        100% - (var(--andes-carousel-per-view, 1) - 1) *
+          var(--andes-carousel-gap, 0px)
+      ) /
+      var(--andes-carousel-per-view, 1)
+  );
+  transform: translate(
+    0,
+    calc(var(--_offset) * (100% + var(--andes-carousel-gap, 0px)))
+  );
+}
+
+/* Slide and fade: the part of a slide outside the view fades out the further it is. */
+:host([data-effect='slide-fade']) {
+  --_out: max(
+    0,
+    calc(var(--_offset) * -1),
+    calc(var(--_offset) - (var(--andes-carousel-per-view, 1) - 1))
+  );
+
+  opacity: calc(1 - min(1, var(--_out)));
+}
+
+/* Cross-fade: every slide fills the same cell and only opacity changes. */
+:host([data-effect='fade']) {
+  width: 100%;
+  transform: none;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 0;
+  will-change: opacity;
+
+  /* The slide that leaves stays fully opaque under the one arriving on top of it and
+     only then disappears: fading both at once would let the page show through the
+     middle of the change. */
+  transition:
+    opacity 0s linear var(--andes-carousel-speed, 550ms),
+    visibility 0s linear var(--andes-carousel-speed, 550ms);
+}
+
+:host([data-effect='fade'][data-state='active']) {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+  transition:
+    opacity var(--andes-carousel-speed, 550ms)
+      var(--andes-carousel-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+    visibility 0s;
+}
