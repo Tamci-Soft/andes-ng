@@ -133,7 +133,7 @@ export * from './lib/switch';
 
 export * from './lib/table';
 
-// @slot tabs
+export * from './lib/tabs';
 
 export * from './lib/tag';
 
