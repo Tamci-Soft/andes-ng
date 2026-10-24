@@ -93,9 +93,9 @@ export * from './lib/pagination';
 
 export * from './lib/palette';
 
-// @slot popconfirm
+export * from './lib/popconfirm';
 
-// @slot popover
+export * from './lib/popover';
 
 // @slot progress
 

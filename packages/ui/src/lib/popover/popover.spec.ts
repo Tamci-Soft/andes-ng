@@ -1,0 +1,1459 @@
+import { Component, signal, TemplateRef, viewChild } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { readFileSync } from 'node:fs';
+import { By } from '@angular/platform-browser';
+import { AndesOverlayPrimitive } from '@andes-ng/primitives';
+
+import { AndesButton } from '../button/button';
+import type {
+  AndesPopoverPlacement,
+  AndesPopoverRenderable,
+  AndesPopoverTriggerAction,
+} from './popover-types';
+
+import { AndesPopoverContent } from './popover-content';
+import {
+  AndesPopoverClose,
+  AndesPopoverDescription,
+  AndesPopoverHeader,
+  AndesPopoverTitle,
+} from './popover-parts';
+import { AndesPopoverTrigger } from './popover-trigger';
+import { AndesPopover } from './popover';
+import type { AndesOverlayAlign, AndesOverlaySide } from '@andes-ng/primitives';
+
+/**
+ * jsdom reports zero geometry for every element, which makes CDK's
+ * `InteractivityChecker` treat them all as invisible and therefore untabbable -
+ * the same workaround the shared overlay primitive's own spec uses.
+ */
+function withElementGeometry() {
+  const descriptors = (['offsetWidth', 'offsetHeight'] as const).map(
+    (prop) =>
+      [
+        prop,
+        Object.getOwnPropertyDescriptor(HTMLElement.prototype, prop),
+      ] as const,
+  );
+
+  beforeAll(() => {
+    for (const [prop] of descriptors) {
+      Object.defineProperty(HTMLElement.prototype, prop, {
+        configurable: true,
+        get: () => 1,
+      });
+    }
+  });
+
+  afterAll(() => {
+    for (const [prop, descriptor] of descriptors) {
+      if (descriptor) {
+        Object.defineProperty(HTMLElement.prototype, prop, descriptor);
+      } else {
+        delete (HTMLElement.prototype as unknown as Record<string, unknown>)[
+          prop
+        ];
+      }
+    }
+  });
+}
+
+@Component({
+  imports: [AndesPopover, AndesPopoverTrigger, AndesPopoverContent],
+  template: `
+    <button type="button" id="outside">Outside</button>
+    <andes-popover
+      [side]="side()"
+      [align]="align()"
+      [showArrow]="showArrow()"
+      [(open)]="open"
+    >
+      <button type="button" id="trigger" andesPopoverTrigger>Open</button>
+      <andes-popover-content>
+        <button type="button" id="first">First</button>
+        <input id="middle" />
+      </andes-popover-content>
+    </andes-popover>
+  `,
+})
+class HostComponent {
+  readonly side = signal<AndesOverlaySide>('bottom');
+  readonly align = signal<AndesOverlayAlign>('center');
+  readonly showArrow = signal(false);
+  readonly open = signal(false);
+}
+
+describe('AndesPopover', () => {
+  withElementGeometry();
+
+  function createHost() {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    const query = (id: string) =>
+      (document.querySelector(`#${id}`) as HTMLElement) ?? null;
+
+    return {
+      fixture,
+      host: fixture.componentInstance,
+      trigger: () => query('trigger'),
+      outside: () => query('outside'),
+      panel: () =>
+        document.querySelector('.andes-popover-content') as HTMLElement | null,
+      first: () => query('first'),
+      middle: () => query('middle'),
+    };
+  }
+
+  function pressEscape() {
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        keyCode: 27,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  }
+
+  function clickOn(element: Element) {
+    element.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, cancelable: true }),
+    );
+    element.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+  }
+
+  it('renders nothing until the trigger is clicked', () => {
+    const { panel } = createHost();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('opens the panel on trigger click', () => {
+    const { fixture, trigger, panel } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+
+    expect(panel()).toBeTruthy();
+  });
+
+  it('closes the panel on a second trigger click (toggle)', () => {
+    const { fixture, trigger, panel } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+    expect(panel()).toBeTruthy();
+
+    trigger().click();
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('closes on Escape', () => {
+    const { fixture, trigger, panel } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+    expect(panel()).toBeTruthy();
+
+    pressEscape();
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('closes on an outside click', () => {
+    const { fixture, trigger, outside, panel } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+    expect(panel()).toBeTruthy();
+
+    clickOn(outside());
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('does not close on a click inside the panel', () => {
+    const { fixture, trigger, middle, panel } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+
+    clickOn(middle());
+    fixture.detectChanges();
+
+    expect(panel()).toBeTruthy();
+  });
+
+  it('renders the panel inside the CDK overlay container, positioned relative to the trigger', () => {
+    const { fixture, trigger, panel } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+
+    const rendered = panel();
+    expect(rendered?.closest('.cdk-overlay-container')).toBeTruthy();
+    expect(
+      rendered
+        ?.closest('.cdk-overlay-connected-position-bounding-box')
+        ?.classList.contains('cdk-overlay-connected-position-bounding-box'),
+    ).toBe(true);
+  });
+
+  it('exposes aria-haspopup/aria-expanded/aria-controls on the trigger', () => {
+    const { fixture, trigger, panel } = createHost();
+
+    expect(trigger().getAttribute('aria-expanded')).toBe('false');
+    expect(trigger().getAttribute('aria-haspopup')).toBe('dialog');
+
+    trigger().click();
+    fixture.detectChanges();
+
+    expect(trigger().getAttribute('aria-expanded')).toBe('true');
+    expect(trigger().getAttribute('aria-controls')).toBe(panel()?.id);
+  });
+
+  it('does not trap focus - Tab can move focus out of the panel while open', async () => {
+    const { fixture, trigger, outside } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    outside().focus();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(document.activeElement).toBe(outside());
+  });
+
+  it('moves focus into the panel on open, without trapping it', async () => {
+    const { fixture, trigger, first } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(document.activeElement).toBe(first());
+  });
+
+  it('restores focus to the trigger on close', async () => {
+    const { fixture, trigger } = createHost();
+
+    trigger().focus();
+    trigger().click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    pressEscape();
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(trigger());
+  });
+
+  it.each([
+    ['top', 'start'],
+    ['right', 'center'],
+    ['bottom', 'end'],
+    ['left', 'center'],
+  ] as const)(
+    'reflects side=%s align=%s as data attributes on the panel',
+    (side, align) => {
+      const { fixture, host, trigger, panel } = createHost();
+      host.side.set(side);
+      host.align.set(align);
+      fixture.detectChanges();
+
+      trigger().click();
+      fixture.detectChanges();
+
+      expect(panel()?.getAttribute('data-side')).toBe(side);
+      expect(panel()?.getAttribute('data-align')).toBe(align);
+    },
+  );
+
+  it('renders no arrow by default', () => {
+    const { fixture, trigger, panel } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+
+    expect(panel()?.querySelector('.andes-popover-arrow')).toBeFalsy();
+  });
+
+  it('renders an arrow when showArrow is set', () => {
+    const { fixture, host, trigger, panel } = createHost();
+    host.showArrow.set(true);
+    fixture.detectChanges();
+
+    trigger().click();
+    fixture.detectChanges();
+
+    const arrow = panel()?.querySelector('.andes-popover-arrow');
+    expect(arrow).toBeTruthy();
+    expect(arrow?.getAttribute('data-side')).toBe('bottom');
+  });
+
+  it('supports controlled usage via the two-way open binding', () => {
+    const { fixture, host, panel } = createHost();
+
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()).toBeTruthy();
+
+    host.open.set(false);
+    fixture.detectChanges();
+
+    expect(panel()).toBeNull();
+  });
+
+  it('renders no backdrop, matching the non-modal popover preset', () => {
+    const { fixture, trigger } = createHost();
+
+    trigger().click();
+    fixture.detectChanges();
+
+    expect(document.querySelector('.andes-overlay-backdrop')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Extended features: structured title/content, trigger modes, placements,
+// collision handling, destroyOnHidden, zIndex, disabled handling.
+// ---------------------------------------------------------------------------
+
+@Component({
+  imports: [AndesPopover, AndesPopoverTrigger],
+  template: `
+    <button type="button" id="outside">Outside</button>
+    <input id="other" />
+    <andes-popover
+      [title]="title()"
+      [content]="content()"
+      [placement]="placement()"
+      [trigger]="trigger()"
+      [openDelay]="openDelay()"
+      [closeDelay]="closeDelay()"
+      [disabled]="disabled()"
+      [destroyOnHidden]="destroyOnHidden()"
+      [zIndex]="zIndex()"
+      [showArrow]="showArrow()"
+      [arrowPointAtCenter]="pointAtCenter()"
+      [autoAdjustOverflow]="autoAdjust()"
+      [maxHeight]="maxHeight()"
+      [(open)]="open"
+      (openChange)="changes.push($event)"
+    >
+      <button
+        type="button"
+        id="trigger"
+        andesPopoverTrigger
+        [attr.aria-disabled]="triggerDisabled() || null"
+      >
+        Open
+      </button>
+    </andes-popover>
+    <ng-template #titleTpl><em id="title-tpl">Rich title</em></ng-template>
+    <ng-template #bodyTpl>
+      <input id="body-input" />
+      <span id="body-tpl">Rich body</span>
+    </ng-template>
+  `,
+})
+class FeatureHost {
+  readonly title = signal<AndesPopoverRenderable | undefined>('Title');
+  readonly content = signal<AndesPopoverRenderable | undefined>('Body');
+  readonly placement = signal<AndesPopoverPlacement | undefined>(undefined);
+  readonly trigger = signal<
+    AndesPopoverTriggerAction | AndesPopoverTriggerAction[]
+  >('click');
+  readonly openDelay = signal(100);
+  readonly closeDelay = signal(100);
+  readonly disabled = signal(false);
+  readonly destroyOnHidden = signal(false);
+  readonly zIndex = signal<number | undefined>(undefined);
+  readonly showArrow = signal(false);
+  readonly pointAtCenter = signal(false);
+  readonly autoAdjust = signal(true);
+  readonly maxHeight = signal<number | string | undefined>(undefined);
+  readonly triggerDisabled = signal(false);
+  readonly open = signal(false);
+  readonly changes: boolean[] = [];
+  readonly titleTpl = viewChild.required<TemplateRef<unknown>>('titleTpl');
+  readonly bodyTpl = viewChild.required<TemplateRef<unknown>>('bodyTpl');
+}
+
+@Component({
+  imports: [AndesPopover, AndesPopoverTrigger, AndesButton],
+  template: `
+    <andes-popover title="Static title" content="Body">
+      <andes-button id="wrapper" andesPopoverTrigger>Open</andes-button>
+    </andes-popover>
+    <andes-popover content="Body">
+      <andes-button id="disabled-wrapper" andesPopoverTrigger disabled
+        >Disabled</andes-button
+      >
+    </andes-popover>
+  `,
+})
+class WrapperHost {}
+
+describe('AndesPopover - extended features', () => {
+  withElementGeometry();
+
+  function setup() {
+    const fixture = TestBed.createComponent(FeatureHost);
+    fixture.detectChanges();
+    const host = fixture.componentInstance;
+    const byId = (id: string) => document.getElementById(id) as HTMLElement;
+    const panel = () =>
+      document.querySelector('.andes-popover-content') as HTMLElement | null;
+    const overlay = fixture.debugElement
+      .query(By.directive(AndesPopover))
+      .injector.get(AndesOverlayPrimitive);
+    const update = () => fixture.detectChanges();
+    return {
+      fixture,
+      host,
+      byId,
+      panel,
+      overlay,
+      update,
+      trigger: () => byId('trigger'),
+    };
+  }
+
+  function fire(element: Element, type: string, init: EventInit = {}) {
+    const event = new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      ...init,
+    });
+    element.dispatchEvent(event);
+    return event;
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  describe('maxHeight', () => {
+    it('leaves the panel uncapped by default', () => {
+      const { trigger, panel, update } = setup();
+      trigger().click();
+      update();
+
+      expect(panel()?.hasAttribute('data-scrollable')).toBe(false);
+      expect(
+        panel()?.style.getPropertyValue('--andes-popover-max-height'),
+      ).toBe('');
+      expect(
+        panel()
+          ?.querySelector('.andes-popover-scroll')
+          ?.hasAttribute('tabindex'),
+      ).toBe(false);
+    });
+
+    it('caps the panel at a px number and scrolls only the region below the title', () => {
+      const { host, trigger, panel, update } = setup();
+      host.maxHeight.set(240);
+      update();
+      trigger().click();
+      update();
+
+      const surface = panel() as HTMLElement;
+      expect(surface.hasAttribute('data-scrollable')).toBe(true);
+      expect(surface.style.getPropertyValue('--andes-popover-max-height')).toBe(
+        '240px',
+      );
+      const scroll = surface.querySelector('.andes-popover-scroll');
+      expect(scroll?.querySelector('.andes-popover-body')).not.toBeNull();
+      // The title stays outside the scrolling region, so it remains in view.
+      expect(scroll?.querySelector('.andes-popover-title')).toBeNull();
+      expect(
+        surface.querySelector(':scope > .andes-popover-title'),
+      ).not.toBeNull();
+      // A tab stop, so long text can be scrolled from the keyboard.
+      expect(scroll?.getAttribute('tabindex')).toBe('0');
+    });
+
+    it('passes a CSS length through unchanged', () => {
+      const { host, trigger, panel, update } = setup();
+      host.maxHeight.set('50vh');
+      update();
+      trigger().click();
+      update();
+
+      expect(
+        panel()?.style.getPropertyValue('--andes-popover-max-height'),
+      ).toBe('50vh');
+    });
+
+    it('scrolls the inner region, never the surface the arrow hangs off', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      const surface =
+        /\.andes-popover-content\[data-scrollable\] \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(surface).toContain('max-height: var(--andes-popover-max-height);');
+      expect(surface).not.toContain('overflow');
+      const region =
+        /\.andes-popover-content\[data-scrollable\] > \.andes-popover-scroll \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(region).toContain('overflow-y: auto;');
+      expect(region).toContain('min-height: 0;');
+    });
+  });
+
+  describe('title and content', () => {
+    it('renders string title and content as structured header/body parts', () => {
+      const { trigger, panel, update } = setup();
+      trigger().click();
+      update();
+
+      const title = panel()?.querySelector('.andes-popover-title');
+      const body = panel()?.querySelector('.andes-popover-body');
+      expect(title?.textContent?.trim()).toBe('Title');
+      expect(body?.textContent?.trim()).toBe('Body');
+      expect(panel()?.getAttribute('role')).toBe('dialog');
+      expect(panel()?.getAttribute('aria-labelledby')).toBe(title?.id);
+    });
+
+    it('sets a 16/24 semibold title over the 14/22 panel text', () => {
+      const { trigger, panel, update } = setup();
+      trigger().click();
+      update();
+
+      const surface = getComputedStyle(panel() as Element);
+      expect(surface.fontSize).toBe('var(--andes-text-font-size, 0.875rem)');
+      expect(surface.lineHeight).toBe(
+        'var(--andes-text-line-height, 1.375rem)',
+      );
+      const title = getComputedStyle(
+        panel()?.querySelector('.andes-popover-title') as Element,
+      );
+      expect(title.fontSize).toBe('1rem');
+      expect(title.lineHeight).toBe('1.5rem');
+      expect(title.fontWeight).toBe('600');
+    });
+
+    it('enters with a 150ms soft fade and a drift of at most 4px', () => {
+      // Read from the stylesheet source: jsdom runs no animations, and keyframes
+      // are not reflected in the computed style.
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      expect(css).toContain(
+        'animation: andes-popover-in 0.15s cubic-bezier(0.2, 0, 0, 1);',
+      );
+      const keyframes =
+        /@keyframes andes-popover-in\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+      expect(keyframes).toContain(
+        'translate: var(--andes-popover-enter-from, 0 -4px);',
+      );
+      const offsets = [...css.matchAll(/--andes-popover-enter-from: ([^;]+);/g)]
+        .flatMap((m) => m[1].match(/-?\d+px/g) ?? [])
+        .map((px) => Math.abs(Number.parseInt(px, 10)));
+      expect(offsets.length).toBeGreaterThan(0);
+      expect(Math.max(...offsets)).toBeLessThanOrEqual(4);
+    });
+
+    it('keeps the arrow strokes on the panel border instead of poking into the panel', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      // A clip that overshoots the arrow's base by 1px leaves a visible step where the
+      // outline strokes meet the border; only a sub-pixel overlap is allowed.
+      const clips = [
+        ...css.matchAll(/clip-path: polygon\(([^)]*\)?[^;]*)\);/g),
+      ];
+      expect(clips.length).toBe(4);
+      for (const [, polygon] of clips) {
+        expect(polygon).not.toMatch(/[+-]\s?1px/);
+        expect(polygon).toMatch(/0\.25px/);
+      }
+    });
+
+    it('leaves with a quicker, accelerating mirror of its entry', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      const rule =
+        /:host-context\(\[data-andes-closing\]\) \.andes-popover-content \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(rule).toContain('pointer-events: none;');
+      expect(rule).toMatch(
+        /animation: andes-popover-out var\(--andes-duration-fast, 120ms\)\s+var\(--andes-ease-in, [^)]+\)\) forwards;/,
+      );
+      const keyframes =
+        /@keyframes andes-popover-out\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+      expect(keyframes).toMatch(
+        /to \{\s*opacity: 0;\s*translate: var\(--andes-popover-enter-from, 0 -4px\);/,
+      );
+      const reduced = css.slice(
+        css.indexOf('@media (prefers-reduced-motion: reduce)'),
+      );
+      expect(reduced).toMatch(
+        /:host-context\(\[data-andes-closing\]\) \.andes-popover-content \{\s*animation: none;/,
+      );
+    });
+
+    it('deepens the success and info fills and the warning text for 4.5:1', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      ).replace(/\s+/g, ' ');
+      const rule = (color: string) =>
+        ruleBody(css, `.andes-popover-content[data-color='${color}']`);
+      expect(rule('success')).toContain(
+        '--andes-popover-background: color-mix( in srgb, var(--andes-color-success) 80%, #000 );',
+      );
+      expect(rule('info')).toContain(
+        '--andes-popover-background: color-mix( in srgb, var(--andes-color-info) 85%, #000 );',
+      );
+      expect(rule('warning')).toContain(
+        '--andes-popover-foreground: color-mix( in srgb, var(--andes-color-warning-foreground) 70%, #000 );',
+      );
+    });
+
+    it('sets the body in the muted foreground under a title', () => {
+      const css = readFileSync(
+        'packages/ui/src/lib/popover/popover-content.css',
+        'utf8',
+      );
+      const rule =
+        /\.andes-popover-title \+ \.andes-popover-scroll > \.andes-popover-body \{([^}]*)\}/.exec(
+          css,
+        )?.[1] ?? '';
+      expect(rule).toContain('--andes-popover-muted-foreground');
+      expect(rule).toContain('var(--andes-color-muted-foreground)');
+    });
+
+    it('renders template title and content', () => {
+      const { host, trigger, panel, update } = setup();
+      host.title.set(host.titleTpl());
+      host.content.set(host.bodyTpl());
+      update();
+      trigger().click();
+      update();
+
+      expect(
+        panel()?.querySelector('.andes-popover-title #title-tpl')?.textContent,
+      ).toBe('Rich title');
+      expect(
+        panel()?.querySelector('.andes-popover-body #body-tpl')?.textContent,
+      ).toBe('Rich body');
+    });
+
+    it('omits the header and aria-labelledby without a title', () => {
+      const { host, trigger, panel, update } = setup();
+      host.title.set(undefined);
+      update();
+      trigger().click();
+      update();
+
+      expect(panel()?.querySelector('.andes-popover-title')).toBeNull();
+      expect(panel()?.hasAttribute('aria-labelledby')).toBe(false);
+    });
+
+    it('does not leak a static title attribute onto the host (no native tooltip)', () => {
+      const fixture = TestBed.createComponent(WrapperHost);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement
+          .querySelector('andes-popover')
+          .hasAttribute('title'),
+      ).toBe(false);
+    });
+  });
+
+  describe('trigger modes', () => {
+    it('hover: opens after openDelay and closes after closeDelay, without moving focus', async () => {
+      vi.useFakeTimers();
+      const { host, trigger, panel, update, byId } = setup();
+      host.trigger.set('hover');
+      update();
+      byId('other').focus();
+
+      fire(trigger(), 'mouseenter');
+      vi.advanceTimersByTime(99);
+      update();
+      expect(panel()).toBeNull();
+
+      vi.advanceTimersByTime(1);
+      update();
+      await vi.runOnlyPendingTimersAsync();
+      update();
+      expect(panel()).toBeTruthy();
+      expect(document.activeElement).toBe(byId('other'));
+
+      fire(trigger(), 'mouseleave');
+      vi.advanceTimersByTime(100);
+      update();
+      expect(panel()).toBeNull();
+      expect(document.activeElement).toBe(byId('other'));
+    });
+
+    it('hover: moving the pointer onto the panel keeps it open', () => {
+      vi.useFakeTimers();
+      const { host, trigger, panel, update } = setup();
+      host.trigger.set('hover');
+      host.openDelay.set(0);
+      update();
+
+      fire(trigger(), 'mouseenter');
+      update();
+      expect(panel()).toBeTruthy();
+
+      fire(trigger(), 'mouseleave');
+      vi.advanceTimersByTime(50);
+      fire(panel() as HTMLElement, 'mouseenter');
+      vi.advanceTimersByTime(200);
+      update();
+      expect(panel()).toBeTruthy();
+
+      fire(panel() as HTMLElement, 'mouseleave');
+      vi.advanceTimersByTime(100);
+      update();
+      expect(panel()).toBeNull();
+    });
+
+    it('hover only: a click does not open it', () => {
+      const { host, trigger, panel, update } = setup();
+      host.trigger.set('hover');
+      update();
+
+      trigger().click();
+      update();
+      expect(panel()).toBeNull();
+    });
+
+    it('focus: opens on focus and closes when focus leaves', () => {
+      const { host, trigger, panel, update, byId } = setup();
+      host.trigger.set('focus');
+      update();
+
+      trigger().focus();
+      update();
+      expect(panel()).toBeTruthy();
+      expect(document.activeElement).toBe(trigger());
+
+      byId('other').focus();
+      update();
+      expect(panel()).toBeNull();
+    });
+
+    it('contextMenu: opens on right click and suppresses the native menu', () => {
+      const { host, trigger, panel, update } = setup();
+      host.trigger.set('contextMenu');
+      update();
+
+      trigger().click();
+      update();
+      expect(panel()).toBeNull();
+
+      const event = fire(trigger(), 'contextmenu');
+      update();
+      expect(event.defaultPrevented).toBe(true);
+      expect(panel()).toBeTruthy();
+    });
+
+    it('combined hover + click: a click pins a hover-opened panel', () => {
+      vi.useFakeTimers();
+      const { host, trigger, panel, update } = setup();
+      host.trigger.set(['hover', 'click']);
+      host.openDelay.set(0);
+      update();
+
+      fire(trigger(), 'mouseenter');
+      update();
+      expect(panel()).toBeTruthy();
+
+      trigger().click();
+      update();
+      fire(trigger(), 'mouseleave');
+      vi.advanceTimersByTime(500);
+      update();
+      expect(panel()).toBeTruthy();
+
+      trigger().click();
+      update();
+      expect(panel()).toBeNull();
+    });
+  });
+
+  describe('placement', () => {
+    it.each([
+      ['top', 'top', 'center'],
+      ['topLeft', 'top', 'start'],
+      ['topRight', 'top', 'end'],
+      ['bottom', 'bottom', 'center'],
+      ['bottomLeft', 'bottom', 'start'],
+      ['bottomRight', 'bottom', 'end'],
+      ['left', 'left', 'center'],
+      ['leftTop', 'left', 'start'],
+      ['leftBottom', 'left', 'end'],
+      ['right', 'right', 'center'],
+      ['rightTop', 'right', 'start'],
+      ['rightBottom', 'right', 'end'],
+    ] as const)('%s maps to side=%s align=%s', (placement, side, align) => {
+      const { host, trigger, panel, update, overlay } = setup();
+      host.placement.set(placement);
+      update();
+      trigger().click();
+      update();
+
+      expect(panel()?.getAttribute('data-side')).toBe(side);
+      expect(panel()?.getAttribute('data-align')).toBe(align);
+      expect(overlay.config().positioning).toMatchObject({ side, align });
+    });
+  });
+
+  describe('collision handling and arrow', () => {
+    function mockGeometry(rects: {
+      trigger: Partial<DOMRect>;
+      panel: Partial<DOMRect>;
+    }) {
+      const toRect = (r: Partial<DOMRect>) => {
+        const left = r.left ?? 0;
+        const top = r.top ?? 0;
+        const width = r.width ?? 0;
+        const height = r.height ?? 0;
+        return {
+          left,
+          top,
+          width,
+          height,
+          x: left,
+          y: top,
+          right: left + width,
+          bottom: top + height,
+          toJSON: () => ({}),
+        } as DOMRect;
+      };
+      vi.spyOn(
+        HTMLElement.prototype,
+        'getBoundingClientRect',
+      ).mockImplementation(function (this: HTMLElement) {
+        if (this.id === 'trigger') {
+          return toRect(rects.trigger);
+        }
+        if (this.classList.contains('cdk-overlay-pane')) {
+          return toRect(rects.panel);
+        }
+        return toRect({});
+      });
+    }
+
+    it('flips to the opposite side when the preferred one does not fit', async () => {
+      const { fixture, trigger, panel, update, overlay } = setup();
+      const viewportHeight = window.innerHeight;
+      mockGeometry({
+        trigger: { left: 100, top: viewportHeight - 40, width: 80, height: 30 },
+        panel: { left: 60, top: 0, width: 200, height: 120 },
+      });
+
+      trigger().click();
+      update();
+      await fixture.whenStable();
+      update();
+
+      expect(panel()?.getAttribute('data-side')).toBe('top');
+      expect(overlay.config().positioning).toMatchObject({ side: 'top' });
+    });
+
+    it('keeps the requested side when autoAdjustOverflow is off', async () => {
+      const { fixture, host, trigger, panel, update } = setup();
+      host.autoAdjust.set(false);
+      update();
+      mockGeometry({
+        trigger: {
+          left: 100,
+          top: window.innerHeight - 40,
+          width: 80,
+          height: 30,
+        },
+        panel: { left: 60, top: 0, width: 200, height: 120 },
+      });
+
+      trigger().click();
+      update();
+      await fixture.whenStable();
+      update();
+
+      expect(panel()?.getAttribute('data-side')).toBe('bottom');
+    });
+
+    it('places a start-aligned arrow near the aligned edge', async () => {
+      const { fixture, host, trigger, panel, update } = setup();
+      host.placement.set('bottomLeft');
+      host.showArrow.set(true);
+      update();
+      mockGeometry({
+        trigger: { left: 100, top: 100, width: 200, height: 30 },
+        panel: { left: 100, top: 138, width: 240, height: 80 },
+      });
+
+      trigger().click();
+      update();
+      await fixture.whenStable();
+      update();
+
+      const arrow = panel()?.querySelector<HTMLElement>('.andes-popover-arrow');
+      expect(arrow?.style.left).toBe('16px');
+    });
+
+    it('centers the arrow on the trigger without rounding to whole pixels', async () => {
+      const { fixture, host, trigger, panel, update } = setup();
+      host.showArrow.set(true);
+      update();
+      // An odd-width trigger puts its center on a half pixel.
+      mockGeometry({
+        trigger: { left: 100, top: 100, width: 81, height: 30 },
+        panel: { left: 20, top: 138, width: 240, height: 80 },
+      });
+
+      trigger().click();
+      update();
+      await fixture.whenStable();
+      update();
+
+      // Trigger center 140.5 - panel left 20 (no border in jsdom).
+      const arrow = panel()?.querySelector<HTMLElement>('.andes-popover-arrow');
+      expect(arrow?.style.left).toBe('120.5px');
+    });
+
+    it('arrowPointAtCenter shifts the panel so the arrow points at the trigger center', async () => {
+      const { fixture, host, trigger, panel, update, overlay } = setup();
+      host.placement.set('bottomLeft');
+      host.showArrow.set(true);
+      host.pointAtCenter.set(true);
+      update();
+      mockGeometry({
+        trigger: { left: 100, top: 100, width: 200, height: 30 },
+        panel: { left: 184, top: 138, width: 240, height: 80 },
+      });
+
+      trigger().click();
+      update();
+      await fixture.whenStable();
+      update();
+
+      // 200 / 2 - 16px arrow inset.
+      expect(overlay.config().positioning).toMatchObject({ alignOffset: 84 });
+      const arrow = panel()?.querySelector<HTMLElement>('.andes-popover-arrow');
+      expect(arrow?.style.left).toBe('16px');
+    });
+  });
+
+  describe('openChange', () => {
+    it('emits for changes the popover makes, not for parent writes', () => {
+      const { host, trigger, update } = setup();
+
+      host.open.set(true);
+      update();
+      host.open.set(false);
+      update();
+      expect(host.changes).toEqual([]);
+
+      trigger().click();
+      update();
+      trigger().click();
+      update();
+      expect(host.changes).toEqual([true, false]);
+    });
+
+    it('emits false when Escape closes it', () => {
+      const { host, trigger, update } = setup();
+      trigger().click();
+      update();
+
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          keyCode: 27,
+          bubbles: true,
+        }),
+      );
+      update();
+      expect(host.changes).toEqual([true, false]);
+      expect(host.open()).toBe(false);
+    });
+  });
+
+  describe('destroyOnHidden', () => {
+    function typeAndReopen(destroyOnHidden: boolean) {
+      const { host, trigger, update, byId } = setup();
+      host.content.set(host.bodyTpl());
+      host.destroyOnHidden.set(destroyOnHidden);
+      update();
+
+      trigger().click();
+      update();
+      const first = byId('body-input') as HTMLInputElement;
+      first.value = 'draft';
+
+      trigger().click();
+      update();
+      expect(document.getElementById('body-input')).toBeNull();
+
+      trigger().click();
+      update();
+      const second = byId('body-input') as HTMLInputElement;
+      return { first, second };
+    }
+
+    it('keeps template content alive between opens by default', () => {
+      const { first, second } = typeAndReopen(false);
+      expect(second).toBe(first);
+      expect(second.value).toBe('draft');
+    });
+
+    it('re-creates template content on every open when set', () => {
+      const { first, second } = typeAndReopen(true);
+      expect(second).not.toBe(first);
+      expect(second.value).toBe('');
+    });
+  });
+
+  it('zIndex overrides the stacking layer', () => {
+    const { host, trigger, update, overlay } = setup();
+    host.zIndex.set(4242);
+    update();
+    trigger().click();
+    update();
+
+    expect(overlay.panelElement()?.parentElement?.style.zIndex).toBe('4242');
+  });
+
+  describe('disabled', () => {
+    it('never opens while disabled, and closes when it becomes disabled', () => {
+      const { host, trigger, panel, update } = setup();
+      host.disabled.set(true);
+      update();
+      trigger().click();
+      update();
+      expect(panel()).toBeNull();
+
+      host.disabled.set(false);
+      update();
+      trigger().click();
+      update();
+      expect(panel()).toBeTruthy();
+
+      host.disabled.set(true);
+      update();
+      expect(panel()).toBeNull();
+      expect(host.open()).toBe(false);
+    });
+
+    it('ignores a trigger marked aria-disabled', () => {
+      const { host, trigger, panel, update } = setup();
+      host.triggerDisabled.set(true);
+      update();
+      trigger().click();
+      update();
+      expect(panel()).toBeNull();
+    });
+
+    it('ignores an andes-button trigger whose inner button is disabled', async () => {
+      const fixture = TestBed.createComponent(WrapperHost);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const wrapper = document.getElementById(
+        'disabled-wrapper',
+      ) as HTMLElement;
+      fire(wrapper, 'click');
+      fixture.detectChanges();
+      expect(document.querySelector('.andes-popover-content')).toBeNull();
+    });
+  });
+
+  describe('andes-button trigger', () => {
+    it('mirrors the trigger ARIA onto the inner button and restores focus to it', async () => {
+      const fixture = TestBed.createComponent(WrapperHost);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const inner = document.querySelector('#wrapper button') as HTMLElement;
+      expect(inner.getAttribute('aria-haspopup')).toBe('dialog');
+      expect(inner.getAttribute('aria-expanded')).toBe('false');
+
+      inner.focus();
+      inner.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(inner.getAttribute('aria-expanded')).toBe('true');
+      expect(inner.getAttribute('aria-controls')).toBe(
+        document.querySelector('.andes-popover-content')?.id,
+      );
+
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          keyCode: 27,
+          bubbles: true,
+        }),
+      );
+      fixture.detectChanges();
+      expect(document.activeElement).toBe(inner);
+    });
+  });
+
+  it('does not steal focus back from an input clicked outside', async () => {
+    const { fixture, host, trigger, panel, update, byId } = setup();
+    host.content.set(host.bodyTpl());
+    update();
+    trigger().click();
+    update();
+    await fixture.whenStable();
+    expect(panel()?.contains(document.activeElement)).toBe(true);
+
+    const other = byId('other');
+    other.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    other.focus();
+    fire(other, 'click');
+    update();
+
+    expect(panel()).toBeNull();
+    expect(document.activeElement).toBe(other);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Composed content: header/title/description parts and the close directive.
+// ---------------------------------------------------------------------------
+
+@Component({
+  imports: [
+    AndesPopover,
+    AndesPopoverTrigger,
+    AndesPopoverContent,
+    AndesPopoverHeader,
+    AndesPopoverTitle,
+    AndesPopoverDescription,
+    AndesPopoverClose,
+  ],
+  template: `
+    <andes-popover [title]="title()" [trigger]="trigger()">
+      <button type="button" id="trigger" andesPopoverTrigger>Open</button>
+      <andes-popover-content>
+        <div andesPopoverHeader id="header">
+          @if (showTitle()) {
+            <h3 andesPopoverTitle>Dimensions</h3>
+          }
+          <p andesPopoverDescription id="custom-description">
+            Set the dimensions for the layer.
+          </p>
+        </div>
+        <input id="width" />
+        <button type="button" id="close" andesPopoverClose>Done</button>
+      </andes-popover-content>
+    </andes-popover>
+  `,
+})
+class ComposedHost {
+  readonly title = signal<AndesPopoverRenderable | undefined>(undefined);
+  readonly trigger = signal<AndesPopoverTriggerAction>('click');
+  readonly showTitle = signal(true);
+}
+
+describe('AndesPopover - composed content', () => {
+  withElementGeometry();
+
+  function setup() {
+    const fixture = TestBed.createComponent(ComposedHost);
+    fixture.detectChanges();
+    const byId = (id: string) => document.getElementById(id) as HTMLElement;
+    const panel = () =>
+      document.querySelector('.andes-popover-content') as HTMLElement | null;
+    const update = () => fixture.detectChanges();
+    return {
+      fixture,
+      host: fixture.componentInstance,
+      byId,
+      panel,
+      update,
+      trigger: () => byId('trigger'),
+    };
+  }
+
+  // The description carries an author-supplied static id, which is kept.
+  it('labels the panel with the title part and describes it with the description part', () => {
+    const { trigger, panel, update } = setup();
+    trigger().click();
+    update();
+
+    const title = panel()?.querySelector('[andesPopoverTitle]');
+    expect(title?.id).toMatch(/^andes-popover-title-\d+$/);
+    expect(panel()?.getAttribute('aria-labelledby')).toBe(title?.id);
+    expect(panel()?.getAttribute('aria-describedby')).toBe(
+      'custom-description',
+    );
+  });
+
+  it('drops aria-labelledby when the title part is removed', () => {
+    const { host, trigger, panel, update } = setup();
+    host.showTitle.set(false);
+    update();
+    trigger().click();
+    update();
+
+    expect(panel()?.hasAttribute('aria-labelledby')).toBe(false);
+  });
+
+  it('applies the part classes and data-slot hooks', () => {
+    const { byId, trigger, panel, update } = setup();
+    trigger().click();
+    update();
+
+    expect(byId('header').classList).toContain('andes-popover-header');
+    expect(panel()?.querySelector('[andesPopoverTitle]')?.classList).toContain(
+      'andes-popover-title',
+    );
+    expect(byId('custom-description').classList).toContain(
+      'andes-popover-description',
+    );
+    expect(byId('close').getAttribute('data-slot')).toBe('popover-close');
+  });
+
+  it('combines the title input with a title part in aria-labelledby', () => {
+    const { host, trigger, panel, update } = setup();
+    host.title.set('From input');
+    update();
+    trigger().click();
+    update();
+
+    const [inputTitle, partTitle] = Array.from(
+      panel()?.querySelectorAll('.andes-popover-title') ?? [],
+    );
+    expect(inputTitle?.textContent?.trim()).toBe('From input');
+    expect(panel()?.getAttribute('aria-labelledby')).toBe(
+      `${inputTitle?.id} ${partTitle?.id}`,
+    );
+  });
+
+  it('andesPopoverClose closes the panel and restores focus to the trigger', async () => {
+    const { fixture, byId, trigger, panel, update } = setup();
+    trigger().focus();
+    trigger().click();
+    update();
+    await fixture.whenStable();
+    expect(panel()?.contains(document.activeElement)).toBe(true);
+
+    byId('close').click();
+    update();
+
+    expect(panel()).toBeNull();
+    expect(document.activeElement).toBe(trigger());
+  });
+
+  it('andesPopoverClose leaves focus alone for a hover-opened panel', async () => {
+    const { fixture, host, byId, trigger, panel, update } = setup();
+    host.trigger.set('hover');
+    update();
+    vi.useFakeTimers();
+    try {
+      trigger().dispatchEvent(new MouseEvent('mouseenter'));
+      vi.advanceTimersByTime(100);
+      update();
+      expect(panel()).toBeTruthy();
+
+      byId('width').focus();
+      byId('close').click();
+      update();
+    } finally {
+      vi.useRealTimers();
+    }
+    await fixture.whenStable();
+
+    expect(panel()).toBeNull();
+    expect(document.activeElement).not.toBe(trigger());
+  });
+
+  it('reports the close through the open model', () => {
+    const { fixture, byId, trigger, update } = setup();
+    const popover = fixture.debugElement
+      .query(By.directive(AndesPopover))
+      .injector.get(AndesPopover);
+    trigger().click();
+    update();
+    expect(popover.open()).toBe(true);
+
+    byId('close').click();
+    update();
+
+    expect(popover.open()).toBe(false);
+  });
+});
+
+@Component({
+  imports: [AndesPopover, AndesPopoverTrigger],
+  template: `
+    <andes-popover title="Legacy title" content="Legacy body">
+      <button type="button" id="trigger" andesPopoverTrigger>Open</button>
+    </andes-popover>
+  `,
+})
+class LegacyHost {}
+
+describe('AndesPopover - legacy title/content inputs', () => {
+  it('still renders and labels the panel from the inputs alone', () => {
+    const fixture = TestBed.createComponent(LegacyHost);
+    fixture.detectChanges();
+    (document.getElementById('trigger') as HTMLElement).click();
+    fixture.detectChanges();
+
+    const panel = document.querySelector('.andes-popover-content');
+    const title = panel?.querySelector('.andes-popover-title');
+    expect(title?.textContent?.trim()).toBe('Legacy title');
+    expect(
+      panel?.querySelector('.andes-popover-body')?.textContent?.trim(),
+    ).toBe('Legacy body');
+    expect(panel?.getAttribute('aria-labelledby')).toBe(title?.id);
+    expect(panel?.hasAttribute('aria-describedby')).toBe(false);
+  });
+});
+
+@Component({
+  imports: [
+    AndesPopover,
+    AndesPopoverTrigger,
+    AndesPopoverContent,
+    AndesPopoverClose,
+  ],
+  template: `
+    <andes-popover [color]="color()" [content]="body" [(open)]="open">
+      <button type="button" id="trigger" andesPopoverTrigger>Open</button>
+    </andes-popover>
+    <ng-template #body>
+      <button type="button" id="done" andesPopoverClose>Done</button>
+    </ng-template>
+    <andes-popover [(open)]="projectedOpen">
+      <button type="button" id="trigger2" andesPopoverTrigger>Open</button>
+      <andes-popover-content>
+        <button type="button" id="done2" andesPopoverClose>Done</button>
+      </andes-popover-content>
+    </andes-popover>
+  `,
+})
+class ColorAndCloseHostComponent {
+  readonly color = signal<string | null>(null);
+  readonly open = signal(false);
+  readonly projectedOpen = signal(false);
+}
+
+describe('AndesPopover - color and close-from-content', () => {
+  withElementGeometry();
+
+  function createHost() {
+    const fixture = TestBed.createComponent(ColorAndCloseHostComponent);
+    fixture.detectChanges();
+    const panel = () =>
+      document.querySelector('.andes-popover-content') as HTMLElement | null;
+    return { fixture, host: fixture.componentInstance, panel };
+  }
+
+  it('marks a preset color on the panel without an inline background', () => {
+    const { fixture, host, panel } = createHost();
+    host.color.set('success');
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()?.getAttribute('data-color')).toBe('success');
+    expect(panel()?.style.getPropertyValue('--andes-popover-background')).toBe(
+      '',
+    );
+  });
+
+  it('paints a custom color through --andes-popover-background', () => {
+    const { fixture, host, panel } = createHost();
+    host.color.set('#7c3aed');
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()?.getAttribute('data-color')).toBe('custom');
+    expect(panel()?.style.getPropertyValue('--andes-popover-background')).toBe(
+      '#7c3aed',
+    );
+  });
+
+  it('leaves the regular surface without a color', () => {
+    const { fixture, host, panel } = createHost();
+    host.open.set(true);
+    fixture.detectChanges();
+
+    expect(panel()?.hasAttribute('data-color')).toBe(false);
+  });
+
+  it('andesPopoverClose closes the popover from TemplateRef content', () => {
+    const { fixture, host, panel } = createHost();
+    host.open.set(true);
+    fixture.detectChanges();
+
+    (document.querySelector('#done') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(host.open()).toBe(false);
+    expect(panel()).toBeNull();
+  });
+
+  it('andesPopoverClose closes the popover from projected content', () => {
+    const { fixture, host } = createHost();
+    host.projectedOpen.set(true);
+    fixture.detectChanges();
+
+    (document.querySelector('#done2') as HTMLElement).click();
+    fixture.detectChanges();
+
+    expect(host.projectedOpen()).toBe(false);
+  });
+
+  it('close() closes an open popover and reports it through openChange', () => {
+    const { fixture, host } = createHost();
+    host.open.set(true);
+    fixture.detectChanges();
+
+    const popover = fixture.debugElement
+      .query(By.directive(AndesPopover))
+      .injector.get(AndesPopover);
+    popover.close();
+    fixture.detectChanges();
+
+    expect(host.open()).toBe(false);
+  });
+});
+
+/** The declarations between the braces of the rule whose selector is exactly `selector`. */
+function ruleBody(css: string, selector: string): string {
+  let from = 0;
+  for (;;) {
+    const at = css.indexOf(selector, from);
+    if (at < 0) {
+      return '';
+    }
+    const end = at + selector.length;
+    const open = css.indexOf('{', end);
+    if (open >= 0 && css.slice(end, open).trim() === '') {
+      return css.slice(open + 1, css.indexOf('}', open));
+    }
+    from = at + 1;
+  }
+}
