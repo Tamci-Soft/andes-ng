@@ -17,7 +17,7 @@ export * from './lib/aspect-ratio';
 
 export * from './lib/avatar';
 
-// @slot badge
+export * from './lib/badge';
 
 // @slot breadcrumb
 
@@ -91,7 +91,7 @@ export * from './lib/button';
 
 // @slot pagination
 
-// @slot palette
+export * from './lib/palette';
 
 // @slot popconfirm
 
@@ -135,7 +135,7 @@ export * from './lib/button';
 
 // @slot tabs
 
-// @slot tag
+export * from './lib/tag';
 
 // @slot textarea
 

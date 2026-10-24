@@ -1,0 +1,42 @@
+/*
+ * Named palette hues (see palette.ts). Included as the first stylesheet of every component
+ * that accepts a palette name, so the values are scoped to that component's host instead of
+ * leaking onto :root.
+ *
+ * Each hue is used as a fill (solid tag, count bubble, ribbon, dot) and as the seed the
+ * components derive tinted borders, washes and text from. Light uses the 600 step; dark moves
+ * to the brighter 500 step, because the deeper indigo/purple/magenta fills fall under 3:1
+ * against the dark page and a dot of them would disappear. Text on top of a fill is always
+ * picked black or white from the fill's own lightness, so the yellow-ish hues stay readable.
+ */
+:host {
+  --_andes-palette-red: #dc2626;
+  --_andes-palette-orange: #ea580c;
+  --_andes-palette-amber: #d97706;
+  --_andes-palette-yellow: #ca8a04;
+  --_andes-palette-lime: #65a30d;
+  --_andes-palette-green: #16a34a;
+  --_andes-palette-teal: #0d9488;
+  --_andes-palette-cyan: #0891b2;
+  --_andes-palette-blue: #2563eb;
+  --_andes-palette-indigo: #4f46e5;
+  --_andes-palette-purple: #9333ea;
+  --_andes-palette-magenta: #c026d3;
+  --_andes-palette-pink: #db2777;
+}
+
+:host-context([data-andes-theme='dark']) {
+  --_andes-palette-red: #ef4444;
+  --_andes-palette-orange: #f97316;
+  --_andes-palette-amber: #f59e0b;
+  --_andes-palette-yellow: #eab308;
+  --_andes-palette-lime: #84cc16;
+  --_andes-palette-green: #22c55e;
+  --_andes-palette-teal: #14b8a6;
+  --_andes-palette-cyan: #06b6d4;
+  --_andes-palette-blue: #3b82f6;
+  --_andes-palette-indigo: #6366f1;
+  --_andes-palette-purple: #a855f7;
+  --_andes-palette-magenta: #d946ef;
+  --_andes-palette-pink: #ec4899;
+}

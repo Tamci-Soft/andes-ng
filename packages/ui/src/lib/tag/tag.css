@@ -1,0 +1,524 @@
+.andes-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-1);
+  border-radius: var(--andes-radius-sm);
+  border: 1px solid transparent;
+  /* A 20px line inside the 1px border makes the tag a whole 22px tall - the same height as
+     AndesBadgeRibbon - with 7px inline padding (8px less the border), so the label sits
+     centred without extra block padding. */
+  padding-block: 0;
+  padding-inline: 0.4375rem;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1.25rem;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    border-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1)),
+    filter var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+/* Projected icons keep their own encapsulation context - see button.css for why ::ng-deep
+   is the sanctioned way to size content Angular's view encapsulation otherwise blocks. */
+.andes-tag ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.andes-tag--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Interactive (checkable/clickable) tags render as a native <button>, and link tags as a
+   native <a> - reset the cursor a plain <a>/<button> wouldn't otherwise need reset for a
+   tag-shaped control. Deliberately does NOT touch `font`: a native <button> has its own UA
+   font distinct from the page's, and `font: inherit` used to be here to override it - but
+   `font` is a shorthand, so at the same specificity tier as `.andes-tag` (an element+class
+   selector always outweighs a class-only one) it silently clobbered the font-family/size/
+   weight/line-height `.andes-tag` itself sets just above, falling back to whatever font
+   happens to be ambient wherever the tag is used - andes-ng's own font on a page that sets
+   it, but nothing in particular otherwise (a browser's serif default in Storybook, since
+   nothing here sets a page-level font-family). `.andes-tag` already fully specifies the
+   font `<button>`/`<a>` should render in; there is nothing left for `font` to usefully
+   reset. */
+button.andes-tag,
+a.andes-tag {
+  cursor: pointer;
+}
+
+button.andes-tag:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button.andes-tag:focus-visible,
+a.andes-tag:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-tag--interactive:hover:not(:disabled) {
+  filter: brightness(var(--_andes-tag-hover-brightness, 0.96));
+}
+
+/* Dimming a near-black surface by 4% is invisible, so on the dark theme the same hover lifts
+   the tag instead. Set as a property on the tag rather than as a second hover rule, which
+   would need a selector too long to stay on one line (see the note above @supports below). */
+:host-context([data-andes-theme='dark']) .andes-tag {
+  --_andes-tag-hover-brightness: 1.2;
+}
+
+/* Checkable tags ignore `color`/`variant` and only ever show this neutral/checked pair, so the
+   checked state always reads the same regardless of the tag's color. */
+.andes-tag--checkable {
+  background-color: var(--andes-color-muted);
+  border-color: var(--andes-color-border);
+  color: var(--andes-color-foreground);
+}
+
+/* An explicit surface step rather than the generic brightness filter above: an unchecked tag
+   sits on the neutral muted fill, which a filter barely moves in either theme. */
+.andes-tag--checkable:not(.andes-tag--checked):hover:not(:disabled) {
+  background-color: var(--andes-color-accent-hover);
+  filter: none;
+}
+
+.andes-tag--checked {
+  background-color: var(--andes-color-primary);
+  border-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-tag--checked:hover:not(:disabled) {
+  background-color: var(--andes-color-primary-hover);
+  filter: none;
+}
+
+/* `icon` input - same footprint as a projected slot=icon element. */
+.andes-tag__icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/*
+ * Motion hooks for Angular's native enter/leave animations:
+ *   <andes-tag animate.enter="andes-tag-enter" animate.leave="andes-tag-leave">
+ * The classes land on the host, which is display: inline by default - and an inline box
+ * ignores `scale` - so it becomes an inline-flex box (same baseline as the tag inside it) only
+ * while animating. hideOnClose's own dismissal plays the same leave on the inner tag.
+ */
+:host(.andes-tag-enter),
+:host(.andes-tag-leave) {
+  display: inline-flex;
+}
+
+/* Mostly a fade, with only a hint of scale, so tags appearing or closing in a row of them
+   never look like they are popping. */
+:host(.andes-tag-enter) {
+  animation: andes-tag-in 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+:host(.andes-tag-leave),
+.andes-tag.andes-tag-leave {
+  animation: andes-tag-out 0.12s ease-in forwards;
+}
+
+@keyframes andes-tag-in {
+  from {
+    scale: 0.95;
+    opacity: 0;
+  }
+}
+
+@keyframes andes-tag-out {
+  to {
+    scale: 0.95;
+    opacity: 0;
+  }
+}
+
+/* No animation means Angular inserts and removes the tag immediately. */
+@media (prefers-reduced-motion: reduce) {
+  :host(.andes-tag-enter),
+  :host(.andes-tag-leave),
+  .andes-tag.andes-tag-leave {
+    animation: none;
+  }
+}
+
+/* Close button */
+
+.andes-tag__close {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* With the 4px gap, 7px between the label and the 10px icon (a 3px icon margin plus the
+     glyph's own side bearing). */
+  margin-inline-start: 0.1875rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  font: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.andes-tag__close:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.andes-tag__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-tag__close:disabled {
+  cursor: not-allowed;
+}
+
+/* The glyph is only ~9px; an invisible extension grows the pointer target to the tag's full
+   height and a little past the glyph on each side, without changing the tag's layout. */
+.andes-tag__close::before {
+  content: '';
+  position: absolute;
+  inset: -0.375rem -0.25rem;
+}
+
+.andes-tag__close svg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+/*
+ * Color x variant matrix.
+ *
+ * `variant` (outlined/filled/solid) and `color` (default/primary/secondary/success/warning/
+ * danger/info) are independent axes (the `variant` + `color` inputs) - not a
+ * single combined enum. Each color below defines three treatments:
+ *   - outlined (default): transparent background, a half-strength border of the color,
+ *     colored text.
+ *   - filled: the same soft wash + stronger border pair AndesAlert's `tinted` variant uses -
+ *     10% of the color mixed into the page background, the border at 35% - and colored text.
+ *     The wash stays that light because a couple of colors are otherwise too close to the
+ *     4.5:1 floor once tinted.
+ *   - solid: a fully saturated background with a readable text color on top.
+ *
+ * Wash and border are mixed from the same severity accents AndesAlert draws its glyphs in
+ * (warning's is its `-hover` shade, since the base amber is too pale to read as a border), so
+ * a tag, an alert and a status dot of one color read as the same hue. Mixed into the page
+ * background rather than layered as transparency, so they stay solid colors in both themes.
+ *
+ * The colored text for outlined/filled is each status color's `-text` token
+ * (`--andes-color-primary-text` for primary): the status color as text, >= 4.5:1 on the
+ * page/card/muted surfaces in both themes. The `-active` fallback is only for builds whose
+ * tokens predate `-text` - it no longer flips lighter in dark mode, so it is not a
+ * substitute. `default`/`secondary` reuse their own `-foreground`/`-active` tokens instead,
+ * since they're neutrals rather than saturated brand hues.
+ *
+ * On `filled`'s 10% tint the text token alone lands just under 4.5:1 in light mode
+ * (primary 4.49:1, success 4.38:1), so filled mixes 15% of the foreground into it - darker
+ * in light mode, lighter in dark mode - for >= 5.38:1 in both themes.
+ *
+ * `solid` is the base fill with its `-foreground` for every color except warning: success/
+ * info fills are dark enough for white text (5.02:1 / 5.93:1), while amber only reaches AA
+ * with dark text, so warning keeps its `-active` fill (darker in light mode, lighter in dark
+ * mode) under `--andes-color-background`, which flips the opposite way (5.02-12.38:1).
+ */
+
+.andes-tag--color-default.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-border);
+  color: var(--andes-color-foreground);
+}
+
+.andes-tag--color-default.andes-tag--filled {
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-foreground);
+}
+
+.andes-tag--color-default.andes-tag--solid {
+  background-color: var(--andes-color-foreground);
+  border-color: var(--andes-color-foreground);
+  color: var(--andes-color-background);
+}
+
+.andes-tag--color-secondary.andes-tag--outlined {
+  background-color: transparent;
+  border-color: var(--andes-color-secondary-active);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-tag--color-secondary.andes-tag--filled {
+  background-color: var(--andes-color-secondary);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-tag--color-secondary.andes-tag--solid {
+  background-color: var(--andes-color-secondary);
+  border-color: var(--andes-color-secondary);
+  color: var(--andes-color-secondary-foreground);
+}
+
+.andes-tag--color-primary.andes-tag--outlined {
+  background-color: transparent;
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 50%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-primary-text);
+}
+
+.andes-tag--color-primary.andes-tag--filled {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 35%,
+    var(--andes-color-background)
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 10%,
+    var(--andes-color-background)
+  );
+  color: color-mix(
+    in srgb,
+    var(--andes-color-primary-text) 85%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-tag--color-primary.andes-tag--solid {
+  background-color: var(--andes-color-primary);
+  border-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+.andes-tag--color-success.andes-tag--outlined {
+  background-color: transparent;
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-success) 50%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-success-text, var(--andes-color-success-active));
+}
+
+.andes-tag--color-success.andes-tag--filled {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-success) 35%,
+    var(--andes-color-background)
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-success) 10%,
+    var(--andes-color-background)
+  );
+  color: color-mix(
+    in srgb,
+    var(--andes-color-success-text, var(--andes-color-success-active)) 85%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-tag--color-success.andes-tag--solid {
+  background-color: var(--andes-color-success);
+  border-color: var(--andes-color-success);
+  color: var(--andes-color-success-foreground);
+}
+
+.andes-tag--color-warning.andes-tag--outlined {
+  background-color: transparent;
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 50%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-warning-text, var(--andes-color-warning-active));
+}
+
+.andes-tag--color-warning.andes-tag--filled {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 35%,
+    var(--andes-color-background)
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 10%,
+    var(--andes-color-background)
+  );
+  color: color-mix(
+    in srgb,
+    var(--andes-color-warning-text, var(--andes-color-warning-active)) 85%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-tag--color-warning.andes-tag--solid {
+  background-color: var(--andes-color-warning-active);
+  border-color: var(--andes-color-warning-active);
+  color: var(--andes-color-background);
+}
+
+.andes-tag--color-danger.andes-tag--outlined {
+  background-color: transparent;
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-danger) 50%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-danger-text, var(--andes-color-danger-active));
+}
+
+.andes-tag--color-danger.andes-tag--filled {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-danger) 35%,
+    var(--andes-color-background)
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-danger) 10%,
+    var(--andes-color-background)
+  );
+  color: color-mix(
+    in srgb,
+    var(--andes-color-danger-text, var(--andes-color-danger-active)) 85%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-tag--color-danger.andes-tag--solid {
+  background-color: var(--andes-color-danger);
+  border-color: var(--andes-color-danger);
+  color: var(--andes-color-danger-foreground);
+}
+
+.andes-tag--color-info.andes-tag--outlined {
+  background-color: transparent;
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-info) 50%,
+    var(--andes-color-background)
+  );
+  color: var(--andes-color-info-text, var(--andes-color-info-active));
+}
+
+.andes-tag--color-info.andes-tag--filled {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-info) 35%,
+    var(--andes-color-background)
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-info) 10%,
+    var(--andes-color-background)
+  );
+  color: color-mix(
+    in srgb,
+    var(--andes-color-info-text, var(--andes-color-info-active)) 85%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-tag--color-info.andes-tag--solid {
+  background-color: var(--andes-color-info);
+  border-color: var(--andes-color-info);
+  color: var(--andes-color-info-foreground);
+}
+
+/*
+ * Arbitrary CSS `color` (the raw value lands in --andes-tag-color via an inline style).
+ *
+ * An arbitrary color can't be pre-verified against the page the way the presets above were,
+ * so each variant derives its text color from it instead of using it raw:
+ *   - solid: black or white text, whichever contrasts more with the background - relative
+ *     color syntax reads the background's CIE L*, a pure function of WCAG relative luminance,
+ *     and L* 49.44 is exactly the luminance (0.179) at which black and white tie.
+ *   - outlined/filled: the color itself as text, but with its L* clamped to at most 40 in the
+ *     light theme (>= 6.5:1 on white) and at least 65 in the dark one (>= 6.7:1 on the dark
+ *     page background) - hue and chroma are kept, so a yellow tag still reads as yellow.
+ * Browsers without relative color syntax keep the plain fallbacks declared first. The derived
+ * colors sit behind @supports instead of as a second declaration because a var()-containing
+ * value is only validated at computed-value time - an unsupporting browser would otherwise
+ * drop to `unset`, not back to the fallback.
+ */
+
+.andes-tag--color-custom {
+  color: var(--andes-color-foreground);
+}
+
+/* Same border/wash strengths as the presets above, so a palette hue or a hex color sits beside a
+   preset tag with the same visual weight. */
+.andes-tag--color-custom.andes-tag--outlined {
+  background-color: transparent;
+  border-color: color-mix(
+    in srgb,
+    var(--andes-tag-color) 50%,
+    var(--andes-color-background)
+  );
+}
+
+.andes-tag--color-custom.andes-tag--filled {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-tag-color) 35%,
+    var(--andes-color-background)
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--andes-tag-color) 10%,
+    var(--andes-color-background)
+  );
+}
+
+.andes-tag--color-custom.andes-tag--solid {
+  background-color: var(--andes-tag-color);
+  border-color: var(--andes-tag-color);
+  color: #fff;
+}
+
+/* Selectors kept short enough to stay on one line - a compound selector split across lines
+   at a combinator is mis-scoped by Angular's emulated-encapsulation shim. The outlined/filled
+   rules target their own class (.andes-tag--custom-tinted, never set on solid) so the shimmed
+   dark-theme rule - which gains extra attribute specificity from :host-context - can't
+   override solid's black/white text. */
+@supports (color: lch(from red l c h)) {
+  .andes-tag--custom-tinted {
+    color: lch(from var(--andes-tag-color) min(l, 40) c h);
+  }
+
+  :host-context([data-andes-theme='dark']) .andes-tag--custom-tinted {
+    color: lch(from var(--andes-tag-color) max(l, 65) c h);
+  }
+
+  .andes-tag--color-custom.andes-tag--solid {
+    color: lch(
+      from var(--andes-tag-color) clamp(0, (49.44 - l) * 1000, 100) 0 0
+    );
+  }
+}
+
+/* bordered=false - keeps the 1px border box (so a borderless tag lines up with bordered ones)
+   but paints it transparent. Same specificity as the color x variant rules above and last in
+   the file, so it wins over every one of them. */
+.andes-tag.andes-tag--borderless {
+  border-color: transparent;
+}

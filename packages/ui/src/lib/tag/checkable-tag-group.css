@@ -1,0 +1,7 @@
+:host {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+}
