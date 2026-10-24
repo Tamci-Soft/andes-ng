@@ -33,7 +33,7 @@ export * from './lib/cascader';
 
 export * from './lib/checkbox';
 
-// @slot collapsible
+export * from './lib/collapsible';
 
 // @slot color-picker
 

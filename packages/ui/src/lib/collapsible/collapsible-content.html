@@ -1,0 +1,9 @@
+<div
+  class="andes-collapsible-content__inner"
+  data-slot="collapsible-content-inner"
+>
+  <ng-content />
+  @if (lazy(); as lazyBody) { @if (renderLazy()) {
+  <ng-container *ngTemplateOutlet="lazyBody.templateRef" />
+  } }
+</div>
