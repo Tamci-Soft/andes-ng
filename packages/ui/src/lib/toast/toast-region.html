@@ -1,0 +1,27 @@
+@for (slot of slots(); track slot.toast.id) {
+<andes-toast-item
+  animate.leave="andes-toast--leaving"
+  [toast]="slot.toast"
+  [rtl]="rtl()"
+  [swipeDirections]="swipeDirectionsFor(slot.toast)"
+  [style.--_toast-depth]="slot.depth"
+  [style.--_toast-offset]="slot.offset"
+  [style.--_toast-height]="slot.height"
+  [attr.data-front]="slot.depth === 0 ? '' : null"
+  [attr.data-stack-behind]="stacked() && slot.depth > 0 ? '' : null"
+  [attr.data-stack-overflow]="
+    stacked() && slot.depth >= visibleDepth() ? '' : null
+  "
+  (mouseenter)="onHoverStart(slot.toast)"
+  (mouseleave)="onHoverEnd(slot.toast)"
+  (focusin)="controller().pause(slot.toast.id)"
+  (focusout)="controller().resume(slot.toast.id)"
+  (heightChange)="onHeightChange(slot.toast, $event)"
+  (dismissRequested)="onClose(slot.toast)"
+  (actionClicked)="onAction(slot.toast, slot.toast.action)"
+  (cancelClicked)="onAction(slot.toast, slot.toast.cancel)"
+  (groupActionClicked)="onAction(slot.toast, $event)"
+  (swiped)="onSwiped(slot.toast)"
+  (bodyClicked)="onBodyClick(slot.toast)"
+/>
+}

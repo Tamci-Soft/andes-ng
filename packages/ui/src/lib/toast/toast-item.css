@@ -1,0 +1,347 @@
+/*
+ * The toast card: a neutral raised surface where the severity is carried by the icon alone,
+ * or - with richColors - by a tinted wash too. Layout inside the stack (position, depth,
+ * enter/exit/swipe motion) belongs to toast-region.css; this file only paints the card.
+ */
+:host {
+  /* Component-local (not design tokens): the severity colour, and the surface the icon's
+     knocked-out glyph and the close button blend into. */
+  --_toast-accent: var(--andes-color-muted-foreground);
+  --_toast-surface: var(--andes-color-card);
+  /* A softer edge than the form-control border, so the card reads by its shadow first. */
+  --_toast-border: color-mix(
+    in srgb,
+    var(--andes-color-border) 65%,
+    var(--andes-color-card)
+  );
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  padding: var(--andes-space-4);
+  border: 1px solid var(--_toast-border);
+  border-radius: var(--andes-toast-radius, 1.125rem);
+  background-color: var(--_toast-surface);
+  color: var(--andes-color-card-foreground);
+  box-shadow: 0 4px 12px rgb(15 23 42 / 10%);
+  font-family: var(--andes-font-family), sans-serif;
+  /* Set on the surface so the text and projected icons don't inherit the page's body size. */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+  /* The region disables pointer-events on itself so empty space around a toast doesn't
+     block clicks - pointer-events is inherited, so each toast opts back in. */
+  pointer-events: auto;
+  outline: none;
+}
+
+:host-context([data-andes-theme='dark']) {
+  --_toast-border: var(--andes-color-border);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
+}
+
+:host(:focus-visible) {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Per-severity accents, resolved through one private property per severity so the dark
+   theme can swap the shade without repeating the severity selectors. Warning's accent is its
+   -hover shade: the base amber only reaches ~2:1 on a white card, under the 3:1 a meaningful
+   graphic needs (same choice as the Alert). */
+:host {
+  --_toast-success: var(--andes-color-success);
+  --_toast-danger: var(--andes-color-danger);
+  --_toast-warning: var(--andes-color-warning-hover);
+  --_toast-info: var(--andes-color-info);
+}
+
+/* On the dark card the base green, red and blue drop under 3:1; their -hover shades are the
+   brighter ones on that theme. */
+:host-context([data-andes-theme='dark']) {
+  --_toast-success: var(--andes-color-success-hover);
+  --_toast-danger: var(--andes-color-danger-hover);
+  --_toast-info: var(--andes-color-info-hover);
+}
+
+:host([data-severity='success']) {
+  --_toast-accent: var(--_toast-success);
+}
+
+:host([data-severity='error']) {
+  --_toast-accent: var(--_toast-danger);
+}
+
+:host([data-severity='warning']) {
+  --_toast-accent: var(--_toast-warning);
+}
+
+:host([data-severity='info']) {
+  --_toast-accent: var(--_toast-info);
+}
+
+/* Rich colours: the Alert's tinted recipe - a 9% wash of the accent mixed into the card, a 35%
+   border. Text stays on the regular foreground, which clears 4.5:1 on every wash. */
+:host(
+  [data-rich-colors]:not([data-severity='neutral']):not(
+      [data-severity='loading']
+    )
+) {
+  --_toast-surface: color-mix(
+    in srgb,
+    var(--_toast-accent) 9%,
+    var(--andes-color-card)
+  );
+  --_toast-border: color-mix(
+    in srgb,
+    var(--_toast-accent) 35%,
+    var(--andes-color-card)
+  );
+}
+
+:host([data-clickable]) {
+  cursor: pointer;
+}
+
+:host([data-swipeable]) {
+  /* The drag gesture is handled in script; keep the browser from scrolling or zooming under
+     it on touch screens. */
+  touch-action: none;
+  user-select: none;
+}
+
+/* A card behind the front of a collapsed stack shows only its edge. Its content fades out,
+   and visibility (which flips at the end of the fade, and at the start of the fade back in)
+   takes it out of the tab order and accessibility tree until the stack expands. */
+:host > * {
+  transition:
+    opacity 400ms ease,
+    visibility 400ms;
+}
+
+:host([data-stack-behind]) > * {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.andes-toast__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.andes-toast__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  /* Pulls the 20px icon into the padding, so the text starts 40px in, as on a 16px-padded
+     card with a 16px icon slot. */
+  margin-inline: -0.25rem 0.0625rem;
+  color: var(--_toast-accent);
+}
+
+.andes-toast__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.andes-toast__shape {
+  fill: currentColor;
+}
+
+.andes-toast__glyph {
+  fill: none;
+  stroke: var(--_toast-surface);
+  stroke-width: 1.75;
+}
+
+.andes-toast__spinner {
+  animation: andes-toast-spin 1s linear infinite;
+}
+
+.andes-toast__spinner-track {
+  opacity: 0.2;
+}
+
+.andes-toast__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/*
+ * Type scale: the headline line - the title, or the message when it stands alone - is 14px
+ * medium; a message under a title is the same 14px size at regular weight in a softer ink, so
+ * the card reads calm rather than loud.
+ */
+.andes-toast__title,
+.andes-toast__message {
+  margin: 0;
+  font-weight: var(--andes-font-weight-medium);
+}
+
+.andes-toast__message--description {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+  /* 78% of the foreground into the card: >= 7:1 in both themes, but clearly secondary. */
+  color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 78%,
+    var(--_toast-surface)
+  );
+}
+
+.andes-toast__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--andes-space-2);
+  margin-top: var(--andes-space-2);
+}
+
+/* The compact inline buttons: an outlined "action" and a plain "cancel" before it, 28px high. */
+.andes-toast__action,
+.andes-toast__cancel {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 1px solid transparent;
+  border-radius: var(--andes-radius-lg);
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  font-weight: var(--andes-font-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.andes-toast__action {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 15%,
+    transparent
+  );
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 4.5%,
+    transparent
+  );
+  color: var(--andes-color-card-foreground);
+}
+
+.andes-toast__action:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 9%,
+    transparent
+  );
+}
+
+.andes-toast__cancel {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 8%,
+    transparent
+  );
+  color: var(--andes-color-card-foreground);
+}
+
+.andes-toast__cancel:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 14%,
+    transparent
+  );
+}
+
+/* A ghost icon button at the end of the row, centred with the text and the action: 28px square,
+   8px corners, the cross in the muted ink until it is hovered. */
+.andes-toast__close {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--andes-radius-lg);
+  background-color: transparent;
+  color: var(--andes-color-muted-foreground);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.andes-toast__close:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 8%,
+    transparent
+  );
+  color: var(--andes-color-card-foreground);
+}
+
+.andes-toast__close svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-toast__close-icon {
+  display: inline-flex;
+  padding-inline: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.andes-toast__close:focus-visible,
+.andes-toast__action:focus-visible,
+.andes-toast__cancel:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Message flavor: a compact single-line card - icon + text, sized to its content. */
+:host([data-flavor='message']) {
+  width: max-content;
+  max-width: 100%;
+  padding: 0.5625rem 0.875rem;
+}
+
+:host([data-flavor='message']) .andes-toast__row {
+  gap: var(--andes-space-2);
+}
+
+:host([data-flavor='message']) .andes-toast__icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-inline: -0.125rem 0;
+}
+
+@keyframes andes-toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host > * {
+    transition: none;
+  }
+
+  .andes-toast__spinner {
+    animation-duration: 2.4s;
+  }
+}

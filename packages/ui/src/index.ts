@@ -141,7 +141,7 @@ export * from './lib/textarea';
 
 export * from './lib/timeline';
 
-// @slot toast
+export * from './lib/toast';
 
 export * from './lib/toggle';
 

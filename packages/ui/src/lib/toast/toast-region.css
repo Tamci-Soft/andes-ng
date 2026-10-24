@@ -1,0 +1,253 @@
+/*
+ * One placement's stack. Every card is absolutely positioned against the anchoring edge and
+ * moved into its slot by a transform, so the stack can animate between layouts:
+ *
+ * - expanded: each card sits --_toast-offset px from the edge (the heights of the cards in
+ *   front of it plus a --_toast-gap between each), newest against the edge;
+ * - collapsed (data-stacked): every card sits at the edge, each one behind the front nudged
+ *   --_toast-gap px further back, scaled down 5% per step, and clamped to the front card's
+ *   height so only its edge peeks out.
+ *
+ * --_toast-lift is the direction the stack grows in: -1 (upwards) from a bottom edge, 1
+ * (downwards) from a top edge.
+ */
+:host {
+  --_toast-offset-default: 1.5rem;
+  position: fixed;
+  z-index: var(--andes-z-index-toast);
+  box-sizing: border-box;
+  width: var(--andes-toast-width, 22.25rem);
+  max-width: calc(
+    100vw - 2 * var(--_toast-offset-x, var(--_toast-offset-default))
+  );
+  /* Empty space around the stack shouldn't block clicks on whatever is underneath - each
+     andes-toast-item opts back into pointer-events: auto on its own host. */
+  pointer-events: none;
+}
+
+:host([data-placement^='top']) {
+  --_toast-lift: 1;
+  top: var(--_toast-offset-default);
+}
+
+:host([data-placement^='bottom']) {
+  --_toast-lift: -1;
+  bottom: var(--_toast-offset-default);
+}
+
+:host([data-placement$='left']) {
+  left: var(--_toast-offset-x, var(--_toast-offset-default));
+}
+
+:host([data-placement$='right']) {
+  right: var(--_toast-offset-x, var(--_toast-offset-default));
+}
+
+/* Centred by auto margins between both insets rather than left: 50% + translateX(-50%), which
+   could blur text on a half pixel. */
+:host([data-placement$='center']) {
+  inset-inline: 0;
+  margin-inline: auto;
+}
+
+/* Messages: a top-centre column of content-sized cards, 8px from the top. */
+:host([data-flavor='message']) {
+  --_toast-offset-default: var(--andes-space-2);
+  inset-inline: var(--andes-space-4);
+  width: auto;
+  max-width: none;
+  margin-inline: 0;
+}
+
+andes-toast-item {
+  --_toast-y: calc(var(--_toast-lift) * var(--_toast-offset, 0px));
+  --_toast-scale: 1;
+  position: absolute;
+  z-index: calc(100 - var(--_toast-depth, 0));
+  height: var(--_toast-height, auto);
+  transform: translate(
+      var(--_toast-swipe-x, 0px),
+      calc(var(--_toast-y) + var(--_toast-swipe-y, 0px))
+    )
+    scale(var(--_toast-scale));
+  transition:
+    transform 400ms ease,
+    opacity 400ms ease,
+    height 400ms ease,
+    box-shadow 200ms ease;
+  /* Slides in from beyond the anchoring edge. The individual translate property composes
+     with the transform above, so a card entering mid-layout doesn't jump. */
+  animation: andes-toast-enter 400ms ease;
+}
+
+:host([data-placement^='top']) andes-toast-item {
+  top: 0;
+}
+
+:host([data-placement^='bottom']) andes-toast-item {
+  bottom: 0;
+}
+
+:host([data-flavor='notification']) andes-toast-item {
+  width: 100%;
+}
+
+:host([data-placement$='left']) andes-toast-item {
+  left: 0;
+}
+
+:host([data-placement$='right']) andes-toast-item {
+  right: 0;
+}
+
+:host([data-placement$='center']) andes-toast-item {
+  inset-inline: 0;
+  margin-inline: auto;
+}
+
+/* Bridges the gap to the next card while expanded, so moving the pointer between two cards
+   doesn't leave the stack and collapse it. */
+:host(:not([data-stacked])) andes-toast-item::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  height: calc(var(--_toast-gap) + 1px);
+}
+
+:host([data-placement^='top']) andes-toast-item::after {
+  top: 100%;
+}
+
+:host([data-placement^='bottom']) andes-toast-item::after {
+  bottom: 100%;
+}
+
+:host([data-stacked]) andes-toast-item {
+  --_toast-y: calc(
+    var(--_toast-lift) * var(--_toast-depth, 0) * var(--_toast-gap)
+  );
+  --_toast-scale: calc(1 - var(--_toast-depth, 0) * 0.05);
+}
+
+:host([data-stacked]) andes-toast-item:not([data-front]) {
+  height: var(--_toast-front-height, auto);
+}
+
+:host([data-stacked]) andes-toast-item[data-stack-overflow] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Follows the finger 1:1 while dragged, then eases back (or out) on release. */
+andes-toast-item[data-swiping] {
+  transition: none;
+}
+
+/* Exit: slides back out past the edge it came from while fading - or, when swiped, keeps
+   going in the swipe direction. Angular keeps the node until this animation ends. */
+andes-toast-item.andes-toast--leaving {
+  pointer-events: none;
+  animation: andes-toast-exit 200ms ease forwards;
+}
+
+andes-toast-item.andes-toast--leaving[data-swipe-out='left'] {
+  animation-name: andes-toast-swipe-left;
+}
+
+andes-toast-item.andes-toast--leaving[data-swipe-out='right'] {
+  animation-name: andes-toast-swipe-right;
+}
+
+andes-toast-item.andes-toast--leaving[data-swipe-out='top'] {
+  animation-name: andes-toast-swipe-top;
+}
+
+andes-toast-item.andes-toast--leaving[data-swipe-out='bottom'] {
+  animation-name: andes-toast-swipe-bottom;
+}
+
+@keyframes andes-toast-enter {
+  from {
+    opacity: 0;
+    translate: 0 calc(var(--_toast-lift) * -100%);
+  }
+}
+
+@keyframes andes-toast-exit {
+  to {
+    opacity: 0;
+    translate: 0 calc(var(--_toast-lift) * -100%);
+  }
+}
+
+@keyframes andes-toast-swipe-left {
+  to {
+    opacity: 0;
+    translate: -100% 0;
+  }
+}
+
+@keyframes andes-toast-swipe-right {
+  to {
+    opacity: 0;
+    translate: 100% 0;
+  }
+}
+
+@keyframes andes-toast-swipe-top {
+  to {
+    opacity: 0;
+    translate: 0 -100%;
+  }
+}
+
+@keyframes andes-toast-swipe-bottom {
+  to {
+    opacity: 0;
+    translate: 0 100%;
+  }
+}
+
+@keyframes andes-toast-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes andes-toast-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Phones: the notification stack spans the screen width, 16px from each side and the edge. */
+@media (max-width: 600px) {
+  :host {
+    --_toast-offset-default: var(--andes-space-4);
+  }
+
+  :host([data-flavor='notification']) {
+    inset-inline: var(--_toast-offset-x, var(--_toast-offset-default));
+    width: auto;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  :host([data-flavor='message']) {
+    --_toast-offset-default: var(--andes-space-2);
+  }
+}
+
+/* Reduced motion: cards still fade in and out, but nothing slides, scales or resizes in
+   motion - layout changes land in place. */
+@media (prefers-reduced-motion: reduce) {
+  andes-toast-item {
+    transition: opacity 150ms ease;
+    animation: andes-toast-fade 150ms ease;
+  }
+
+  andes-toast-item.andes-toast--leaving,
+  andes-toast-item.andes-toast--leaving[data-swipe-out] {
+    animation: andes-toast-fade-out 150ms ease forwards;
+  }
+}
