@@ -1,0 +1,357 @@
+:host {
+  display: block;
+}
+
+/*
+ * The command surface: a popover-coloured box holding the search field and the list. Its edge
+ * and elevation are custom properties so the dialog, which already draws its own, can switch
+ * them off.
+ */
+.andes-command {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  border: var(
+    --andes-command-border,
+    1px solid var(--andes-color-border, #e2e8f0)
+  );
+  border-radius: var(--andes-command-radius, var(--andes-radius-lg, 0.5rem));
+  background-color: var(--andes-color-popover, #fff);
+  color: var(--andes-color-popover-foreground, #0f172a);
+  box-shadow: var(--andes-command-shadow, none);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* Nested pages: a back button and the trail of pages opened so far. */
+.andes-command__pages {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-2, 0.5rem) 0;
+}
+
+.andes-command__back {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background: transparent;
+  color: var(--andes-color-muted-foreground, #64748b);
+  cursor: pointer;
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+.andes-command__back:hover {
+  background-color: var(--andes-color-accent, #f1f5f9);
+  color: var(--andes-color-accent-foreground, #0f172a);
+}
+
+.andes-command__back:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 1px;
+}
+
+.andes-command__back svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-command__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--andes-space-1, 0.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-command__crumb:not(:last-child)::after {
+  content: '/';
+  margin-inline-start: var(--andes-space-1, 0.25rem);
+}
+
+.andes-command__crumb[aria-current='page'] {
+  color: var(--andes-color-foreground, #0f172a);
+  font-weight: 500;
+}
+
+/*
+ * The search box follows the field spec: a 1px bordered, 32px box that carries the one focus
+ * indicator itself (border plus a 2px soft ring, no outline), with the native input bare
+ * inside it.
+ */
+.andes-command__field {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  height: var(--andes-control-height-md, 2rem);
+  margin: var(--andes-space-2, 0.5rem);
+  padding-inline: var(--andes-control-padding-x-md, 0.6875rem);
+  border: 1px solid var(--andes-color-input, #e2e8f0);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  background-color: var(--andes-color-background, #fff);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-command__field:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 65%,
+    var(--andes-color-input, #e2e8f0)
+  );
+}
+
+.andes-command__field:focus-within {
+  border-color: var(--andes-color-primary, #2563eb);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-primary, #2563eb) 20%, transparent);
+  outline: none;
+}
+
+@media (forced-colors: active) {
+  .andes-command__field:focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-command__field,
+  .andes-command__back {
+    transition: none;
+  }
+}
+
+.andes-command__search-icon {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--andes-color-muted-foreground, #64748b);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.andes-command__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.andes-command__input::placeholder {
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+/* The list scrolls; the field above it stays put. */
+.andes-command__list {
+  box-sizing: border-box;
+  max-height: var(--andes-command-list-max-height, 18rem);
+  padding: var(--andes-space-1, 0.25rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: var(--andes-space-1, 0.25rem);
+}
+
+.andes-command__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.andes-command__heading {
+  padding: 0.375rem 0.75rem 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--andes-color-muted-foreground, #64748b);
+  user-select: none;
+}
+
+.andes-command__separator {
+  height: 1px;
+  margin: var(--andes-space-1, 0.25rem) calc(var(--andes-space-1, 0.25rem) * -1);
+  background-color: var(--andes-color-border, #e2e8f0);
+}
+
+.andes-command__item {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  box-sizing: border-box;
+  min-height: var(--andes-control-height-md, 2rem);
+  padding: 0.3125rem 0.75rem;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  cursor: pointer;
+  user-select: none;
+  scroll-margin-block: var(--andes-space-1, 0.25rem);
+}
+
+/* Highlighted through aria-activedescendant, not :hover or :focus - real focus never leaves the
+   search box - so a pointer over a row moves the same active item: one highlight, one source. */
+.andes-command__item[data-active] {
+  background-color: var(--andes-color-accent-hover, #f1f5f9);
+  color: var(--andes-color-accent-foreground, #0f172a);
+  --andes-color-muted-foreground: color-mix(
+    in srgb,
+    var(--andes-color-accent-foreground, #0f172a) 70%,
+    transparent
+  );
+}
+
+.andes-command__item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-command__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-command__text {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: var(--andes-space-2, 0.5rem);
+  min-width: 0;
+}
+
+.andes-command__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.andes-command__description {
+  min-width: 0;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+/* What the search matched: a soft tint and a heavier weight, readable on the active row too. */
+.andes-command__match {
+  padding: 0;
+  border-radius: 2px;
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 18%,
+    transparent
+  );
+  color: inherit;
+  font-weight: 600;
+}
+
+.andes-command__chevron {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--andes-color-muted-foreground, #64748b);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Shortcut keys at the end of the row, one small key cap each. */
+.andes-command__shortcut {
+  display: inline-flex;
+  flex: none;
+  gap: var(--andes-space-1, 0.25rem);
+  margin-inline-start: auto;
+}
+
+.andes-command__key {
+  box-sizing: border-box;
+  min-width: 1.25rem;
+  padding: 0 0.3125rem;
+  border: 1px solid var(--andes-color-border, #e2e8f0);
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--andes-color-muted, #f1f5f9);
+  color: var(--andes-color-muted-foreground, #64748b);
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  text-align: center;
+}
+
+.andes-command__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: var(--andes-space-5, 1.25rem) var(--andes-space-3, 0.75rem);
+  color: var(--andes-color-muted-foreground, #64748b);
+  text-align: center;
+}
+
+.andes-command__spinner {
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentcolor;
+  border-inline-end-color: transparent;
+  border-radius: var(--andes-radius-full, 9999px);
+  animation: andes-command-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-command__spinner {
+    animation-duration: 1.5s;
+  }
+}
+
+@keyframes andes-command-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Announced to assistive tech, never seen. */
+.andes-command__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

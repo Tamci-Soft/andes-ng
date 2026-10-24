@@ -39,7 +39,7 @@ export * from './lib/color-picker';
 
 // @slot combobox
 
-// @slot command
+export * from './lib/command';
 
 // @slot context-menu
 
