@@ -1,0 +1,272 @@
+/* Shared by every Breadcrumb part - each one attaches to a different native element (nav, ol,
+   li, a, span) via an attribute selector, so there's no single root to hang one stylesheet off
+   of. Text follows the shared body-text scale (14px / 22px) through the `--andes-text-*` tokens, each written with its literal fallback so the component renders the
+   same before those tokens ship.
+
+   Plain class selectors, not `:host(...)`: most of these classes live on `@Directive` hosts
+   (`AndesBreadcrumbList`/`Item`/`Link`/`Page`/`Separator`) applied to elements the CONSUMER
+   authored and Angular projects in via `<ng-content>` - under emulated view encapsulation those
+   elements never carry `AndesBreadcrumb`'s own scope attribute (only the two `@Component`s that
+   include this file via `styleUrl`, `AndesBreadcrumb` and `AndesBreadcrumbEllipsis`, do), and
+   `:host()` only ever matches an actual component host element, never a directive's. Both of
+   those components opt out of scoping with `encapsulation: ViewEncapsulation.None` (see
+   breadcrumb.ts) specifically so this file's plain class selectors match by class name
+   wherever they're used, exactly like a hand-authored global stylesheet would. */
+
+.andes-breadcrumb {
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--andes-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+}
+
+.andes-breadcrumb-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+.andes-breadcrumb-link:hover {
+  color: var(--andes-color-foreground);
+  text-decoration: underline;
+}
+
+.andes-breadcrumb-link:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-breadcrumb-page {
+  color: var(--andes-color-foreground);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+/* An `[items]` crumb with an `icon`: the icon and the title sit side by side, centered. */
+.andes-breadcrumb-has-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-1);
+}
+
+.andes-breadcrumb-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.andes-breadcrumb-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.andes-breadcrumb-separator {
+  display: inline-flex;
+  align-items: center;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-breadcrumb-separator__icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* The default chevron points toward the next crumb, which in right-to-left text is the left. */
+.andes-breadcrumb-separator__icon:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+/* One text line tall (22px), so a collapsed trail is exactly as tall as an uncollapsed one, and
+   the dots - drawn on the middle of their viewBox - sit on the line's centre, level with the
+   separator chevrons. */
+.andes-breadcrumb-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-breadcrumb-ellipsis__icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The interactive (dropdown) mode of AndesBreadcrumbEllipsis. The host keeps its own box
+   from `.andes-breadcrumb-ellipsis` above; the trigger just fills it and resets the browser's
+   default button chrome so the "..." looks identical to the static glyph until hovered/focused. */
+.andes-breadcrumb-ellipsis__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+.andes-breadcrumb-ellipsis__trigger:hover {
+  color: var(--andes-color-foreground);
+}
+
+.andes-breadcrumb-ellipsis__trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The internal dropdown wrapper (ellipsis and crumb menus) adds no box of its own, so the
+   trigger lays out exactly as if it were a direct child of its `<li>`/ellipsis host. */
+.andes-breadcrumb-dropdown {
+  display: contents;
+}
+
+/* The `<andes-dropdown-menu>` host inside that wrapper is a block by default, which wraps the
+   inline-flex trigger in a line box: the trigger then sits on that line's baseline at the top of
+   a taller box, and the ellipsis dots ended up 1.5px above the crumbs' centre. As a flex
+   container it hugs the trigger, so the host's own `align-items: center` really centres it. */
+.andes-breadcrumb-dropdown > andes-dropdown-menu {
+  display: inline-flex;
+  align-self: stretch;
+  align-items: center;
+}
+
+/* Inside the ellipsis box the host also fills it, so the trigger's `height: 100%` resolves and
+   the dots centre exactly like the static ellipsis. */
+.andes-breadcrumb-ellipsis andes-dropdown-menu {
+  width: 100%;
+  height: 100%;
+}
+
+/* The CDK pane of a crumb or ellipsis dropdown. It renders at the end of `<body>`, so it inherits
+   nothing from `.andes-breadcrumb` - the family is set again on the panel root. */
+.andes-breadcrumb-dropdown-panel {
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+/* The inner `<a>`/`<span>` of a dropdown entry. Fills its `role="menuitem"` parent so the whole
+   row - not just the text - is a click target, and drops `.andes-breadcrumb-link`'s own hover
+   underline/color, which would fight the menu item's own hover/active highlight. */
+.andes-breadcrumb-menu-entry,
+.andes-breadcrumb-menu-entry:hover {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--andes-space-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.andes-breadcrumb-menu-entry__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-breadcrumb-menu-entry__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* The menu item already draws the focus/active highlight for the whole row. */
+.andes-breadcrumb-menu-entry:focus-visible {
+  outline: none;
+}
+
+/* An `[items]` crumb with a `menu`: its label plus a caret, as the dropdown trigger. A native
+   `<button>` does not inherit typography, so the family is set explicitly (never `font: inherit`,
+   which would also reset what `.andes-breadcrumb-list` sets) and size/line-height inherited. */
+.andes-breadcrumb-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm);
+  background: none;
+  color: inherit;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+.andes-breadcrumb-menu-trigger:hover:not(:disabled) {
+  color: var(--andes-color-foreground);
+}
+
+.andes-breadcrumb-menu-trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* A last crumb that has a menu is still the current page. */
+.andes-breadcrumb-menu-trigger[aria-current='page'] {
+  color: var(--andes-color-foreground);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+/* `dropdownProps.disabled`: the caret stays, but the menu cannot open. */
+.andes-breadcrumb-menu-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-breadcrumb-menu-trigger__icon {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* An `[items]` crumb with an `onClick` but no `href`: a real `<button>` (keyboard-reachable)
+   that looks like the other links. */
+.andes-breadcrumb-link--button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.andes-breadcrumb-ellipsis__sr-only,
+.andes-breadcrumb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
