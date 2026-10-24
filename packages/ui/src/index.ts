@@ -117,7 +117,7 @@ export * from './lib/sheet';
 
 export * from './lib/skeleton';
 
-// @slot slider
+export * from './lib/slider';
 
 // @slot space
 
