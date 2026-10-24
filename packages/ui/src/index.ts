@@ -31,7 +31,7 @@ export * from './lib/carousel';
 
 export * from './lib/cascader';
 
-// @slot checkbox
+export * from './lib/checkbox';
 
 // @slot collapsible
 
