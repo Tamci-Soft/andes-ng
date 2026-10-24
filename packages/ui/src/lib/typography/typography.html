@@ -1,0 +1,228 @@
+<!-- The text sits in one element of its own and the buttons beside it, so a heading's accessible
+     name is only the heading text. Each modifier (strong, italic, ...) wraps the content in the
+     matching element; the wrappers are built recursively so the projected content, which can
+     only appear once, ends up innermost. -->
+<ng-template #content>
+  @if (text() !== undefined) {
+  <ng-container>{{ text() }}</ng-container>
+  } @else {
+  <ng-content />
+  }
+</ng-template>
+
+<ng-template #wrap let-index>
+  @if (wrappers()[index]; as name) { @switch (name) { @case ('strong') {
+  <strong class="andes-typography__strong"
+    ><ng-container *ngTemplateOutlet="wrap; context: { $implicit: index + 1 }"
+  /></strong>
+  } @case ('italic') {
+  <em class="andes-typography__italic"
+    ><ng-container *ngTemplateOutlet="wrap; context: { $implicit: index + 1 }"
+  /></em>
+  } @case ('underline') {
+  <u class="andes-typography__underline"
+    ><ng-container *ngTemplateOutlet="wrap; context: { $implicit: index + 1 }"
+  /></u>
+  } @case ('deleted') {
+  <del class="andes-typography__deleted"
+    ><ng-container *ngTemplateOutlet="wrap; context: { $implicit: index + 1 }"
+  /></del>
+  } @case ('mark') {
+  <mark class="andes-typography__mark"
+    ><ng-container *ngTemplateOutlet="wrap; context: { $implicit: index + 1 }"
+  /></mark>
+  } @case ('code') {
+  <code class="andes-typography__code"
+    ><ng-container *ngTemplateOutlet="wrap; context: { $implicit: index + 1 }"
+  /></code>
+  } @case ('keyboard') {
+  <kbd class="andes-typography__kbd"
+    ><ng-container *ngTemplateOutlet="wrap; context: { $implicit: index + 1 }"
+  /></kbd>
+  } } } @else {
+  <ng-container *ngTemplateOutlet="content" />
+  }
+</ng-template>
+
+<ng-template #body>
+  <ng-container *ngTemplateOutlet="wrap; context: { $implicit: 0 }" />
+</ng-template>
+
+@if (editing()) {
+<span class="andes-typography__editor" data-slot="typography-editor">
+  <textarea
+    #editorEl
+    class="andes-typography__field"
+    rows="1"
+    [value]="draft()"
+    [attr.maxlength]="editConfig()?.maxLength ?? null"
+    [attr.aria-label]="editConfig()?.fieldLabel"
+    [class.andes-typography__field--fixed]="!autoSize()"
+    (input)="onDraftInput($event)"
+    (keydown)="onEditorKeydown($event)"
+    (blur)="onEditorBlur()"
+  ></textarea>
+  @if (editConfig()?.maxLength; as max) {
+  <span class="andes-typography__count" aria-hidden="true"
+    >{{ draft().length }} / {{ max }}</span
+  >
+  }
+</span>
+} @else { @switch (tag()) { @case ('h1') {
+<h1
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</h1>
+} @case ('h2') {
+<h2
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</h2>
+} @case ('h3') {
+<h3
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</h3>
+} @case ('h4') {
+<h4
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</h4>
+} @case ('h5') {
+<h5
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</h5>
+} @case ('h6') {
+<h6
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</h6>
+} @case ('p') {
+<p
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</p>
+} @case ('div') {
+<div
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</div>
+} @default {
+<span
+  #textEl
+  [class]="textClasses()"
+  [attr.id]="uid + '-text'"
+  [attr.tabindex]="textTabindex()"
+  [attr.aria-disabled]="disabled() || null"
+>
+  <ng-container *ngTemplateOutlet="body" />
+</span>
+} } @if (showExpander()) {
+<button
+  type="button"
+  class="andes-typography__expander"
+  [attr.aria-expanded]="expanded()"
+  [attr.aria-controls]="uid + '-text'"
+  [disabled]="disabled()"
+  (click)="toggleExpanded()"
+>
+  {{ expanded() ? ellipsisConfig()?.collapseText : ellipsisConfig()?.expandText
+  }}
+</button>
+} @if (copyConfig(); as copyOptions) {
+<button
+  type="button"
+  class="andes-typography__action andes-typography__copy"
+  data-slot="typography-copy"
+  [class.andes-typography__action--done]="copiedState()"
+  [attr.aria-label]="copyOptions.label"
+  [attr.title]="copyOptions.tooltip ? (copiedState() ? copyOptions.copiedLabel : copyOptions.label) : null"
+  [disabled]="disabled()"
+  (click)="copy()"
+>
+  @if (copiedState()) {
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </svg>
+  } @else {
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="9" y="9" width="11" height="11" rx="2.5" />
+    <path
+      d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9"
+    />
+  </svg>
+  }
+</button>
+} @if (editConfig(); as editOptions) { @if (editOptions.iconTrigger) {
+<button
+  #editButton
+  type="button"
+  class="andes-typography__action andes-typography__edit"
+  data-slot="typography-edit"
+  [attr.aria-label]="editOptions.label"
+  [attr.title]="editOptions.label"
+  [disabled]="disabled()"
+  (click)="startEdit()"
+>
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 20h4l10.5-10.5a2.12 2.12 0 0 0-3-3L5 17v3Z" />
+    <path d="m13.5 8.5 3 3" />
+  </svg>
+</button>
+} } }
+
+<span class="andes-typography__status" role="status" aria-live="polite"
+  >{{ announcement() }}</span
+>
+
+@if (tooltipOpen()) {
+<!-- Visual only: the full text is already in the DOM for assistive tech, so the popup is hidden
+     from it rather than read twice. -->
+<span
+  class="andes-typography__tooltip"
+  [class.andes-typography__tooltip--bottom]="tooltipSide() === 'bottom'"
+  aria-hidden="true"
+  >{{ tooltipText() }}</span
+>
+}

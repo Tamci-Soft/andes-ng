@@ -1,0 +1,417 @@
+/*
+ * Shared by andes-title, andes-text and andes-paragraph. The host carries the look (size,
+ * weight, colour) and everything inside inherits it, so the semantic element the text renders
+ * in (`h2`, `p`, `span`, ...) never decides how it looks. Colours are the token set; the
+ * semantic text colours fall back to the plain status colour while a theme has no `-text`
+ * variant.
+ */
+
+:host {
+  position: relative;
+  display: inline;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  font-weight: 400;
+  color: var(--andes-color-foreground);
+}
+
+:host([data-size='sm']) {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+:host(.andes-typography--title),
+:host(.andes-typography--paragraph) {
+  display: block;
+}
+
+:host(.andes-typography--title) {
+  margin-block: 0 var(--andes-typography-margin, 0.5em);
+  font-weight: 600;
+}
+
+:host(.andes-typography--paragraph) {
+  margin-block: 0 var(--andes-typography-margin, 1em);
+}
+
+:host(.andes-typography--title:last-child),
+:host(.andes-typography--paragraph:last-child) {
+  margin-block-end: 0;
+}
+
+/* Type scale: 24 / 20 / 18 / 16 / 14. */
+:host(.andes-typography--title[data-level='1']) {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+:host(.andes-typography--title[data-level='2']) {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+:host(.andes-typography--title[data-level='3']) {
+  font-size: 1.125rem;
+  line-height: 1.625rem;
+}
+
+:host(.andes-typography--title[data-level='4']) {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+:host(.andes-typography--title[data-level='5']) {
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+/* Colour types. The buttons inside inherit the colour as their resting colour. */
+:host([data-type='secondary']) {
+  color: var(--andes-color-muted-foreground);
+}
+
+:host([data-type='success']) {
+  color: var(--andes-color-success-text, var(--andes-color-success));
+}
+
+:host([data-type='warning']) {
+  color: var(--andes-color-warning-text, var(--andes-color-warning));
+}
+
+:host([data-type='danger']) {
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
+}
+
+:host([data-type='disabled']),
+:host([data-disabled]) {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 65%,
+    transparent
+  );
+  cursor: not-allowed;
+}
+
+:host([data-disabled]) .andes-typography__text {
+  user-select: none;
+}
+
+/* A truncating host is a row: the text takes what is left, the buttons keep their size. */
+:host(.andes-typography--ellipsis) {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  max-width: 100%;
+}
+
+:host(.andes-typography--ellipsis.andes-typography--multiline) {
+  align-items: flex-end;
+}
+
+/* --- Text element -------------------------------------------------------------------------- */
+
+.andes-typography__text {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  overflow-wrap: break-word;
+}
+
+.andes-typography__text--ellipsis {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.andes-typography__text--multiline {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--andes-typography-rows, 2);
+  line-clamp: var(--andes-typography-rows, 2);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.andes-typography__text--expanded {
+  display: block;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow-wrap: anywhere;
+}
+
+.andes-typography__text--trigger {
+  cursor: text;
+  border-radius: var(--andes-radius-sm);
+}
+
+.andes-typography__text--trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* --- Modifiers ----------------------------------------------------------------------------- */
+
+.andes-typography__strong {
+  font-weight: 600;
+}
+
+.andes-typography__italic {
+  font-style: italic;
+}
+
+.andes-typography__underline {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.andes-typography__deleted {
+  text-decoration: line-through;
+}
+
+.andes-typography__mark {
+  padding-inline: 0.125em;
+  border-radius: var(--andes-radius-sm);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-warning) 28%,
+    transparent
+  );
+  color: inherit;
+}
+
+.andes-typography__code {
+  margin-inline: 0.1em;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-muted);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.andes-typography__kbd {
+  margin-inline: 0.1em;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--andes-color-border);
+  border-block-end-width: 2px;
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-muted);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+/* --- Buttons ------------------------------------------------------------------------------- */
+
+.andes-typography__action,
+.andes-typography__expander {
+  flex: none;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color var(--andes-motion-duration-mid, 150ms) ease,
+    background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+.andes-typography__action:focus-visible,
+.andes-typography__expander:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-typography__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  margin-inline-start: 0.25rem;
+  padding: 0;
+  border-radius: var(--andes-radius-sm);
+  color: var(--andes-color-muted-foreground);
+  vertical-align: middle;
+}
+
+.andes-typography__action:hover {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-foreground);
+}
+
+.andes-typography__action svg {
+  inline-size: 0.875rem;
+  block-size: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-typography__action--done,
+.andes-typography__action--done:hover {
+  color: var(--andes-color-success-text, var(--andes-color-success));
+}
+
+.andes-typography__action:disabled,
+.andes-typography__expander:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.andes-typography__expander {
+  margin-inline-start: 0.25rem;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  border-radius: var(--andes-radius-sm);
+  color: var(--andes-color-primary-text, var(--andes-color-primary));
+}
+
+.andes-typography__expander:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* Announces the copy result to assistive tech without taking any room. */
+.andes-typography__status {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Editor -------------------------------------------------------------------------------- */
+
+/* The negative margins cancel the field's padding and border, so the text does not jump when
+   the editor opens. */
+.andes-typography__editor {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-block: -0.3125rem;
+  margin-inline-start: -0.75rem;
+}
+
+.andes-typography__field {
+  display: block;
+  box-sizing: border-box;
+  inline-size: 100%;
+  margin: 0;
+  padding: 0.25rem 0.6875rem;
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-md);
+  outline: 0;
+  background-color: var(--andes-color-background);
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  resize: none;
+  overflow-y: auto;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-typography__field--fixed {
+  resize: vertical;
+}
+
+.andes-typography__field:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+}
+
+.andes-typography__field:focus {
+  border-color: var(--andes-color-primary);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+  outline: none;
+}
+
+.andes-typography__count {
+  display: block;
+  margin-block-start: 0.25rem;
+  margin-inline-start: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--andes-color-muted-foreground);
+  text-align: end;
+}
+
+/* --- Truncation popup ---------------------------------------------------------------------- */
+
+.andes-typography__tooltip {
+  position: absolute;
+  inset-block-end: calc(100% + 0.25rem);
+  inset-inline-start: 0;
+  z-index: var(--andes-z-index-tooltip, 1070);
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: min(24rem, 90vw);
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-popover);
+  box-shadow: var(--andes-shadow-md, 0 4px 6px rgb(0 0 0 / 0.12));
+  color: var(--andes-color-popover-foreground);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  animation: andes-typography-tooltip-in var(--andes-motion-duration-mid, 150ms)
+    cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Flipped below the text when there is no room above it. */
+.andes-typography__tooltip--bottom {
+  inset-block-end: auto;
+  inset-block-start: calc(100% + 0.25rem);
+}
+
+@keyframes andes-typography-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-typography__action,
+  .andes-typography__expander,
+  .andes-typography__field {
+    transition: none;
+  }
+
+  .andes-typography__tooltip {
+    animation: none;
+  }
+}
