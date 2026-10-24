@@ -13,7 +13,7 @@ export * from './lib/alert';
 
 export * from './lib/anchor';
 
-// @slot aspect-ratio
+export * from './lib/aspect-ratio';
 
 export * from './lib/avatar';
 

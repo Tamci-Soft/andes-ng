@@ -1,0 +1,39 @@
+.andes-aspect-ratio {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: var(--andes-aspect-ratio, 1);
+}
+
+/* Filling mode: the box is sized by its ratio alone, so the children leave the flow and stretch
+   over it. Clipping keeps cropped media inside the shape. */
+.andes-aspect-ratio[data-fill] {
+  overflow: hidden;
+}
+
+.andes-aspect-ratio[data-fill] > * {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+}
+
+.andes-aspect-ratio > :is(img, video, canvas) {
+  object-fit: var(--andes-aspect-ratio-fit, cover);
+  object-position: var(--andes-aspect-ratio-position, center);
+}
+
+/* A <picture> is a transparent wrapper: its <img> is what has to fill the box. */
+.andes-aspect-ratio > picture > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: var(--andes-aspect-ratio-fit, cover);
+  object-position: var(--andes-aspect-ratio-position, center);
+}
+
+.andes-aspect-ratio > :is(img, video, canvas) {
+  display: block;
+}
