@@ -69,7 +69,7 @@ export * from './lib/hover-card';
 
 export * from './lib/image';
 
-// @slot input
+export * from './lib/input';
 
 // @slot input-number
 

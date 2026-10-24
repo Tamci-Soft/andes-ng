@@ -1,0 +1,179 @@
+.andes-input-otp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+  line-height: var(--andes-control-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+.andes-input-otp__cell {
+  /* Same state model as AndesInput's wrapper: variants, statuses and disabled only re-point
+     these private properties; the hover and focus rules below are written once. */
+  --_andes-input-border: var(--andes-color-input);
+  --_andes-input-border-hover: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+  --_andes-input-border-focus: var(--andes-color-primary);
+  --_andes-input-bg: var(--andes-color-background);
+  --_andes-input-bg-hover: var(--_andes-input-bg);
+  --_andes-input-bg-focus: var(--_andes-input-bg);
+  --_andes-input-ring: color-mix(
+    in srgb,
+    var(--andes-color-primary) 20%,
+    transparent
+  );
+
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  border: 1px solid var(--_andes-input-border);
+  background-color: var(--_andes-input-bg);
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-input-otp__cell {
+    transition: none;
+  }
+}
+
+.andes-input-otp__cell:hover {
+  border-color: var(--_andes-input-border-hover);
+  background-color: var(--_andes-input-bg-hover);
+}
+
+/* Each cell is its own bordered box, so it carries the field focus treatment itself: border in
+   the focus colour plus a soft 2px ring, on any focus (mouse or keyboard), and no outline - an
+   outline offset from the border would read as a second frame. */
+.andes-input-otp__cell:focus {
+  border-color: var(--_andes-input-border-focus);
+  background-color: var(--_andes-input-bg-focus);
+  box-shadow: 0 0 0 2px var(--_andes-input-ring);
+  outline: none;
+}
+
+/* Forced-colors mode drops `box-shadow`; a real outline is the one indicator there. */
+@media (forced-colors: active) {
+  .andes-input-otp__cell:focus {
+    outline: 2px solid Highlight;
+  }
+}
+
+.andes-input-otp__cell:disabled {
+  cursor: not-allowed;
+}
+
+.andes-input-otp__separator {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Sizes: square cells matching AndesInput's heights (24/32/40px),
+   with the same type and corner scale. */
+
+.andes-input-otp--sm {
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
+}
+
+.andes-input-otp--sm .andes-input-otp__cell {
+  width: var(--andes-control-height-sm, 1.5rem);
+  height: var(--andes-control-height-sm, 1.5rem);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+}
+
+.andes-input-otp--md {
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+}
+
+.andes-input-otp--md .andes-input-otp__cell {
+  width: var(--andes-control-height-md, 2rem);
+  height: var(--andes-control-height-md, 2rem);
+}
+
+.andes-input-otp--lg {
+  font-size: var(--andes-control-font-size-lg, 1rem);
+  line-height: 1.5rem;
+}
+
+.andes-input-otp--lg .andes-input-otp__cell {
+  width: var(--andes-control-height-lg, 2.5rem);
+  height: var(--andes-control-height-lg, 2.5rem);
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+}
+
+/* Variants (same set and meaning as AndesInput's). */
+
+.andes-input-otp--filled .andes-input-otp__cell {
+  --_andes-input-border: transparent;
+  --_andes-input-border-hover: transparent;
+  --_andes-input-bg: var(--andes-color-muted);
+  --_andes-input-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-muted),
+    var(--andes-color-foreground) 6%
+  );
+  --_andes-input-bg-focus: var(--andes-color-background);
+}
+
+.andes-input-otp--borderless .andes-input-otp__cell {
+  --_andes-input-border: transparent;
+  --_andes-input-border-hover: transparent;
+  --_andes-input-border-focus: transparent;
+  --_andes-input-bg: transparent;
+}
+
+.andes-input-otp--underlined .andes-input-otp__cell {
+  --_andes-input-bg: transparent;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.andes-input-otp--underlined .andes-input-otp__cell:focus {
+  box-shadow: none;
+}
+
+/* Status */
+
+.andes-input-otp--invalid .andes-input-otp__cell {
+  --_andes-input-border: var(--andes-color-danger);
+  --_andes-input-border-hover: var(--andes-color-danger);
+  --_andes-input-border-focus: var(--andes-color-danger);
+  --_andes-input-ring: color-mix(
+    in srgb,
+    var(--andes-color-danger) 20%,
+    transparent
+  );
+}
+
+.andes-input-otp--warning .andes-input-otp__cell {
+  --_andes-input-border: var(--andes-color-warning-hover);
+  --_andes-input-border-hover: var(--andes-color-warning-hover);
+  --_andes-input-border-focus: var(--andes-color-warning-hover);
+  --_andes-input-ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+.andes-input-otp--disabled .andes-input-otp__cell {
+  --_andes-input-bg: var(--andes-color-muted);
+  --_andes-input-border-hover: var(--_andes-input-border);
+  --_andes-input-bg-hover: var(--_andes-input-bg);
+  color: var(--andes-color-muted-foreground);
+}
+
+/* The separators dim with the cells, so a disabled group doesn't read as half-enabled. */
+.andes-input-otp--disabled .andes-input-otp__separator {
+  opacity: 0.6;
+}
