@@ -1,0 +1,15 @@
+/* Fallback (server or before the first measurement): items flow through CSS columns. */
+:host {
+  display: block;
+  box-sizing: border-box;
+  break-inside: avoid;
+  margin-block-end: var(--andes-masonry-gutter-y, 16px);
+}
+
+/* Measured layout: the masonry positions each item absolutely, in source order. */
+:host([data-layout='js']) {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  margin: 0;
+}

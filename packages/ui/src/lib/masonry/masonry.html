@@ -1,0 +1,17 @@
+@for (item of items(); track item.key; let i = $index) {
+<div
+  #dataItem
+  class="andes-masonry__item"
+  role="listitem"
+  data-slot="masonry-item"
+  data-masonry-item
+  [attr.data-key]="item.key"
+>
+  <ng-container
+    [ngTemplateOutlet]="itemTemplate() ?? fallback"
+    [ngTemplateOutletContext]="{ $implicit: item, index: i }"
+  />
+</div>
+}
+<ng-content />
+<ng-template #fallback let-item>{{ item.key }}</ng-template>

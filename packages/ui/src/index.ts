@@ -79,7 +79,7 @@ export * from './lib/layout';
 
 export * from './lib/list';
 
-// @slot masonry
+export * from './lib/masonry';
 
 // @slot mentions
 
