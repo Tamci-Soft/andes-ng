@@ -1,0 +1,124 @@
+/* The built-in illustrations take every colour from the theme tokens (a mix of the foreground
+   and the background), so they follow light and dark mode without a second set of assets.
+   Hooks, read with a fallback so a rule on the element is never outranked:
+     --andes-empty-image-size   height of the picture (default 96px, 56px small; simple 40/32px)
+     --andes-empty-padding      space around the whole state
+     --andes-empty-color        description colour (default: muted foreground)
+     --andes-empty-stroke       illustration outline colour */
+
+:host {
+  display: block;
+  box-sizing: border-box;
+  padding: var(--andes-empty-padding, 2rem 1rem);
+  text-align: center;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-empty-color, var(--andes-color-muted-foreground));
+}
+
+:host([data-size='small']) {
+  padding: var(--andes-empty-padding, 0.5rem 1rem);
+}
+
+.andes-empty__image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-block-end: 0.5rem;
+}
+
+.andes-empty__svg {
+  display: block;
+  inline-size: auto;
+  max-inline-size: 100%;
+  --andes-empty-stroke-fallback: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 38%,
+    var(--andes-color-background)
+  );
+}
+
+.andes-empty__svg--default {
+  block-size: var(--andes-empty-image-size, 6rem);
+}
+
+.andes-empty__svg--simple {
+  block-size: var(--andes-empty-image-size, 2.5rem);
+}
+
+:host([data-size='small']) .andes-empty__svg--default {
+  block-size: var(--andes-empty-image-size, 3.5rem);
+}
+
+:host([data-size='small']) .andes-empty__svg--simple {
+  block-size: var(--andes-empty-image-size, 2rem);
+}
+
+.andes-empty__img {
+  display: block;
+  block-size: var(--andes-empty-image-size, 6rem);
+  max-inline-size: 100%;
+  object-fit: contain;
+}
+
+.andes-empty__shadow {
+  fill: color-mix(in srgb, var(--andes-color-foreground) 7%, transparent);
+}
+
+.andes-empty__tray {
+  fill: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 4%,
+    var(--andes-color-background)
+  );
+  stroke: var(--andes-empty-stroke, var(--andes-empty-stroke-fallback));
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.andes-empty__tray-lip {
+  fill: none;
+}
+
+.andes-empty__cards {
+  fill: var(--andes-color-background);
+  stroke: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 18%,
+    var(--andes-color-background)
+  );
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-empty__cards path {
+  fill: none;
+}
+
+.andes-empty__outline {
+  fill: none;
+  stroke: var(--andes-empty-stroke, var(--andes-empty-stroke-fallback));
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-empty__description {
+  margin: 0;
+}
+
+.andes-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-block-start: 1rem;
+}
+
+.andes-empty__actions:empty {
+  display: none;
+}

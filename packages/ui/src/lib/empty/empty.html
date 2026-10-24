@@ -1,0 +1,55 @@
+@if (hasImage()) {
+<div class="andes-empty__image" data-slot="empty-image" [style]="imageStyle()">
+  @if (illustration() === 'simple') {
+  <svg
+    class="andes-empty__svg andes-empty__svg--simple"
+    viewBox="0 0 64 41"
+    focusable="false"
+    aria-hidden="true"
+  >
+    <ellipse class="andes-empty__shadow" cx="32" cy="34" rx="32" ry="6" />
+    <g class="andes-empty__outline">
+      <path
+        d="M10 21 16 8.5a3 3 0 0 1 2.7-1.7h26.6a3 3 0 0 1 2.7 1.7L54 21v8a3 3 0 0 1-3 3H13a3 3 0 0 1-3-3Z"
+      />
+      <path
+        d="M10 21h13a2 2 0 0 1 2 2 5 5 0 0 0 5 4h4a5 5 0 0 0 5-4 2 2 0 0 1 2-2h13"
+      />
+    </g>
+  </svg>
+  } @else if (illustration() === 'default') {
+  <svg
+    class="andes-empty__svg andes-empty__svg--default"
+    viewBox="0 0 184 152"
+    focusable="false"
+    aria-hidden="true"
+  >
+    <ellipse class="andes-empty__shadow" cx="92" cy="130" rx="70" ry="10" />
+    <g class="andes-empty__cards">
+      <rect x="62" y="14" width="60" height="42" rx="6" />
+      <path d="M72 28h32M72 38h20" />
+    </g>
+    <g class="andes-empty__tray">
+      <path
+        d="m34 84 22-26a8 8 0 0 1 6-3h60a8 8 0 0 1 6 3l22 26v34a10 10 0 0 1-10 10H44a10 10 0 0 1-10-10Z"
+      />
+      <path
+        class="andes-empty__tray-lip"
+        d="M34 84h38a6 6 0 0 1 6 6 14 14 0 0 0 14 14h0a14 14 0 0 0 14-14 6 6 0 0 1 6-6h38"
+      />
+    </g>
+  </svg>
+  } @else if (imageUrl(); as url) {
+  <img class="andes-empty__img" [src]="url" [alt]="imageAlt()" />
+  } @else if (imageTemplate(); as template) {
+  <ng-container [ngTemplateOutlet]="template" />
+  }
+</div>
+} @if (descriptionText(); as text) {
+<p class="andes-empty__description" data-slot="empty-description">{{ text }}</p>
+} @else if (descriptionTemplate(); as template) {
+<div class="andes-empty__description" data-slot="empty-description">
+  <ng-container [ngTemplateOutlet]="template" />
+</div>
+}
+<div class="andes-empty__actions" data-slot="empty-actions"><ng-content /></div>
