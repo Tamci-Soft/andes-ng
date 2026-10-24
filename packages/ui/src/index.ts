@@ -25,7 +25,7 @@ export * from './lib/button';
 
 // @slot calendar
 
-// @slot card
+export * from './lib/card';
 
 // @slot carousel
 
