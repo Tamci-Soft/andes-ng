@@ -1,0 +1,250 @@
+/*
+ * A centred column: status visual, title, sub title, actions, then an optional body block.
+ * Every colour comes from the token set; the status decides one accent colour
+ * (`--andes-result-accent`) that the glyphs and the illustrations are drawn with, so light and
+ * dark need no per-theme rules.
+ */
+
+:host {
+  display: block;
+}
+
+.andes-result {
+  --andes-result-accent: var(--andes-color-info, #1677ff);
+  --andes-result-line: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground, #64748b) 55%,
+    transparent
+  );
+  --andes-result-soft: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground, #64748b) 14%,
+    transparent
+  );
+  --andes-result-tint: color-mix(
+    in srgb,
+    var(--andes-result-accent) 14%,
+    transparent
+  );
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 2rem;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  color: var(--andes-color-foreground);
+  text-align: center;
+}
+
+.andes-result--compact {
+  padding: 1.5rem 1rem;
+}
+
+.andes-result--success {
+  --andes-result-accent: var(--andes-color-success, #16a34a);
+}
+
+.andes-result--error,
+.andes-result--500 {
+  --andes-result-accent: var(--andes-color-danger, #dc2626);
+}
+
+.andes-result--warning,
+.andes-result--403 {
+  --andes-result-accent: var(--andes-color-warning, #d97706);
+}
+
+.andes-result--info,
+.andes-result--processing,
+.andes-result--404 {
+  --andes-result-accent: var(--andes-color-info, #1677ff);
+}
+
+/* --- Visual ------------------------------------------------------------------------------- */
+
+.andes-result__visual {
+  display: flex;
+  justify-content: center;
+  margin-block-end: 1.5rem;
+  font-size: 4.5rem;
+  line-height: 1;
+  color: var(--andes-result-accent);
+}
+
+.andes-result__visual:empty {
+  display: none;
+}
+
+/* A custom icon template may be a bare SVG or a font glyph: size both to the same square. */
+.andes-result__visual ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+}
+
+.andes-result__svg {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  flex: none;
+}
+
+.andes-result__visual--illustration {
+  font-size: inherit;
+}
+
+.andes-result__visual--illustration .andes-result__svg {
+  width: 15rem;
+  max-width: 100%;
+  height: auto;
+}
+
+.andes-result__disc {
+  fill: var(--andes-result-tint);
+}
+
+.andes-result__glyph {
+  stroke: var(--andes-result-accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-result__track {
+  stroke: var(--andes-result-soft);
+  stroke-width: 4;
+}
+
+.andes-result__spin {
+  stroke: var(--andes-result-accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 32 100;
+  transform-origin: 36px 36px;
+  animation: andes-result-spin 1.8s linear infinite;
+}
+
+@keyframes andes-result-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Illustration parts. */
+
+.andes-result__ground {
+  fill: var(--andes-result-soft);
+}
+
+.andes-result__sheet {
+  fill: var(--andes-color-background, #fff);
+  stroke: var(--andes-result-line);
+  stroke-width: 2;
+}
+
+.andes-result__rule {
+  stroke: var(--andes-result-line);
+  stroke-width: 2;
+}
+
+.andes-result__bar {
+  fill: var(--andes-result-soft);
+}
+
+.andes-result__dot {
+  fill: var(--andes-result-line);
+}
+
+.andes-result__accent-body {
+  fill: var(--andes-result-tint);
+  stroke: var(--andes-result-accent);
+  stroke-width: 3;
+}
+
+.andes-result__accent-stroke {
+  stroke: var(--andes-result-accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-result__accent-dot {
+  fill: var(--andes-result-accent);
+}
+
+.andes-result__badge {
+  fill: var(--andes-color-background, #fff);
+  stroke: var(--andes-result-accent);
+  stroke-width: 3;
+}
+
+/* --- Text --------------------------------------------------------------------------------- */
+
+.andes-result__title {
+  margin: 0;
+  max-width: 100%;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+  color: var(--andes-color-foreground);
+  overflow-wrap: anywhere;
+}
+
+.andes-result--compact .andes-result__title {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.andes-result__subtitle {
+  margin-block-start: 0.25rem;
+  max-width: 36rem;
+  color: var(--andes-color-muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.andes-result__title:empty,
+.andes-result__subtitle:empty,
+.andes-result__extra:empty,
+.andes-result__body:empty {
+  display: none;
+}
+
+.andes-result__extra {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-block-start: 1.5rem;
+}
+
+.andes-result__body {
+  box-sizing: border-box;
+  align-self: stretch;
+  margin-block-start: 1.5rem;
+  padding: 1.5rem 2.5rem;
+  border-radius: var(--andes-radius-md, 0.5rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-muted, #f1f5f9) 60%,
+    transparent
+  );
+  text-align: start;
+}
+
+@media (max-width: 40rem) {
+  .andes-result {
+    padding-inline: 1rem;
+  }
+
+  .andes-result__body {
+    padding-inline: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-result__spin {
+    animation: none;
+  }
+}

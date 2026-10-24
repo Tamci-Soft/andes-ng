@@ -105,7 +105,7 @@ export * from './lib/radio-group';
 
 export * from './lib/rate';
 
-// @slot result
+export * from './lib/result';
 
 // @slot scroll-area
 
