@@ -1,0 +1,536 @@
+/* Every visual decision flows through a handful of private custom properties set per status and
+   per variant, so the layout rules below never repeat colours. The parent mirrors its state onto
+   this host as data attributes; nothing here reaches into another component's DOM. */
+:host {
+  --_icon: 2rem;
+  --_gap: var(--andes-space-2, 0.5rem);
+  --_row: max(var(--_icon), 1.375rem);
+  --_tail: var(--andes-color-border, #d1d5db);
+  --_marker-bg: transparent;
+  --_marker-fg: var(--andes-color-muted-foreground, #64748b);
+  --_marker-border: var(--andes-color-border, #d1d5db);
+  --_title-color: var(--andes-color-muted-foreground, #64748b);
+  --_title-weight: 500;
+  --_primary-text: var(
+    --andes-color-primary-text,
+    var(--andes-color-primary, #2563eb)
+  );
+  --_danger-text: var(
+    --andes-color-danger-text,
+    var(--andes-color-danger, #dc2626)
+  );
+
+  position: relative;
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+:host([data-size='small']) {
+  --_icon: 1.5rem;
+}
+
+:host([data-variant='dot']) {
+  --_icon: 0.5rem;
+}
+
+:host([data-last]) {
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- Status */
+
+:host([data-status='finish']) {
+  --_marker-bg: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 12%,
+    transparent
+  );
+  --_marker-fg: var(--_primary-text);
+  --_marker-border: transparent;
+  --_title-color: var(--andes-color-foreground);
+  --_tail: var(--andes-color-primary, #2563eb);
+}
+
+:host([data-status='process']) {
+  --_marker-bg: var(--andes-color-primary, #2563eb);
+  --_marker-fg: var(--andes-color-primary-foreground, #ffffff);
+  --_marker-border: var(--andes-color-primary, #2563eb);
+  --_title-color: var(--andes-color-foreground);
+  --_title-weight: 600;
+}
+
+:host([data-status='error']) {
+  --_marker-bg: color-mix(
+    in srgb,
+    var(--andes-color-danger, #dc2626) 12%,
+    transparent
+  );
+  --_marker-fg: var(--_danger-text);
+  --_marker-border: transparent;
+  --_title-color: var(--_danger-text);
+}
+
+/* ---------------------------------------------------------------- Trigger */
+
+.andes-step__head {
+  display: flex;
+  align-items: flex-start;
+}
+
+.andes-step__trigger {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'marker main'
+    '. description';
+  column-gap: var(--_gap);
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+}
+
+button.andes-step__trigger {
+  cursor: pointer;
+}
+
+button.andes-step__trigger:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 2px;
+}
+
+button.andes-step__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* ---------------------------------------------------------------- Marker */
+
+.andes-step__marker {
+  grid-area: marker;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  box-sizing: border-box;
+  inline-size: var(--_icon);
+  block-size: var(--_icon);
+  border: 1px solid var(--_marker-border);
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--_marker-bg);
+  color: var(--_marker-fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--andes-motion-duration-mid, 150ms) ease,
+    border-color var(--andes-motion-duration-mid, 150ms) ease,
+    color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+:host([data-size='small']) .andes-step__marker {
+  font-size: 0.75rem;
+}
+
+.andes-step__glyph {
+  inline-size: 1rem;
+  block-size: 1rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+:host([data-size='small']) .andes-step__glyph {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+}
+
+/* The dot variant swaps the numbered disc for a plain dot; the current one gets a soft halo. */
+:host([data-variant='dot']) .andes-step__marker {
+  border: 0;
+  background-color: var(--_tail);
+}
+
+:host([data-variant='dot'][data-status='finish']) .andes-step__marker,
+:host([data-variant='dot'][data-status='process']) .andes-step__marker {
+  background-color: var(--andes-color-primary, #2563eb);
+}
+
+:host([data-variant='dot'][data-status='error']) .andes-step__marker {
+  background-color: var(--andes-color-danger, #dc2626);
+}
+
+:host([data-variant='dot'][data-status='wait']) .andes-step__marker {
+  background-color: var(--andes-color-border, #d1d5db);
+}
+
+:host([data-variant='dot'][data-current]) .andes-step__marker {
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--andes-color-primary, #2563eb) 20%, transparent);
+}
+
+:host([data-variant='dot'][data-current][data-status='error'])
+  .andes-step__marker {
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--andes-color-danger, #dc2626) 20%, transparent);
+}
+
+/* Progress ring around the in-progress marker. */
+.andes-step__ring {
+  position: absolute;
+  inset: -0.375rem;
+  inline-size: calc(100% + 0.75rem);
+  block-size: calc(100% + 0.75rem);
+  transform: rotate(-90deg);
+  fill: none;
+  stroke-width: 5;
+  pointer-events: none;
+}
+
+.andes-step__ring-track {
+  stroke: var(--andes-color-border, #d1d5db);
+}
+
+.andes-step__ring-arc {
+  stroke: var(--andes-color-primary, #2563eb);
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--andes-motion-duration-slow, 200ms) ease;
+}
+
+/* ---------------------------------------------------------------- Text */
+
+.andes-step__main {
+  grid-area: main;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-self: center;
+  column-gap: var(--_gap);
+  min-width: 0;
+}
+
+.andes-step__title {
+  min-width: 0;
+  color: var(--_title-color);
+  font-weight: var(--_title-weight);
+  overflow-wrap: anywhere;
+  transition: color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+.andes-step__subtitle {
+  color: var(--andes-color-muted-foreground, #64748b);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+}
+
+.andes-step__description {
+  grid-area: description;
+  min-width: 0;
+  max-inline-size: var(--andes-steps-description-max-width, 8.75rem);
+  color: var(--andes-color-muted-foreground, #64748b);
+  overflow-wrap: anywhere;
+}
+
+:host([data-size='small']) .andes-step__description {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.andes-step__description:empty {
+  display: none;
+}
+
+/* Status words for assistive tech only. */
+.andes-step__sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- Tail (horizontal, label beside) */
+
+.andes-step__tail {
+  flex: 1 1 1.5rem;
+  min-inline-size: 1.5rem;
+  block-size: 1px;
+  margin-block-start: calc(var(--_row) / 2 - 0.5px);
+  margin-inline: var(--_gap);
+  background-color: var(--_tail);
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+/* ---------------------------------------------------------------- Label below the marker */
+
+:host([data-orientation='horizontal'][data-label-placement='vertical'])
+  .andes-step__trigger {
+  grid-template-columns: minmax(0, auto);
+  grid-template-areas:
+    'marker'
+    'main'
+    'description';
+  row-gap: 0.25rem;
+  justify-items: start;
+  max-inline-size: 100%;
+}
+
+:host([data-orientation='horizontal'][data-label-placement='vertical'])
+  .andes-step__marker {
+  margin-block-end: 0.25rem;
+}
+
+:host([data-orientation='horizontal'][data-label-placement='vertical'])
+  .andes-step__description {
+  max-inline-size: none;
+}
+
+:host([data-orientation='horizontal'][data-label-placement='vertical'])
+  .andes-step__head {
+  display: block;
+}
+
+:host([data-orientation='horizontal'][data-label-placement='vertical'])
+  .andes-step__tail {
+  position: absolute;
+  inset-block-start: calc(var(--_icon) / 2 - 0.5px);
+  inset-inline: calc(var(--_icon) + var(--_gap)) var(--_gap);
+  margin: 0;
+  min-inline-size: 0;
+}
+
+/* ---------------------------------------------------------------- Vertical orientation */
+
+:host([data-orientation='vertical']) {
+  flex: none;
+  padding-block-end: 1.5rem;
+}
+
+:host([data-orientation='vertical'][data-last]) {
+  padding-block-end: 0;
+}
+
+:host([data-orientation='vertical']) .andes-step__head {
+  display: block;
+}
+
+:host([data-orientation='vertical']) .andes-step__description {
+  max-inline-size: none;
+}
+
+:host([data-orientation='vertical']) .andes-step__tail {
+  position: absolute;
+  inset-inline-start: calc(var(--_icon) / 2 - 0.5px);
+  inset-block: calc(var(--_row) / 2 + var(--_icon) / 2 + 0.25rem) 0.25rem;
+  inline-size: 1px;
+  block-size: auto;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+:host([data-orientation='vertical']) .andes-step__trigger {
+  grid-template-columns: var(--_icon) minmax(0, 1fr);
+}
+
+/* ---------------------------------------------------------------- Interaction */
+
+:host([data-clickable]:not([data-disabled]))
+  .andes-step__trigger:hover
+  .andes-step__title {
+  color: var(--_primary-text);
+}
+
+:host([data-clickable]:not([data-disabled])[data-status='wait'])
+  .andes-step__trigger:hover
+  .andes-step__marker {
+  border-color: var(--andes-color-primary, #2563eb);
+  color: var(--_primary-text);
+}
+
+/* ---------------------------------------------------------------- Navigation variant */
+
+:host([data-variant='navigation']) {
+  border-block-end: 1px solid var(--andes-color-border, #d1d5db);
+}
+
+:host([data-variant='navigation']) .andes-step__trigger {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  inline-size: 100%;
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-4, 1rem);
+}
+
+:host([data-variant='navigation']) .andes-step__head {
+  display: block;
+}
+
+:host([data-variant='navigation']) .andes-step__tail {
+  display: none;
+}
+
+:host([data-variant='navigation']) .andes-step__main,
+:host([data-variant='inline']) .andes-step__main {
+  align-self: stretch;
+}
+
+:host([data-variant='navigation']) .andes-step__description {
+  max-inline-size: none;
+}
+
+/* Underline of the current step, straddling the row's bottom border. */
+:host([data-variant='navigation']) .andes-step__trigger::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -1px;
+  block-size: 2px;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: transparent;
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+:host([data-variant='navigation'][data-current]) .andes-step__trigger::after {
+  background-color: var(--andes-color-primary, #2563eb);
+}
+
+:host([data-variant='navigation'][data-current][data-status='error'])
+  .andes-step__trigger::after {
+  background-color: var(--andes-color-danger, #dc2626);
+}
+
+/* Chevron between neighbours. */
+:host(
+  [data-variant='navigation'][data-orientation='horizontal']:not([data-last])
+)::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 50%;
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-block-start: 1px solid var(--andes-color-border, #d1d5db);
+  border-inline-end: 1px solid var(--andes-color-border, #d1d5db);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+:host(
+  :dir(rtl)[data-variant='navigation'][data-orientation='horizontal']:not(
+      [data-last]
+    )
+)::after {
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+/* Stacked navigation swaps the underline for a start-edge bar. */
+:host([data-variant='navigation'][data-orientation='vertical']) {
+  padding-block-end: 0;
+  border-block-end: 0;
+  border-inline-start: 1px solid var(--andes-color-border, #d1d5db);
+}
+
+:host([data-variant='navigation'][data-orientation='vertical'])
+  .andes-step__trigger::after {
+  inset-block: 0;
+  inset-inline: -1px auto;
+  inline-size: 2px;
+  block-size: auto;
+}
+
+/* ---------------------------------------------------------------- Inline (compact bars) variant */
+
+:host([data-variant='inline']) .andes-step__head {
+  display: block;
+}
+
+:host([data-variant='inline']) .andes-step__tail {
+  display: none;
+}
+
+:host([data-variant='inline']) .andes-step__trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  inline-size: 100%;
+  gap: 0.375rem;
+}
+
+:host([data-variant='inline']) .andes-step__trigger::before {
+  content: '';
+  align-self: stretch;
+  block-size: 0.25rem;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-color-border, #d1d5db);
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+:host([data-variant='inline'][data-status='finish'])
+  .andes-step__trigger::before,
+:host([data-variant='inline'][data-status='process'])
+  .andes-step__trigger::before {
+  background-color: var(--andes-color-primary, #2563eb);
+}
+
+:host([data-variant='inline'][data-status='error'])
+  .andes-step__trigger::before {
+  background-color: var(--andes-color-danger, #dc2626);
+}
+
+:host([data-variant='inline']) .andes-step__description {
+  max-inline-size: none;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+:host([data-variant='inline'][data-orientation='vertical']) {
+  padding-block-end: 0;
+}
+
+:host([data-variant='inline'][data-last]) {
+  flex: 1 1 0;
+}
+
+:host([data-variant='navigation'][data-last]) {
+  flex: 1 1 0;
+}
+
+:host([data-variant='inline'][data-orientation='vertical']),
+:host([data-variant='navigation'][data-orientation='vertical']) {
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- Motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-step__marker,
+  .andes-step__title,
+  .andes-step__tail,
+  .andes-step__ring-arc,
+  :host([data-variant='navigation']) .andes-step__trigger::after,
+  :host([data-variant='inline']) .andes-step__trigger::before {
+    transition: none;
+  }
+}

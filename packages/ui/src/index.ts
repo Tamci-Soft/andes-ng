@@ -127,7 +127,7 @@ export * from './lib/splitter';
 
 export * from './lib/statistic';
 
-// @slot steps
+export * from './lib/steps';
 
 // @slot switch
 
