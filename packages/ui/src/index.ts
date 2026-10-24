@@ -45,7 +45,7 @@ export * from './lib/command';
 
 export * from './lib/date-picker';
 
-// @slot descriptions
+export * from './lib/descriptions';
 
 // @slot dialog
 

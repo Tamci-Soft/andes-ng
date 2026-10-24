@@ -1,0 +1,4 @@
+/* The element only carries inputs; its label and content render inside the parent. */
+:host {
+  display: none;
+}

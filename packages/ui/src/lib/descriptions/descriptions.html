@@ -1,0 +1,95 @@
+<div class="andes-descriptions__header">
+  <div class="andes-descriptions__title" [id]="titleId">
+    @if (titleTemplate(); as template) {
+    <ng-container *ngTemplateOutlet="template" />
+    } @else {{{ titleText() }}}
+    <ng-content select="[andesDescriptionsTitle]" />
+  </div>
+  <div class="andes-descriptions__extra">
+    @if (extraTemplate(); as template) {
+    <ng-container *ngTemplateOutlet="template" />
+    } @else {{{ extraText() }}}
+    <ng-content select="[andesDescriptionsExtra]" />
+  </div>
+</div>
+
+@if (bordered()) {
+<table
+  class="andes-descriptions__table"
+  [attr.aria-labelledby]="hasTitle() && !ariaLabel() ? titleId : null"
+  [attr.aria-label]="ariaLabel() ?? null"
+>
+  <colgroup>
+    @for (column of columnIndexes(); track column) { @if (layout() ===
+    'horizontal') {
+    <col class="andes-descriptions__col-label" />
+    }
+    <col />
+    }
+  </colgroup>
+  <tbody>
+    @for (row of rows(); track $index) { @if (layout() === 'horizontal') {
+    <tr>
+      @for (cell of row; track cell.index) {
+      <th scope="row" class="andes-descriptions__label">
+        <ng-container *ngTemplateOutlet="item(cell).labelTemplateRef()" />
+      </th>
+      <td
+        class="andes-descriptions__content"
+        [class.andes-descriptions__content--ellipsis]="isEllipsis(cell)"
+        [attr.colspan]="cell.span * 2 - 1"
+      >
+        <ng-container *ngTemplateOutlet="item(cell).contentTemplateRef()" />
+      </td>
+      }
+    </tr>
+    } @else {
+    <tr>
+      @for (cell of row; track cell.index) {
+      <th
+        scope="col"
+        class="andes-descriptions__label"
+        [attr.colspan]="cell.span"
+      >
+        <ng-container *ngTemplateOutlet="item(cell).labelTemplateRef()" />
+      </th>
+      }
+    </tr>
+    <tr>
+      @for (cell of row; track cell.index) {
+      <td
+        class="andes-descriptions__content"
+        [class.andes-descriptions__content--ellipsis]="isEllipsis(cell)"
+        [attr.colspan]="cell.span"
+      >
+        <ng-container *ngTemplateOutlet="item(cell).contentTemplateRef()" />
+      </td>
+      }
+    </tr>
+    } }
+  </tbody>
+</table>
+} @else {
+<dl
+  class="andes-descriptions__list"
+  [attr.aria-labelledby]="hasTitle() && !ariaLabel() ? titleId : null"
+  [attr.aria-label]="ariaLabel() ?? null"
+>
+  @for (cell of cells(); track cell.index) {
+  <div
+    class="andes-descriptions__item"
+    [style.grid-column]="'span ' + cell.span"
+  >
+    <dt class="andes-descriptions__label">
+      <ng-container *ngTemplateOutlet="item(cell).labelTemplateRef()" />
+    </dt>
+    <dd
+      class="andes-descriptions__content"
+      [class.andes-descriptions__content--ellipsis]="isEllipsis(cell)"
+    >
+      <ng-container *ngTemplateOutlet="item(cell).contentTemplateRef()" />
+    </dd>
+  </div>
+  }
+</dl>
+}
