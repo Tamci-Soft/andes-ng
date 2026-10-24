@@ -1,0 +1,782 @@
+/* The `<thead>`/`<tbody>`/`<tr>`/`<th>`/`<td>` elements are declared by the consumer and
+   projected into this component's `<table>`, so they keep the consumer's style
+   encapsulation context. `::ng-deep` is the sanctioned way to reach them (same reason
+   button.css uses it for projected icons) - and it is what lets the markup stay a real,
+   unwrapped native table instead of a div grid. Every deep selector stays anchored to
+   `.andes-table`, which is scoped to this component's own template. */
+
+:host {
+  display: block;
+}
+
+.andes-table__wrapper {
+  position: relative;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-table__container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* The default look: the table sits in a quiet rounded frame. The frame is drawn here, on
+   the container, because a collapsed-border table ignores `border-radius`; the container
+   also clips the header and footer tints, the row hover and the loading overlay to the
+   rounded corners, and the last row gives up its separator so no edge is drawn twice. */
+.andes-table__container--framed {
+  box-sizing: border-box;
+  border: 1px solid var(--andes-color-border, #d1d5db);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+}
+
+/* `scrollY`: the container becomes the vertical scroller too, which is what lets the
+   header row stick to its top. */
+.andes-table__container--scroll-y {
+  overflow-y: auto;
+}
+
+/* `sticky` without `scrollY`: any overflow value other than visible would make the
+   container the header's sticky reference, so it stops scrolling and lets the header
+   stick to the page instead. */
+.andes-table__container--sticky {
+  overflow: visible;
+}
+
+/* Also reachable from projected content, e.g. to name an otherwise empty header cell. */
+.andes-table__sr-only,
+.andes-table ::ng-deep .andes-table__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Loading overlay: dims the stale rows and swallows pointer input until data lands. */
+.andes-table__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-background, #fff) 60%,
+    transparent
+  );
+  cursor: progress;
+  /* Fades in rather than flashing over the rows for a quick reload. */
+  animation: andes-table-loading-in 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-table__loading--framed {
+  border-radius: var(--andes-radius-lg, 0.5rem);
+}
+
+@keyframes andes-table-loading-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.andes-table__spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--andes-color-border, #d1d5db);
+  border-top-color: var(--andes-color-primary, #2563eb);
+  border-radius: var(--andes-radius-full, 9999px);
+  /* A calm turn: one revolution a second, on a light track. */
+  animation: andes-table-spin 1s linear infinite;
+}
+
+@keyframes andes-table-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.andes-table {
+  width: 100%;
+  border-collapse: collapse;
+  caption-side: bottom;
+  background-color: var(--andes-color-background, #fff);
+  color: var(--andes-color-foreground, #0f172a);
+  font-family: var(--andes-font-family), sans-serif;
+  /* Body text scale shared by every component: 14px on a 22px line. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  /* Equal-width digits keep amounts in an end-aligned column lined up place by place. */
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+  /* Row separators are softer than the frame; the header, footer, row hover and expanded
+     row share one very light tint of the muted colour, opaque so that sticky and pinned
+     cells can paint it over the rows scrolling beneath them. */
+  --andes-table-line: color-mix(
+    in srgb,
+    var(--andes-color-border, #d1d5db) 60%,
+    transparent
+  );
+  --andes-table-tint: color-mix(
+    in srgb,
+    var(--andes-color-muted, #f1f5f9) 55%,
+    var(--andes-color-background, #fff)
+  );
+}
+
+.andes-table--caption-top {
+  caption-side: top;
+}
+
+.andes-table--layout-fixed {
+  table-layout: fixed;
+}
+
+.andes-table--bordered {
+  border: 1px hidden;
+}
+
+/* A page-sticky header needs the container not to scroll, yet the rounded corners still
+   need clipping: `clip` does both, since it never creates a scroll container. */
+.andes-table__container--framed.andes-table__container--sticky {
+  overflow: clip;
+}
+
+/* Table bar for the `andesTableTop` / `andesTableBottom` slots: a start side (a title, "n of
+   m rows selected") and an end side (actions, a pager), reachable from projected content. */
+:host ::ng-deep .andes-table__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-3, 0.75rem);
+  padding-block: var(--andes-space-3, 0.75rem);
+  color: var(--andes-color-muted-foreground, #64748b);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+}
+
+/* Caption */
+
+.andes-table ::ng-deep .andes-table__caption {
+  padding: var(--andes-space-3, 0.75rem);
+  color: var(--andes-color-muted-foreground, #64748b);
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  text-align: start;
+}
+
+/* The caption lives inside the frame, set off from the rows by a hairline. */
+.andes-table--caption-bottom ::ng-deep .andes-table__caption {
+  border-top: 1px solid var(--andes-table-line);
+}
+
+.andes-table--caption-top ::ng-deep .andes-table__caption {
+  border-bottom: 1px solid var(--andes-table-line);
+}
+
+/* Header */
+
+.andes-table ::ng-deep .andes-table__header {
+  background-color: var(--andes-table-tint);
+}
+
+/* Header text is the strong foreground, not `--andes-color-muted-foreground`: that token
+   on `--andes-color-muted` is only 4.35:1, which fails WCAG AA for 14px text (axe flags it
+   as a serious color-contrast violation). A strong near-black also reads as a header
+   rather than as secondary text, and `font-weight` carries the header emphasis. */
+.andes-table ::ng-deep .andes-table__head {
+  color: var(--andes-color-foreground, #0f172a);
+  font-weight: var(--andes-font-weight-medium, 500);
+  text-align: start;
+  white-space: nowrap;
+  vertical-align: middle;
+  /* A header's `width` (and a resized width) is the whole column, padding included,
+     as a column width - and what a resize drag measures and sets. */
+  box-sizing: border-box;
+}
+
+/* Header content: the title takes the free width, then the sort indicator, then the
+   filter trigger at the inline end. A flex box inside the
+   cell rather than on it, so the <th> stays a real table cell. */
+.andes-table ::ng-deep .andes-table__head-content {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-1);
+}
+
+.andes-table ::ng-deep .andes-table__head-title {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* The sort indicator stays beside the title; the filter trigger keeps the inline end. */
+.andes-table ::ng-deep .andes-table__head-content > andes-table-filter {
+  margin-inline-start: auto;
+}
+
+.andes-table ::ng-deep .andes-table__align--center .andes-table__head-content {
+  justify-content: center;
+}
+
+.andes-table ::ng-deep .andes-table__align--end .andes-table__head-content {
+  justify-content: flex-end;
+}
+
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__align--end .andes-table__head-content > andes-table-filter {
+  margin-inline-start: 0;
+}
+
+.andes-table ::ng-deep .andes-table__ellipsis .andes-table__head-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Footer */
+
+.andes-table ::ng-deep .andes-table__footer {
+  border-top: 1px solid var(--andes-color-border, #d1d5db);
+  background-color: var(--andes-table-tint);
+  font-weight: var(--andes-font-weight-medium, 500);
+}
+
+.andes-table ::ng-deep .andes-table__footer .andes-table__row:last-child {
+  border-bottom: none;
+}
+
+/* Rows and cells */
+
+.andes-table ::ng-deep .andes-table__row {
+  border-bottom: 1px solid var(--andes-table-line);
+  transition: background-color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+/* The header row's rule is the one full-strength line, separating it from the data. */
+.andes-table ::ng-deep .andes-table__header .andes-table__row:last-child {
+  border-bottom-color: var(--andes-color-border, #d1d5db);
+}
+
+/* The last data row has no separator (the frame, footer or caption closes the table); a
+   trailing virtual spacer does not count as a row. */
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__body .andes-table__row:is(:last-child, :has(+ .andes-table__virtual-spacer:last-child)) {
+  border-bottom: none;
+}
+
+/* The row holding the empty state is not data, so it does not answer the pointer. */
+/* prettier-ignore */
+.andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row:not(.andes-table__expanded-row, :has(> td > andes-table-empty)):hover {
+  background-color: var(--andes-table-tint);
+}
+
+/* Selected rows: a light primary tint. There is no dedicated
+   tinted-primary token yet, so it is mixed from the existing primary and background. */
+.andes-table ::ng-deep .andes-table__row--selected {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 8%,
+    var(--andes-color-background, #fff)
+  );
+}
+
+/* prettier-ignore */
+.andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row--selected:not(.andes-table__expanded-row):hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 14%,
+    var(--andes-color-background, #fff)
+  );
+}
+
+.andes-table ::ng-deep .andes-table__row--clickable {
+  cursor: pointer;
+}
+
+.andes-table ::ng-deep .andes-table__row:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
+/* Expanded detail row: set apart from the data rows around it. */
+.andes-table ::ng-deep .andes-table__expanded-row {
+  background-color: var(--andes-table-tint);
+}
+
+.andes-table ::ng-deep .andes-table__cell {
+  vertical-align: middle;
+}
+
+/* Bordered: grid lines between every cell, as light as the row separators. */
+.andes-table--bordered ::ng-deep .andes-table__cell,
+.andes-table--bordered ::ng-deep .andes-table__head {
+  border: 1px solid var(--andes-table-line);
+}
+
+/* Alignment */
+
+.andes-table ::ng-deep .andes-table__align--start {
+  text-align: start;
+}
+
+.andes-table ::ng-deep .andes-table__align--center {
+  text-align: center;
+}
+
+.andes-table ::ng-deep .andes-table__align--end {
+  text-align: end;
+}
+
+/* Density: the cell padding and the row height. `compact` is a dense table (4px / 8px,
+   32px rows), `default` the standard one (8px / 12px, 40px rows) and `comfortable` adds
+   breathing room (12px / 16px, 48px rows). The height is a floor a taller cell still
+   grows past; header and data rows share it. */
+
+.andes-table--compact {
+  --andes-table-cell-padding-block: var(--andes-space-1, 0.25rem);
+  --andes-table-cell-padding-inline: var(--andes-space-2, 0.5rem);
+  --andes-table-row-height: 2rem;
+}
+
+.andes-table--default {
+  --andes-table-cell-padding-block: var(--andes-space-2, 0.5rem);
+  --andes-table-cell-padding-inline: var(--andes-space-3, 0.75rem);
+  --andes-table-row-height: 2.5rem;
+}
+
+.andes-table--comfortable {
+  --andes-table-cell-padding-block: var(--andes-space-3, 0.75rem);
+  --andes-table-cell-padding-inline: var(--andes-space-4, 1rem);
+  --andes-table-row-height: 3rem;
+}
+
+.andes-table ::ng-deep .andes-table__head,
+.andes-table ::ng-deep .andes-table__cell {
+  box-sizing: border-box;
+  height: var(--andes-table-row-height, 2.5rem);
+  padding-block: var(--andes-table-cell-padding-block, 0.5rem);
+  padding-inline: var(--andes-table-cell-padding-inline, 0.75rem);
+}
+
+/* Sortable headers */
+
+.andes-table ::ng-deep .andes-table__head--sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.andes-table ::ng-deep .andes-table__head--sortable:hover {
+  background-color: var(--andes-color-muted, #f1f5f9);
+}
+
+.andes-table ::ng-deep .andes-table__head--sortable:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
+.andes-table ::ng-deep .andes-table__head--sortable:hover .andes-table__sorter {
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+/* Direction indicator: stacked 12px carets beside the title, the active one in the primary
+   color. Hidden from assistive tech, which reads the header's `aria-sort` instead. The
+   resting color is the muted foreground, which still clears the 3:1 non-text contrast
+   minimum on the header background. */
+.andes-table ::ng-deep .andes-table__sorter {
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  color: var(--andes-color-muted-foreground, #64748b);
+}
+
+.andes-table ::ng-deep .andes-table__sorter-caret {
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  background-color: currentcolor;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.andes-table ::ng-deep .andes-table__sorter-caret--up {
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'><path d='M858.9 689 530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'><path d='M858.9 689 530.5 308.2c-9.4-10.9-27.5-10.9-37 0L165.1 689c-12.2 14.2-1.2 35 18.5 35h656.8c19.7 0 30.7-20.8 18.5-35z'/></svg>");
+}
+
+.andes-table ::ng-deep .andes-table__sorter-caret--down {
+  margin-top: -0.225rem;
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'><path d='M840.4 300H183.6c-19.7 0-30.7 20.8-18.5 35l328.4 380.8c9.4 10.9 27.5 10.9 37 0L858.9 335c12.2-14.2 1.2-35-18.5-35z'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'><path d='M840.4 300H183.6c-19.7 0-30.7 20.8-18.5 35l328.4 380.8c9.4 10.9 27.5 10.9 37 0L858.9 335c12.2-14.2 1.2-35-18.5-35z'/></svg>");
+}
+
+.andes-table
+  ::ng-deep
+  .andes-table__head[data-sort='asc']
+  .andes-table__sorter-caret--up,
+.andes-table
+  ::ng-deep
+  .andes-table__head[data-sort='desc']
+  .andes-table__sorter-caret--down {
+  color: var(--andes-color-primary-text, #2563eb);
+}
+
+/* Column resizing. `:where()` keeps `position: relative` below the sticky header and
+   fixed-column rules, whose `position: sticky` already anchors the handle. */
+.andes-table ::ng-deep :where(.andes-table__head--resizable) {
+  position: relative;
+}
+
+/* In an end-aligned (numeric) column the indicator leads the title, so the title's end
+   edge lines up with the figures below it instead of stopping a glyph's width short. */
+.andes-table ::ng-deep .andes-table__align--end .andes-table__head-title {
+  text-align: end;
+}
+
+.andes-table ::ng-deep .andes-table__align--end .andes-table__sorter {
+  order: -1;
+}
+
+.andes-table ::ng-deep .andes-table__resize-handle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 0.5rem;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+/* A header separator - a short hairline on the cell edge - which becomes a
+   full-height primary bar while the handle is hovered, focused or dragged. The bar is
+   the focus indicator; the transparent outline stands in for it in forced colors. */
+.andes-table ::ng-deep .andes-table__resize-handle::after {
+  content: '';
+  width: 1px;
+  height: 1.6em;
+  background-color: var(--andes-color-border, #d1d5db);
+  transition:
+    height var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__head:last-child > .andes-table__resize-handle::after {
+  background-color: transparent;
+}
+
+.andes-table ::ng-deep .andes-table__resize-handle:focus-visible {
+  outline: 2px solid transparent;
+}
+
+.andes-table ::ng-deep .andes-table__resize-handle:hover::after,
+.andes-table ::ng-deep .andes-table__resize-handle:focus-visible::after,
+.andes-table ::ng-deep .andes-table__resize-handle--active::after {
+  width: 2px;
+  height: 100%;
+  background-color: var(--andes-color-primary, #2563eb);
+}
+
+.andes-table--resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Column reordering (CDK drag inside the header row). The preview is a clone of the
+   header cell kept inside the row, so these cell styles still apply; the placeholder
+   holds the column's slot while the neighbours slide aside. */
+.andes-table
+  ::ng-deep
+  .andes-table__head--reorderable:not(.andes-table__head--sortable) {
+  cursor: grab;
+}
+
+.andes-table ::ng-deep .andes-table__head--reorderable:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
+.andes-table ::ng-deep .andes-table__drag-preview {
+  box-sizing: border-box;
+  background-color: var(--andes-color-muted, #f1f5f9);
+  box-shadow:
+    0 6px 16px 0 rgb(0 0 0 / 8%),
+    0 3px 6px -4px rgb(0 0 0 / 12%),
+    0 9px 28px 8px rgb(0 0 0 / 5%);
+  cursor: grabbing;
+}
+
+.andes-table ::ng-deep .andes-table__head.cdk-drag-placeholder {
+  background-color: var(--andes-color-muted, #f1f5f9);
+}
+
+.andes-table ::ng-deep .andes-table__head.cdk-drag-placeholder > * {
+  opacity: 0.4;
+}
+
+.andes-table
+  ::ng-deep
+  .cdk-drop-list-dragging
+  .andes-table__head:not(.cdk-drag-placeholder),
+.andes-table ::ng-deep .andes-table__head.cdk-drag-animating {
+  transition: transform var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+/* Tree data: the cell marked `indent` shifts by its row's level. */
+/* prettier-ignore */
+.andes-table ::ng-deep .andes-table__cell.andes-table__cell--indent {
+  padding-inline-start: calc(
+    var(--andes-table-cell-padding-inline, 0.75rem) +
+      var(--andes-table-level, 0) * var(--andes-table-indent-size, 1rem)
+  );
+  white-space: nowrap;
+}
+
+/* Virtual rows: the spacers stand in for the rows scrolled out of the DOM. */
+.andes-table ::ng-deep .andes-table__virtual-spacer,
+.andes-table ::ng-deep .andes-table__virtual-spacer > td {
+  padding: 0;
+  border: 0;
+}
+
+/* Control columns (selection, expand) shrink to their control instead of taking a
+   share of the free width. */
+/* prettier-ignore */
+.andes-table ::ng-deep :is(td:has(> andes-table-selection, > andes-table-expand-toggle), th:has(> andes-table-selection, > andes-table-expand-toggle, > .andes-table__head-content > .andes-table__head-title > :is(andes-table-select-all, andes-table-selection, andes-table-expand-toggle))) {
+  width: 1px;
+}
+
+/* Ellipsis */
+
+.andes-table ::ng-deep .andes-table__ellipsis {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.andes-table--layout-fixed ::ng-deep .andes-table__ellipsis {
+  max-width: none;
+}
+
+/* Sticky header (with scrollY). The background moves from <thead> onto each <th>
+   because a stuck cell must paint over the rows scrolling beneath it. Element selectors
+   keep this below the sortable/sorted header rules in specificity, so their states still
+   show. The bottom rule becomes an inset shadow since collapsed borders do not travel
+   with sticky cells. */
+.andes-table--sticky-header ::ng-deep thead th {
+  position: sticky;
+  /* The page offset (`sticky` + `stickyOffset`) plus the height of the header rows
+     above this one, so the rows of a grouped header stack instead of overlapping. */
+  top: calc(
+    var(--andes-table-sticky-offset, 0px) + var(--andes-table-header-top, 0px)
+  );
+  z-index: 2;
+  background-color: var(--andes-table-tint);
+  box-shadow: inset 0 -1px 0 var(--andes-color-border, #d1d5db);
+}
+
+/* Chrome paints scrolled-away rows past the top of the scroll container when sticky
+   header cells carry collapsed borders. With a sticky header, a bordered table
+   therefore switches to separate borders drawn once per cell (end + bottom edges); the
+   container's rounded frame supplies the outer edges, so the last column and the last
+   row drop the edge they would otherwise double. */
+.andes-table--sticky-header.andes-table--bordered {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 0;
+}
+
+.andes-table--sticky-header.andes-table--bordered ::ng-deep .andes-table__cell,
+.andes-table--sticky-header.andes-table--bordered ::ng-deep .andes-table__head {
+  border-width: 0 0 1px;
+  border-inline-end-width: 1px;
+}
+
+/* prettier-ignore */
+.andes-table--sticky-header.andes-table--bordered ::ng-deep tr > :is(.andes-table__cell, .andes-table__head):last-child {
+  border-inline-end-width: 0;
+}
+
+/* The last row of the last row group (a trailing virtual spacer does not count). */
+/* prettier-ignore */
+.andes-table--sticky-header.andes-table--bordered ::ng-deep :is(thead, tbody, tfoot):not(:has(~ :is(thead, tbody, tfoot))) > tr:is(:last-child, :has(+ .andes-table__virtual-spacer:last-child)) > * {
+  border-bottom-width: 0;
+}
+
+/* The stand-in shadow is the header's one bottom rule, so its row drops the separator
+   it would draw on top of it. */
+/* prettier-ignore */
+.andes-table--sticky-header ::ng-deep .andes-table__header .andes-table__row:last-child {
+  border-bottom: none;
+}
+
+/* The header's own bottom border now travels with it; drop the stand-in shadow. */
+.andes-table--sticky-header.andes-table--bordered ::ng-deep thead th {
+  box-shadow: none;
+}
+
+/* Fixed summary row (tfoot fixed + scrollY). Its inset shadow is the top rule that
+   travels with the stuck cells, so the footer's own border steps aside. */
+.andes-table ::ng-deep .andes-table__footer--fixed {
+  border-top: none;
+}
+
+.andes-table ::ng-deep .andes-table__footer--fixed td,
+.andes-table ::ng-deep .andes-table__footer--fixed th {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background-color: var(--andes-table-tint);
+  box-shadow: inset 0 1px 0 var(--andes-color-border, #d1d5db);
+}
+
+/* Fixed (pinned) columns. Pinned cells need an opaque background of their own, which
+   then has to follow the row's hover/selected/section colour. */
+.andes-table ::ng-deep .andes-table__fixed {
+  position: sticky;
+  z-index: 1;
+  background-color: var(--andes-color-background, #fff);
+}
+
+.andes-table ::ng-deep .andes-table__fixed-start {
+  inset-inline-start: var(--andes-table-fixed-offset, 0);
+}
+
+.andes-table ::ng-deep .andes-table__fixed-end {
+  inset-inline-end: var(--andes-table-fixed-offset, 0);
+}
+
+.andes-table ::ng-deep thead .andes-table__fixed {
+  z-index: 3;
+  background-color: var(--andes-table-tint);
+}
+
+.andes-table ::ng-deep .andes-table__footer .andes-table__fixed {
+  z-index: 3;
+  background-color: var(--andes-table-tint);
+}
+
+/* prettier-ignore */
+.andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row:not(.andes-table__expanded-row):hover > .andes-table__fixed {
+  background-color: var(--andes-table-tint);
+}
+
+.andes-table ::ng-deep .andes-table__row--selected > .andes-table__fixed {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 8%,
+    var(--andes-color-background, #fff)
+  );
+}
+
+/* prettier-ignore */
+.andes-table--hoverable ::ng-deep .andes-table__body .andes-table__row--selected:not(.andes-table__expanded-row):hover > .andes-table__fixed {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary, #2563eb) 14%,
+    var(--andes-color-background, #fff)
+  );
+}
+
+/* Edge shadow once content scrolls under a pinned column: on the last start-pinned
+   cell of a row and the first end-pinned one. The shade is mixed from the overlay scrim
+   token, which darkens in dark mode, so the edge stays visible on a dark page too. */
+.andes-table ::ng-deep .andes-table__fixed::before {
+  --andes-table-edge-shadow: color-mix(
+    in srgb,
+    var(--andes-color-overlay, rgb(15 23 42 / 45%)) 33%,
+    transparent
+  );
+
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  width: 0.75rem;
+  pointer-events: none;
+  transition: box-shadow var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+.andes-table ::ng-deep .andes-table__fixed-start::before {
+  inset-inline-start: 100%;
+}
+
+.andes-table ::ng-deep .andes-table__fixed-end::before {
+  inset-inline-end: 100%;
+}
+
+/* prettier-ignore */
+.andes-table--ping-start ::ng-deep .andes-table__fixed-start:not(:has(+ .andes-table__fixed-start))::before {
+  box-shadow: inset 0.625rem 0 0.5rem -0.5rem var(--andes-table-edge-shadow);
+}
+
+/* prettier-ignore */
+.andes-table--ping-end ::ng-deep .andes-table__fixed-end:not(.andes-table__fixed-end + .andes-table__fixed-end)::before {
+  box-shadow: inset -0.625rem 0 0.5rem -0.5rem var(--andes-table-edge-shadow);
+}
+
+/* Responsive columns (`hideBelow`). */
+@media (width < 576px) {
+  .andes-table ::ng-deep .andes-table__hide-below-sm {
+    display: none;
+  }
+}
+
+@media (width < 768px) {
+  .andes-table ::ng-deep .andes-table__hide-below-md {
+    display: none;
+  }
+}
+
+@media (width < 992px) {
+  .andes-table ::ng-deep .andes-table__hide-below-lg {
+    display: none;
+  }
+}
+
+@media (width < 1200px) {
+  .andes-table ::ng-deep .andes-table__hide-below-xl {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* prettier-ignore */
+  .andes-table ::ng-deep .cdk-drop-list-dragging > .andes-table__head--reorderable:not(.cdk-drag-placeholder),
+  .andes-table ::ng-deep .andes-table__head--reorderable.cdk-drag-animating,
+  .andes-table ::ng-deep .andes-table__resize-handle::after,
+  .andes-table ::ng-deep .andes-table__row,
+  .andes-table ::ng-deep .andes-table__sorter-caret,
+  .andes-table ::ng-deep .andes-table__resize-handle::after,
+  .andes-table ::ng-deep .cdk-drop-list-dragging .andes-table__head,
+  .andes-table ::ng-deep .andes-table__head.cdk-drag-animating,
+  .andes-table ::ng-deep .andes-table__fixed::before {
+    transition: none;
+  }
+
+  .andes-table__spinner {
+    animation-duration: 2.4s;
+  }
+
+  .andes-table__loading {
+    animation: none;
+  }
+}

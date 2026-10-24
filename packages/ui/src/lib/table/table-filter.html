@@ -1,0 +1,180 @@
+<button
+  #trigger
+  type="button"
+  class="andes-table-filter__trigger"
+  [class.andes-table-filter__trigger--active]="active()"
+  [class.andes-table-filter__trigger--open]="open()"
+  aria-haspopup="dialog"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="open() ? id : null"
+  [attr.aria-label]="label()"
+  [attr.data-active]="active() ? '' : null"
+  (click)="toggle()"
+>
+  @if (icon(); as iconTemplate) {
+  <ng-container
+    [ngTemplateOutlet]="iconTemplate"
+    [ngTemplateOutletContext]="iconContext()"
+  />
+  } @else {
+  <ng-content
+    ><span class="andes-table-filter__icon" aria-hidden="true"></span
+  ></ng-content>
+  }
+</button>
+@if (open()) {
+<div
+  #panelEl
+  class="andes-table-filter__panel"
+  animate.enter="andes-table-filter__panel--enter"
+  animate.leave="andes-table-filter__panel--leave"
+  popover="manual"
+  role="dialog"
+  tabindex="-1"
+  [id]="id"
+  [attr.aria-label]="label()"
+  [attr.data-side]="side()"
+>
+  @if (panel(); as panelTemplate) {
+  <ng-container
+    [ngTemplateOutlet]="panelTemplate"
+    [ngTemplateOutletContext]="panelContext()"
+  />
+  } @else {
+  <ng-content
+    select="andes-table-text-filter, andes-table-range-filter, andes-table-date-range-filter, [andesTableFilterPanel]"
+  />
+  @if (!projectedPanel()) { @if (searchEnabled()) {
+  <div class="andes-table-filter__search">
+    <label class="andes-table-filter__search-field">
+      <span class="andes-table-filter__search-icon" aria-hidden="true"></span>
+      <input
+        type="search"
+        class="andes-table-filter__search-input"
+        [placeholder]="searchPlaceholder()"
+        [attr.aria-label]="searchPlaceholder()"
+        [value]="query()"
+        (input)="onSearch($event)"
+      />
+    </label>
+  </div>
+  }
+  <div
+    class="andes-table-filter__options"
+    [class.andes-table-filter__options--tree]="isTree()"
+    [attr.role]="multiple() ? 'group' : 'radiogroup'"
+    [attr.aria-label]="label()"
+  >
+    @if (isTree() && multiple() && visibleOptions().length) {
+    <label class="andes-table-filter__option andes-table-filter__check-all">
+      <input
+        class="andes-table-filter__input"
+        type="checkbox"
+        [checked]="selectAllState() === 'all'"
+        [indeterminate]="selectAllState() === 'some'"
+        (change)="toggleAll()"
+      />
+      <span>{{ selectAllText() }}</span>
+    </label>
+    }
+    <ng-container
+      [ngTemplateOutlet]="optionList"
+      [ngTemplateOutletContext]="{ $implicit: visibleOptions(), level: 0 }"
+    />
+    @if (!visibleOptions().length) {
+    <p class="andes-table-filter__no-match">{{ noMatchText() }}</p>
+    }
+  </div>
+  }
+  <div class="andes-table-filter__actions">
+    <andes-button
+      variant="link"
+      size="sm"
+      [disabled]="resetDisabled()"
+      (click)="reset()"
+      >{{ resetText() }}</andes-button
+    >
+    <andes-button size="sm" [disabled]="invalid()" (click)="confirm()"
+      >{{ confirmText() }}</andes-button
+    >
+  </div>
+  }
+</div>
+}
+
+<ng-template #optionList let-options let-level="level">
+  @for (option of options; track option.value) { @if (isTree()) {
+  <div
+    class="andes-table-filter__node"
+    [style.--andes-table-filter-level]="level"
+  >
+    <div class="andes-table-filter__option andes-table-filter__tree-row">
+      @if (option.children?.length) {
+      <button
+        type="button"
+        class="andes-table-filter__switcher"
+        [class.andes-table-filter__switcher--open]="isExpanded(option)"
+        tabindex="-1"
+        [attr.aria-label]="option.text"
+        [attr.aria-expanded]="isExpanded(option)"
+        [attr.aria-controls]="nodeId(option) + '-children'"
+        (click)="toggleExpanded(option)"
+      >
+        <span
+          class="andes-table-filter__switcher-icon"
+          aria-hidden="true"
+        ></span>
+      </button>
+      } @else {
+      <span class="andes-table-filter__switcher-space"></span>
+      }
+      <label class="andes-table-filter__tree-label">
+        <input
+          class="andes-table-filter__input"
+          [type]="multiple() ? 'checkbox' : 'radio'"
+          [name]="id"
+          [attr.data-node]="nodeId(option)"
+          [attr.aria-expanded]="option.children?.length ? isExpanded(option) : null"
+          [checked]="isChecked(option)"
+          [indeterminate]="isIndeterminate(option)"
+          (change)="toggleOption(option)"
+        />
+        <span>{{ option.text }}</span>
+      </label>
+    </div>
+    @if (option.children?.length && isExpanded(option)) {
+    <div [id]="nodeId(option) + '-children'">
+      <ng-container
+        [ngTemplateOutlet]="optionList"
+        [ngTemplateOutletContext]="{ $implicit: option.children, level: level + 1 }"
+      />
+    </div>
+    }
+  </div>
+  } @else if (option.children?.length) {
+  <div
+    class="andes-table-filter__group"
+    role="group"
+    [attr.aria-labelledby]="nodeId(option)"
+  >
+    <div class="andes-table-filter__group-title" [id]="nodeId(option)">
+      {{ option.text }}
+    </div>
+    <ng-container
+      [ngTemplateOutlet]="optionList"
+      [ngTemplateOutletContext]="{ $implicit: option.children, level: level + 1 }"
+    />
+  </div>
+  } @else {
+  <label class="andes-table-filter__option">
+    <input
+      class="andes-table-filter__input"
+      [type]="multiple() ? 'checkbox' : 'radio'"
+      [name]="id"
+      [checked]="isChecked(option)"
+      (change)="toggleOption(option)"
+    />
+    <span>{{ option.text }}</span>
+  </label>
+  } }
+</ng-template>

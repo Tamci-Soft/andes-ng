@@ -131,7 +131,7 @@ export * from './lib/steps';
 
 export * from './lib/switch';
 
-// @slot table
+export * from './lib/table';
 
 // @slot tabs
 

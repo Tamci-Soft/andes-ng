@@ -41,5 +41,16 @@ export default [
       ],
     },
   },
+  {
+    // Table cells must stay native <th>/<td> elements to keep the table's
+    // semantics, so the header cell is a component on an attribute selector.
+    files: ['src/lib/table/table-head.ts'],
+    rules: {
+      '@angular-eslint/component-selector': [
+        'error',
+        { type: 'attribute', prefix: 'andes', style: 'camelCase' },
+      ],
+    },
+  },
   { files: ['**/*.html'], rules: {} },
 ];
