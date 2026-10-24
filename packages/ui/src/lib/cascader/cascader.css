@@ -1,0 +1,767 @@
+:host {
+  display: block;
+}
+
+/* ----- Field ---------------------------------------------------------------------------- */
+
+/*
+  The field box. `--_status-border` and `--_ring` are private hooks set by the status rules
+  below, so each variant decides *where* the status colour goes (all four sides, or only the
+  bottom border for `underlined`) without every status/variant pair needing a rule.
+  `--_padding-x` is the size's inline padding, which the multiple-mode rules offset their
+  content by.
+
+  Focus is drawn by the box alone, from `:focus-within`: a primary border plus a soft 2px
+  ring, and no outline - a ring offset around a bordered box reads as a second border.
+*/
+.andes-cascader__trigger {
+  --_padding-x: var(--andes-control-padding-x-md, 0.6875rem);
+  --_ring: color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--andes-space-1);
+  box-sizing: border-box;
+  padding-inline: var(--_padding-x);
+  border: 1px solid var(--_status-border, var(--andes-color-input));
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  line-height: var(--andes-control-line-height, 1.375rem);
+  text-align: start;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-cascader__trigger {
+    transition: none;
+  }
+}
+
+/* Hover never overrides the focused or open look. */
+/* prettier-ignore */
+.andes-cascader__trigger:hover:not([data-disabled], :focus-within, [data-state='open']) {
+  border-color: var(
+    --_status-border,
+    color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input))
+  );
+}
+
+.andes-cascader__trigger:focus-within,
+.andes-cascader__trigger[data-state='open'] {
+  border-color: var(--_status-border, var(--andes-color-primary));
+  box-shadow: 0 0 0 2px var(--_ring);
+}
+
+/* Forced-colors mode drops box-shadow and paints outlines in a system colour, so the
+   focused box gets one there only. */
+@media (forced-colors: active) {
+  .andes-cascader__trigger:focus-within,
+  .andes-cascader__trigger[data-state='open'] {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+}
+
+.andes-cascader__trigger[data-placeholder] {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* On the tinted background of the filled variant plain muted-foreground drops just under
+   4.5:1, so the placeholder is nudged a fifth of the way towards the foreground. */
+.andes-cascader__trigger[data-placeholder][data-variant='filled'] {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 80%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-cascader__trigger[data-disabled] {
+  cursor: not-allowed;
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Status: `error` (also `aria-invalid`) and `warning`, the focus ring included. */
+.andes-cascader__trigger[data-status='warning'] {
+  --_status-border: var(--andes-color-warning-hover);
+  --_ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+.andes-cascader__trigger[data-invalid],
+.andes-cascader__trigger[data-status='error'] {
+  --_status-border: var(--andes-color-danger);
+  --_ring: color-mix(in srgb, var(--andes-color-danger) 20%, transparent);
+}
+
+/* Variants. `outlined` is the base rule above. */
+.andes-cascader__trigger[data-variant='filled'] {
+  border-color: var(--_status-border, transparent);
+  background-color: var(--andes-color-muted);
+}
+
+/* prettier-ignore */
+.andes-cascader__trigger[data-variant='filled']:hover:not([data-disabled], :focus-within, [data-state='open']) {
+  border-color: var(--_status-border, transparent);
+  background-color: color-mix(in srgb, var(--andes-color-muted) 92%, var(--andes-color-foreground));
+}
+
+.andes-cascader__trigger[data-variant='filled']:focus-within,
+.andes-cascader__trigger[data-variant='filled'][data-state='open'] {
+  border-color: var(--_status-border, var(--andes-color-primary));
+  background-color: var(--andes-color-background);
+}
+
+/* No border at all: focus shows only the soft ring. */
+.andes-cascader__trigger[data-variant='borderless'],
+.andes-cascader__trigger[data-variant='borderless']:hover:not([data-disabled]),
+.andes-cascader__trigger[data-variant='borderless']:focus-within,
+.andes-cascader__trigger[data-variant='borderless'][data-state='open'] {
+  border-color: transparent;
+}
+
+.andes-cascader__trigger[data-variant='borderless'] {
+  background-color: transparent;
+}
+
+.andes-cascader__trigger[data-variant='underlined'] {
+  border-color: transparent;
+  border-bottom-color: var(--_status-border, var(--andes-color-input));
+  border-radius: 0;
+  background-color: transparent;
+}
+
+/* prettier-ignore */
+.andes-cascader__trigger[data-variant='underlined']:hover:not([data-disabled], :focus-within, [data-state='open']) {
+  border-color: transparent;
+  border-bottom-color: var(--_status-border, color-mix(in srgb, var(--andes-color-primary) 65%, var(--andes-color-input)));
+}
+
+/* Underlined focus is the bottom border alone, without the ring. */
+.andes-cascader__trigger[data-variant='underlined']:focus-within,
+.andes-cascader__trigger[data-variant='underlined'][data-state='open'] {
+  border-color: transparent;
+  border-bottom-color: var(--_status-border, var(--andes-color-primary));
+  box-shadow: none;
+}
+
+/* Sizes: the shared control scale (24/32/40px tall, 14/14/16px text). `min-height`, so tags
+   can wrap onto more rows. */
+.andes-cascader__trigger[data-size='sm'] {
+  --_padding-x: var(--andes-control-padding-x-sm, 0.4375rem);
+
+  min-height: var(--andes-control-height-sm, 1.5rem);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
+}
+
+.andes-cascader__trigger[data-size='md'] {
+  min-height: var(--andes-control-height-md, 2rem);
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+}
+
+.andes-cascader__trigger[data-size='lg'] {
+  --_padding-x: var(--andes-control-padding-x-lg, 0.6875rem);
+
+  min-height: var(--andes-control-height-lg, 2.5rem);
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
+  line-height: 1.5rem;
+}
+
+/* Multiple: the tags sit 3px inside the border, top, bottom and start, so a tag is the
+   control height minus 8px (16/24/32px) and one row of tags keeps the box at its
+   single-line height. Wrapped rows are 4px apart. */
+.andes-cascader__trigger[data-multiple] {
+  padding-block: 0.1875rem;
+  padding-inline-start: 0.1875rem;
+}
+
+.andes-cascader__selection {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+  gap: var(--andes-space-1);
+}
+
+.andes-cascader__trigger[data-multiple] .andes-cascader__selection {
+  flex-wrap: wrap;
+}
+
+/* With no tags the placeholder (or the empty input) starts at the size's padding. */
+.andes-cascader__trigger[data-multiple][data-placeholder]
+  .andes-cascader__selection {
+  padding-inline-start: calc(var(--_padding-x) - 0.1875rem);
+}
+
+/* The combobox, button or input, carries no chrome of its own: the box draws it. */
+.andes-cascader__combobox {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: start;
+  cursor: inherit;
+  outline: none;
+}
+
+.andes-cascader__combobox:disabled {
+  cursor: not-allowed;
+}
+
+.andes-cascader__trigger[data-multiple] .andes-cascader__combobox {
+  min-width: 1rem;
+}
+
+/* The button shows the value on one line, cut with an ellipsis. */
+button.andes-cascader__combobox {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+  The input sits on top of something in flow that gives the row its size: the value or
+  placeholder ("ghost") while there is no search text, and a hidden mirror of the typed text
+  in multiple mode, so the input is exactly as wide as what has been typed and does not push
+  itself onto a new row early.
+*/
+.andes-cascader__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  color: var(--andes-color-foreground);
+  cursor: text;
+}
+
+.andes-cascader__search {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+}
+
+.andes-cascader__trigger[data-multiple]:not([data-placeholder])
+  .andes-cascader__search {
+  flex: 0 1 auto;
+  min-width: 0.75rem;
+  max-width: 100%;
+}
+
+.andes-cascader__ghost {
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.andes-cascader__mirror {
+  overflow: hidden;
+  visibility: hidden;
+  white-space: pre;
+}
+
+.andes-cascader__trigger[data-state='open'] .andes-cascader__ghost {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Tags: the control height minus 8px, the box's own font size, 8px before the label and 4px
+   after the remove icon. */
+.andes-cascader__tag {
+  display: inline-flex;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: calc(var(--andes-control-height-md, 2rem) - 0.5rem);
+  align-items: center;
+  gap: var(--andes-space-1);
+  padding-inline: var(--andes-space-2) var(--andes-space-1);
+  border: 1px solid transparent;
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-foreground);
+  font-size: inherit;
+  line-height: calc(var(--andes-control-height-md, 2rem) - 0.625rem);
+  cursor: default;
+}
+
+.andes-cascader__tag--rest {
+  padding-inline-end: var(--andes-space-2);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-cascader__trigger[data-size='sm'] .andes-cascader__tag {
+  height: calc(var(--andes-control-height-sm, 1.5rem) - 0.5rem);
+  padding-inline: var(--andes-space-1);
+  border-radius: 0.125rem;
+  /* The 16px tags of the small box take the caption size. */
+  font-size: 0.75rem;
+  line-height: calc(var(--andes-control-height-sm, 1.5rem) - 0.625rem);
+}
+
+.andes-cascader__trigger[data-size='lg'] .andes-cascader__tag {
+  height: calc(var(--andes-control-height-lg, 2.5rem) - 0.5rem);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  line-height: calc(var(--andes-control-height-lg, 2.5rem) - 0.625rem);
+}
+
+/* The filled box is tinted with the tag's own colour, so its tags take the plain background
+   and a border instead. */
+.andes-cascader__trigger[data-variant='filled'] .andes-cascader__tag {
+  border-color: var(--andes-color-border);
+  background-color: var(--andes-color-background);
+}
+
+.andes-cascader__tag-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.andes-cascader__tag-remove {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+}
+
+.andes-cascader__tag-remove:hover:not(:disabled) {
+  color: var(--andes-color-foreground);
+}
+
+.andes-cascader__tag-remove:disabled {
+  cursor: not-allowed;
+}
+
+.andes-cascader__tag-remove svg {
+  width: 0.75em;
+  height: 0.75em;
+}
+
+.andes-cascader__suffix {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--andes-space-1);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-cascader__chevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  transition: transform var(--andes-motion-duration-mid, 0.2s)
+    var(--andes-motion-ease-in-out, cubic-bezier(0.645, 0.045, 0.355, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-cascader__chevron {
+    transition: none;
+  }
+}
+
+.andes-cascader__chevron svg {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+.andes-cascader__trigger[data-state='open'] .andes-cascader__chevron {
+  transform: rotate(180deg);
+}
+
+/*
+  Clear button - the same design on every field: a small muted disc with the "x" knocked out
+  of it in the background colour, 1em across. It takes the chevron's place while the pointer
+  is over the box or the box holds focus - so tabbing on from the combobox lands on it - and
+  shows all the time on devices without hover. The padding grows the hit area to 24px and
+  the equal negative margin takes it back out of the layout, so the box never grows.
+*/
+.andes-cascader__clear {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: calc((1.5rem - 1em) / 2);
+  margin: calc((1em - 1.5rem) / 2);
+  border: 0;
+  border-radius: var(--andes-radius-full);
+  background: none;
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 60%,
+    transparent
+  );
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.andes-cascader__clear:hover {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Hugs the 1em disc with a 2px gap, inside the 24px hit area. */
+.andes-cascader__clear:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: calc((1em - 1.5rem) / 2 + 2px);
+}
+
+.andes-cascader__clear svg {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+.andes-cascader__clear-glyph circle {
+  fill: currentColor;
+}
+
+.andes-cascader__clear-glyph path {
+  fill: none;
+  stroke: var(--andes-color-background);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.andes-cascader__trigger[data-clearable]:hover .andes-cascader__clear,
+.andes-cascader__trigger[data-clearable]:focus-within .andes-cascader__clear {
+  display: inline-flex;
+}
+
+.andes-cascader__trigger[data-clearable]:hover .andes-cascader__chevron,
+.andes-cascader__trigger[data-clearable]:focus-within .andes-cascader__chevron {
+  display: none;
+}
+
+@media (hover: none) {
+  .andes-cascader__trigger[data-clearable] .andes-cascader__clear {
+    display: inline-flex;
+  }
+}
+
+.andes-cascader__spinner {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 0.875em;
+  height: 0.875em;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--andes-radius-full);
+  animation: andes-cascader-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-cascader__spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+@keyframes andes-cascader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.andes-cascader__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ----- Panel ---------------------------------------------------------------------------- */
+
+.andes-cascader__panel {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow: hidden;
+  /* Transparent, so the edge only shows in forced-colors mode (which paints borders in a
+     system colour but drops the shadow); the shadow draws it everywhere else. */
+  border: 1px solid transparent;
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+  line-height: var(--andes-control-line-height, 1.375rem);
+  box-shadow: var(
+    --andes-shadow-popover,
+    0 6px 16px 0 rgb(0 0 0 / 8%),
+    0 3px 6px -4px rgb(0 0 0 / 12%),
+    0 9px 28px 8px rgb(0 0 0 / 5%)
+  );
+}
+
+/*
+  The panel grows out of the field's edge: a short fade from 97% scale, no bounce. Closing
+  mirrors it, a little faster and accelerating away: the overlay marks the panel
+  `data-andes-closing` and waits for this animation before detaching it. Reduced motion: it
+  simply appears and goes.
+*/
+@keyframes andes-cascader-panel-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes andes-cascader-panel-exit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .andes-cascader__panel[data-state='open'] {
+    transform-origin: top center;
+    animation: andes-cascader-panel-enter
+      var(--andes-motion-duration-mid, 150ms)
+      var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+  }
+
+  .andes-cascader__panel[data-andes-closing] {
+    transform-origin: top center;
+    animation: andes-cascader-panel-exit
+      var(--andes-motion-duration-fast, 120ms)
+      var(--andes-motion-ease-in, ease-in) forwards;
+  }
+
+  .andes-cascader__panel[data-state='open'][data-side='top'],
+  .andes-cascader__panel[data-andes-closing][data-side='top'] {
+    transform-origin: bottom center;
+  }
+}
+
+.andes-cascader__panel[data-search] {
+  min-width: var(--andes-cascader-anchor-width, 0);
+}
+
+.andes-cascader__columns {
+  display: flex;
+  align-items: stretch;
+}
+
+/* One column per level. `--andes-cascader-column-width` and `--andes-cascader-column-height`
+   scope the size to one instance (through `panelClass`). */
+.andes-cascader__column,
+.andes-cascader__results {
+  position: relative;
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--andes-space-1);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.andes-cascader__column {
+  flex: 0 0 auto;
+  width: var(--andes-cascader-column-width, 9rem);
+  height: var(--andes-cascader-column-height, 11.25rem);
+}
+
+.andes-cascader__column + .andes-cascader__column {
+  border-inline-start: 1px solid var(--andes-color-border);
+}
+
+.andes-cascader__results {
+  max-height: var(--andes-cascader-column-height, 11.25rem);
+}
+
+.andes-cascader__option {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  gap: var(--andes-space-2);
+  min-height: 2rem;
+  padding: 0.3125rem 0.75rem;
+  border-radius: var(--andes-radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 150ms ease;
+}
+
+.andes-cascader__option + .andes-cascader__option {
+  margin-block-start: 2px;
+}
+
+.andes-cascader__label {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* An expanded option stays tinted while its column is open; the cursor and the pointer use
+   the neutral hover tint. A picked path is semibold. */
+.andes-cascader__option[data-expanded] {
+  background-color: var(
+    --andes-color-primary-subtle,
+    color-mix(in srgb, var(--andes-color-primary) 10%, transparent)
+  );
+}
+
+.andes-cascader__option:hover:not([data-disabled]),
+.andes-cascader__option[data-active] {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-cascader__option[data-in-path],
+.andes-cascader__option[data-selected] {
+  font-weight: 600;
+}
+
+.andes-cascader__option[data-disabled] {
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (forced-colors: active) {
+  .andes-cascader__option[data-active] {
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+  }
+}
+
+.andes-cascader__expand {
+  flex: 0 0 auto;
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+[dir='rtl'] .andes-cascader__expand {
+  transform: scaleX(-1);
+}
+
+.andes-cascader__option .andes-cascader__spinner {
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-cascader__match {
+  background: none;
+  color: var(--andes-color-primary);
+  font-weight: 600;
+}
+
+.andes-cascader__separator {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* The checkbox drawn in front of an option with `multiple`. */
+.andes-cascader__check {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-background);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.andes-cascader__option:hover:not([data-disabled])
+  .andes-cascader__check[data-state='unchecked'] {
+  border-color: var(--andes-color-primary);
+}
+
+.andes-cascader__check[data-state='checked'],
+.andes-cascader__check[data-state='indeterminate'] {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-color-primary);
+}
+
+.andes-cascader__check[data-state='checked']::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 1px;
+  inset-inline-start: 4px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--andes-color-primary-foreground);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.andes-cascader__check[data-state='indeterminate']::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline: 3px;
+  height: 2px;
+  background-color: var(--andes-color-primary-foreground);
+}
+
+.andes-cascader__status {
+  box-sizing: border-box;
+  min-width: 9rem;
+  padding: 0.3125rem 0.75rem;
+  color: var(--andes-color-muted-foreground);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-cascader__option,
+  .andes-cascader__check {
+    transition: none;
+  }
+}

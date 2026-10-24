@@ -1,0 +1,348 @@
+<!--
+  The box is the overlay's positioning anchor (`andesOverlayTrigger`) but not its ARIA owner:
+  `ariaAttachment="none"` keeps `aria-haspopup`/`aria-expanded`/`aria-controls` off this
+  non-focusable div, and they are bound on the combobox element below instead.
+
+  Its handlers are pointer conveniences only - a click anywhere on the box, not just on the
+  combobox, opens the panel - so it needs neither focusability nor a key handler: keyboard
+  users reach the same behaviour through the combobox's own keydown handler.
+-->
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+<div
+  #box
+  andesOverlayTrigger
+  ariaAttachment="none"
+  class="andes-cascader__trigger"
+  data-slot="cascader-trigger"
+  [attr.data-size]="size()"
+  [attr.data-variant]="variant()"
+  [attr.data-status]="status() ?? null"
+  [attr.data-multiple]="multiple() ? '' : null"
+  [attr.data-placeholder]="hasValue() ? null : ''"
+  [attr.data-disabled]="isDisabled() ? '' : null"
+  [attr.data-clearable]="showClear() ? '' : null"
+  [attr.data-invalid]="invalid() ? '' : null"
+  (mousedown)="onBoxMousedown($event)"
+  (click)="onBoxClick($event)"
+>
+  <ng-template #valueView>
+    @if (singleEntry(); as entry) { @if (displayRender(); as template) {
+    <ng-container
+      [ngTemplateOutlet]="template"
+      [ngTemplateOutletContext]="displayContext(entry)"
+    />
+    } @else { {{ singleLabel() }} } } @else { {{ placeholder() }} }
+  </ng-template>
+
+  <div class="andes-cascader__selection">
+    @if (multiple()) { @for (entry of tags(); track entry.path) {
+    <span
+      class="andes-cascader__tag"
+      data-slot="cascader-tag"
+      [attr.title]="tagText(entry)"
+    >
+      <span class="andes-cascader__tag-label">
+        @if (displayRender(); as template) {
+        <ng-container
+          [ngTemplateOutlet]="template"
+          [ngTemplateOutletContext]="displayContext(entry)"
+        />
+        } @else { {{ tagText(entry) }} }
+      </span>
+      <!--
+        Out of the tab order on purpose: keyboard users remove tags with Backspace from the
+        combobox, which is one tab stop instead of one per tag.
+      -->
+      <button
+        type="button"
+        tabindex="-1"
+        class="andes-cascader__tag-remove"
+        data-slot="cascader-tag-remove"
+        [attr.aria-label]="removeLabel(entry)"
+        [disabled]="isDisabled()"
+        (mousedown)="$event.preventDefault()"
+        (click)="onTagRemoveClick(entry, $event)"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path
+            d="M18 6 6 18M6 6l12 12"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </span>
+    } @if (omittedTags().length > 0) {
+    <span
+      class="andes-cascader__tag andes-cascader__tag--rest"
+      data-slot="cascader-tag-rest"
+      [attr.title]="moreTagsTitle()"
+      >{{ moreTagsText() }}</span
+    >
+    } } @if (searchEnabled()) {
+    <span class="andes-cascader__search">
+      @if (!searchText() && (!multiple() || !hasValue())) {
+      <span class="andes-cascader__ghost" aria-hidden="true">
+        <ng-container [ngTemplateOutlet]="valueView" />
+      </span>
+      } @else if (multiple()) {
+      <span class="andes-cascader__mirror" aria-hidden="true"
+        >{{ searchText() }}&nbsp;</span
+      >
+      }
+      <input
+        #combobox
+        type="text"
+        role="combobox"
+        autocomplete="off"
+        aria-autocomplete="list"
+        aria-haspopup="tree"
+        class="andes-cascader__combobox andes-cascader__input"
+        [attr.id]="id() ?? null"
+        [value]="searchText()"
+        [disabled]="isDisabled()"
+        [attr.aria-expanded]="isOpen()"
+        [attr.aria-controls]="isOpen() ? panelId : null"
+        [attr.aria-activedescendant]="activeDescendantId()"
+        [attr.aria-label]="ariaLabel()"
+        [attr.aria-labelledby]="ariaLabelledby()"
+        [attr.aria-describedby]="ariaDescribedby()"
+        [attr.aria-invalid]="invalid() || null"
+        (input)="onSearchInput($any($event.target).value)"
+        (keydown)="onKeydown($event)"
+        (blur)="markTouched()"
+      />
+    </span>
+    } @else {
+    <button
+      #combobox
+      type="button"
+      role="combobox"
+      aria-haspopup="tree"
+      class="andes-cascader__combobox"
+      [attr.id]="id() ?? null"
+      [disabled]="isDisabled()"
+      [attr.data-placeholder]="hasValue() ? null : ''"
+      [attr.aria-expanded]="isOpen()"
+      [attr.aria-controls]="isOpen() ? panelId : null"
+      [attr.aria-activedescendant]="activeDescendantId()"
+      [attr.aria-label]="ariaLabel()"
+      [attr.aria-labelledby]="ariaLabelledby()"
+      [attr.aria-describedby]="ariaDescribedby()"
+      [attr.aria-invalid]="invalid() || null"
+      (keydown)="onKeydown($event)"
+      (blur)="markTouched()"
+    >
+      @if (!multiple() || !hasValue()) {
+      <ng-container [ngTemplateOutlet]="valueView" />
+      }
+    </button>
+    }
+  </div>
+
+  <span class="andes-cascader__suffix">
+    @if (showClear()) {
+    <!--
+      A Tab stop of its own (it only shows while the box is hovered or holds focus, so
+      tabbing on from the combobox reaches it); a mouse press is cancelled so focus stays
+      where it was.
+    -->
+    <button
+      type="button"
+      class="andes-cascader__clear"
+      data-slot="cascader-clear"
+      [attr.aria-label]="text().clear"
+      (mousedown)="$event.preventDefault()"
+      (click)="onClearClick($event)"
+    >
+      <svg
+        class="andes-cascader__clear-glyph"
+        viewBox="0 0 16 16"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <circle cx="8" cy="8" r="8" />
+        <path d="M5.5 5.5l5 5m0-5-5 5" />
+      </svg>
+    </button>
+    } @if (loading()) {
+    <span
+      class="andes-cascader__spinner"
+      data-slot="cascader-loading"
+      aria-hidden="true"
+    ></span>
+    } @else {
+    <span class="andes-cascader__chevron" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </span>
+    }
+  </span>
+</div>
+
+<ng-template #panel>
+  <!--
+    A press inside the panel never takes focus from the combobox: the options are reached
+    through `aria-activedescendant`, so there is nothing in here to focus.
+  -->
+  <!-- eslint-disable-next-line @angular-eslint/template/mouse-events-have-key-events, @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+  <div
+    andesOverlayContent
+    class="andes-cascader__panel"
+    data-slot="cascader-panel"
+    [attr.data-side]="side()"
+    [attr.data-search]="searching() ? '' : null"
+    [style.--andes-cascader-anchor-width.px]="anchorWidth()"
+    (mousedown)="$event.preventDefault()"
+  >
+    @if (searching()) { @if (results().length > 0) {
+    <ul
+      role="tree"
+      class="andes-cascader__results"
+      data-slot="cascader-results"
+      [id]="treeId"
+      [attr.aria-multiselectable]="multiple() || null"
+    >
+      @for (result of results(); track result.key; let i = $index) {
+      <li
+        role="treeitem"
+        class="andes-cascader__option andes-cascader__result"
+        data-slot="cascader-result"
+        aria-level="1"
+        [id]="resultId(i)"
+        [attr.aria-selected]="multiple() ? null : resultSelected(result)"
+        [attr.aria-checked]="multiple() ? resultChecked(result) : null"
+        [attr.aria-disabled]="result.disabled ? 'true' : null"
+        [attr.data-active]="i === activeResultIndex() ? '' : null"
+        [attr.data-disabled]="result.disabled ? '' : null"
+        [attr.data-selected]="resultSelected(result) ? '' : null"
+        (click)="onResultClick(i)"
+        (mouseenter)="onResultEnter(i)"
+      >
+        @if (multiple()) {
+        <span
+          class="andes-cascader__check"
+          aria-hidden="true"
+          [attr.data-state]="resultChecked(result) ? 'checked' : 'unchecked'"
+        ></span>
+        }
+        <span class="andes-cascader__label">
+          @for (parts of resultParts(result); track $index; let last = $last)
+          {@for (part of parts; track $index) {@if (part.match) {<mark
+            class="andes-cascader__match"
+            >{{ part.text }}</mark
+          >} @else {<span>{{ part.text }}</span>}}@if (!last) {<span
+            class="andes-cascader__separator"
+            >{{ separator() }}</span
+          >}}
+        </span>
+      </li>
+      }
+    </ul>
+    } } @else if (tree().roots.length > 0) {
+    <div
+      class="andes-cascader__columns"
+      role="tree"
+      data-slot="cascader-columns"
+      [id]="treeId"
+      [attr.aria-multiselectable]="multiple() || null"
+    >
+      @for (column of columns(); track column.level) {
+      <ul
+        role="group"
+        class="andes-cascader__column"
+        [attr.aria-label]="columnLabel(column)"
+      >
+        @for (node of column.nodes; track node.key; let i = $index) {
+        <li
+          role="treeitem"
+          class="andes-cascader__option"
+          data-slot="cascader-option"
+          [id]="itemId(node)"
+          [attr.aria-level]="node.level + 1"
+          [attr.aria-setsize]="column.nodes.length"
+          [attr.aria-posinset]="i + 1"
+          [attr.aria-expanded]="isBranch(node) ? isExpanded(node) : null"
+          [attr.aria-selected]="multiple() ? null : isSelectedNode(node)"
+          [attr.aria-checked]="multiple() ? ariaChecked(node) : null"
+          [attr.aria-disabled]="node.disabled ? 'true' : null"
+          [attr.data-active]="isActive(node) ? '' : null"
+          [attr.data-expanded]="isExpanded(node) ? '' : null"
+          [attr.data-in-path]="isInSelectedPath(node) ? '' : null"
+          [attr.data-disabled]="node.disabled ? '' : null"
+          [attr.data-loading]="isLoadingNode(node) ? '' : null"
+          (click)="onItemClick(node)"
+          (mouseenter)="onItemEnter(node)"
+        >
+          @if (multiple()) {
+          <span
+            class="andes-cascader__check"
+            aria-hidden="true"
+            [attr.data-state]="checkState(node)"
+            (click)="onItemCheckboxClick(node, $event)"
+          ></span>
+          }
+          <span class="andes-cascader__label" [attr.title]="node.label">
+            @if (optionTemplate(); as template) {
+            <ng-container
+              [ngTemplateOutlet]="template"
+              [ngTemplateOutletContext]="optionContext(node)"
+            />
+            } @else { {{ node.label }} }
+          </span>
+          @if (isLoadingNode(node)) {
+          <span class="andes-cascader__spinner" aria-hidden="true"></span>
+          } @else if (isBranch(node)) {
+          <svg
+            class="andes-cascader__expand"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="m9 6 6 6-6 6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          }
+        </li>
+        }
+      </ul>
+      }
+    </div>
+    } @if (showLoadingRow()) {
+    <div
+      class="andes-cascader__status"
+      data-slot="cascader-loading-row"
+      role="status"
+    >
+      {{ text().loading }}
+    </div>
+    } @if (showNotFound()) {
+    <div class="andes-cascader__status" data-slot="cascader-empty">
+      @if (notFoundTemplate(); as template) {
+      <ng-container [ngTemplateOutlet]="template" />
+      } @else { {{ notFoundText() }} }
+    </div>
+    }
+    <span class="andes-cascader__sr" role="status" aria-live="polite"
+      >{{ resultsAnnouncement() }}</span
+    >
+  </div>
+</ng-template>

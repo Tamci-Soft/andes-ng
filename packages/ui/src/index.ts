@@ -29,7 +29,7 @@ export * from './lib/card';
 
 export * from './lib/carousel';
 
-// @slot cascader
+export * from './lib/cascader';
 
 // @slot checkbox
 
