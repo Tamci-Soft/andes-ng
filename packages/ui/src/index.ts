@@ -149,7 +149,7 @@ export * from './lib/tooltip';
 
 export * from './lib/tour';
 
-// @slot transfer
+export * from './lib/transfer';
 
 // @slot tree
 

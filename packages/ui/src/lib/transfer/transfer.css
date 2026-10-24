@@ -1,0 +1,605 @@
+:host {
+  display: block;
+  max-width: 100%;
+}
+
+.andes-transfer {
+  position: relative;
+  /* Styling hooks: `--andes-transfer-list-width` and `--andes-transfer-list-height` size each list. */
+  --_list-width: var(--andes-transfer-list-width, 15rem);
+  --_list-height: var(--andes-transfer-list-height, 18rem);
+  --_border: var(--andes-color-border, #e5e7eb);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+.andes-transfer__list {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 1 var(--_list-width);
+  flex-direction: column;
+  width: var(--_list-width);
+  max-width: 100%;
+  height: var(--_list-height);
+  overflow: hidden;
+  border: 1px solid var(--_border);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background-color: var(--andes-color-background);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-transfer--error .andes-transfer__list {
+  border-color: var(--andes-color-danger);
+}
+
+.andes-transfer--warning .andes-transfer__list {
+  border-color: var(--andes-color-warning-hover);
+}
+
+.andes-transfer--disabled .andes-transfer__list {
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-transfer__header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  min-height: 2.5rem;
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--_border);
+}
+
+.andes-transfer__count {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--andes-color-muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.andes-transfer__title {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* Checkbox look, shared by the header's real checkbox and the items' decorative boxes. */
+.andes-transfer__check {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-transfer__check-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.andes-transfer__check-input:disabled {
+  cursor: not-allowed;
+}
+
+.andes-transfer__box {
+  position: relative;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  margin-block: calc((1.375rem - 1rem) / 2);
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--andes-color-input),
+      var(--andes-color-foreground) 35%
+    );
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--andes-color-background);
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.andes-transfer__check .andes-transfer__box {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.andes-transfer__mark {
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  stroke: var(--andes-color-primary-foreground);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.andes-transfer__check-input:hover:not(:disabled) ~ .andes-transfer__box {
+  border-color: var(--andes-color-primary);
+}
+
+.andes-transfer__check-input:focus-visible ~ .andes-transfer__box {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-transfer__check-input:checked ~ .andes-transfer__box,
+.andes-transfer__check-input:indeterminate ~ .andes-transfer__box {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-color-primary);
+}
+
+/* prettier-ignore */
+.andes-transfer__check-input:checked ~ .andes-transfer__box .andes-transfer__mark--check { opacity: 1; }
+
+/* prettier-ignore */
+.andes-transfer__check-input:indeterminate ~ .andes-transfer__box .andes-transfer__mark--check { opacity: 0; }
+
+/* prettier-ignore */
+.andes-transfer__check-input:indeterminate ~ .andes-transfer__box .andes-transfer__mark--dash { opacity: 1; }
+
+.andes-transfer__check-input:disabled ~ .andes-transfer__box {
+  opacity: 0.6;
+}
+
+.andes-transfer__item--selected .andes-transfer__box {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-color-primary);
+}
+
+/* prettier-ignore */
+.andes-transfer__item--selected .andes-transfer__box .andes-transfer__mark--check { opacity: 1; }
+
+/* Search: the shared text-field look (single focus ring on the box). */
+.andes-transfer__search {
+  flex: none;
+  padding: 0.5rem 0.75rem 0;
+}
+
+.andes-transfer__field {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+  width: 100%;
+  height: var(--andes-control-height-md, 2rem);
+  padding-inline: 0.6875rem;
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-transfer__field:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+}
+
+.andes-transfer__field:focus-within {
+  border-color: var(--andes-color-primary);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+  outline: none;
+}
+
+@media (forced-colors: active) {
+  .andes-transfer__field:focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
+.andes-transfer__search-icon {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: var(--andes-color-muted-foreground);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.andes-transfer__search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.andes-transfer__search-input::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-transfer__search-input:disabled {
+  cursor: not-allowed;
+}
+
+.andes-transfer__search-clear {
+  display: inline-flex;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-full, 9999px);
+  background: none;
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 60%,
+    transparent
+  );
+  font: inherit;
+  cursor: pointer;
+}
+
+.andes-transfer__search-clear:hover {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-transfer__search-clear:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-transfer__search-clear svg {
+  width: 1em;
+  height: 1em;
+}
+
+.andes-transfer__search-clear circle {
+  fill: currentColor;
+}
+
+.andes-transfer__search-clear path {
+  fill: none;
+  stroke: var(--andes-color-background);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.andes-transfer__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 0.25rem;
+}
+
+.andes-transfer__items {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  outline: none;
+}
+
+.andes-transfer__item {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--andes-space-2, 0.5rem);
+  min-height: 2rem;
+  padding: 0.3125rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 120ms ease;
+}
+
+.andes-transfer__item:hover {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-transfer__item--selected {
+  background-color: var(
+    --andes-color-primary-subtle,
+    color-mix(in srgb, var(--andes-color-primary) 10%, transparent)
+  );
+}
+
+.andes-transfer__item--selected:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 14%,
+    transparent
+  );
+}
+
+.andes-transfer__item--disabled {
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+.andes-transfer__item--disabled:hover {
+  background-color: transparent;
+}
+
+.andes-transfer--disabled .andes-transfer__item {
+  cursor: not-allowed;
+}
+
+.andes-transfer__item--disabled .andes-transfer__box {
+  opacity: 0.5;
+}
+
+/* The one keyboard indicator: an inset ring on the active row while the list has focus. */
+.andes-transfer__items:focus-visible .andes-transfer__item--active {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.andes-transfer__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.andes-transfer__item-title {
+  overflow-wrap: anywhere;
+}
+
+.andes-transfer__item-description {
+  color: var(--andes-color-muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.andes-transfer__remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background: none;
+  color: var(--andes-color-muted-foreground);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.andes-transfer__remove:hover:not(:disabled) {
+  background-color: var(--andes-color-accent);
+  color: var(--andes-color-foreground);
+}
+
+.andes-transfer__remove:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 0;
+}
+
+.andes-transfer__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-transfer__remove svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.andes-transfer__empty {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: 1rem;
+  color: var(--andes-color-muted-foreground);
+  text-align: center;
+}
+
+.andes-transfer__empty-icon {
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.6;
+}
+
+.andes-transfer__pagination {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--andes-space-1, 0.25rem);
+  padding: 0.25rem 0.5rem;
+  border-top: 1px solid var(--_border);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-transfer__page-text {
+  min-width: 3rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.andes-transfer__page-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background: none;
+  color: var(--andes-color-foreground);
+  cursor: pointer;
+}
+
+.andes-transfer__page-button:hover:not(:disabled) {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-transfer__page-button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 0;
+}
+
+.andes-transfer__page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.andes-transfer__page-button svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-transfer__footer {
+  flex: none;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--_border);
+}
+
+/* Move buttons: a column between the lists. */
+.andes-transfer__operations {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--andes-space-1, 0.25rem);
+  align-items: center;
+}
+
+.andes-transfer__move {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-1, 0.25rem);
+  min-width: var(--andes-control-height-md, 2rem);
+  height: var(--andes-control-height-md, 2rem);
+  padding: 0;
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-transfer__move--labelled {
+  padding-inline: 0.75rem;
+}
+
+.andes-transfer__move:hover:not(:disabled) {
+  border-color: var(--andes-color-primary);
+  color: var(--andes-color-primary);
+}
+
+.andes-transfer__move:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-transfer__move:disabled {
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+.andes-transfer__move-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The arrows point along the reading direction. */
+.andes-transfer:dir(rtl) .andes-transfer__move-icon {
+  transform: scaleX(-1);
+}
+
+.andes-transfer__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-transfer__list,
+  .andes-transfer__box,
+  .andes-transfer__mark,
+  .andes-transfer__field,
+  .andes-transfer__item,
+  .andes-transfer__remove,
+  .andes-transfer__move {
+    transition: none;
+  }
+}

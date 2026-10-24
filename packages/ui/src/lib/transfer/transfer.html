@@ -1,0 +1,284 @@
+<div
+  [class]="rootClasses()"
+  data-slot="transfer"
+  role="group"
+  [attr.aria-label]="ariaLabel()"
+  [attr.aria-labelledby]="ariaLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby()"
+  [attr.aria-invalid]="invalid() || null"
+>
+  @for (list of lists; track list.direction) {
+  <section
+    class="andes-transfer__list"
+    data-slot="transfer-list"
+    [attr.data-list]="list.direction"
+    [attr.aria-labelledby]="titleId(list.direction)"
+  >
+    <header class="andes-transfer__header">
+      @if (showSelectAll() && !isRemovable(list)) {
+      <span class="andes-transfer__check">
+        <input
+          type="checkbox"
+          class="andes-transfer__check-input"
+          data-slot="transfer-select-all"
+          [attr.aria-label]="'Select all in ' + list.title()"
+          [checked]="list.allChecked()"
+          [indeterminate]="list.someChecked()"
+          [disabled]="isDisabled() || list.selectable().length === 0"
+          (change)="toggleAll(list)"
+        />
+        <span class="andes-transfer__box" aria-hidden="true">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            class="andes-transfer__mark andes-transfer__mark--check"
+          >
+            <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+          </svg>
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            class="andes-transfer__mark andes-transfer__mark--dash"
+          >
+            <path d="M3.5 8h9" />
+          </svg>
+        </span>
+      </span>
+      }
+      <span class="andes-transfer__count" data-slot="transfer-count"
+        >{{ list.countText() }}</span
+      >
+      <span class="andes-transfer__title" [id]="titleId(list.direction)"
+        >{{ list.title() }}</span
+      >
+    </header>
+
+    @if (showSearch()) {
+    <div class="andes-transfer__search">
+      <span class="andes-transfer__field" data-slot="transfer-search">
+        <svg
+          class="andes-transfer__search-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <input
+          #searchInput
+          type="text"
+          class="andes-transfer__search-input"
+          autocomplete="off"
+          [attr.aria-label]="searchPlaceholder() + ' ' + list.title()"
+          [placeholder]="searchPlaceholder()"
+          [disabled]="isDisabled()"
+          [value]="list.search()"
+          (input)="onSearchInput(list, searchInput.value)"
+          (keydown)="onSearchKeydown($event, list, searchInput)"
+        />
+        @if (list.search() !== '') {
+        <button
+          type="button"
+          class="andes-transfer__search-clear"
+          [attr.aria-label]="clearSearchLabel()"
+          [disabled]="isDisabled()"
+          (mousedown)="$event.preventDefault()"
+          (click)="clearSearch(list, searchInput)"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="8" cy="8" r="8" />
+            <path d="M5.5 5.5l5 5m0-5-5 5" />
+          </svg>
+        </button>
+        }
+      </span>
+    </div>
+    }
+
+    <div class="andes-transfer__body">
+      @if (list.pageItems().length > 0) {
+      <ul
+        class="andes-transfer__items"
+        data-slot="transfer-items"
+        [attr.role]="isRemovable(list) ? 'list' : 'listbox'"
+        [attr.tabindex]="isRemovable(list) ? null : 0"
+        [attr.aria-multiselectable]="isRemovable(list) ? null : true"
+        [attr.aria-label]="list.title()"
+        [attr.aria-disabled]="isDisabled() || null"
+        [attr.aria-activedescendant]="isRemovable(list) ? null : activeDescendant(list)"
+        (focus)="onListFocus(list)"
+        (keydown)="onListKeydown($event, list)"
+        (click)="onListClick($event, list)"
+        (scroll)="onScroll($event, list)"
+      >
+        @for (item of list.pageItems(); track item.key; let index = $index) {
+        <li
+          [attr.data-index]="index"
+          class="andes-transfer__item"
+          data-slot="transfer-item"
+          [id]="optionId(item, list.direction)"
+          [attr.role]="isRemovable(list) ? 'listitem' : 'option'"
+          [attr.aria-selected]="isRemovable(list) ? null : isSelected(item.key)"
+          [attr.aria-disabled]="isItemDisabled(item) || null"
+          [attr.data-state]="isSelected(item.key) && !isRemovable(list) ? 'selected' : null"
+          [attr.data-active]="list.active() === item.key || null"
+          [attr.data-disabled]="isItemDisabled(item) || null"
+          [class.andes-transfer__item--selected]="isSelected(item.key) && !isRemovable(list)"
+          [class.andes-transfer__item--active]="list.active() === item.key"
+          [class.andes-transfer__item--disabled]="isItemDisabled(item)"
+        >
+          @if (!isRemovable(list)) {
+          <span class="andes-transfer__box" aria-hidden="true">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              class="andes-transfer__mark andes-transfer__mark--check"
+            >
+              <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+            </svg>
+          </span>
+          }
+          <span class="andes-transfer__content">
+            @if (render(); as renderTemplate) {
+            <ng-container
+              *ngTemplateOutlet="renderTemplate; context: itemContext(item, list)"
+            />
+            } @else {
+            <span class="andes-transfer__item-title">{{ item.title }}</span>
+            @if (item.description) {
+            <span class="andes-transfer__item-description"
+              >{{ item.description }}</span
+            >
+            } }
+          </span>
+          @if (isRemovable(list)) {
+          <button
+            type="button"
+            class="andes-transfer__remove"
+            [attr.aria-label]="removeLabel() + ' ' + item.title"
+            [disabled]="isItemDisabled(item)"
+            (click)="onRemove($event, item)"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <path d="M4.5 4.5l7 7m0-7-7 7" />
+            </svg>
+          </button>
+          }
+        </li>
+        }
+      </ul>
+      } @else {
+      <div class="andes-transfer__empty" data-slot="transfer-empty">
+        @if (empty(); as emptyTemplate) {
+        <ng-container
+          *ngTemplateOutlet="emptyTemplate; context: emptyContext(list)"
+        />
+        } @else {
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+          class="andes-transfer__empty-icon"
+        >
+          <path d="M3 13h5l1.5 3h5L16 13h5M5.5 5h13L21 13v6H3v-6z" />
+        </svg>
+        <span>{{ list.search() !== '' ? noMatchText() : emptyText() }}</span>
+        }
+      </div>
+      }
+    </div>
+
+    @if (paged() && list.pageCount() > 1) {
+    <div class="andes-transfer__pagination" data-slot="transfer-pagination">
+      <button
+        type="button"
+        class="andes-transfer__page-button"
+        [attr.aria-label]="previousPageLabel()"
+        [disabled]="list.currentPage() <= 1"
+        (click)="goToPage(list, list.currentPage() - 1)"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M10 3.5 5.5 8l4.5 4.5" />
+        </svg>
+      </button>
+      <span class="andes-transfer__page-text"
+        >{{ list.currentPage() }} / {{ list.pageCount() }}</span
+      >
+      <button
+        type="button"
+        class="andes-transfer__page-button"
+        [attr.aria-label]="nextPageLabel()"
+        [disabled]="list.currentPage() >= list.pageCount()"
+        (click)="goToPage(list, list.currentPage() + 1)"
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M6 3.5 10.5 8 6 12.5" />
+        </svg>
+      </button>
+    </div>
+    } @if (footer(); as footerTemplate) {
+    <div class="andes-transfer__footer" data-slot="transfer-footer">
+      <ng-container
+        *ngTemplateOutlet="footerTemplate; context: footerContext(list)"
+      />
+    </div>
+    }
+  </section>
+  @if ($first) {
+  <div class="andes-transfer__operations" data-slot="transfer-operations">
+    <button
+      type="button"
+      class="andes-transfer__move"
+      data-slot="transfer-move-forward"
+      [class.andes-transfer__move--labelled]="operations()"
+      [attr.aria-label]="moveLabel('target')"
+      [disabled]="!canMoveForward()"
+      (click)="moveSelectedToTarget()"
+    >
+      @if (operations(); as texts) {
+      <span>{{ texts[0] }}</span>
+      }
+      <svg
+        class="andes-transfer__move-icon"
+        viewBox="0 0 16 16"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M6 3.5 10.5 8 6 12.5" />
+      </svg>
+    </button>
+    @if (!oneWay()) {
+    <button
+      type="button"
+      class="andes-transfer__move"
+      data-slot="transfer-move-back"
+      [class.andes-transfer__move--labelled]="operations()"
+      [attr.aria-label]="moveLabel('source')"
+      [disabled]="!canMoveBack()"
+      (click)="moveSelectedToSource()"
+    >
+      <svg
+        class="andes-transfer__move-icon"
+        viewBox="0 0 16 16"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M10 3.5 5.5 8 10 12.5" />
+      </svg>
+      @if (operations(); as texts) {
+      <span>{{ texts[1] }}</span>
+      }
+    </button>
+    }
+  </div>
+  } }
+  <div
+    class="andes-transfer__live"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    {{ liveText() }}
+  </div>
+</div>
