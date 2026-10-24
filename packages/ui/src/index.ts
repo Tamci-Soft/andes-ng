@@ -129,7 +129,7 @@ export * from './lib/statistic';
 
 export * from './lib/steps';
 
-// @slot switch
+export * from './lib/switch';
 
 // @slot table
 
