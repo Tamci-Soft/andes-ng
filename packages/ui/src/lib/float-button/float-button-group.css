@@ -1,0 +1,266 @@
+:host {
+  --_gap: 0.75rem;
+  --_shift: 0.5rem;
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--_gap);
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+:host([data-fixed]) {
+  position: fixed;
+  z-index: var(--andes-float-button-z-index, 900);
+}
+
+:host([data-placement='start']:not([data-trigger='none'])),
+:host([data-placement='end']:not([data-trigger='none'])),
+:host([data-trigger='none'][data-placement='start']),
+:host([data-trigger='none'][data-placement='end']) {
+  flex-direction: row;
+}
+
+/* A stack of squares reads as one panel: shared outline, hairline dividers, outer corners
+   rounded. The buttons are projected, hence ::ng-deep. */
+:host([data-trigger='none'][data-shape='square']) {
+  gap: 0;
+  border-radius: var(--andes-radius-md, 0.375rem);
+  box-shadow: var(--andes-shadow-md, 0 4px 12px 0 rgb(15 23 42 / 12%));
+}
+
+:host([data-trigger='none'][data-shape='square'])
+  ::ng-deep
+  andes-float-button
+  .andes-float-button__control {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:host([data-trigger='none'][data-shape='square'])
+  ::ng-deep
+  andes-float-button
+  + andes-float-button
+  .andes-float-button__control {
+  border-block-start-color: transparent;
+}
+
+:host(
+    [data-trigger='none'][data-shape='square']:not(
+        [data-placement='start']
+      ):not([data-placement='end'])
+  )
+  ::ng-deep
+  andes-float-button:first-child
+  .andes-float-button__control {
+  border-start-start-radius: var(--andes-radius-md, 0.375rem);
+  border-start-end-radius: var(--andes-radius-md, 0.375rem);
+}
+
+:host(
+    [data-trigger='none'][data-shape='square']:not(
+        [data-placement='start']
+      ):not([data-placement='end'])
+  )
+  ::ng-deep
+  andes-float-button:last-child
+  .andes-float-button__control {
+  border-end-start-radius: var(--andes-radius-md, 0.375rem);
+  border-end-end-radius: var(--andes-radius-md, 0.375rem);
+}
+
+:host([data-trigger='none'][data-shape='square'][data-placement='start'])
+  ::ng-deep
+  andes-float-button
+  + andes-float-button
+  .andes-float-button__control,
+:host([data-trigger='none'][data-shape='square'][data-placement='end'])
+  ::ng-deep
+  andes-float-button
+  + andes-float-button
+  .andes-float-button__control {
+  border-block-start-color: var(
+    --andes-float-button-border,
+    color-mix(in srgb, var(--andes-color-border, #d1d5db) 60%, transparent)
+  );
+  border-inline-start-color: transparent;
+}
+
+:host([data-trigger='none'][data-shape='square'][data-placement='start'])
+  ::ng-deep
+  andes-float-button:first-child
+  .andes-float-button__control,
+:host([data-trigger='none'][data-shape='square'][data-placement='end'])
+  ::ng-deep
+  andes-float-button:first-child
+  .andes-float-button__control {
+  border-start-start-radius: var(--andes-radius-md, 0.375rem);
+  border-end-start-radius: var(--andes-radius-md, 0.375rem);
+}
+
+:host([data-trigger='none'][data-shape='square'][data-placement='start'])
+  ::ng-deep
+  andes-float-button:last-child
+  .andes-float-button__control,
+:host([data-trigger='none'][data-shape='square'][data-placement='end'])
+  ::ng-deep
+  andes-float-button:last-child
+  .andes-float-button__control {
+  border-start-end-radius: var(--andes-radius-md, 0.375rem);
+  border-end-end-radius: var(--andes-radius-md, 0.375rem);
+}
+
+/* The open state is a class, not an attribute: the style shim mis-scopes `[attr] ::ng-deep`. */
+
+/* The menu floats next to the trigger so it adds nothing to the group's own size. The first
+   projected button is nearest the trigger in every direction. */
+.andes-float-button-group__menu {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--_gap);
+  pointer-events: none;
+}
+
+.andes-float-button-group__menu--open {
+  pointer-events: auto;
+}
+
+:host([data-placement='up']) .andes-float-button-group__menu {
+  inset-block-end: calc(100% + var(--_gap));
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  flex-direction: column-reverse;
+}
+
+:host([data-placement='down']) .andes-float-button-group__menu {
+  inset-block-start: calc(100% + var(--_gap));
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  flex-direction: column;
+}
+
+:host([data-placement='start']) .andes-float-button-group__menu {
+  inset-inline-end: calc(100% + var(--_gap));
+  inset-block-start: 0;
+  inset-block-end: 0;
+  flex-direction: row-reverse;
+}
+
+:host([data-placement='end']) .andes-float-button-group__menu {
+  inset-inline-start: calc(100% + var(--_gap));
+  inset-block-start: 0;
+  inset-block-end: 0;
+  flex-direction: row;
+}
+
+/* Staggered fan-out: each button is 35ms behind the one before it, growing from 70% while it
+   slides out of the trigger over 160ms; closing is quicker, not staggered, and shrinks back. */
+.andes-float-button-group__menu ::ng-deep andes-float-button {
+  --_dx: 0;
+  --_dy: 0;
+  opacity: 0;
+  transform: translate(var(--_dx), var(--_dy)) scale(0.7);
+  visibility: hidden;
+  transition:
+    opacity 110ms ease-in,
+    transform 110ms ease-in,
+    visibility 0s linear 110ms;
+}
+
+:host([data-placement='up'])
+  .andes-float-button-group__menu
+  ::ng-deep
+  andes-float-button {
+  --_dy: var(--_shift);
+}
+
+:host([data-placement='down'])
+  .andes-float-button-group__menu
+  ::ng-deep
+  andes-float-button {
+  --_dy: calc(var(--_shift) * -1);
+}
+
+:host([data-placement='start'])
+  .andes-float-button-group__menu
+  ::ng-deep
+  andes-float-button {
+  --_dx: var(--_shift);
+}
+
+:host([data-placement='end'])
+  .andes-float-button-group__menu
+  ::ng-deep
+  andes-float-button {
+  --_dx: calc(var(--_shift) * -1);
+}
+
+:host([data-placement='start']:dir(rtl))
+  .andes-float-button-group__menu
+  ::ng-deep
+  andes-float-button {
+  --_dx: calc(var(--_shift) * -1);
+}
+
+:host([data-placement='end']:dir(rtl))
+  .andes-float-button-group__menu
+  ::ng-deep
+  andes-float-button {
+  --_dx: var(--_shift);
+}
+
+.andes-float-button-group__menu--open ::ng-deep andes-float-button {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 160ms cubic-bezier(0.2, 0, 0, 1)
+      calc(var(--andes-float-button-index, 0) * 35ms),
+    transform 160ms cubic-bezier(0.2, 0, 0, 1)
+      calc(var(--andes-float-button-index, 0) * 35ms),
+    visibility 0s linear 0s;
+}
+
+/* The default plus turns a quarter-eighth to become the close cross, instead of swapping. */
+.andes-float-button-group__glyph {
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.andes-float-button-group__glyph--open {
+  transform: rotate(135deg);
+}
+
+/* Custom open/close icons swap, with the new one turning in. */
+.andes-float-button-group__swap {
+  display: inline-flex;
+  animation: andes-float-button-swap 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes andes-float-button-swap {
+  from {
+    opacity: 0;
+    transform: rotate(-60deg) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-float-button-group__menu ::ng-deep andes-float-button,
+  .andes-float-button-group__menu--open ::ng-deep andes-float-button,
+  .andes-float-button-group__glyph {
+    transition: none;
+    transform: none;
+  }
+
+  .andes-float-button-group__glyph--open {
+    transform: none;
+  }
+
+  .andes-float-button-group__swap {
+    animation: none;
+  }
+}

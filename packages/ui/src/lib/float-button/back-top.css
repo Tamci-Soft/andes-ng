@@ -1,0 +1,35 @@
+:host {
+  display: contents;
+}
+
+/* Fade, rise and grow in 200ms; leaving is quicker. Hidden, the button is inert and cannot be
+   hit by the pointer. */
+.andes-back-top__button {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(0.75rem) scale(0.8);
+  transition:
+    opacity 140ms ease-in,
+    transform 140ms ease-in,
+    visibility 0s linear 140ms;
+}
+
+:host([data-state='visible']) .andes-back-top__button {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity 200ms cubic-bezier(0.2, 0, 0, 1),
+    transform 200ms cubic-bezier(0.2, 0, 0, 1),
+    visibility 0s linear 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-back-top__button,
+  :host([data-state='visible']) .andes-back-top__button {
+    transition: none;
+    transform: none;
+  }
+}
