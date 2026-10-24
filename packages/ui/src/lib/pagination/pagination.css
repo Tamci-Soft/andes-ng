@@ -1,0 +1,349 @@
+/* Pagination: borderless 32px items (24px small) at 14px, the current
+   page marked by a primary border and primary text rather than a solid fill, and
+   the size changer / quick jumper drawn as regular 32px fields. */
+
+.andes-pagination {
+  --andes-pagination-item-size: var(--andes-control-height-md, 2rem);
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--andes-space-2);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+.andes-pagination--small {
+  --andes-pagination-item-size: var(--andes-control-height-sm, 1.5rem);
+}
+
+.andes-pagination--large {
+  --andes-pagination-item-size: var(--andes-control-height-lg, 2.5rem);
+}
+
+.andes-pagination[data-align='center'] {
+  justify-content: center;
+}
+
+.andes-pagination[data-align='end'] {
+  justify-content: flex-end;
+}
+
+.andes-pagination__list {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Small items sit flush: they have no border to separate, and the gap would double the
+   row's width. */
+.andes-pagination--small .andes-pagination__list {
+  gap: 0;
+}
+
+.andes-pagination__total {
+  color: var(--andes-color-foreground);
+}
+
+.andes-pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--andes-pagination-item-size);
+  height: var(--andes-pagination-item-size);
+  color: var(--andes-color-muted-foreground);
+  user-select: none;
+}
+
+/* Native buttons rather than andes-button - see the comment in pagination.html for
+   why: page items need a real aria-current on the focusable element itself, and
+   prev/next/jumpers share the same box so size="small" and itemRender apply evenly.
+   The transparent border keeps every item the same size as the bordered active one. */
+.andes-pagination__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--andes-pagination-item-size);
+  height: var(--andes-pagination-item-size);
+  padding-inline: 0.375rem;
+  border: 1px solid transparent;
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  background-color: transparent;
+  color: var(--andes-color-foreground);
+  font-family: inherit;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+  font-weight: normal;
+  line-height: var(--andes-control-line-height, 1.375rem);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.andes-pagination--small .andes-pagination__item {
+  padding-inline: var(--andes-space-1);
+}
+
+/* Drawn chevrons rather than text glyphs, so they sit on the item's optical centre at any
+   font. They point along the reading direction, hence the mirror in right-to-left text. */
+.andes-pagination__arrow,
+.andes-pagination__jumper-icon {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Drawn dots rather than the "…" character: the character sits on the text baseline, so it
+   read ~3px low next to the centred page numbers and arrows. */
+.andes-pagination__jumper-dots {
+  display: flex;
+}
+
+.andes-pagination__dots {
+  display: block;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* An item showing a drawn icon - the default arrows and jumpers - stays square like the page
+   items (a jumper also keeps its width when hover swaps its dots for the icon); text content,
+   e.g. an itemRender "Previous" label, keeps the inline padding. Anchored on the root so it also outranks the
+   small size's padding. */
+.andes-pagination .andes-pagination__item:has(> svg) {
+  padding-inline: 0;
+}
+
+.andes-pagination__arrow:dir(rtl),
+.andes-pagination__jumper-icon:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.andes-pagination__item:hover:not(:disabled) {
+  background-color: var(--andes-color-accent);
+}
+
+.andes-pagination__item:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-pagination__item:disabled {
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+.andes-pagination__page--active {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-primary-text);
+  font-weight: var(--andes-font-weight-semibold, 600);
+}
+
+.andes-pagination__page--active:hover:not(:disabled) {
+  border-color: var(--andes-color-primary-hover);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-primary-hover);
+}
+
+/* Disabled, the current page keeps its box but drops the primary color. */
+.andes-pagination__page--active:disabled {
+  border-color: var(--andes-color-border);
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Jumpers read as a plain ellipsis until hovered/focused, then reveal their arrow. */
+.andes-pagination__jumper {
+  color: var(--andes-color-muted-foreground);
+  letter-spacing: 0.125rem;
+}
+
+.andes-pagination__jumper:hover:not(:disabled) {
+  background-color: transparent;
+}
+
+.andes-pagination__jumper .andes-pagination__jumper-icon {
+  display: none;
+}
+
+.andes-pagination__jumper:hover:not(:disabled) .andes-pagination__jumper-dots,
+.andes-pagination__jumper:focus-visible .andes-pagination__jumper-dots {
+  display: none;
+}
+
+.andes-pagination__jumper:hover:not(:disabled) .andes-pagination__jumper-icon,
+.andes-pagination__jumper:focus-visible .andes-pagination__jumper-icon {
+  display: block;
+  color: var(--andes-color-primary-text);
+  letter-spacing: normal;
+}
+
+.andes-pagination__simple {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  padding-inline: var(--andes-space-1);
+}
+
+.andes-pagination__slash {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-pagination__options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--andes-space-2);
+  margin-inline-start: var(--andes-space-2);
+}
+
+/*
+  Fields: the size changer and the quick-jumper and simple-mode inputs share the text-field
+  box (32px, 11px inline padding, 6px radius; 24px / 7px / 4px when small): one border that
+  tints on hover, and on focus a primary border plus a soft 2px ring instead of an outline
+  around the border. Form controls don't inherit font by default, so they opt in explicitly.
+*/
+.andes-pagination__input {
+  box-sizing: border-box;
+  height: var(--andes-pagination-item-size);
+  margin: 0;
+  padding-inline: var(--andes-control-padding-x-md, 0.6875rem);
+  border: 1px solid var(--andes-color-input);
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  background-color: var(--andes-color-background);
+  color: var(--andes-color-foreground);
+  font-family: inherit;
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+  line-height: var(--andes-control-line-height, 1.375rem);
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+.andes-pagination--small .andes-pagination__input {
+  padding-inline: var(--andes-control-padding-x-sm, 0.4375rem);
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
+}
+
+.andes-pagination__input::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Hover never overrides the focused look. */
+.andes-pagination__input:hover:not(:disabled, [readonly], :focus) {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+}
+
+.andes-pagination__input:focus {
+  border-color: var(--andes-color-primary);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--andes-color-primary) 20%, transparent);
+}
+
+/* The native select and text fields paint their chrome (arrow, option list, caret) from
+   `color-scheme`, not from the tokens - match it to the dark theme. */
+:host-context([data-andes-theme='dark']) .andes-pagination__input {
+  color-scheme: dark;
+}
+
+.andes-pagination__input:disabled {
+  background-color: var(--andes-color-muted);
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+.andes-pagination__simple-input {
+  width: 3.125rem;
+  padding-inline: var(--andes-space-1);
+  text-align: center;
+}
+
+.andes-pagination__jump-input {
+  width: 3.125rem;
+  margin-inline: var(--andes-space-2) 0;
+}
+
+/* The size changer: a native <select> with its own arrow hidden, so the only
+   border is the field's and the chevron matches AndesSelect's. */
+.andes-pagination__size-changer-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.andes-pagination__size-changer {
+  padding-inline-end: calc(
+    var(--andes-control-padding-x-md, 0.6875rem) + 1.125rem
+  );
+  appearance: none;
+  cursor: pointer;
+}
+
+.andes-pagination--small .andes-pagination__size-changer {
+  padding-inline-end: calc(
+    var(--andes-control-padding-x-sm, 0.4375rem) + 1.125rem
+  );
+}
+
+.andes-pagination__size-changer-icon {
+  position: absolute;
+  inset-inline-end: var(--andes-control-padding-x-md, 0.6875rem);
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--andes-color-muted-foreground);
+  pointer-events: none;
+}
+
+.andes-pagination--small .andes-pagination__size-changer-icon {
+  inset-inline-end: var(--andes-control-padding-x-sm, 0.4375rem);
+}
+
+.andes-pagination__size-changer-icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.andes-pagination__size-changer:disabled
+  + .andes-pagination__size-changer-icon {
+  opacity: 0.6;
+}
+
+.andes-pagination__jump {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+}
+
+.andes-pagination__jump-label {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.andes-pagination__jump-suffix {
+  margin-inline-start: var(--andes-space-2);
+}
+
+/* andes-button's host has no display of its own. */
+.andes-pagination__go {
+  display: inline-flex;
+}
