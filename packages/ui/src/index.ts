@@ -11,7 +11,7 @@ export * from './lib/affix';
 
 export * from './lib/alert';
 
-// @slot anchor
+export * from './lib/anchor';
 
 // @slot aspect-ratio
 

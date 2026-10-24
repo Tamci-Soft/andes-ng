@@ -1,0 +1,12 @@
+<a
+  class="andes-anchor__link"
+  [attr.href]="href()"
+  [attr.target]="target() ?? null"
+  [attr.title]="title() || null"
+  [attr.aria-current]="active() ? 'location' : null"
+  (click)="onClick($event)"
+  >{{ title() }}</a
+>
+@if (nested()) {
+<div class="andes-anchor__nested" role="list"><ng-content /></div>
+}
