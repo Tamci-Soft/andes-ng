@@ -119,7 +119,7 @@ export * from './lib/skeleton';
 
 export * from './lib/slider';
 
-// @slot space
+export * from './lib/space';
 
 // @slot spinner
 

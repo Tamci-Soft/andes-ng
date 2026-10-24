@@ -1,0 +1,41 @@
+:host {
+  display: inline-flex;
+  flex-direction: row;
+  max-width: 100%;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+:host([data-direction='vertical']) {
+  flex-direction: column;
+}
+
+:host([data-wrap]) {
+  flex-wrap: wrap;
+}
+
+:host([data-align='start']) {
+  align-items: flex-start;
+}
+
+:host([data-align='end']) {
+  align-items: flex-end;
+}
+
+:host([data-align='center']) {
+  align-items: center;
+}
+
+:host([data-align='baseline']) {
+  align-items: baseline;
+}
+
+/* A separator is a flex item like any other, so the gap sits on both sides of it. */
+.andes-space__split {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--andes-color-muted-foreground);
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+}
