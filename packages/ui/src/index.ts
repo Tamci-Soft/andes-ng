@@ -99,7 +99,7 @@ export * from './lib/popover';
 
 export * from './lib/progress';
 
-// @slot qr-code
+export * from './lib/qr-code';
 
 // @slot radio-group
 
