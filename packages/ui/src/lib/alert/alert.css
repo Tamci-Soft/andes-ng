@@ -1,0 +1,382 @@
+/*
+ * Layout: a bordered card with the icon in a leading column and the stacked title and
+ * description beside it. The icon is nudged down a fraction so it seats against the title's cap height rather than
+ * centering against the whole block. The row is a flex line rather than a grid so the optional
+ * trailing parts (an inline-end action, the close button) take room only when rendered, at any
+ * width - a text close button included - without a column template per combination. Every value
+ * here comes from Andes' own token set. The severity treatment lives at the end of the file, per
+ * variant.
+ */
+
+:host {
+  display: block;
+}
+
+.andes-alert {
+  /* Compact metrics for a one-line notice. The title + description layout further down
+     overrides these, so the rules below only ever read them. */
+  --andes-alert-column-gap: var(--andes-space-2);
+  /* Tighter than any spacing token on purpose: the title and description are one unit of text,
+     so the gap between them has to read as leading, not as separation. */
+  --andes-alert-row-gap: 0.125rem;
+  /* 8px x 12px single-line box, the same box as a Toast message. */
+  --andes-alert-padding-block: var(--andes-space-2);
+  --andes-alert-padding-inline: var(--andes-space-3);
+  --andes-alert-icon-size: 1rem;
+  /* Optical, not geometric: seats the glyph against the title's cap height rather than the top
+     of its line box, which otherwise leaves the icon looking a hair high. */
+  --andes-alert-icon-offset: 0.1875rem;
+  --andes-alert-title-size: 0.875rem;
+  --andes-alert-title-leading: 1.375rem;
+  /* How far the close button sits from the card's inline-end edge - closer than the padding, so
+     it reads as belonging to the corner rather than to the text. */
+  --andes-alert-close-inset: var(--andes-space-2);
+  /* Height of the trailing controls (close button, an inline-end action sized `sm`): the
+     margin below centres them on the first line of text, whatever its leading. */
+  --andes-alert-control-size: 1.5rem;
+
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  column-gap: var(--andes-alert-column-gap);
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--andes-color-card);
+  color: var(--andes-color-card-foreground);
+  padding: var(--andes-alert-padding-block) var(--andes-alert-padding-inline);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  text-align: start;
+}
+
+.andes-alert[hidden] {
+  display: none;
+}
+
+.andes-alert__icon {
+  flex: none;
+  display: block;
+  width: var(--andes-alert-icon-size);
+  height: var(--andes-alert-icon-size);
+  /* A custom `icon` template may be a font glyph rather than an SVG; sizing its em box to the
+     same square keeps it in the slot the built-in glyphs occupy. */
+  font-size: var(--andes-alert-icon-size);
+  line-height: 1;
+  transform: translateY(var(--andes-alert-icon-offset));
+}
+
+/* A custom `icon` / `closeIcon` template keeps its declaring component's encapsulation
+   context, so a plain descendant selector would miss its <svg> - ::ng-deep (anchored under
+   this component's own class, as AndesButton does for its projected icons) sizes built-in
+   and custom glyphs alike. */
+.andes-alert__icon ::ng-deep svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* `min-width: 0` lets the text column shrink below its content's width, which the marquee's
+   one-line window depends on. */
+.andes-alert__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  row-gap: var(--andes-alert-row-gap);
+  min-width: 0;
+}
+
+.andes-alert__title {
+  font-size: var(--andes-alert-title-size);
+  line-height: var(--andes-alert-title-leading);
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-foreground);
+}
+
+.andes-alert__title:empty {
+  display: none;
+}
+
+.andes-alert__description {
+  color: var(--andes-color-muted-foreground);
+  text-wrap: pretty;
+}
+
+.andes-alert__description:empty {
+  display: none;
+}
+
+.andes-alert__action {
+  margin-top: var(--andes-space-2);
+}
+
+.andes-alert__action:empty {
+  display: none;
+}
+
+/* Beside the text instead of under it: centred on the first line, so a one-line notice keeps
+   its height when the action is a small control. `margin-block` overrides the stacked
+   placement's top margin. */
+.andes-alert__action--end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  /* A text-link action is shorter than a control; the minimum height keeps it centred on the
+     first line all the same. */
+  min-height: var(--andes-alert-control-size);
+  margin-block: calc(
+    (var(--andes-alert-title-leading) - var(--andes-alert-control-size)) / 2
+  );
+}
+
+/* The close button closes the row. It is centred on the first line of text (so it stays put
+   however far a long title wraps) and pulled towards the corner by the difference between the
+   card's padding and the close inset. */
+.andes-alert__close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 1.5rem rather than the glyph's own 0.875rem so the control clears the 24x24 minimum
+     target size (WCAG 2.2 SC 2.5.8) without drawing a visibly larger button. */
+  min-width: var(--andes-alert-control-size);
+  height: var(--andes-alert-control-size);
+  /* Symmetric, so a control taller than the line doesn't make a one-line alert taller. */
+  margin-block: calc(
+    (var(--andes-alert-title-leading) - var(--andes-alert-control-size)) / 2
+  );
+  margin-inline-end: calc(
+    var(--andes-alert-close-inset) - var(--andes-alert-padding-inline)
+  );
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background-color: transparent;
+  color: var(--andes-color-muted-foreground);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.andes-alert__close:hover:not(:disabled) {
+  color: var(--andes-color-foreground);
+  background-color: var(--andes-color-accent-hover);
+}
+
+.andes-alert__close:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* `closeText`: a word instead of the glyph, so the button grows to fit it and reads in the
+   same weight as the title it sits next to. */
+.andes-alert__close--text {
+  padding-inline: var(--andes-space-2);
+  color: var(--andes-color-foreground);
+  font-weight: var(--andes-font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.andes-alert__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-alert__close ::ng-deep svg {
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* Custom `closeIcon` content gets the same box as the built-in (x). */
+.andes-alert__close-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+/*
+ * Banner: a full-width strip for the top of a page or panel. It drops what makes the card read
+ * as a floating object - the corner radius and the inline-side borders - so the strip runs
+ * edge to edge of whatever contains it. A tinted banner loses its borders entirely: the fill
+ * already separates it from the page.
+ */
+.andes-alert--banner {
+  border-radius: 0;
+  border-inline-width: 0;
+}
+
+.andes-alert--banner.andes-alert--tinted,
+.andes-alert--banner.andes-alert--filled {
+  border-width: 0;
+}
+
+/*
+ * Title + description together: the alert is carrying a real message rather than a one-line
+ * notice, so the icon steps up a size and the card gets a little more room. The metrics match
+ * a Toast notification (12px x 16px box, 20px icon, 14px medium title) so the two read as one
+ * family; the title's weight and color, not a bigger size, give it precedence over the body.
+ */
+.andes-alert:has(
+  .andes-alert__title:not(:empty) + .andes-alert__description:not(:empty)
+) {
+  --andes-alert-column-gap: var(--andes-space-3);
+  --andes-alert-row-gap: var(--andes-space-1);
+  --andes-alert-padding-block: var(--andes-space-3);
+  --andes-alert-padding-inline: var(--andes-space-4);
+  --andes-alert-icon-size: 1.25rem;
+  /* (1.375rem line - 1.25rem glyph) / 2: centers the icon on the title line. */
+  --andes-alert-icon-offset: 0.0625rem;
+  --andes-alert-close-inset: var(--andes-space-3);
+}
+
+/*
+ * Marquee: the description becomes a one-line window and the track slides through it. The
+ * track's run-in padding is one full window wide, so each pass starts with the text entering
+ * from the inline-end edge and ends once it has fully left the inline-start edge; translating
+ * by -100% of the track's own width covers exactly that distance whatever the message length.
+ * The duration is set per alert from the measured track width (see `marqueeSpeed`).
+ */
+.andes-alert--marquee .andes-alert__description {
+  /* `clip` rather than `hidden`: a scroll container synthesizes its baseline differently and
+     the line then grows an extra strip underneath. */
+  overflow: clip;
+  white-space: nowrap;
+}
+
+.andes-alert__marquee {
+  display: inline-block;
+  /* Off the baseline, or the inline-block's descender gap adds a few pixels under the line. */
+  vertical-align: top;
+  padding-inline-start: 100%;
+  animation: andes-alert-marquee 15s linear infinite;
+}
+
+.andes-alert--marquee:hover .andes-alert__marquee,
+.andes-alert--marquee:focus-within .andes-alert__marquee {
+  animation-play-state: paused;
+}
+
+@keyframes andes-alert-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-alert--marquee .andes-alert__description {
+    white-space: normal;
+  }
+
+  .andes-alert__marquee {
+    display: inline;
+    padding-inline-start: 0;
+    animation: none;
+  }
+}
+
+/*
+ * Severity colors. Each severity sets one private property, its accent - the glyph color and the
+ * source of every tint - and each variant decides how far to carry it:
+ *
+ * - `tinted` (default) washes the card with a light mix of the accent and draws the border in
+ *   a stronger mix, so the severity reads at a glance from across the page. Both are mixed
+ *   into the card surface rather than hard-coded, so the same rule produces a pale wash in
+ *   light mode and a deep one in dark mode. Title and description stay on the regular
+ *   foreground, which clears 4.5:1 on every wash.
+ * - `filled` is the same wash with the border dropped (kept transparent, so switching variants
+ *   never shifts the layout by a pixel).
+ * - `outlined` keeps the neutral card surface and carries the severity only in the glyph and a
+ *   faint tint on the border, for pages where several alerts would otherwise get loud.
+ *
+ * Warning's accent is its `-hover` shade: the base amber only reaches ~2:1 against the pale
+ * wash, under the 3:1 a meaningful graphic needs.
+ */
+
+.andes-alert--success {
+  --andes-alert-accent: var(--andes-color-success);
+}
+
+.andes-alert--info {
+  --andes-alert-accent: var(--andes-color-info);
+}
+
+.andes-alert--warning {
+  --andes-alert-accent: var(--andes-color-warning-hover);
+}
+
+.andes-alert--danger {
+  --andes-alert-accent: var(--andes-color-danger);
+}
+
+/* On the dark theme the wash is mixed into a dark card, and the base danger red then reaches
+   only ~2.9:1 against it (info ~3.2:1). Each severity's `-hover` shade is the brighter one on
+   that theme, so the accent steps up to it there and every glyph clears 3:1 again. */
+:host-context([data-andes-theme='dark']) .andes-alert--success {
+  --andes-alert-accent: var(--andes-color-success-hover);
+}
+
+:host-context([data-andes-theme='dark']) .andes-alert--info {
+  --andes-alert-accent: var(--andes-color-info-hover);
+}
+
+:host-context([data-andes-theme='dark']) .andes-alert--danger {
+  --andes-alert-accent: var(--andes-color-danger-hover);
+}
+
+.andes-alert__icon {
+  color: var(--andes-alert-accent);
+}
+
+.andes-alert--tinted,
+.andes-alert--filled {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-alert-accent) 9%,
+    var(--andes-color-card)
+  );
+}
+
+.andes-alert--tinted {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-alert-accent) 35%,
+    var(--andes-color-card)
+  );
+}
+
+.andes-alert--filled {
+  border-color: transparent;
+}
+
+.andes-alert--tinted .andes-alert__description,
+.andes-alert--filled .andes-alert__description {
+  color: var(--andes-color-foreground);
+}
+
+.andes-alert--tinted .andes-alert__close:hover:not(:disabled),
+.andes-alert--filled .andes-alert__close:hover:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-alert-accent) 14%,
+    transparent
+  );
+}
+
+.andes-alert--outlined {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-alert-accent) 30%,
+    var(--andes-color-border)
+  );
+}
