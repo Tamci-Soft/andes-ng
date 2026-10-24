@@ -53,7 +53,7 @@ export * from './lib/divider';
 
 export * from './lib/drawer';
 
-// @slot dropdown-menu
+export * from './lib/dropdown-menu';
 
 // @slot empty
 

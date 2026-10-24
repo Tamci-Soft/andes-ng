@@ -1,0 +1,510 @@
+/*
+ * Shared across every dropdown-menu sub-component's `styleUrl`. Those components all
+ * opt out of view encapsulation (`ViewEncapsulation.None` - see the class comment on
+ * `AndesDropdownMenuContent` for why), so these rules are emitted verbatim and match
+ * by class name globally rather than being scoped per component. Two consequences
+ * worth knowing before editing this file: every class here must stay namespaced
+ * `andes-dropdown-menu__*`, and a descendant selector reaches projected content
+ * directly - `::ng-deep` would be noise, not a requirement.
+ */
+
+/* A menu opened with the pointer takes focus on its pane (see `FocusOnOpen`), with no item
+   highlighted. That focus is only there so the keys work, so it draws no ring. */
+.andes-overlay-pane:has(> .andes-dropdown-menu__content):focus {
+  outline: none;
+}
+
+.andes-dropdown-menu__content {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 8rem;
+  /* Never wider or taller than the viewport, so a phone-width screen scrolls inside. */
+  max-width: min(20rem, 100vw - 2 * var(--andes-space-4));
+  max-height: min(
+    var(--andes-dropdown-menu-max-height, 24rem),
+    100dvh - 2 * var(--andes-space-4)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--andes-space-1);
+  /*
+   * Concentric with the rows: 4px of padding around `radius-sm` (4px) rows makes the
+   * outer radius 8px.
+   */
+  border-radius: var(--andes-radius-lg);
+  border: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow: var(
+    --andes-shadow-md,
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%)
+  );
+  /*
+   * The panel renders in the overlay container under <body>, outside the host, so
+   * anything projected into it would otherwise pick up the page's 16px body text.
+   */
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  outline: none;
+}
+
+/*
+ * A menu appearing is a position change as much as a visibility one, so it fades in
+ * rather than popping in hard, drifting 4px away from the trigger as it does. No
+ * scale, so item text never resamples mid-animation. `data-state` comes from
+ * `AndesOverlayContentPrimitive`; `data-side` is the side the menu is placed on
+ * (a submenu always opens to the right). A collision-flipped menu drifts 4px the
+ * wrong way, which is imperceptible at this distance. The timing and curve are the
+ * ones every overlay shares (popover, tooltip, dialog): a quick start that settles
+ * without overshoot. Reduced motion gets no animation at all - the panel simply
+ * appears.
+ */
+.andes-dropdown-menu__content[data-side='bottom'],
+.andes-dropdown-menu__popup[data-side='bottom'] {
+  --andes-dropdown-menu-enter-from: 0 -4px;
+}
+
+.andes-dropdown-menu__content[data-side='top'],
+.andes-dropdown-menu__popup[data-side='top'] {
+  --andes-dropdown-menu-enter-from: 0 4px;
+}
+
+.andes-dropdown-menu__content[data-side='left'],
+.andes-dropdown-menu__popup[data-side='left'] {
+  --andes-dropdown-menu-enter-from: 4px 0;
+}
+
+.andes-dropdown-menu__content[data-side='right'],
+.andes-dropdown-menu__popup[data-side='right'] {
+  --andes-dropdown-menu-enter-from: -4px 0;
+}
+
+@keyframes andes-dropdown-menu-enter {
+  from {
+    opacity: 0;
+    translate: var(--andes-dropdown-menu-enter-from, 0 -4px);
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes andes-dropdown-menu-exit {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  to {
+    opacity: 0;
+    translate: var(--andes-dropdown-menu-enter-from, 0 -4px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .andes-dropdown-menu__content[data-state='open'],
+  .andes-dropdown-menu__popup {
+    animation: andes-dropdown-menu-enter 150ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /*
+   * Exit: while the overlay primitive plays a close it marks the pane and its direct
+   * children with `data-andes-closing` and waits for the animation before detaching
+   * (where the primitive does not do that yet, the attribute never appears and the
+   * panel just goes). The entry in reverse - a fade and the same 4px drift back
+   * toward the trigger - only quicker and accelerating away. `forwards` holds the
+   * faded frame until the pane is removed. Declared after the entry so it wins on
+   * equal specificity; reduced motion gets no exit, so the primitive detaches at once.
+   */
+  .andes-dropdown-menu__content[data-andes-closing],
+  .andes-dropdown-menu__popup[data-andes-closing] {
+    pointer-events: none;
+    animation: andes-dropdown-menu-exit var(--andes-duration-fast, 120ms)
+      var(--andes-ease-in, cubic-bezier(0.4, 0, 1, 1)) forwards;
+  }
+}
+
+/*
+ * One row of the md control scale: 32px tall with the 14px/22px body text (4px of
+ * block padding around the line box; `min-height` holds it when an icon is the
+ * tallest thing in the row). A label longer than the panel's max-width wraps rather
+ * than scrolling the panel sideways.
+ */
+.andes-dropdown-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2);
+  box-sizing: border-box;
+  min-height: 2rem;
+  padding: var(--andes-space-1) var(--andes-space-3);
+  border-radius: var(--andes-radius-sm);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  transition: background-color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  overflow-wrap: break-word;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.andes-dropdown-menu__checkbox-item,
+.andes-dropdown-menu__radio-item {
+  padding-inline-start: var(--andes-space-2);
+}
+
+.andes-dropdown-menu__item:hover:not([data-disabled]),
+.andes-dropdown-menu__item[data-active]:not([data-disabled]) {
+  background-color: var(--andes-color-accent-hover);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-dropdown-menu__item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-dropdown-menu__item[data-variant='destructive'] {
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
+}
+
+/*
+ * Destructive item text uses `--andes-color-danger-text` (the danger color as TEXT,
+ * >= 4.5:1 on the popover surface in both themes, added by
+ * bugfix/token-state-contrast), not the `--andes-color-danger` fill. The fill is
+ * deliberately fixed across themes, so as standalone text it only reaches 3.0:1 on
+ * the dark popover surface (#dc2626 on #1e293b) - the same class of bug the Button's
+ * link variant hit with `--andes-color-primary` (see `--andes-color-primary-text`).
+ * Until the token lands, the rule above falls back to the fill (4.8:1 on the white
+ * popover) and this dark-theme rule to the theme-fixed ghost red, which exists for
+ * exactly this "red text on a dark surface" case and reaches 7.7:1. Once the token
+ * exists both rules resolve to it.
+ */
+[data-andes-theme='dark']
+  .andes-dropdown-menu__item[data-variant='destructive'] {
+  color: var(--andes-color-danger-text, var(--andes-color-danger-ghost));
+}
+
+.andes-dropdown-menu__item[data-variant='destructive']:hover:not(
+    [data-disabled]
+  ),
+.andes-dropdown-menu__item[data-variant='destructive'][data-active]:not(
+    [data-disabled]
+  ) {
+  background-color: var(--andes-color-danger);
+  color: var(--andes-color-danger-foreground);
+}
+
+/*
+ * Projected icons. Every component that owns this stylesheet is
+ * `ViewEncapsulation.None` (see `AndesDropdownMenuContent`), so a plain descendant
+ * selector already reaches content an item projects - `::ng-deep` is neither needed
+ * nor honest here. Sized in `em` so an icon tracks the item's own font-size.
+ */
+.andes-dropdown-menu__item ng-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__item svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/*
+ * A muted icon on an accent-filled or red row loses contrast against the row it now
+ * sits on, so in those states the icon simply follows the item's own color.
+ */
+.andes-dropdown-menu__item:hover:not([data-disabled]) ng-icon,
+.andes-dropdown-menu__item[data-active]:not([data-disabled]) ng-icon,
+.andes-dropdown-menu__item[data-variant='destructive'] ng-icon {
+  color: inherit;
+}
+
+.andes-dropdown-menu__indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+/*
+ * The check/dot are inline SVG rather than the `✓`/`●` text glyphs they started as:
+ * a glyph's presence, weight and optical size are entirely at the mercy of whatever
+ * `--andes-font-family` the consuming app sets, and a font without them renders a
+ * tofu box where the checked state should be. `1rem` (not `1em`) so both indicators
+ * stay the same size as each other regardless of the item's font-size.
+ */
+.andes-dropdown-menu__indicator svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-dropdown-menu__separator {
+  flex-shrink: 0;
+  height: 1px;
+  margin: var(--andes-space-1) calc(var(--andes-space-1) * -1);
+  background-color: var(--andes-color-border);
+}
+
+/* Same 32px rhythm as a row: 6px of block padding around the 12/20 caption line. */
+.andes-dropdown-menu__label {
+  display: block;
+  padding: 0.375rem var(--andes-space-3);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: var(--andes-font-weight-medium);
+  color: var(--andes-color-muted-foreground);
+}
+
+/*
+ * A group heading in a menu that also has checkbox/radio items has to line up with
+ * those items' TEXT, not with their indicator gutter - otherwise the heading hangs
+ * ~20px to the left of the options it heads and reads as a different column.
+ * Keying off the indicator's presence keeps this automatic, with no inset prop to
+ * set: a menu either has an indicator gutter or it does not. The value is the gutter itself: the
+ * checkbox/radio items' own inline-start padding + the 1rem indicator + the item's
+ * flex `gap`.
+ */
+.andes-dropdown-menu__content:has(.andes-dropdown-menu__indicator)
+  .andes-dropdown-menu__label {
+  padding-inline-start: calc(
+    var(--andes-space-2) + 1rem + var(--andes-space-2)
+  );
+}
+
+.andes-dropdown-menu__shortcut {
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: var(--andes-space-4);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--andes-color-muted-foreground);
+}
+
+/*
+ * Selection (`selectable` menus). The row keeps a faint tint while not hovered, so
+ * the current choice is findable at a glance. A foreground mix rather than
+ * `--andes-color-accent`, which equals the popover surface in dark mode (no tint at
+ * all there); 5% matches accent in light and stays below the hover/focus row. The theme-aware primary text color and
+ * the heavier weight must survive hover and keyboard focus too - otherwise a selected
+ * row that is also the focused one (the usual case right after opening) looks exactly
+ * like any other focused row - hence the `:not([data-disabled])` rule, which ties the
+ * hover/active rules on specificity and wins by coming later.
+ */
+.andes-dropdown-menu__item[data-selected] {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-popover-foreground) 5%,
+    transparent
+  );
+}
+
+.andes-dropdown-menu__item[data-selected]:not([data-disabled]) {
+  color: var(--andes-color-primary-text);
+  font-weight: var(--andes-font-weight-medium);
+}
+
+/*
+ * On the darker accent-hover fill the plain primary text drops just under 4.5:1 in both
+ * themes (4.17:1 light, 4.07:1 dark), so a selected row that is also hovered/focused
+ * pulls its blue a step towards the foreground - still visibly "the selected one".
+ */
+.andes-dropdown-menu__item[data-selected]:hover:not([data-disabled]),
+.andes-dropdown-menu__item[data-selected][data-active]:not([data-disabled]) {
+  color: color-mix(
+    in srgb,
+    var(--andes-color-primary-text) 75%,
+    var(--andes-color-foreground)
+  );
+}
+
+.andes-dropdown-menu__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.andes-dropdown-menu__separator[data-dashed] {
+  height: 0;
+  background-color: transparent;
+  border-top-width: 1px;
+  border-top-style: dashed;
+  border-top-color: var(--andes-color-border);
+}
+
+/* Trailing `extra` content of an `items` entry - styled like a shortcut hint. */
+.andes-dropdown-menu__extra {
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: var(--andes-space-4);
+  font-size: 0.75rem;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--andes-color-muted-foreground);
+}
+
+/*
+ * Same reason as the ng-icon rule above, and the muted shortcut/extra hints hit it too:
+ * on the accent-hover fill they drop to ~3.8:1 (light) / ~4:1 (dark).
+ */
+.andes-dropdown-menu__item:hover:not([data-disabled])
+  :is(
+    .andes-dropdown-menu__item-icon,
+    .andes-dropdown-menu__shortcut,
+    .andes-dropdown-menu__extra
+  ),
+.andes-dropdown-menu__item[data-active]:not([data-disabled])
+  :is(
+    .andes-dropdown-menu__item-icon,
+    .andes-dropdown-menu__shortcut,
+    .andes-dropdown-menu__extra
+  ),
+.andes-dropdown-menu__item[data-variant='destructive']
+  :is(
+    .andes-dropdown-menu__item-icon,
+    .andes-dropdown-menu__shortcut,
+    .andes-dropdown-menu__extra
+  ) {
+  color: inherit;
+}
+
+/*
+ * Submenus. The trigger keeps its highlight while its submenu is open (`data-state`
+ * comes from the overlay trigger primitive), so the path to the open panel stays
+ * visible after the pointer has moved into it.
+ */
+.andes-dropdown-menu__sub-trigger[data-state='open']:not([data-disabled]) {
+  background-color: var(--andes-color-accent-hover);
+  color: var(--andes-color-accent-foreground);
+}
+
+.andes-dropdown-menu__expand-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin-left: auto;
+  padding-left: var(--andes-space-2);
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-dropdown-menu__sub-trigger[data-state='open']
+  .andes-dropdown-menu__expand-icon,
+.andes-dropdown-menu__sub-trigger:hover .andes-dropdown-menu__expand-icon,
+.andes-dropdown-menu__sub-trigger[data-active]
+  .andes-dropdown-menu__expand-icon {
+  color: inherit;
+}
+
+/*
+ * The arrow is a rotated square rendered as the panel's sibling inside the overlay
+ * pane (the panel itself scrolls, so it would clip anything outside its own box).
+ * Only its outer half is painted (`clip-path` along the diagonal), sitting 1px into
+ * the panel so that diagonal covers the panel's border where they meet - which is what
+ * makes the two read as one shape - without the inner half poking into the first item's
+ * highlight. `data-side` and the offset custom property are set from the rendered
+ * geometry by `AndesDropdownMenu`, so the arrow follows a collision flip.
+ */
+.andes-dropdown-menu__arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  background-color: var(--andes-color-popover);
+  border: 1px solid var(--andes-color-border);
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.andes-dropdown-menu__arrow[data-side='bottom'] {
+  top: -4px;
+  left: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.andes-dropdown-menu__arrow[data-side='top'] {
+  bottom: -4px;
+  left: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.andes-dropdown-menu__arrow[data-side='right'] {
+  left: -4px;
+  top: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.andes-dropdown-menu__arrow[data-side='left'] {
+  right: -4px;
+  top: calc(var(--andes-dropdown-menu-arrow-offset, 14px) - 5px);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+/* Before its side is measured (one frame), keep it out of sight rather than misplaced. */
+.andes-dropdown-menu__arrow:not([data-side]) {
+  visibility: hidden;
+}
+
+/*
+ * A link item (`href`). The anchor adds no box of its own, so the row's flex layout
+ * (icon, label, trailing content) is unchanged and focus stays on the row.
+ */
+.andes-dropdown-menu__link {
+  display: contents;
+  color: inherit;
+  text-decoration: none;
+  cursor: inherit;
+}
+
+/*
+ * `popupTemplate`: one surface around the menu and the consumer's extra content. The
+ * wrapper takes over everything that makes the panel read as a popup (surface, border,
+ * shadow, type), and the menu inside it drops its own so the two read as one card.
+ */
+.andes-dropdown-menu__popup {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 8rem;
+  max-width: calc(100vw - 2 * var(--andes-space-4));
+  overflow: hidden;
+  border-radius: var(--andes-radius-lg);
+  border: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  box-shadow: var(
+    --andes-shadow-md,
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%)
+  );
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+.andes-dropdown-menu__popup .andes-dropdown-menu__content {
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  animation: none;
+}
