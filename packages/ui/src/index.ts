@@ -115,7 +115,7 @@ export * from './lib/segmented';
 
 export * from './lib/sheet';
 
-// @slot skeleton
+export * from './lib/skeleton';
 
 // @slot slider
 
