@@ -83,7 +83,7 @@ export * from './lib/masonry';
 
 export * from './lib/mentions';
 
-// @slot menu
+export * from './lib/menu';
 
 // @slot menubar
 
