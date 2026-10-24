@@ -77,7 +77,7 @@ export * from './lib/kbd';
 
 export * from './lib/layout';
 
-// @slot list
+export * from './lib/list';
 
 // @slot masonry
 

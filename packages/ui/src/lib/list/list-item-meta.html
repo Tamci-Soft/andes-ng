@@ -1,0 +1,22 @@
+<div class="andes-list-item-meta__avatar" data-slot="list-item-meta-avatar">
+  <ng-content select="[slot=avatar]" />
+</div>
+<div class="andes-list-item-meta__body">
+  <div class="andes-list-item-meta__title" data-slot="list-item-meta-title">
+    @if (asTemplate(title()); as template) {
+    <ng-container [ngTemplateOutlet]="template" />
+    } @else if (asText(title()); as text) { {{ text }} } @else {
+    <ng-content select="[slot=title]" />
+    }
+  </div>
+  <div
+    class="andes-list-item-meta__description"
+    data-slot="list-item-meta-description"
+  >
+    @if (asTemplate(description()); as template) {
+    <ng-container [ngTemplateOutlet]="template" />
+    } @else if (asText(description()); as text) { {{ text }} } @else {
+    <ng-content select="[slot=description]" />
+    }
+  </div>
+</div>

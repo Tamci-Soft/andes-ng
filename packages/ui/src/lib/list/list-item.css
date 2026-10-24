@@ -1,0 +1,135 @@
+/*
+ * The row reads its padding from the list (`--andes-list-padding-*`), so a list's size,
+ * border and interactivity decide it. A row used outside a list falls back to the defaults.
+ */
+
+:host {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: var(--andes-list-padding-block, 0.75rem);
+  padding-inline: var(--andes-list-padding-inline, 0);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  color: var(--andes-color-foreground);
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+/* Divider: the list's `split` class is on an ancestor outside this component's scope, so the
+   row draws it unless the list says otherwise through the custom property. */
+:host {
+  border-block-end: var(--andes-list-divider, 0);
+}
+
+:host(:last-child) {
+  border-block-end: 0;
+}
+
+.andes-list-item__main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.andes-list-item__content {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.andes-list-item__content:empty,
+.andes-list-item__actions:empty,
+.andes-list-item__extra:empty {
+  display: none;
+}
+
+/* Vertical layout: the text column stacks, the extra block sits at the inline end. */
+:host([data-layout='vertical']) {
+  align-items: flex-start;
+  --andes-list-meta-title-size: 1rem;
+  --andes-list-meta-title-leading: 1.5rem;
+}
+
+:host([data-layout='vertical']) .andes-list-item__main {
+  display: block;
+  flex: 1 1 0;
+}
+
+:host([data-layout='vertical']) .andes-list-item__content {
+  margin-block-start: 0.75rem;
+}
+
+.andes-list-item__actions {
+  flex: none;
+}
+
+:host([data-layout='vertical']) .andes-list-item__actions {
+  margin-block-start: 0.75rem;
+}
+
+.andes-list-item__extra {
+  flex: none;
+}
+
+/* --- Interactive rows ---------------------------------------------------------------------- */
+
+:host(.andes-list-item--interactive) {
+  cursor: pointer;
+}
+
+:host(.andes-list-item--interactive:hover) {
+  background-color: var(--andes-color-accent);
+}
+
+:host(.andes-list-item--interactive:focus-visible) {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: -2px;
+}
+
+:host([data-state='selected']) {
+  background-color: var(
+    --andes-color-primary-subtle,
+    color-mix(in srgb, var(--andes-color-primary) 10%, transparent)
+  );
+}
+
+:host([data-state='selected']:hover) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 14%,
+    transparent
+  );
+}
+
+:host(.andes-list-item--disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+:host(.andes-list-item--disabled:hover) {
+  background-color: transparent;
+}
+
+/* --- Grid cells ---------------------------------------------------------------------------- */
+
+:host(.andes-list-item--grid) {
+  display: block;
+  padding: 1rem;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--andes-color-card);
+}
+
+:host(.andes-list-item--grid) .andes-list-item__main {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: none;
+  }
+}

@@ -1,0 +1,104 @@
+<div data-slot="list" [class]="classes()">
+  <div class="andes-list__header" data-slot="list-header">
+    <ng-content select="[slot=header]" />
+  </div>
+
+  <div class="andes-list__body" [attr.aria-busy]="loading() || null">
+    @if (loading()) {
+    <div class="andes-list__skeleton" role="status">
+      <span class="andes-list__sr">{{ loadingLabel() }}</span>
+      @for (row of skeletonRows(); track row) {
+      <div class="andes-list__skeleton-row" aria-hidden="true">
+        <span class="andes-list__skeleton-avatar"></span>
+        <span class="andes-list__skeleton-lines">
+          <span
+            class="andes-list__skeleton-bar andes-list__skeleton-bar--title"
+          ></span>
+          <span class="andes-list__skeleton-bar"></span>
+        </span>
+      </div>
+      }
+    </div>
+    }
+
+    <ng-template #rows>
+      @if (pageData(); as data) { @for (item of data; track trackBy()($index,
+      item); let i = $index) {
+      <ng-container
+        [ngTemplateOutlet]="itemTemplate() ?? null"
+        [ngTemplateOutletInjector]="rowInjector"
+        [ngTemplateOutletContext]="{ $implicit: item, index: pageOffset() + i }"
+      />
+      } } @else {
+      <ng-content />
+      }
+    </ng-template>
+
+    @if (isVirtual()) {
+    <cdk-virtual-scroll-viewport
+      [attr.tabindex]="interactive() ? null : 0"
+      class="andes-list__items andes-list__viewport"
+      data-slot="list-items"
+      [itemSize]="itemSize()"
+      [style.block-size.px]="viewportHeight()"
+      [hidden]="loading()"
+      [attr.role]="listRole()"
+      [attr.aria-label]="label() ?? null"
+      [attr.aria-labelledby]="labelledby() ?? null"
+      [attr.aria-multiselectable]="selectable() === 'multiple' ? 'true' : null"
+    >
+      <ng-container
+        *cdkVirtualFor="let item of pageData(); trackBy: trackBy(); let i = index"
+      >
+        <ng-container
+          [ngTemplateOutlet]="itemTemplate() ?? null"
+          [ngTemplateOutletInjector]="rowInjector"
+          [ngTemplateOutletContext]="{ $implicit: item, index: i }"
+        />
+      </ng-container>
+    </cdk-virtual-scroll-viewport>
+    } @else {
+    <div
+      class="andes-list__items"
+      data-slot="list-items"
+      [class.andes-list__items--grid]="isGrid()"
+      [style]="gridStyle()"
+      [hidden]="loading() || isEmpty()"
+      [attr.role]="listRole()"
+      [attr.aria-label]="label() ?? null"
+      [attr.aria-labelledby]="labelledby() ?? null"
+      [attr.aria-multiselectable]="selectable() === 'multiple' ? 'true' : null"
+    >
+      <ng-container *ngTemplateOutlet="rows" />
+    </div>
+    } @if (isEmpty()) {
+    <div class="andes-list__empty" data-slot="list-empty">
+      @if (notFoundTemplate(); as template) {
+      <ng-container [ngTemplateOutlet]="template" />
+      } @else {
+      <svg
+        class="andes-list__empty-icon"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M4 13.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.5" />
+        <path
+          d="M4 13.5 6.4 6.6A2 2 0 0 1 8.3 5.3h7.4a2 2 0 0 1 1.9 1.3L20 13.5h-4.2a1 1 0 0 0-.9.6 3.2 3.2 0 0 1-5.8 0 1 1 0 0 0-.9-.6Z"
+        />
+      </svg>
+      <span>{{ notFoundText() }}</span>
+      }
+    </div>
+    }
+  </div>
+
+  <div class="andes-list__load-more" data-slot="list-load-more">
+    <ng-content select="[slot=load-more]" />
+  </div>
+  <div class="andes-list__footer" data-slot="list-footer">
+    <ng-content select="[slot=footer]" />
+  </div>
+  <div class="andes-list__pagination" data-slot="list-pagination">
+    <ng-content select="[slot=pagination]" />
+  </div>
+</div>
