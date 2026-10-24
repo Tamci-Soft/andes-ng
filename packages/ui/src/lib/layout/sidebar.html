@@ -1,0 +1,44 @@
+<ng-template #body><ng-content /></ng-template>
+@if (provider.isMobile()) {
+<div
+  class="andes-sidebar__scrim"
+  data-slot="sidebar-scrim"
+  [attr.data-open]="overlayOpen() ? '' : null"
+  aria-hidden="true"
+  (click)="close()"
+></div>
+<div
+  #overlay
+  class="andes-sidebar__overlay"
+  role="dialog"
+  aria-modal="true"
+  tabindex="-1"
+  [attr.id]="id"
+  [attr.aria-label]="label()"
+  [attr.data-open]="overlayOpen() ? '' : null"
+  [attr.inert]="overlayOpen() ? null : ''"
+  (keydown)="onOverlayKeydown($event)"
+>
+  <div class="andes-sidebar__inner" data-sidebar="sidebar">
+    <ng-container [ngTemplateOutlet]="body" />
+  </div>
+</div>
+} @else if (collapsible() === 'none') {
+<aside class="andes-sidebar__static" [attr.id]="id" [attr.aria-label]="label()">
+  <div class="andes-sidebar__inner" data-sidebar="sidebar">
+    <ng-container [ngTemplateOutlet]="body" />
+  </div>
+</aside>
+} @else {
+<div class="andes-sidebar__gap" aria-hidden="true"></div>
+<aside
+  class="andes-sidebar__container"
+  [attr.id]="id"
+  [attr.aria-label]="label()"
+  [attr.inert]="provider.mode() === 'offcanvas' ? '' : null"
+>
+  <div class="andes-sidebar__inner" data-sidebar="sidebar">
+    <ng-container [ngTemplateOutlet]="body" />
+  </div>
+</aside>
+}
