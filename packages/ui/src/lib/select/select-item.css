@@ -1,0 +1,114 @@
+:host {
+  display: contents;
+}
+
+.andes-select__option {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2);
+  /* 32px rows: 5px + a 22px line + 5px, 12px from the panel's inner edge. */
+  min-height: var(--andes-control-height-md, 2rem);
+  padding: 0.3125rem 0.75rem;
+  border: none;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  transition: background-color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.andes-select__option:hover:not([data-disabled]) {
+  background-color: var(--andes-color-accent);
+}
+
+/* The keyboard cursor. In roving-tabindex mode the option also holds real focus, so
+   both hooks are styled the same way and the two can never disagree. */
+.andes-select__option[data-active],
+.andes-select__option:focus-visible {
+  background-color: var(--andes-color-accent-hover);
+}
+
+/* The highlight above is the indicator: a ring drawn inside the row on top of it read as
+   a second border. Kept transparent for forced-colors mode, which paints it in a system
+   colour. */
+.andes-select__option:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+
+/* andes-ng has no dedicated "selected option" colour yet, so the chosen option is
+   tinted from the primary colour; the custom
+   property is honoured if a token is ever added. */
+.andes-select__option[data-selected] {
+  background-color: var(
+    --andes-color-selected-bg,
+    color-mix(in srgb, var(--andes-color-primary) 12%, transparent)
+  );
+  font-weight: var(--andes-font-weight-medium);
+}
+
+/* Muted secondary text in an option template drops below 4.5:1 on these tinted rows (4:1
+   on the selected tint). Re-scoping the token reaches consumer markup too; `currentColor`
+   resolves where a descendant uses it in `color`, i.e. to this row's own text color. */
+.andes-select__option:is([data-active], [data-selected], :focus-visible) {
+  --andes-color-muted-foreground: color-mix(
+    in srgb,
+    currentcolor 70%,
+    transparent
+  );
+}
+
+/* A selected option under the keyboard cursor or the pointer still has to show it: the
+   selected tint above would otherwise paint over the cursor, leaving it invisible on every
+   selected row of a multiple select. A stronger mix of the same tint marks both at once. */
+.andes-select__option[data-selected][data-active],
+.andes-select__option[data-selected]:focus-visible,
+.andes-select__option[data-selected]:hover:not([data-disabled]) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 22%,
+    transparent
+  );
+}
+
+.andes-select__option[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-select__option[data-disabled]:hover {
+  background-color: transparent;
+}
+
+.andes-select__option-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.andes-select__option-indicator {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  /* The text tone, not the fill: the fill only reaches 2.8:1 on the dark popover. */
+  color: var(--andes-color-primary-text);
+}
+
+.andes-select__option-indicator svg {
+  width: 1em;
+  height: 1em;
+}
+
+/* `display: flex` above would otherwise beat the user-agent `[hidden]` rule. */
+.andes-select__option[hidden] {
+  display: none;
+}

@@ -111,7 +111,7 @@ export * from './lib/scroll-area';
 
 export * from './lib/segmented';
 
-// @slot select
+export * from './lib/select';
 
 export * from './lib/sheet';
 
