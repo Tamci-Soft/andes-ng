@@ -57,7 +57,7 @@ export * from './lib/dropdown-menu';
 
 export * from './lib/empty';
 
-// @slot flex
+export * from './lib/flex';
 
 // @slot float-button
 
