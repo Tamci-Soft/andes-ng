@@ -1,0 +1,521 @@
+/*
+ * Video player: layout, skins and theming variables. Global stylesheet (the parts render in apps'
+ * templates too), so every selector is scoped under `.andes-video-player` or an `andes-player-`
+ * class.
+ *
+ * Theming: override any `--andes-video-*` variable on the element or an ancestor.
+ */
+
+.andes-video-player {
+  /* Surface */
+  --andes-video-radius: var(--andes-radius-lg, 0.5rem);
+  /* Letterbox behind the picture: black in both themes, like the picture's own frame. */
+  --andes-video-backdrop: #000;
+  --andes-video-control-color: #fff;
+  --andes-video-control-muted: color-mix(
+    in srgb,
+    var(--andes-video-control-color) 72%,
+    transparent
+  );
+  --andes-video-control-hover: color-mix(
+    in srgb,
+    var(--andes-video-control-color) 14%,
+    transparent
+  );
+  --andes-video-control-active: color-mix(
+    in srgb,
+    var(--andes-video-control-color) 22%,
+    transparent
+  );
+  --andes-video-scrim: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 64%,
+    transparent
+  );
+  --andes-video-bar-background: transparent;
+  --andes-video-accent: var(--andes-color-primary);
+  --andes-video-track: color-mix(
+    in srgb,
+    var(--andes-video-control-color) 28%,
+    transparent
+  );
+  --andes-video-buffered: color-mix(
+    in srgb,
+    var(--andes-video-control-color) 48%,
+    transparent
+  );
+  --andes-video-focus-ring: var(--andes-color-focus-ring);
+  --andes-video-glass-blur: 12px;
+
+  /* Control scale: bar buttons 32/40/48px (compact 24/32px). */
+  --andes-video-button-size: 2.5rem;
+  --andes-video-icon-size: 1.25rem;
+  --andes-video-font-size: var(--andes-text-font-size, 0.875rem);
+  --andes-video-line-height: var(--andes-text-line-height, 1.375rem);
+  --andes-video-gap: var(--andes-space-1, 0.25rem);
+  --andes-video-bar-padding: var(--andes-space-2, 0.5rem);
+  /* Largest diameter of the big play button; it shrinks with narrow players (16% of the width). */
+  --andes-video-big-play-size: 4rem;
+  /* A steady dark disc: mostly opaque so a busy picture behind it reads as an even tint, with a
+     wide, desaturated blur instead of a sharp one that shows the picture's edges as a gradient. */
+  --andes-video-big-play-background: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 72%,
+    transparent
+  );
+  --andes-video-big-play-blur: 24px;
+  --andes-video-big-play-shadow: 0 2px 12px rgb(0 0 0 / 0.24);
+
+  /* Overlays */
+  /* Nearly opaque: a busy picture tinted through a lighter glass made the items hard to read. */
+  --andes-video-menu-background: color-mix(
+    in srgb,
+    var(--andes-color-popover) 94%,
+    transparent
+  );
+  --andes-video-menu-foreground: var(--andes-color-popover-foreground);
+  --andes-video-menu-width: 13.5rem;
+  --andes-video-tooltip-background: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 84%,
+    transparent
+  );
+  --andes-video-tooltip-foreground: var(--andes-video-control-color);
+
+  /* Captions (overlay renderer; the native renderer reads the colours and size too) */
+  --andes-video-captions-font-size: clamp(0.875rem, 3.2cqw, 1.75rem);
+  --andes-video-captions-font-family: var(--andes-font-family), sans-serif;
+  --andes-video-captions-color: #fff;
+  --andes-video-captions-background: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 76%,
+    transparent
+  );
+  --andes-video-captions-scale: 1;
+  --andes-video-captions-text-shadow: none;
+  --andes-video-captions-bottom: 6%;
+  /* How far captions rise while the bar is visible. */
+  --andes-video-captions-lift: calc(var(--andes-video-button-size) + 2.75rem);
+
+  /* Motion: 150ms enter, 110ms exit, no overshoot. */
+  --andes-video-enter-duration: var(--andes-motion-duration-mid, 150ms);
+  --andes-video-exit-duration: 110ms;
+  --andes-video-enter-ease: cubic-bezier(0.2, 0, 0, 1);
+  --andes-video-exit-ease: ease-in;
+
+  /* Mini player (floating while it plays out of view) */
+  --andes-video-mini-width: min(22rem, calc(100vw - 2rem));
+  --andes-video-mini-offset: var(--andes-space-4, 1rem);
+  --andes-video-mini-z-index: 40;
+
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--andes-video-radius);
+  background-color: var(--andes-video-backdrop);
+  color: var(--andes-video-control-color);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-video-font-size);
+  line-height: var(--andes-video-line-height);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.andes-video-player:focus-visible {
+  outline: 2px solid var(--andes-video-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-video-player[data-size='sm'] {
+  --andes-video-button-size: 2rem;
+  --andes-video-icon-size: 1rem;
+  --andes-video-font-size: 0.75rem;
+  --andes-video-line-height: 1.25rem;
+  --andes-video-big-play-size: 3.5rem;
+}
+
+.andes-video-player[data-size='lg'] {
+  --andes-video-button-size: 3rem;
+  --andes-video-icon-size: 1.5rem;
+  --andes-video-big-play-size: 4.5rem;
+}
+
+.andes-video-player[data-density='compact'] {
+  --andes-video-button-size: 2rem;
+  --andes-video-icon-size: 1rem;
+  --andes-video-gap: 0.125rem;
+  --andes-video-bar-padding: var(--andes-space-1, 0.25rem);
+  --andes-video-big-play-size: 3rem;
+}
+
+.andes-video-player[data-density='compact'][data-size='sm'] {
+  --andes-video-button-size: 1.5rem;
+  --andes-video-icon-size: 0.875rem;
+  --andes-video-font-size: 0.75rem;
+  --andes-video-line-height: 1.25rem;
+  --andes-video-big-play-size: 2.5rem;
+}
+
+.andes-video-player[data-idle] {
+  cursor: none;
+}
+
+/* Fullscreen: fill the screen, no rounded corners, the picture letterboxed. */
+.andes-video-player:fullscreen,
+.andes-video-player[data-fullscreen] {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border-radius: 0;
+}
+
+/* ---- Viewport and media ---------------------------------------------------------------- */
+
+/* The viewport is the size container (not the host): it can float as the mini player while the
+   host keeps its place, and containment on the host would trap that fixed position inside it. */
+.andes-video-player__viewport {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  border-radius: inherit;
+}
+
+.andes-video-player__media {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: var(--andes-video-backdrop);
+  object-fit: contain;
+}
+
+.andes-video-player__surface {
+  position: absolute;
+  inset: 0;
+  touch-action: manipulation;
+}
+
+/* ---- Chrome (title bar + control bar) ------------------------------------------------------- */
+
+.andes-video-player__chrome {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+  user-select: none;
+}
+
+.andes-video-player:not([data-controls-visible]) .andes-video-player__chrome {
+  opacity: 0;
+  transition-duration: var(--andes-video-exit-duration);
+  transition-timing-function: var(--andes-video-exit-ease);
+}
+
+.andes-video-player__top,
+.andes-video-player__bottom {
+  position: relative;
+  pointer-events: none;
+}
+
+/* Pinned to the bottom even when there is no title bar above it (custom controls). */
+.andes-video-player__bottom {
+  margin-top: auto;
+}
+
+.andes-video-player[data-controls-visible] .andes-video-player__top > *,
+.andes-video-player[data-controls-visible] .andes-video-player__bottom > * {
+  pointer-events: auto;
+}
+
+/* Glass skin: soft scrims behind the title and the bar keep white controls legible on any
+   picture without boxing them in. */
+.andes-video-player[data-skin='glass'] .andes-video-player__top {
+  background-image: linear-gradient(
+    to bottom,
+    var(--andes-video-scrim),
+    transparent
+  );
+}
+
+.andes-video-player[data-skin='glass'] .andes-video-player__bottom {
+  background-image: linear-gradient(
+    to top,
+    var(--andes-video-scrim),
+    transparent
+  );
+}
+
+/* Solid skin: an opaque bar in the theme's card colours. */
+.andes-video-player[data-skin='solid'] {
+  --andes-video-bar-background: var(--andes-color-card);
+}
+
+.andes-video-player[data-skin='solid']
+  .andes-video-player__bottom
+  .andes-player-bar {
+  --andes-video-control-color: var(--andes-color-card-foreground);
+  --andes-video-track: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 18%,
+    transparent
+  );
+  --andes-video-buffered: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 34%,
+    transparent
+  );
+  background-color: var(--andes-video-bar-background);
+  border-top: 1px solid var(--andes-color-border);
+  color: var(--andes-video-control-color);
+}
+
+.andes-video-player__top {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: var(--andes-space-3, 0.75rem) var(--andes-space-4, 1rem)
+    var(--andes-space-5, 1.5rem);
+}
+
+/* While an error shows, the panel replaces the controls: the bar would only show through its
+   scrim, and stay reachable by Tab behind it. */
+.andes-video-player[data-error] .andes-video-player__bottom {
+  visibility: hidden;
+}
+
+/* Coarse pointers (touch): bar controls grow to the 44px touch-target size, compact ones to 40px. */
+@media (pointer: coarse) {
+  .andes-video-player[data-density='default']:not([data-size='lg']) {
+    --andes-video-button-size: 2.75rem;
+  }
+
+  .andes-video-player[data-density='compact'] {
+    --andes-video-button-size: 2.5rem;
+  }
+}
+
+/* ---- Mini player ---------------------------------------------------------------------------- */
+
+/* The host keeps its box in the page (a quiet placeholder), the viewport floats in a corner. */
+.andes-video-player[data-mini] {
+  overflow: visible;
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 88%,
+    transparent
+  );
+}
+
+.andes-video-player__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--andes-space-4, 1rem);
+  color: var(--andes-video-control-muted);
+  font-size: var(--andes-video-font-size);
+  text-align: center;
+}
+
+.andes-video-player[data-mini] .andes-video-player__viewport {
+  position: fixed;
+  inset: auto;
+  inset-block-end: var(--andes-video-mini-offset);
+  inset-inline-end: var(--andes-video-mini-offset);
+  z-index: var(--andes-video-mini-z-index);
+  width: var(--andes-video-mini-width);
+  height: auto;
+  aspect-ratio: var(--andes-video-ratio, 16 / 9);
+  overflow: hidden;
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: var(--andes-video-backdrop);
+  box-shadow: var(--andes-shadow-lg, 0 12px 32px rgb(0 0 0 / 0.35));
+  animation: andes-player-mini-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+@keyframes andes-player-mini-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+/* The mini player keeps the essentials: play, the seek bar, time and its own buttons. */
+.andes-video-player[data-mini] .andes-video-player__top,
+.andes-video-player[data-mini] .andes-player-bar__group--end,
+.andes-video-player[data-mini] andes-player-seek-button,
+.andes-video-player[data-mini] .andes-player-bar__chapter {
+  display: none;
+}
+
+.andes-player-mini-controls {
+  position: absolute;
+  inset-block-start: var(--andes-space-1, 0.25rem);
+  inset-inline-end: var(--andes-space-1, 0.25rem);
+  z-index: 3;
+  display: flex;
+  gap: var(--andes-space-1, 0.25rem);
+  --andes-video-button-size: 2rem;
+  --andes-video-icon-size: 1rem;
+}
+
+.andes-player-mini-controls .andes-player-button {
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-video-scrim);
+}
+
+/* ---- Ambient (background) toggle ------------------------------------------------------------ */
+
+.andes-video-player__ambient {
+  position: absolute;
+  inset-block-end: var(--andes-space-2, 0.5rem);
+  inset-inline-end: var(--andes-space-2, 0.5rem);
+  --andes-video-button-size: 2rem;
+  --andes-video-icon-size: 1rem;
+}
+
+.andes-video-player__ambient .andes-player-button {
+  background-color: var(--andes-video-scrim);
+  backdrop-filter: blur(var(--andes-video-glass-blur));
+  border-radius: var(--andes-radius-full, 9999px);
+}
+
+/* ---- Audio layout --------------------------------------------------------------------------- */
+
+.andes-video-player[data-layout='audio'] {
+  --andes-video-backdrop: var(--andes-color-card);
+  --andes-video-control-color: var(--andes-color-card-foreground);
+  --andes-video-track: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 16%,
+    transparent
+  );
+  --andes-video-buffered: color-mix(
+    in srgb,
+    var(--andes-color-card-foreground) 30%,
+    transparent
+  );
+  --andes-video-tooltip-background: var(--andes-color-foreground);
+  --andes-video-tooltip-foreground: var(--andes-color-background);
+  /* Menus open outside the short card. */
+  overflow: visible;
+  border: 1px solid var(--andes-color-border);
+  background-color: var(--andes-color-card);
+}
+
+.andes-video-player[data-layout='audio'] .andes-video-player__viewport {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-3, 0.75rem);
+  padding: var(--andes-space-3, 0.75rem);
+}
+
+.andes-video-player[data-layout='audio'] .andes-video-player__media {
+  display: none;
+}
+
+.andes-video-player[data-layout='audio'] .andes-video-player__chrome {
+  position: static;
+  flex: 1 1 auto;
+  min-width: 0;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.andes-video-player[data-layout='audio'] .andes-video-player__top,
+.andes-video-player[data-layout='audio'] .andes-video-player__bottom {
+  background-image: none;
+  pointer-events: auto;
+}
+
+.andes-video-player[data-layout='audio'] .andes-video-player__top {
+  padding: 0 var(--andes-space-2, 0.5rem);
+}
+
+.andes-video-player[data-layout='audio']
+  .andes-video-player__top:not(:has(:not([hidden]))) {
+  display: none;
+}
+
+.andes-video-player[data-layout='audio'] .andes-player-bar {
+  padding: 0;
+}
+
+/* Narrow audio cards: the seek bar keeps the room; the volume slider and duration go first,
+   then the cover art shrinks. */
+@container (max-width: 30rem) {
+  .andes-video-player[data-layout='audio'] .andes-player-volume-slider,
+  .andes-video-player[data-layout='audio']
+    andes-player-time[data-type='duration'] {
+    display: none;
+  }
+}
+
+/* ---- Background layout ---------------------------------------------------------------------- */
+
+.andes-video-player[data-layout='background'] {
+  --andes-video-radius: 0;
+}
+
+.andes-video-player[data-layout='background'] .andes-video-player__media {
+  object-fit: cover;
+}
+
+/* ---- Accessibility helpers ------------------------------------------------------------------- */
+
+.andes-player-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.andes-video-player [hidden] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-video-player__chrome {
+    transition: none;
+  }
+
+  .andes-video-player[data-mini] .andes-video-player__viewport {
+    animation: none;
+  }
+}
+
+/* Forced colours: the system palette replaces backgrounds and text; scrims would only hide the
+   controls, so they go, and the bar gets a plain system-coloured edge. Sliders and the focus
+   ring opt back in with system colours in player-controls.css. */
+@media (forced-colors: active) {
+  .andes-video-player {
+    --andes-video-focus-ring: Highlight;
+  }
+
+  .andes-video-player__top,
+  .andes-video-player__bottom {
+    background-image: none !important;
+  }
+
+  .andes-video-player__bottom .andes-player-bar {
+    background-color: Canvas;
+    border-top: 1px solid CanvasText;
+  }
+}

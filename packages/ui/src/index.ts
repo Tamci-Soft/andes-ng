@@ -159,4 +159,6 @@ export * from './lib/typography';
 
 export * from './lib/upload';
 
+export * from './lib/video-player';
+
 // @slot watermark

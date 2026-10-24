@@ -1,0 +1,124 @@
+<button
+  #trigger
+  type="button"
+  class="andes-player-button"
+  data-slot="menu-trigger"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="isOpen()"
+  [attr.aria-controls]="isOpen() ? menuId : null"
+  [attr.aria-label]="triggerLabel()"
+  [andesPlayerTooltip]="triggerLabel()"
+  [andesPlayerTooltipDisabled]="isOpen()"
+  (click)="toggle()"
+  (keydown)="onTriggerKeydown($event)"
+>
+  <andes-player-icon [name]="triggerIcon()" />
+</button>
+
+@if (rendered()) {
+<div
+  #panel
+  class="andes-player-menu__panel"
+  data-slot="menu"
+  role="menu"
+  tabindex="-1"
+  andesListNavigationKeys
+  [id]="menuId"
+  [attr.aria-label]="pageTitle(page())"
+  [attr.data-state]="isOpen() ? 'open' : 'closed'"
+  [attr.data-page]="page()"
+  [style.max-height.px]="maxHeight()"
+  (keydown)="onPanelKeydown($event)"
+>
+  @if (canGoBack()) {
+  <button
+    type="button"
+    role="menuitem"
+    class="andes-player-menu__item andes-player-menu__back"
+    data-slot="menu-back"
+    andesListNavigationItem
+    [attr.aria-label]="store.labels().back + ', ' + pageTitle(page())"
+    (click)="back()"
+  >
+    <andes-player-icon name="chevron-start" />
+    <span class="andes-player-menu__label">{{ pageTitle(page()) }}</span>
+  </button>
+  <div class="andes-player-menu__separator" role="separator"></div>
+  }
+  <div
+    [attr.role]="radioPage() ? 'group' : null"
+    [attr.aria-label]="radioPage() ? pageTitle(page()) : null"
+  >
+    @for (item of items(); track item.key) { @switch (item.kind) { @case
+    ('entry') {
+    <button
+      type="button"
+      role="menuitem"
+      class="andes-player-menu__item"
+      data-slot="menu-entry"
+      aria-haspopup="menu"
+      andesListNavigationItem
+      [attr.data-page]="item.page"
+      [typeaheadLabel]="item.label"
+      (click)="choose(item)"
+    >
+      @if (item.icon; as icon) {
+      <andes-player-icon [name]="icon" />
+      }
+      <span class="andes-player-menu__label">{{ item.label }}</span>
+      <span class="andes-player-menu__value">{{ item.value }}</span>
+      <andes-player-icon
+        name="chevron-end"
+        class="andes-player-menu__chevron"
+      />
+    </button>
+    } @case ('option') {
+    <button
+      type="button"
+      role="menuitemradio"
+      class="andes-player-menu__item"
+      data-slot="menu-option"
+      andesListNavigationItem
+      [attr.aria-checked]="item.checked"
+      [attr.data-key]="item.key"
+      [typeaheadLabel]="item.label"
+      (click)="choose(item)"
+    >
+      <span class="andes-player-menu__check" aria-hidden="true">
+        @if (item.checked) {
+        <andes-player-icon name="check" />
+        }
+      </span>
+      @if (item.swatch) {
+      <span
+        class="andes-player-menu__swatch"
+        aria-hidden="true"
+        [style.background-color]="item.swatch"
+      ></span>
+      }
+      <span class="andes-player-menu__label">{{ item.label }}</span>
+      @if (item.value) {
+      <span class="andes-player-menu__value">{{ item.value }}</span>
+      }
+    </button>
+    } @case ('action') {
+    <div class="andes-player-menu__separator" role="separator"></div>
+    <button
+      type="button"
+      role="menuitem"
+      class="andes-player-menu__item"
+      data-slot="menu-action"
+      andesListNavigationItem
+      [attr.data-key]="item.key"
+      [typeaheadLabel]="item.label"
+      (click)="choose(item)"
+    >
+      @if (item.icon; as icon) {
+      <andes-player-icon [name]="icon" />
+      }
+      <span class="andes-player-menu__label">{{ item.label }}</span>
+    </button>
+    } } }
+  </div>
+</div>
+}

@@ -1,0 +1,115 @@
+@if (store.miniPlayerActive()) {
+<div class="andes-video-player__placeholder" data-slot="mini-placeholder">
+  {{ store.labels().playingInMiniPlayer }}
+</div>
+}
+<div
+  class="andes-video-player__viewport"
+  data-slot="viewport"
+  [attr.role]="store.miniPlayerActive() ? 'region' : null"
+  [attr.aria-label]="store.miniPlayerActive() ? store.labels().miniPlayer : null"
+>
+  @if (audioOnly()) {
+  <audio
+    #media
+    class="andes-video-player__media"
+    data-slot="media"
+    aria-hidden="true"
+    [attr.preload]="preload()"
+    [attr.crossorigin]="crossOrigin()"
+    [attr.disableremoteplayback]="remotePlayback() ? null : ''"
+    [loop]="loops()"
+  >
+    @for (track of resolvedTracks(); track track.src) {
+    <track
+      [attr.kind]="track.kind"
+      [attr.src]="track.src"
+      [attr.srclang]="track.srclang ?? null"
+      [attr.label]="track.label ?? null"
+      [attr.default]="track.default ? '' : null"
+    />
+    }
+  </audio>
+  } @else {
+  <video
+    #media
+    class="andes-video-player__media"
+    data-slot="media"
+    aria-hidden="true"
+    [attr.preload]="preload()"
+    [attr.crossorigin]="crossOrigin()"
+    [attr.playsinline]="playsInline() || background() ? '' : null"
+    [attr.webkit-playsinline]="playsInline() || background() ? '' : null"
+    [attr.disablepictureinpicture]="pictureInPicture() && !background() ? null : ''"
+    [attr.disableremoteplayback]="remotePlayback() && !background() ? null : ''"
+    [loop]="loops()"
+    [style.object-fit]="resolvedObjectFit()"
+  >
+    @for (track of resolvedTracks(); track track.src) {
+    <track
+      [attr.kind]="track.kind"
+      [attr.src]="track.src"
+      [attr.srclang]="track.srclang ?? null"
+      [attr.label]="track.label ?? null"
+      [attr.default]="track.default ? '' : null"
+    />
+    }
+  </video>
+  }
+
+  <andes-player-poster />
+
+  @if (!decorative()) { @if (captionsRenderer() === 'overlay') {
+  <andes-player-captions />
+  } @if (!audioOnly()) {
+  <div
+    class="andes-video-player__surface"
+    data-slot="gesture-surface"
+    aria-hidden="true"
+    (pointerdown)="onSurfacePointerDown($event)"
+    (pointerup)="onSurfacePointerUp($event)"
+    (dblclick)="onSurfaceDoubleClick()"
+    (contextmenu)="onContextMenu($event)"
+  ></div>
+  <andes-player-buffering />
+  <andes-player-feedback />
+  } @if (barLayout(); as layout) { @if (layout !== 'audio') {
+  <andes-player-big-play-button />
+  }
+  <andes-player-unmute-button />
+  } @else if (background()) {
+  <div class="andes-video-player__ambient">
+    <andes-player-play-button />
+  </div>
+  } @if (!background()) {
+  <div class="andes-video-player__chrome" data-slot="chrome">
+    @if (barLayout() === 'default' || barLayout() === 'audio') {
+    <div class="andes-video-player__top">
+      <andes-player-title />
+      <ng-content select="[slot=top]" />
+    </div>
+    }
+    <div #bottom class="andes-video-player__bottom">
+      @if (barLayout(); as layout) {
+      <andes-player-control-bar [layout]="layout" />
+      } @else {
+      <ng-content select="[slot=controls]" />
+      }
+    </div>
+  </div>
+  <andes-player-resume />
+  <andes-player-up-next />
+  <andes-player-mini-controls />
+  }
+
+  <andes-player-error />
+  <andes-player-shortcuts />
+  <andes-player-context-menu />
+  }
+
+  <ng-content />
+
+  @if (!decorative()) {
+  <andes-player-announcer />
+  }
+</div>

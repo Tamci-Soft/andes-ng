@@ -1,0 +1,745 @@
+/* Player overlays: poster, big play, buffering, feedback, captions, error, unmute, title. */
+
+/* ---- Poster ------------------------------------------------------------------------------- */
+
+.andes-player-poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background-color: var(--andes-video-backdrop);
+  pointer-events: none;
+}
+
+.andes-player-poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.andes-video-player[data-layout='audio'] .andes-player-poster {
+  position: relative;
+  flex-shrink: 0;
+  width: 4rem;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: var(--andes-radius-md, 0.375rem);
+}
+
+/* Narrow audio cards keep a smaller cover so the seek bar has room. */
+@container (max-width: 20rem) {
+  .andes-video-player[data-layout='audio'] .andes-player-poster {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+/* ---- Big play button ---------------------------------------------------------------------- */
+
+/* Centred on the picture frame: the glass bar is a translucent overlay that comes and goes, so
+   the circle stays put whether the controls show or not. The solid skin's bar is opaque and
+   always up while the big button shows (paused), so there it centres on the picture left
+   above the bar. */
+.andes-player-big-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+}
+
+.andes-video-player[data-skin='solid'] .andes-player-big-play {
+  top: calc((100% - var(--andes-video-bar-block-size, 0px)) / 2);
+}
+
+.andes-player-big-play__button {
+  --_size: clamp(2.75rem, 16cqw, var(--andes-video-big-play-size, 4rem));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--_size);
+  height: var(--_size);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: var(--andes-video-big-play-background);
+  backdrop-filter: blur(var(--andes-video-big-play-blur)) saturate(0.6);
+  /* A hairline ring keeps the disc's edge crisp on light pictures. */
+  box-shadow:
+    inset 0 0 0 1px
+      color-mix(in srgb, var(--andes-video-control-color) 16%, transparent),
+    var(--andes-video-big-play-shadow);
+  color: var(--andes-video-control-color);
+  cursor: pointer;
+  /* Glyphs are centred by their area centroid in the icon itself (see the play icon). */
+  --andes-video-icon-size: calc(var(--_size) * 0.42);
+  transition:
+    background-color var(--andes-video-enter-duration)
+      var(--andes-video-enter-ease),
+    transform var(--andes-video-enter-duration) var(--andes-video-enter-ease);
+}
+
+.andes-player-big-play__button:hover {
+  background-color: var(--andes-video-accent);
+}
+
+.andes-player-big-play__button:active {
+  transform: scale(0.96);
+}
+
+.andes-player-big-play__button:focus-visible {
+  outline: 2px solid var(--andes-video-focus-ring);
+  outline-offset: 3px;
+}
+
+/* ---- Unmute affordance -------------------------------------------------------------------- */
+
+.andes-player-unmute {
+  position: absolute;
+  inset-block-start: var(--andes-space-3, 0.75rem);
+  inset-inline-start: var(--andes-space-3, 0.75rem);
+  z-index: 2;
+}
+
+.andes-player-unmute__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0 0.875rem 0 0.625rem;
+  padding-inline: 0.625rem 0.875rem;
+  border: 0;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-video-control-color);
+  color: var(--andes-video-backdrop);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium, 500);
+  cursor: pointer;
+  box-shadow: var(--andes-shadow-md, 0 4px 12px rgb(0 0 0 / 0.3));
+  --andes-video-icon-size: 1rem;
+  animation: andes-player-fade-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+.andes-player-unmute__button:focus-visible {
+  outline: 2px solid var(--andes-video-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Buffering ---------------------------------------------------------------------------- */
+
+.andes-player-buffering {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.andes-player-buffering {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+}
+
+.andes-player-buffering__status {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--andes-video-scrim);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+}
+
+.andes-player-buffering__spinner {
+  display: block;
+  box-sizing: border-box;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 3px solid
+    color-mix(in srgb, var(--andes-video-control-color) 24%, transparent);
+  border-top-color: var(--andes-video-control-color);
+  border-radius: 50%;
+  animation: andes-player-spin 1s linear infinite;
+}
+
+@keyframes andes-player-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Feedback ----------------------------------------------------------------------------- */
+
+.andes-player-feedback {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.andes-player-feedback__bubble {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  min-width: 3.5rem;
+  min-height: 3.5rem;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-video-scrim);
+  color: var(--andes-video-control-color);
+  --andes-video-icon-size: 1.5rem;
+  transform: translate(-50%, -50%);
+  animation: andes-player-feedback 700ms var(--andes-video-enter-ease) forwards;
+}
+
+.andes-player-feedback__text {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: var(--andes-font-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Double-tap seeks: the bubble sits on the side that was tapped, over a faint ripple. The time
+   axis is left-to-right in every direction, so these are physical sides. */
+.andes-player-feedback__bubble[data-side='start'] {
+  left: 18%;
+}
+
+.andes-player-feedback__bubble[data-side='end'] {
+  left: 82%;
+}
+
+.andes-player-feedback__ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: -1;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 50%;
+  background-color: var(--andes-video-control-color);
+  opacity: 0.1;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes andes-player-feedback {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes andes-player-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- Captions overlay --------------------------------------------------------------------- */
+
+.andes-player-captions {
+  position: absolute;
+  inset-inline: 5%;
+  bottom: var(--andes-video-captions-bottom);
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  transition: bottom var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+.andes-video-player[data-controls-visible] .andes-player-captions {
+  bottom: calc(
+    var(--andes-video-captions-bottom) + var(--andes-video-captions-lift)
+  );
+}
+
+.andes-player-captions__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125em;
+}
+
+.andes-player-captions__cue {
+  padding: 0.1em 0.45em;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--andes-video-captions-background);
+  color: var(--andes-video-captions-color);
+  font-family: var(--andes-video-captions-font-family);
+  font-size: calc(
+    var(--andes-video-captions-font-size) * var(--andes-video-captions-scale)
+  );
+  line-height: 1.35;
+  text-shadow: var(--andes-video-captions-text-shadow);
+  white-space: pre-line;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* The browser's own caption renderer (captionsRenderer="native") reads the same variables. */
+.andes-video-player__media::cue {
+  background-color: var(--andes-video-captions-background);
+  color: var(--andes-video-captions-color);
+  font-family: var(--andes-video-captions-font-family);
+  font-size: calc(
+    var(--andes-video-captions-font-size) * var(--andes-video-captions-scale)
+  );
+  text-shadow: var(--andes-video-captions-text-shadow);
+}
+
+/* ---- Error panel -------------------------------------------------------------------------- */
+
+.andes-player-error {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--andes-space-4, 1rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 82%,
+    transparent
+  );
+}
+
+.andes-player-error__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  max-width: 26rem;
+  text-align: center;
+  animation: andes-player-fade-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+.andes-player-error__icon {
+  --andes-video-icon-size: 2rem;
+  color: var(--andes-color-danger);
+}
+
+.andes-player-error__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: var(--andes-font-weight-semibold, 600);
+  line-height: 1.5rem;
+}
+
+.andes-player-error__message {
+  margin: 0;
+  color: var(--andes-video-control-muted);
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+.andes-player-error__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  margin-top: var(--andes-space-2, 0.5rem);
+  padding: 0 0.9375rem;
+  border: 1px solid
+    color-mix(in srgb, var(--andes-video-control-color) 40%, transparent);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background-color: transparent;
+  color: var(--andes-video-control-color);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium, 500);
+  cursor: pointer;
+  --andes-video-icon-size: 1rem;
+}
+
+.andes-player-error__retry:hover {
+  background-color: var(--andes-video-control-hover);
+}
+
+.andes-player-error__retry:focus-visible {
+  outline: 2px solid var(--andes-video-focus-ring);
+  outline-offset: 2px;
+}
+
+.andes-video-player[data-layout='audio'] .andes-player-error {
+  border-radius: inherit;
+  padding: var(--andes-space-2, 0.5rem);
+}
+
+.andes-video-player[data-layout='audio'] .andes-player-error__panel {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.andes-video-player[data-layout='audio'] .andes-player-error__message {
+  display: none;
+}
+
+/* Small frames: the title and the retry action only (the message would push them off). */
+@container (max-width: 26rem) {
+  .andes-player-error__icon,
+  .andes-player-error__message {
+    display: none;
+  }
+
+  .andes-player-error__retry {
+    margin-top: 0;
+  }
+}
+
+/* ---- Cards over the picture: resume, up next ------------------------------------------------ */
+
+.andes-player-resume,
+.andes-player-up-next {
+  position: absolute;
+  inset-inline-end: var(--andes-space-3, 0.75rem);
+  /* Above the visible bar. */
+  inset-block-end: calc(var(--andes-video-bar-block-size, 4.5rem) + 0.5rem);
+  z-index: 3;
+  max-width: calc(100% - 2 * var(--andes-space-3, 0.75rem));
+}
+
+.andes-player-resume {
+  inset-inline: var(--andes-space-3, 0.75rem) auto;
+}
+
+.andes-player-resume__card,
+.andes-player-up-next__card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-3, 0.75rem);
+  overflow: hidden;
+  padding: var(--andes-space-3, 0.75rem);
+  border: 1px solid
+    color-mix(in srgb, var(--andes-video-control-color) 14%, transparent);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 82%,
+    transparent
+  );
+  backdrop-filter: blur(var(--andes-video-glass-blur, 12px));
+  box-shadow: var(--andes-shadow-lg, 0 8px 24px rgb(0 0 0 / 0.28));
+  color: var(--andes-video-control-color);
+  animation: andes-player-fade-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+.andes-player-resume__card {
+  flex-wrap: wrap;
+}
+
+.andes-player-resume__title,
+.andes-player-up-next__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-semibold, 600);
+  line-height: 1.375rem;
+}
+
+.andes-player-resume__actions,
+.andes-player-up-next__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--andes-space-2, 0.5rem);
+}
+
+.andes-player-up-next__poster {
+  flex-shrink: 0;
+  width: 6rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--andes-radius-md, 0.375rem);
+}
+
+.andes-player-up-next__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.andes-player-up-next__eyebrow,
+.andes-player-up-next__count {
+  margin: 0;
+  color: var(--andes-video-control-muted);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.andes-player-up-next__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.andes-player-up-next__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A thin bar that empties over the countdown (decorative; the text says the same). */
+.andes-player-up-next__progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 2px;
+  background-color: var(--andes-video-accent);
+  transform-origin: left;
+  animation: andes-player-countdown var(--andes-player-up-next-duration, 5s)
+    linear forwards;
+}
+
+@keyframes andes-player-countdown {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@container (max-width: 30rem) {
+  .andes-player-up-next__poster {
+    display: none;
+  }
+
+  .andes-player-up-next__card {
+    flex-wrap: wrap;
+  }
+}
+
+/* Pill buttons of the cards. */
+.andes-player-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2rem;
+  margin: 0;
+  padding-inline: 0.75rem;
+  border: 1px solid
+    color-mix(in srgb, var(--andes-video-control-color) 36%, transparent);
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: transparent;
+  color: var(--andes-video-control-color);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-medium, 500);
+  white-space: nowrap;
+  cursor: pointer;
+  --andes-video-icon-size: 0.875rem;
+}
+
+.andes-player-pill:hover {
+  background-color: var(--andes-video-control-hover);
+}
+
+.andes-player-pill--primary {
+  border-color: transparent;
+  background-color: var(--andes-video-control-color);
+  color: var(--andes-video-backdrop);
+}
+
+.andes-player-pill--primary:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-control-color) 86%,
+    transparent
+  );
+}
+
+.andes-player-pill:focus-visible {
+  outline: 2px solid var(--andes-video-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Keyboard help -------------------------------------------------------------------------- */
+
+.andes-player-shortcuts {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--andes-space-3, 0.75rem);
+  background-color: color-mix(
+    in srgb,
+    var(--andes-video-backdrop) 56%,
+    transparent
+  );
+}
+
+.andes-player-shortcuts__dialog {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(40rem, 100%);
+  max-height: 100%;
+  overflow: hidden;
+  border: 1px solid
+    color-mix(in srgb, var(--andes-video-menu-foreground) 10%, transparent);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background-color: var(--andes-color-popover);
+  box-shadow: var(--andes-shadow-lg, 0 8px 24px rgb(0 0 0 / 0.28));
+  color: var(--andes-video-menu-foreground);
+  animation: andes-player-fade-in var(--andes-video-enter-duration)
+    var(--andes-video-enter-ease);
+}
+
+.andes-player-shortcuts__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-2, 0.5rem)
+    var(--andes-space-2, 0.5rem) var(--andes-space-4, 1rem);
+  padding-inline: var(--andes-space-4, 1rem) var(--andes-space-2, 0.5rem);
+  border-bottom: 1px solid var(--andes-color-border);
+  --andes-video-button-size: 2rem;
+  --andes-video-icon-size: 1rem;
+  --andes-video-control-hover: var(--andes-color-accent);
+}
+
+.andes-player-shortcuts__title {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: var(--andes-font-weight-semibold, 600);
+  line-height: 1.375rem;
+}
+
+.andes-player-shortcuts__body {
+  /* Flowing columns keep the groups balanced whatever their length. */
+  columns: 2 15rem;
+  column-gap: var(--andes-space-5, 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-4, 1rem)
+    var(--andes-space-3, 0.75rem);
+}
+
+.andes-player-shortcuts__group {
+  margin: 0;
+}
+
+.andes-player-shortcuts__row {
+  break-inside: avoid;
+}
+
+.andes-player-shortcuts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-3, 0.75rem);
+  padding-block: 0.3125rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--andes-video-menu-foreground) 8%, transparent);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.andes-player-shortcuts__keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  order: 2;
+}
+
+.andes-player-shortcuts__action {
+  margin: 0;
+}
+
+.andes-player-shortcuts__keys kbd {
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  background-color: var(--andes-color-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+/* ---- Title -------------------------------------------------------------------------------- */
+
+.andes-player-title {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: var(--andes-font-weight-semibold, 600);
+  line-height: 1.5rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.andes-video-player[data-layout='audio'] .andes-player-title {
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+/* ---- Reduced motion: no animated overlays ------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-player-feedback__bubble {
+    animation-name: andes-player-feedback-fade;
+  }
+
+  .andes-player-unmute__button,
+  .andes-player-error__panel,
+  .andes-player-resume__card,
+  .andes-player-up-next__card,
+  .andes-player-shortcuts__dialog {
+    animation: none;
+  }
+
+  /* The countdown text carries the time; the bar does not move. */
+  .andes-player-up-next__progress {
+    display: none;
+  }
+
+  .andes-player-captions,
+  .andes-player-big-play__button {
+    transition: none;
+  }
+
+  .andes-player-buffering__spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+@keyframes andes-player-feedback-fade {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
