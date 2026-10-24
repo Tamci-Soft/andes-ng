@@ -1,0 +1,62 @@
+<div [class]="wrapperClasses()">
+  @if (isTextarea()) {
+  <textarea andesMentionsField></textarea>
+  } @else {
+  <input andesMentionsField type="text" />
+  }
+  <!-- Zero-size marker kept at the trigger's position in the text; the suggestions anchor to
+       it, so they open at the caret rather than under the whole field. -->
+  <span #caret class="andes-mentions__caret" aria-hidden="true"></span>
+</div>
+@if (showCount()) {
+<span
+  class="andes-mentions__count"
+  [class.andes-mentions__count--exceeded]="countExceeded()"
+  [id]="countId"
+  >{{ countText() }}</span
+>
+}
+<span class="andes-mentions__live" role="status" aria-live="polite"
+  >{{ announcement() }}</span
+>
+
+<ng-template #panel>
+  <div
+    andesOverlayContent
+    [class]="panelClasses()"
+    [attr.data-side]="renderedSide()"
+    (mousedown)="$event.preventDefault()"
+  >
+    @if (loading()) {
+    <div class="andes-mentions__status">
+      <span class="andes-mentions__spinner" aria-hidden="true"></span>
+      {{ loadingText() }}
+    </div>
+    } @else { @for (option of filteredOptions(); track optionKey(option)) {
+    <div [andesMentionsOption]="option">
+      @if (optionTemplate(); as template) {
+      <ng-container
+        *ngTemplateOutlet="
+          template;
+          context: {
+            $implicit: option,
+            query: query(),
+            prefix: activePrefix(),
+          }
+        "
+      />
+      } @else {
+      <span class="andes-mentions__option-label"
+        >{{ option.label ?? option.value }}</span
+      >
+      }
+    </div>
+    } @empty { @if (notFoundContent() !== null) {
+    <div class="andes-mentions__status">
+      @if (notFoundTemplate(); as template) {
+      <ng-container *ngTemplateOutlet="template" />
+      } @else { {{ notFoundText() }} }
+    </div>
+    } } }
+  </div>
+</ng-template>

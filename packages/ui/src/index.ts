@@ -81,7 +81,7 @@ export * from './lib/list';
 
 export * from './lib/masonry';
 
-// @slot mentions
+export * from './lib/mentions';
 
 // @slot menu
 
