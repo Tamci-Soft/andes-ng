@@ -65,7 +65,7 @@ export * from './lib/form-field';
 
 export * from './lib/grid';
 
-// @slot hover-card
+export * from './lib/hover-card';
 
 // @slot image
 

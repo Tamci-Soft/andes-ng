@@ -1,0 +1,206 @@
+/* The host only passes its children through: the trigger keeps taking part in whatever layout
+   it sits in. */
+:host {
+  display: contents;
+}
+
+/*
+ * The card surface. It renders in the overlay container, outside the trigger's tree, so it
+ * sets its own type. Every visual property reads an `--andes-hover-card-*` custom property
+ * first and falls back to the theme tokens, so it can be restyled from CSS (set them on a
+ * `cardClass` or globally) without an inline-style input.
+ */
+.andes-hover-card {
+  position: relative;
+  box-sizing: border-box;
+  width: var(--andes-hover-card-width, 16rem);
+  max-width: min(var(--andes-hover-card-max-width, 24rem), calc(100vw - 1rem));
+  padding: var(--andes-hover-card-padding, var(--andes-space-4, 1rem));
+  --_andes-hover-card-edge: var(
+    --andes-hover-card-border-color,
+    var(--andes-color-border, #e2e8f0)
+  );
+
+  border: 1px solid var(--_andes-hover-card-edge);
+  border-radius: var(--andes-hover-card-radius, var(--andes-radius-lg, 0.5rem));
+  background-color: var(
+    --andes-hover-card-background,
+    var(--andes-color-popover, #fff)
+  );
+  color: var(
+    --andes-hover-card-foreground,
+    var(--andes-color-popover-foreground, #0f172a)
+  );
+  box-shadow: var(
+    --andes-hover-card-shadow,
+    var(
+      --andes-shadow-md,
+      0 4px 6px -1px rgb(0 0 0 / 10%),
+      0 2px 4px -2px rgb(0 0 0 / 10%)
+    )
+  );
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  overflow-wrap: break-word;
+  outline: none;
+  /* The overlays' shared entry: 150ms on a curve that settles without overshoot. */
+  animation: andes-hover-card-in var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.andes-hover-card__body {
+  display: block;
+  min-width: 0;
+}
+
+/* Entry: a fade plus a 4px drift away from the trigger - the card starts nudged toward the
+   side it is anchored to and settles into place. No scale, so text never resamples mid-way. */
+.andes-hover-card[data-side='bottom'] {
+  --andes-hover-card-drift: 0 -4px;
+}
+
+.andes-hover-card[data-side='top'] {
+  --andes-hover-card-drift: 0 4px;
+}
+
+.andes-hover-card[data-side='left'] {
+  --andes-hover-card-drift: 4px 0;
+}
+
+.andes-hover-card[data-side='right'] {
+  --andes-hover-card-drift: -4px 0;
+}
+
+@keyframes andes-hover-card-in {
+  from {
+    opacity: 0;
+    translate: var(--andes-hover-card-drift, 0 -4px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/*
+ * Exit: while the overlay plays a close it marks the card (a direct child of the pane) with
+ * data-andes-closing and waits for the animation before detaching; where it does not, the
+ * attribute never appears and the card just goes. The entry in reverse - a fade and the same
+ * 4px drift back toward the trigger - quicker and accelerating away. `forwards` holds the
+ * faded frame until removal so the card never flashes back for a frame.
+ */
+.andes-hover-card[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-hover-card-out var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, ease-in) forwards;
+}
+
+@keyframes andes-hover-card-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: var(--andes-hover-card-drift, 0 -4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-hover-card {
+    animation: none;
+  }
+
+  /* No exit either: with nothing running the overlay detaches at once. */
+  .andes-hover-card[data-andes-closing] {
+    animation: none;
+  }
+}
+
+/*
+ * Hover bridge: a transparent strip across the gap between the trigger and the card, as long
+ * as that gap. It belongs to the card, so a pointer crossing it is still over the card and
+ * the hover is never lost on the way. `--andes-hover-card-bridge` is set from `sideOffset`.
+ */
+.andes-hover-card__bridge {
+  position: absolute;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.andes-hover-card[data-side='bottom'] > .andes-hover-card__bridge {
+  inset-block-end: 100%;
+  inset-inline: 0;
+  block-size: var(--andes-hover-card-bridge, 9px);
+}
+
+.andes-hover-card[data-side='top'] > .andes-hover-card__bridge {
+  inset-block-start: 100%;
+  inset-inline: 0;
+  block-size: var(--andes-hover-card-bridge, 9px);
+}
+
+.andes-hover-card[data-side='left'] > .andes-hover-card__bridge {
+  left: 100%;
+  inset-block: 0;
+  inline-size: var(--andes-hover-card-bridge, 9px);
+}
+
+.andes-hover-card[data-side='right'] > .andes-hover-card__bridge {
+  right: 100%;
+  inset-block: 0;
+  inline-size: var(--andes-hover-card-bridge, 9px);
+}
+
+/*
+ * Arrow: an 8px square turned 45 degrees, with the card's background and a hairline on the two
+ * sides that face outward, centred on the card's border so the outline runs on into it. It
+ * sits on the edge facing the trigger and, along that edge, at
+ * --andes-hover-card-arrow-offset (measured, so it keeps pointing at the trigger after a flip
+ * or a viewport shift). Physical left/top on purpose: the offset is a measured pixel position.
+ */
+.andes-hover-card__arrow {
+  position: absolute;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  background-color: inherit;
+  rotate: 45deg;
+  pointer-events: none;
+}
+
+.andes-hover-card[data-side='bottom'] > .andes-hover-card__arrow {
+  top: -5px;
+  left: calc(var(--andes-hover-card-arrow-offset, 50%) - 5px);
+  border-top: 1px solid var(--_andes-hover-card-edge);
+  border-left: 1px solid var(--_andes-hover-card-edge);
+}
+
+.andes-hover-card[data-side='top'] > .andes-hover-card__arrow {
+  bottom: -5px;
+  left: calc(var(--andes-hover-card-arrow-offset, 50%) - 5px);
+  border-right: 1px solid var(--_andes-hover-card-edge);
+  border-bottom: 1px solid var(--_andes-hover-card-edge);
+}
+
+.andes-hover-card[data-side='left'] > .andes-hover-card__arrow {
+  right: -5px;
+  top: calc(var(--andes-hover-card-arrow-offset, 50%) - 5px);
+  border-top: 1px solid var(--_andes-hover-card-edge);
+  border-right: 1px solid var(--_andes-hover-card-edge);
+}
+
+.andes-hover-card[data-side='right'] > .andes-hover-card__arrow {
+  left: -5px;
+  top: calc(var(--andes-hover-card-arrow-offset, 50%) - 5px);
+  border-bottom: 1px solid var(--_andes-hover-card-edge);
+  border-left: 1px solid var(--_andes-hover-card-edge);
+}
+
+/* Forced-colors mode drops box-shadow and background images; the border still draws the edge. */
+@media (forced-colors: active) {
+  .andes-hover-card {
+    border-color: CanvasText;
+  }
+}
