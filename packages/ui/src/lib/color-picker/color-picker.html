@@ -1,0 +1,318 @@
+<!--
+  The trigger is the overlay's anchor and ARIA owner (`aria-haspopup="dialog"`,
+  `aria-expanded`, `aria-controls`) and the one focusable element of the closed picker. Its
+  accessible name is built from the label and the current value, so a screen reader hears
+  "Brand color, #1677ff"; the visible text repeats that and is hidden from it.
+-->
+<button
+  #trigger
+  type="button"
+  andesOverlayTrigger
+  class="andes-color-picker__trigger"
+  data-slot="color-picker-trigger"
+  [attr.id]="id() ?? null"
+  [attr.data-size]="size()"
+  [attr.data-status]="status() ?? null"
+  [attr.data-empty]="isEmpty() ? '' : null"
+  [attr.data-custom]="hasCustomTrigger() ? '' : null"
+  [attr.data-with-text]="textVisible() && !hasCustomTrigger() ? '' : null"
+  [attr.data-invalid]="invalid() ? '' : null"
+  [disabled]="isDisabled()"
+  [attr.aria-label]="triggerLabel()"
+  [attr.aria-labelledby]="triggerLabelledby()"
+  [attr.aria-describedby]="ariaDescribedby() ?? null"
+  [attr.aria-invalid]="invalid() || null"
+  (click)="onTriggerClick()"
+  (blur)="onTriggerBlur()"
+>
+  @if (!hasCustomTrigger()) {
+  <span
+    class="andes-color-picker__swatch"
+    data-slot="color-picker-swatch"
+    [attr.data-empty]="isEmpty() ? '' : null"
+    aria-hidden="true"
+  >
+    <span
+      class="andes-color-picker__swatch-fill"
+      [style.background-color]="swatchColor()"
+    ></span>
+  </span>
+  @if (textVisible()) {
+  <span class="andes-color-picker__text" aria-hidden="true">
+    @if (textTemplate(); as template) { @if (textContext(); as context) {
+    <ng-container
+      [ngTemplateOutlet]="template"
+      [ngTemplateOutletContext]="context"
+    />
+    } @else { {{ triggerText() }} } } @else { {{ triggerText() }} }
+  </span>
+  } }
+  <span class="andes-color-picker__custom" [hidden]="!hasCustomTrigger()"
+    ><ng-content select="[andesColorPickerTrigger]"
+  /></span>
+  <span class="andes-color-picker__sr" [id]="valueId">{{ summary() }}</span>
+</button>
+
+<ng-template #panel>
+  <div
+    andesOverlayContent
+    class="andes-color-picker__panel"
+    data-slot="color-picker-panel"
+    [attr.data-side]="side()"
+    [attr.aria-label]="text().panel"
+  >
+    <andes-color-area
+      [hue]="working().hue"
+      [saturation]="working().saturation"
+      [brightness]="working().brightness"
+      [color]="workingOpaque()"
+      [label]="text().area"
+      [valueText]="areaValueText()"
+      [disabled]="isDisabled()"
+      (areaChange)="onAreaChange($event)"
+      (commit)="onAreaCommit($event)"
+    />
+
+    <div class="andes-color-picker__controls">
+      @if (supportsEyeDropper()) {
+      <button
+        type="button"
+        class="andes-color-picker__tool"
+        data-slot="color-picker-eyedropper"
+        [attr.aria-label]="text().eyeDropper"
+        [attr.title]="text().eyeDropper"
+        [disabled]="isDisabled()"
+        (click)="pickWithEyeDropper()"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="m2 22 1-1h3l9-9" />
+          <path d="M3 21v-3l9-9" />
+          <path
+            d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"
+          />
+        </svg>
+      </button>
+      }
+
+      <div class="andes-color-picker__sliders">
+        <andes-color-slider
+          type="hue"
+          [value]="working().hue"
+          [min]="0"
+          [max]="360"
+          [label]="text().hue"
+          [valueText]="hueValueText()"
+          [color]="workingHueCss()"
+          [disabled]="isDisabled()"
+          (valueChange)="onHueChange($event)"
+          (commit)="onHueChange($event, true)"
+        />
+        @if (alphaVisible()) {
+        <andes-color-slider
+          type="alpha"
+          [value]="workingAlphaPercent()"
+          [min]="0"
+          [max]="100"
+          [label]="text().alpha"
+          [valueText]="alphaValueText()"
+          [color]="workingCss()"
+          [railColor]="workingOpaque()"
+          [disabled]="isDisabled()"
+          (valueChange)="onAlphaChange($event)"
+          (commit)="onAlphaChange($event, true)"
+        />
+        }
+      </div>
+
+      <span
+        class="andes-color-picker__preview"
+        data-slot="color-picker-preview"
+        [attr.data-empty]="isEmpty() ? '' : null"
+        aria-hidden="true"
+      >
+        <span
+          class="andes-color-picker__preview-fill"
+          [style.background-color]="isEmpty() ? null : workingCss()"
+        ></span>
+      </span>
+
+      @if (allowClear()) {
+      <button
+        type="button"
+        class="andes-color-picker__clear"
+        data-slot="color-picker-clear"
+        [attr.aria-label]="text().clear"
+        [attr.title]="text().clear"
+        [disabled]="isDisabled() || isEmpty()"
+        (click)="clearValue()"
+      >
+        <span class="andes-color-picker__clear-glyph" aria-hidden="true"></span>
+      </button>
+      }
+    </div>
+
+    <div class="andes-color-picker__fields" data-slot="color-picker-fields">
+      @if (!disabledFormat()) {
+      <span class="andes-color-picker__field andes-color-picker__format">
+        <select
+          class="andes-color-picker__input"
+          [attr.aria-label]="text().format"
+          [disabled]="isDisabled()"
+          (change)="onFormatSelect($any($event.target).value)"
+        >
+          @for (option of formats; track option.value) {
+          <option
+            [value]="option.value"
+            [selected]="option.value === currentFormat()"
+          >
+            {{ option.label }}
+          </option>
+          }
+        </select>
+        <svg
+          class="andes-color-picker__chevron"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </span>
+      } @if (currentFormat() === 'hex') {
+      <span
+        class="andes-color-picker__field andes-color-picker__field--hex"
+        [attr.data-invalid]="hexInvalid() ? '' : null"
+      >
+        <span class="andes-color-picker__affix" aria-hidden="true">#</span>
+        <input
+          #hex
+          type="text"
+          class="andes-color-picker__input"
+          spellcheck="false"
+          autocomplete="off"
+          [attr.aria-label]="text().hex"
+          [attr.aria-invalid]="hexInvalid() || null"
+          [value]="hexText()"
+          [disabled]="isDisabled()"
+          (input)="onHexInput(hex)"
+          (keydown)="onHexKeydown($event, hex)"
+          (blur)="onHexCommit(hex)"
+        />
+      </span>
+      } @else { @for (channel of channels(); track channel) {
+      <span class="andes-color-picker__field" [attr.data-channel]="channel">
+        <input
+          #channelInput
+          type="number"
+          inputmode="numeric"
+          step="1"
+          min="0"
+          class="andes-color-picker__input"
+          [attr.max]="channelMax(channel)"
+          [attr.aria-label]="channelLabel(channel)"
+          [value]="channelValue(channel)"
+          [disabled]="isDisabled()"
+          (input)="onChannelInput(channel, channelInput)"
+          (change)="onChannelCommit(channel, channelInput)"
+        />
+      </span>
+      } } @if (alphaVisible()) {
+      <span
+        class="andes-color-picker__field andes-color-picker__field--alpha"
+        data-channel="a"
+      >
+        <input
+          #alphaInput
+          type="number"
+          inputmode="numeric"
+          step="1"
+          min="0"
+          max="100"
+          class="andes-color-picker__input"
+          [attr.aria-label]="channelLabel('a')"
+          [value]="channelValue('a')"
+          [disabled]="isDisabled()"
+          (input)="onChannelInput('a', alphaInput)"
+          (change)="onChannelCommit('a', alphaInput)"
+        />
+        <span class="andes-color-picker__affix" aria-hidden="true">%</span>
+      </span>
+      }
+    </div>
+
+    @if (presetGroups().length > 0) {
+    <div class="andes-color-picker__presets" data-slot="color-picker-presets">
+      @for (group of presetGroups(); track $index; let g = $index) {
+      <div class="andes-color-picker__group">
+        <button
+          type="button"
+          class="andes-color-picker__group-toggle"
+          [attr.aria-expanded]="isGroupOpen(g)"
+          [attr.aria-controls]="presetsId + '-' + g"
+          (click)="toggleGroup(g)"
+        >
+          <svg
+            class="andes-color-picker__group-chevron"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+          {{ group.label }}
+        </button>
+        @if (isGroupOpen(g)) {
+        <div
+          class="andes-color-picker__swatches"
+          role="listbox"
+          [id]="presetsId + '-' + g"
+          [attr.aria-label]="group.label"
+        >
+          @for (entry of group.entries; track $index; let i = $index) {
+          <button
+            type="button"
+            role="option"
+            class="andes-color-picker__preset"
+            data-slot="color-picker-preset"
+            [attr.aria-selected]="isPresetSelected(entry)"
+            [attr.aria-label]="entry.label"
+            [attr.title]="entry.label"
+            [attr.tabindex]="i === presetTabStop(g) ? 0 : -1"
+            [attr.data-selected]="isPresetSelected(entry) ? '' : null"
+            [style.--andes-color-picker-preset]="entry.color.toRgbString()"
+            [disabled]="isDisabled()"
+            (click)="selectPreset(entry)"
+            (keydown)="onPresetKeydown($event, g, i)"
+          ></button>
+          }
+        </div>
+        }
+      </div>
+      }
+    </div>
+    }
+
+    <span class="andes-color-picker__sr" role="status" aria-live="polite"
+      >{{ announcement() }}</span
+    >
+  </div>
+</ng-template>

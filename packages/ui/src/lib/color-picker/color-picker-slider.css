@@ -1,0 +1,94 @@
+/*
+  The slider is its own focus target, but only the handle shows the focus ring: the rail is
+  a thin strip and a ring around it would read as a second border.
+*/
+:host {
+  --_handle: 1rem;
+  --_checker: conic-gradient(
+    color-mix(in srgb, var(--andes-color-foreground, #0f172a) 14%, transparent)
+      25%,
+    transparent 25% 50%,
+    color-mix(in srgb, var(--andes-color-foreground, #0f172a) 14%, transparent)
+      50% 75%,
+    transparent 75% 100%
+  );
+
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  height: 1rem;
+  /* The rail is a picture of the channel, left to right in every page direction. */
+  direction: ltr;
+  cursor: pointer;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+:host([data-disabled]) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-color-slider__rail {
+  position: absolute;
+  inset-block: 0.25rem;
+  inset-inline: 0;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: transparent;
+  box-shadow: inset 0 0 1px 0
+    color-mix(in srgb, var(--andes-color-foreground, #0f172a) 45%, transparent);
+}
+
+/* The alpha rail fades to the colour over a checkerboard, so transparency is visible. */
+:host([data-type='alpha']) .andes-color-slider__rail {
+  background-size:
+    auto,
+    0.5rem 0.5rem;
+}
+
+.andes-color-slider__handle {
+  position: absolute;
+  top: 0;
+  inset-inline-start: calc(
+    var(--andes-color-slider-position, 0) * (100% - var(--_handle))
+  );
+  box-sizing: border-box;
+  width: var(--_handle);
+  height: var(--_handle);
+  border: 2px solid #fff;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-image:
+    linear-gradient(
+      var(--andes-color-slider-color, transparent),
+      var(--andes-color-slider-color, transparent)
+    ),
+    var(--_checker);
+  background-size:
+    auto,
+    0.5rem 0.5rem;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #000 28%, transparent),
+    0 1px 3px color-mix(in srgb, #000 28%, transparent);
+  transition: transform 120ms var(--andes-motion-ease-out, ease-out);
+  pointer-events: none;
+}
+
+:host(:hover:not([data-disabled])) .andes-color-slider__handle {
+  transform: scale(1.08);
+}
+
+:host(:focus-visible) .andes-color-slider__handle {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-color-slider__handle {
+    transition: none;
+  }
+
+  :host(:hover:not([data-disabled])) .andes-color-slider__handle {
+    transform: none;
+  }
+}

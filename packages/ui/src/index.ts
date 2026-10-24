@@ -35,7 +35,7 @@ export * from './lib/checkbox';
 
 export * from './lib/collapsible';
 
-// @slot color-picker
+export * from './lib/color-picker';
 
 // @slot combobox
 

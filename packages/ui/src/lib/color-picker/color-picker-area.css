@@ -1,0 +1,59 @@
+/*
+  Only the handle shows the focus ring: the surface is a large picture and an outline around
+  it would read as a second border.
+*/
+:host {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  height: 10rem;
+  /* The area is a picture of the colour space, left to right in every page direction. */
+  direction: ltr;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  cursor: crosshair;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+:host([data-disabled]) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Saturation runs white to the hue; brightness runs the hue to black. These are the colour
+   space itself, not theme colours. */
+.andes-color-area__surface {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, transparent);
+  background-color: hsl(var(--andes-color-area-hue, 0) 100% 50%);
+  box-shadow: inset 0 0 1px 0
+    color-mix(in srgb, var(--andes-color-foreground, #0f172a) 45%, transparent);
+}
+
+.andes-color-area__handle {
+  position: absolute;
+  inset-inline-start: calc(var(--andes-color-area-x, 0) * 100%);
+  top: calc(var(--andes-color-area-y, 0) * 100%);
+  box-sizing: border-box;
+  width: 1rem;
+  height: 1rem;
+  margin-block-start: -0.5rem;
+  margin-inline-start: -0.5rem;
+  border: 2px solid #fff;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-color-area-color, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #000 28%, transparent),
+    0 1px 3px color-mix(in srgb, #000 28%, transparent);
+  pointer-events: none;
+}
+
+:host(:focus-visible) .andes-color-area__handle {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 2px;
+}
