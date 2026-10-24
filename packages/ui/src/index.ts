@@ -85,7 +85,7 @@ export * from './lib/mentions';
 
 export * from './lib/menu';
 
-// @slot menubar
+export * from './lib/menubar';
 
 export * from './lib/navigation-menu';
 
