@@ -1,0 +1,133 @@
+/* Hooks read with a fallback instead of being declared on :host, so a consumer rule on the
+   element (andes-divider { --andes-divider-color: ... }) is never outranked:
+     --andes-divider-color       line colour (default: the border token)
+     --andes-divider-thickness   line weight (default 1px)
+     --andes-divider-margin      space around the line (overrides the size preset)
+     --andes-divider-text-gap    space between the line and the text (default 16px)
+   The two line elements are real boxes (not pseudo-elements) so a dashed or dotted line
+   restarts its pattern cleanly on each side of the text. A text-less divider hides the second
+   line and lets the first one span the whole width. */
+
+:host {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  margin-block: var(--andes-divider-margin, 1rem);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+:host([data-size='sm']) {
+  --andes-divider-margin: 0.5rem;
+}
+
+:host([data-size='md']) {
+  --andes-divider-margin: 1rem;
+}
+
+:host([data-size='lg']) {
+  --andes-divider-margin: 1.5rem;
+}
+
+.andes-divider__line {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  block-size: 0;
+  border-block-start: var(--andes-divider-thickness, 1px) solid
+    var(--andes-divider-color, var(--andes-color-border));
+}
+
+:host([data-variant='dashed']) .andes-divider__line {
+  border-block-start-style: dashed;
+}
+
+:host([data-variant='dotted']) .andes-divider__line {
+  border-block-start-style: dotted;
+}
+
+/* --- Text ------------------------------------------------------------------------------------ */
+
+.andes-divider__text {
+  flex: none;
+  font-weight: var(--andes-font-weight-medium, 500);
+}
+
+.andes-divider__text:empty {
+  display: none;
+}
+
+.andes-divider__text:not(:empty) {
+  margin-inline: var(--andes-divider-text-gap, 1rem);
+}
+
+/* No text: the second line would only double the first. */
+.andes-divider__text:empty + .andes-divider__line {
+  display: none;
+}
+
+:host([data-plain]) .andes-divider__text {
+  font-weight: 400;
+  color: var(--andes-color-muted-foreground);
+}
+
+:host([data-align='start']) .andes-divider__line:first-child {
+  flex: 0 0 var(--andes-divider-offset, 5%);
+}
+
+:host([data-align='end']) .andes-divider__line:last-child {
+  flex: 0 0 var(--andes-divider-offset, 5%);
+}
+
+/* --- Vertical: an inline rule between text or buttons -------------------------------------- */
+
+:host([data-orientation='vertical']) {
+  display: inline-flex;
+  align-self: auto;
+  inline-size: auto;
+  block-size: 0.9em;
+  margin-block: 0;
+  margin-inline: var(--andes-divider-margin, 0.5rem);
+  vertical-align: middle;
+}
+
+:host([data-orientation='vertical'][data-size='sm']) {
+  --andes-divider-margin: 0.25rem;
+}
+
+:host([data-orientation='vertical'][data-size='md']) {
+  --andes-divider-margin: 0.5rem;
+}
+
+:host([data-orientation='vertical'][data-size='lg']) {
+  --andes-divider-margin: 0.75rem;
+}
+
+:host([data-orientation='vertical']) .andes-divider__line {
+  flex: none;
+  inline-size: 0;
+  block-size: 100%;
+  border-block-start: 0;
+  border-inline-start: var(--andes-divider-thickness, 1px) solid
+    var(--andes-divider-color, var(--andes-color-border));
+}
+
+:host([data-orientation='vertical'][data-variant='dashed'])
+  .andes-divider__line {
+  border-inline-start-style: dashed;
+}
+
+:host([data-orientation='vertical'][data-variant='dotted'])
+  .andes-divider__line {
+  border-inline-start-style: dotted;
+}
+
+/* Text has no place beside a vertical rule. */
+:host([data-orientation='vertical']) .andes-divider__text,
+:host([data-orientation='vertical'])
+  .andes-divider__text
+  + .andes-divider__line {
+  display: none;
+}
