@@ -1,0 +1,239 @@
+/*
+ * Styling hooks (all optional):
+ *   --andes-splitter-line            colour of the 1px separator line
+ *   --andes-splitter-line-active     colour while hovered, focused or dragged
+ *   --andes-splitter-hit-area        total width of the grab area (default 9px)
+ */
+:host {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+:host([data-orientation='vertical']) {
+  flex-direction: column;
+}
+
+.andes-splitter__panel {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.andes-splitter__panel[data-state='collapsed'] {
+  overflow: hidden;
+}
+
+/* While a handle is dragged the panes stop reacting to the pointer (iframes, text) and nothing
+   can be selected. */
+:host([data-dragging]) {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:host([data-dragging]) .andes-splitter__panel {
+  pointer-events: none;
+}
+
+:host([data-dragging][data-orientation='horizontal']) {
+  cursor: col-resize;
+}
+
+:host([data-dragging][data-orientation='vertical']) {
+  cursor: row-resize;
+}
+
+/* --- Handle ------------------------------------------------------------------------------- */
+
+.andes-splitter__handle {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  box-sizing: border-box;
+  background: var(--andes-splitter-line, var(--andes-color-border));
+  outline: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+:host([data-orientation='horizontal']) > .andes-splitter__handle {
+  width: 1px;
+  cursor: col-resize;
+}
+
+:host([data-orientation='vertical']) > .andes-splitter__handle {
+  height: 1px;
+  cursor: row-resize;
+}
+
+/* The line is 1px but the grab area is 9px wide, centred on it. */
+.andes-splitter__handle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+:host([data-orientation='horizontal']) > .andes-splitter__handle::before {
+  inset-inline: calc((var(--andes-splitter-hit-area, 9px) - 1px) / -2);
+}
+
+:host([data-orientation='vertical']) > .andes-splitter__handle::before {
+  inset-block: calc((var(--andes-splitter-hit-area, 9px) - 1px) / -2);
+}
+
+.andes-splitter__handle:hover,
+.andes-splitter__handle[data-state='dragging'] {
+  background: var(--andes-splitter-line-active, var(--andes-color-primary));
+}
+
+.andes-splitter__handle:focus-visible {
+  background: var(--andes-splitter-line-active, var(--andes-color-primary));
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-splitter__handle[data-state='locked'] {
+  cursor: default;
+}
+
+.andes-splitter__handle[data-state='locked']:hover {
+  background: var(--andes-splitter-line, var(--andes-color-border));
+}
+
+/* --- Grip: dots + collapse buttons, centred on the handle --------------------------------- */
+
+.andes-splitter__grip {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--andes-color-border);
+  border-radius: var(--andes-radius-sm);
+  background: var(--andes-color-background);
+  color: var(--andes-color-muted-foreground);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+:host([data-orientation='vertical']) .andes-splitter__grip {
+  flex-direction: row;
+}
+
+.andes-splitter__handle:hover .andes-splitter__grip,
+.andes-splitter__handle:focus-visible .andes-splitter__grip,
+.andes-splitter__handle[data-state='dragging'] .andes-splitter__grip,
+.andes-splitter__handle[data-collapsed] .andes-splitter__grip {
+  opacity: 1;
+}
+
+.andes-splitter__handle:hover .andes-splitter__grip,
+.andes-splitter__handle:focus-visible .andes-splitter__grip,
+.andes-splitter__handle[data-collapsed] .andes-splitter__grip {
+  pointer-events: auto;
+}
+
+/* Three dots, drawn with a gradient so there is no extra markup per dot. */
+.andes-splitter__dots {
+  flex: none;
+  width: 4px;
+  height: 14px;
+  background: radial-gradient(circle, currentcolor 1px, transparent 1.5px)
+    center / 4px 5px repeat-y;
+}
+
+:host([data-orientation='vertical']) .andes-splitter__dots {
+  width: 14px;
+  height: 4px;
+  background: radial-gradient(circle, currentcolor 1px, transparent 1.5px)
+    center / 5px 4px repeat-x;
+}
+
+.andes-splitter__collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  inline-size: 16px;
+  block-size: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--andes-motion-duration-mid, 150ms)
+      var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1)),
+    color var(--andes-motion-duration-mid, 150ms)
+      var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.andes-splitter__collapse:hover {
+  background: var(--andes-color-accent);
+  color: var(--andes-color-foreground);
+}
+
+/* The chevron points at the inline start; the template rotates it towards where the pane goes. */
+.andes-splitter__collapse svg {
+  transition: rotate var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+@media (hover: none) {
+  .andes-splitter__grip {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* --- Lazy preview line -------------------------------------------------------------------- */
+
+.andes-splitter__preview {
+  position: absolute;
+  z-index: 2;
+  background: var(--andes-color-primary);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+:host([data-orientation='horizontal']) > .andes-splitter__preview {
+  inset-block: 0;
+  inline-size: 2px;
+  margin-inline-start: -1px;
+}
+
+:host([data-orientation='vertical']) > .andes-splitter__preview {
+  inset-inline: 0;
+  block-size: 2px;
+  margin-block-start: -1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-splitter__handle,
+  .andes-splitter__grip,
+  .andes-splitter__collapse,
+  .andes-splitter__collapse svg {
+    transition: none;
+  }
+}

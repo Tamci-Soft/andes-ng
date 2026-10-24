@@ -123,7 +123,7 @@ export * from './lib/space';
 
 export * from './lib/spinner';
 
-// @slot splitter
+export * from './lib/splitter';
 
 // @slot statistic
 
