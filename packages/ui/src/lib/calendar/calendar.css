@@ -1,0 +1,542 @@
+/* Every color, radius and space value comes from @andes-ng/tokens. The one local
+   decision is the range-band tint: the token set has no `--andes-color-primary-subtle`
+   yet (flagged in docs/research/components/date-picker.md), so the band mixes the
+   primary into transparency, which reads as the same light tint on either theme.
+
+   Geometry: a 40px header over a hairline, then 36px-square cells (7 x 36px + 18px
+   gutters = a 288px panel) whose visible chip is a 24px square. The chip is the cell's
+   text span; the cell's `::before` is the 36px-wide, 24px-tall band that joins a range
+   across cells. */
+
+.andes-calendar {
+  --andes-calendar-cell: 2.25rem;
+  --andes-calendar-chip: 1.5rem;
+  --andes-calendar-band: color-mix(
+    in srgb,
+    var(--andes-color-primary) 15%,
+    transparent
+  );
+
+  display: inline-flex;
+  flex-direction: column;
+  border-radius: var(--andes-radius-lg);
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+}
+
+.andes-calendar__custom-header {
+  padding: var(--andes-space-2) var(--andes-space-3);
+  border-bottom: 1px solid var(--andes-color-border);
+}
+
+/* Header */
+
+.andes-calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  height: 2.5rem;
+  padding-inline: var(--andes-space-2);
+  border-bottom: 1px solid var(--andes-color-border);
+}
+
+.andes-calendar__caption-wrap {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
+.andes-calendar__caption {
+  padding: 0 var(--andes-space-1);
+  text-align: center;
+  font-weight: var(--andes-font-weight-medium);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+/* The caption climbs to the coarser grid, but should read as a heading first and
+   a button second: no border or fill, the text just takes the primary on hover. */
+.andes-calendar__caption--button {
+  border: 0;
+  border-radius: var(--andes-radius-sm);
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+.andes-calendar__caption--button:hover {
+  color: var(--andes-color-primary-text, var(--andes-color-primary));
+}
+
+.andes-calendar__caption--button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+/* Bare icon buttons in the muted color: a bordered box per arrow made the header read
+   as a toolbar of controls. */
+.andes-calendar__nav {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-sm);
+  background-color: transparent;
+  color: var(--andes-color-muted-foreground);
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+.andes-calendar__nav svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.andes-calendar__nav svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Holds the place of the two nav buttons a non-edge panel of a multi-month grid
+   does not render, so every panel's caption stays centered over its grid. */
+.andes-calendar__nav-spacer {
+  flex-shrink: 0;
+  width: 3rem;
+}
+
+.andes-calendar__nav:hover:not(:disabled) {
+  color: var(--andes-color-foreground);
+}
+
+.andes-calendar__nav:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-calendar__nav:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Panels: one per visible month (two for a range picker), flush side by side so
+   their headers' hairlines join into one. */
+
+.andes-calendar__panels {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.andes-calendar__panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid */
+
+.andes-calendar__grid {
+  display: flex;
+  flex-direction: column;
+  padding: var(--andes-space-2) 1.125rem;
+}
+
+/* A seven-column track rather than a table: the row/cell ARIA roles carry the
+   grid semantics, and an explicit column count keeps every row aligned even when
+   outside days are hidden behind placeholders. */
+.andes-calendar__row {
+  display: grid;
+  grid-template-columns: repeat(7, var(--andes-calendar-cell));
+}
+
+.andes-calendar__weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--andes-calendar-cell);
+  font-weight: normal;
+}
+
+.andes-calendar__day-placeholder {
+  height: var(--andes-calendar-cell);
+}
+
+/* Week numbers: a leading column of row headers. */
+
+.andes-calendar--with-week .andes-calendar__row {
+  grid-template-columns: 2rem repeat(7, var(--andes-calendar-cell));
+}
+
+.andes-calendar__week-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--andes-calendar-cell);
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Month / quarter / year grids share the day grid's 288px width, so switching grids
+   does not resize the panel; their cells are taller (66px rows). */
+
+.andes-calendar__grid--period {
+  box-sizing: border-box;
+  width: calc(8 * var(--andes-calendar-cell));
+  padding: 0 var(--andes-space-2);
+}
+
+.andes-calendar__period-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.andes-calendar__grid--period[data-view='quarter'] .andes-calendar__period-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Cells: the button is the 36px hit area; its text span is the visible chip. */
+
+.andes-calendar__day,
+.andes-calendar__period {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--andes-calendar-cell);
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.andes-calendar__day {
+  width: var(--andes-calendar-cell);
+}
+
+.andes-calendar__period {
+  height: 4.125rem;
+}
+
+/* The band behind the chip: drawn only for range / preview / week states. */
+.andes-calendar__day::before,
+.andes-calendar__period::before {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  box-sizing: border-box;
+  height: var(--andes-calendar-chip);
+  transform: translateY(-50%);
+  content: '';
+  transition: background-color var(--andes-motion-duration-fast, 0.1s)
+    var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+/* prettier-ignore */
+:is(.andes-calendar__day, .andes-calendar__period) > :is(.andes-calendar__cell-text, .andes-calendar__cell-content) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--andes-calendar-chip);
+  height: var(--andes-calendar-chip);
+  border: 1px solid transparent;
+  border-radius: var(--andes-radius-sm);
+  line-height: 1;
+  transition:
+    background-color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+    color var(--andes-motion-duration-fast, 0.1s)
+      var(--andes-motion-ease-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+}
+
+/* prettier-ignore */
+.andes-calendar__period > :is(.andes-calendar__cell-text, .andes-calendar__cell-content) {
+  min-width: 3.75rem;
+  padding-inline: var(--andes-space-2);
+}
+
+.andes-calendar__cell-content {
+  min-width: 0;
+}
+
+/* fullCellTemplate owns the whole cell, the number included. */
+/* prettier-ignore */
+:is(.andes-calendar__day, .andes-calendar__period) > .andes-calendar__cell-content--full {
+  width: 100%;
+  height: 100%;
+}
+
+/* `accent-hover`, not `accent`: in the dark theme accent is the popover color itself, so
+   a hover fill from it would be invisible. */
+/* prettier-ignore */
+:is(.andes-calendar__day, .andes-calendar__period):hover:not([aria-disabled='true']) > * {
+  background-color: var(--andes-color-accent-hover, var(--andes-color-accent));
+}
+
+/* The focus ring hugs the chip, not the 36px hit area around it. */
+.andes-calendar__day:focus-visible,
+.andes-calendar__period:focus-visible {
+  outline: none;
+}
+
+.andes-calendar__day:focus-visible > *,
+.andes-calendar__period:focus-visible > * {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-calendar__day--outside {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Today is an outline, not a fill, so it stays distinguishable from a selected
+   day rather than competing with it. */
+/* `-text` rather than the fill shade: plain primary only reaches 2.8:1 against the dark
+   popover, under the 3:1 a lone outline needs. */
+.andes-calendar__day--today > * {
+  border-color: var(--andes-color-primary-text, var(--andes-color-primary));
+}
+
+/* Range band. The start and end cells carry half a band (towards the inside of
+   the range) once the range has an end; a lone picked start has none. */
+
+.andes-calendar__day--in-range::before {
+  background-color: var(--andes-calendar-band);
+}
+
+/* prettier-ignore */
+.andes-calendar:has(.andes-calendar__day--in-range, .andes-calendar__day--range-end:not(.andes-calendar__day--range-start)) .andes-calendar__day--range-start:not(.andes-calendar__day--range-end)::before {
+  inset-inline-start: 50%;
+  background-color: var(--andes-calendar-band);
+}
+
+/* prettier-ignore */
+.andes-calendar__day--range-end:not(.andes-calendar__day--range-start)::before {
+  inset-inline-end: 50%;
+  background-color: var(--andes-calendar-band);
+}
+
+/* The range the hovered (or focused) cell would close: a dashed outline of the
+   band, so it stays distinct from the committed range's solid fill. */
+.andes-calendar__day--in-preview::before {
+  border-block: 1px dashed
+    var(--andes-color-primary-text, var(--andes-color-primary));
+}
+
+.andes-calendar__day--in-range:hover:not([aria-disabled='true']) > * {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-primary) 25%,
+    transparent
+  );
+}
+
+.andes-calendar__day--selected > *,
+.andes-calendar__day--selected:hover:not([aria-disabled='true']) > * {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-color-primary);
+  color: var(--andes-color-primary-foreground);
+}
+
+/* A week picker selects whole rows, so the row reads as one bar: the band carries
+   the hover and the selection, rounded at the row's two ends. */
+
+/* prettier-ignore */
+.andes-calendar--week-picker .andes-calendar__row:hover .andes-calendar__day:not([aria-disabled='true'])::before {
+  background-color: var(--andes-color-accent-hover, var(--andes-color-accent));
+}
+
+/* prettier-ignore */
+.andes-calendar--week-picker .andes-calendar__day:hover:not([aria-disabled='true']) > *,
+.andes-calendar--week-picker .andes-calendar__day--selected > * {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+/* prettier-ignore */
+.andes-calendar--week-picker .andes-calendar__day--selected::before,
+.andes-calendar--week-picker .andes-calendar__row:hover .andes-calendar__day--selected::before {
+  background-color: var(--andes-color-primary);
+}
+
+.andes-calendar--week-picker .andes-calendar__day:first-of-type::before {
+  border-start-start-radius: var(--andes-radius-sm);
+  border-end-start-radius: var(--andes-radius-sm);
+}
+
+.andes-calendar--week-picker .andes-calendar__day:last-of-type::before {
+  border-start-end-radius: var(--andes-radius-sm);
+  border-end-end-radius: var(--andes-radius-sm);
+}
+
+/* `aria-disabled` rather than `:disabled`: the button stays focusable so arrow-key
+   navigation can cross it, so the disabled styling has to key off the ARIA state. */
+.andes-calendar__day[aria-disabled='true'],
+.andes-calendar__period[aria-disabled='true'] {
+  color: var(--andes-color-muted-foreground);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* `disabled` on the component disables every cell at once; the host carries the
+   flag, so reach the cells from `:host` rather than from inside the wrapper. */
+:host([data-disabled]) .andes-calendar__day,
+:host([data-disabled]) .andes-calendar__period {
+  cursor: not-allowed;
+}
+
+:host([data-disabled]) .andes-calendar {
+  opacity: 0.7;
+}
+
+/* Fullscreen: a page-level calendar whose cells hold content (`fullscreen`).
+   Cells stretch to fill the width and read top-down: the day number, then the
+   `cellTemplate` content. */
+
+:host([data-fullscreen]) {
+  display: block;
+}
+
+.andes-calendar--fullscreen {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.andes-calendar--fullscreen .andes-calendar__panels,
+.andes-calendar--fullscreen .andes-calendar__panel,
+.andes-calendar--fullscreen .andes-calendar__grid--period {
+  flex: 1;
+  width: 100%;
+}
+
+.andes-calendar--fullscreen .andes-calendar__row {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--andes-space-1);
+}
+
+.andes-calendar--fullscreen.andes-calendar--with-week .andes-calendar__row {
+  grid-template-columns: 2.5rem repeat(7, minmax(0, 1fr));
+}
+
+.andes-calendar--fullscreen .andes-calendar__weekday {
+  justify-content: flex-end;
+  padding-inline: var(--andes-space-2);
+}
+
+.andes-calendar--fullscreen .andes-calendar__day,
+.andes-calendar--fullscreen .andes-calendar__period {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: var(--andes-space-1);
+  width: auto;
+  height: auto;
+  min-height: 5.5rem;
+  padding: var(--andes-space-1) var(--andes-space-2);
+  border-width: 2px 0 0;
+  border-style: solid;
+  border-color: var(--andes-color-border);
+  border-radius: 0;
+  text-align: start;
+}
+
+.andes-calendar--fullscreen .andes-calendar__period {
+  min-height: 4rem;
+}
+
+.andes-calendar--fullscreen .andes-calendar__cell-text {
+  align-self: flex-end;
+}
+
+.andes-calendar--fullscreen .andes-calendar__cell-content {
+  display: block;
+  overflow: hidden;
+  font-size: 0.75rem;
+}
+
+/* prettier-ignore */
+.andes-calendar--fullscreen .andes-calendar__day--selected,
+.andes-calendar--fullscreen .andes-calendar__day--selected:hover:not([aria-disabled='true']) {
+  border-color: var(--andes-color-primary);
+  background-color: var(--andes-calendar-band);
+  color: var(--andes-color-foreground);
+}
+
+/* prettier-ignore */
+.andes-calendar--fullscreen .andes-calendar__day--today:not(.andes-calendar__day--selected) {
+  border-color: var(--andes-color-primary-text, var(--andes-color-primary));
+}
+
+.andes-calendar--fullscreen .andes-calendar__week-number {
+  height: auto;
+  align-items: flex-start;
+  padding-top: var(--andes-space-1);
+}
+
+/* The chip and the band belong to the compact grid: a fullscreen cell is a plain
+   block whose top border and fill carry the states. */
+
+.andes-calendar--fullscreen .andes-calendar__day::before,
+.andes-calendar--fullscreen .andes-calendar__period::before {
+  content: none;
+}
+
+/* prettier-ignore */
+.andes-calendar--fullscreen :is(.andes-calendar__day, .andes-calendar__period) > *,
+.andes-calendar--fullscreen :is(.andes-calendar__day, .andes-calendar__period):hover:not([aria-disabled='true']) > *,
+.andes-calendar--fullscreen .andes-calendar__day--selected > * {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  color: inherit;
+  line-height: inherit;
+}
+
+/* prettier-ignore */
+.andes-calendar--fullscreen :is(.andes-calendar__day, .andes-calendar__period):hover:not([aria-disabled='true']) {
+  background-color: var(--andes-color-accent-hover, var(--andes-color-accent));
+}
+
+.andes-calendar--fullscreen .andes-calendar__day--in-range {
+  background-color: var(--andes-calendar-band);
+}
+
+/* prettier-ignore */
+.andes-calendar--fullscreen :is(.andes-calendar__day, .andes-calendar__period):focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.andes-calendar--fullscreen
+  :is(.andes-calendar__day, .andes-calendar__period):focus-visible
+  > * {
+  outline: none;
+}
+
+.andes-calendar--fullscreen .andes-calendar__cell-content--full {
+  flex: 1;
+  font-size: inherit;
+}

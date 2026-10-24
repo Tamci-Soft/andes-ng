@@ -23,7 +23,7 @@ export * from './lib/badge';
 
 export * from './lib/button';
 
-// @slot calendar
+export * from './lib/calendar';
 
 export * from './lib/card';
 
@@ -43,7 +43,7 @@ export * from './lib/command';
 
 // @slot context-menu
 
-// @slot date-picker
+export * from './lib/date-picker';
 
 // @slot descriptions
 
