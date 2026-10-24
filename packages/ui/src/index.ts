@@ -37,7 +37,7 @@ export * from './lib/collapsible';
 
 export * from './lib/color-picker';
 
-// @slot combobox
+export * from './lib/combobox';
 
 export * from './lib/command';
 
