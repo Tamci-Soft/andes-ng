@@ -1,0 +1,9 @@
+<div
+  #box
+  class="andes-affix__box"
+  data-slot="affix-box"
+  [attr.data-state]="position() ?? 'idle'"
+  [style]="boxStyle()"
+>
+  <ng-content />
+</div>

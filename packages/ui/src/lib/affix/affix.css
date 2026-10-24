@@ -1,0 +1,28 @@
+/*
+ * Sticky strategy: the host steps out of layout (`display: contents`), so the box sticks inside
+ * the host's parent exactly as if it were written there.
+ * Fixed strategy: the host stays a block and doubles as the placeholder that keeps the box's
+ * original space while the box itself is pinned with `position: fixed`.
+ *
+ * Styling hooks: --andes-affix-z-index (default 10).
+ */
+:host {
+  display: block;
+}
+
+:host([data-mode='sticky']) {
+  display: contents;
+}
+
+.andes-affix__box {
+  box-sizing: border-box;
+}
+
+:host([data-mode='sticky']) .andes-affix__box {
+  position: sticky;
+  z-index: var(--andes-affix-z-index, 10);
+}
+
+:host([data-disabled]) .andes-affix__box {
+  position: static;
+}

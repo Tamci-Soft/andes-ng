@@ -7,7 +7,7 @@
 
 export * from './lib/accordion';
 
-// @slot affix
+export * from './lib/affix';
 
 // @slot alert
 
