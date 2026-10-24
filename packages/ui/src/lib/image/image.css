@@ -1,0 +1,144 @@
+:host {
+  /* Radius of the picture; override per instance or per page. */
+  --andes-image-radius: var(--andes-radius-md, 0.375rem);
+
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: var(--andes-image-radius);
+  /* The host holds only replaced content; a text line box would add a descender gap. */
+  line-height: 0;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+/* An image with no size of its own has nothing to show a placeholder or error in. */
+:host([data-state='loading']),
+:host([data-state='error']) {
+  min-width: 3rem;
+  min-height: 3rem;
+}
+
+.andes-image__img {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  transition: opacity var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* Held back while a placeholder is up, then fades in over it. */
+.andes-image__img--pending {
+  opacity: 0;
+}
+
+:host([data-state='error']) .andes-image__img {
+  visibility: hidden;
+}
+
+.andes-image__placeholder {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--andes-color-muted, #f1f5f9);
+}
+
+.andes-image__placeholder--skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--andes-color-foreground, #0f172a) 7%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: andes-image-shimmer 1.8s ease-in-out infinite;
+}
+
+.andes-image__blur {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: blur(14px);
+  transform: scale(1.12);
+}
+
+.andes-image__error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--andes-color-muted, #f1f5f9);
+  color: var(--andes-color-muted-foreground, #5f6f86);
+  font-size: 1.5rem;
+}
+
+/* A button over the whole picture, so the thumbnail is a real control: it takes Tab,
+   Enter and Space, and a screen reader announces what it does. */
+.andes-image__mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--andes-space-2, 0.5rem);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--andes-color-primary-foreground, #fff);
+  font-family: inherit;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  cursor: zoom-in;
+  opacity: 0;
+  transition:
+    opacity var(--andes-motion-duration-mid, 150ms) ease,
+    background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+.andes-image__mask:hover,
+.andes-image__mask:focus-visible {
+  opacity: 1;
+  background: var(--andes-color-overlay, rgb(15 23 42 / 45%));
+}
+
+.andes-image__mask--bare:hover,
+.andes-image__mask--bare:focus-visible {
+  background: transparent;
+}
+
+.andes-image__mask:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
+.andes-image__mask-icon {
+  font-size: 1rem;
+}
+
+@keyframes andes-image-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-image__img,
+  .andes-image__mask {
+    transition: none;
+  }
+
+  .andes-image__placeholder--skeleton::after {
+    animation: none;
+  }
+}

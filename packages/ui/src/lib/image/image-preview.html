@@ -1,0 +1,153 @@
+<ng-template #surface>
+  @if (item(); as current) {
+  <!-- The root carries the dialog semantics (role, aria-modal, id) through the overlay
+         content directive. It is the pane's only element child, which is what the exit
+         animation contract marks as closing. -->
+  <div
+    class="andes-image-preview"
+    andesOverlayContent
+    data-slot="image-preview"
+    [attr.aria-label]="dialogLabel()"
+    [attr.data-zoomed]="zoomed() ? '' : null"
+  >
+    <!-- The stage takes initial focus (tabindex -1) so the keyboard shortcuts work from the
+           first keystroke without the user having to tab to anything. -->
+    <div
+      #stage
+      class="andes-image-preview__stage"
+      data-slot="image-preview-stage"
+      tabindex="-1"
+      cdkFocusInitial
+      [class.andes-image-preview__stage--nav]="total() > 1"
+      [class.andes-image-preview__stage--movable]="canPan()"
+      [class.andes-image-preview__stage--dragging]="dragging()"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerEnd($event)"
+      (pointercancel)="onPointerEnd($event)"
+      (click)="onStageClick($event)"
+      (keydown.escape)="onStageEscape()"
+    >
+      <img
+        #image
+        class="andes-image-preview__image"
+        data-slot="image-preview-image"
+        draggable="false"
+        [class.andes-image-preview__image--hidden]="loadState() === 'error'"
+        [attr.src]="src()"
+        [attr.alt]="current.alt ?? ''"
+        [attr.crossorigin]="current.crossOrigin ?? null"
+        [style.transform]="css()"
+        (load)="onLoad()"
+        (error)="onError()"
+        (dblclick)="onImageDoubleClick($event)"
+      />
+      @if (loadState() === 'loading') {
+      <span
+        class="andes-image-preview__loading"
+        data-slot="image-preview-loading"
+        aria-hidden="true"
+      ></span>
+      } @if (loadState() === 'error') {
+      <div
+        class="andes-image-preview__error"
+        data-slot="image-preview-error"
+        role="alert"
+      >
+        <andes-image-icon
+          name="imageOff"
+          class="andes-image-preview__error-icon"
+        />
+        <span>{{ text().loadError }}</span>
+      </div>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="andes-image-preview__close"
+      data-slot="image-preview-close"
+      [attr.aria-label]="text().close"
+      [attr.title]="text().close"
+      (click)="close()"
+    >
+      <andes-image-icon name="close" />
+    </button>
+
+    @if (total() > 1) {
+    <div
+      class="andes-image-preview__counter"
+      data-slot="image-preview-counter"
+      aria-hidden="true"
+    >
+      @if (cfg().countTemplate; as countTemplate) {
+      <ng-container
+        [ngTemplateOutlet]="countTemplate"
+        [ngTemplateOutletContext]="countContext()"
+      />
+      } @else { {{ index() + 1 }} / {{ total() }} }
+    </div>
+
+    <button
+      type="button"
+      class="andes-image-preview__nav andes-image-preview__nav--previous"
+      data-slot="image-preview-previous"
+      aria-keyshortcuts="PageUp"
+      [attr.aria-label]="text().previous"
+      [attr.title]="text().previous"
+      [attr.aria-disabled]="canPrevious() ? null : 'true'"
+      (click)="step(-1)"
+    >
+      <andes-image-icon
+        name="previous"
+        class="andes-image-preview__directional"
+      />
+    </button>
+    <button
+      type="button"
+      class="andes-image-preview__nav andes-image-preview__nav--next"
+      data-slot="image-preview-next"
+      aria-keyshortcuts="PageDown"
+      [attr.aria-label]="text().next"
+      [attr.title]="text().next"
+      [attr.aria-disabled]="canNext() ? null : 'true'"
+      (click)="step(1)"
+    >
+      <andes-image-icon name="next" class="andes-image-preview__directional" />
+    </button>
+    }
+
+    <div
+      class="andes-image-preview__toolbar"
+      data-slot="image-preview-toolbar"
+      role="group"
+      [attr.aria-label]="text().toolbar"
+    >
+      @for (action of toolbarActions(); track action) {
+      <button
+        type="button"
+        class="andes-image-preview__button"
+        [attr.data-action]="action"
+        [attr.aria-label]="text()[action]"
+        [attr.title]="text()[action]"
+        [attr.aria-keyshortcuts]="shortcut(action)"
+        [attr.aria-disabled]="actionDisabled(action) ? 'true' : null"
+        (click)="run(action)"
+      >
+        <andes-image-icon [name]="action" />
+      </button>
+      } @if (cfg().extraActions; as extra) {
+      <ng-container
+        [ngTemplateOutlet]="extra"
+        [ngTemplateOutletContext]="extraContext()"
+      />
+      }
+    </div>
+
+    <div class="andes-image-preview__sr" role="status" aria-live="polite">
+      {{ announcement() }}
+    </div>
+  </div>
+  }
+</ng-template>

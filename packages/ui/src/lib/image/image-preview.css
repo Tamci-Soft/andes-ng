@@ -1,0 +1,367 @@
+/*
+ * The image viewer is rendered into the overlay container, outside any component host, and
+ * its backdrop is created by the overlay primitive, so the stylesheet is unencapsulated and
+ * every class is namespaced `andes-image-preview*`.
+ */
+
+.andes-image-preview {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-primary-foreground, #fff);
+  animation: andes-image-preview-fade-in var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* The scrim is the primitive's backdrop element. The CDK stylesheet fades it over 400ms,
+   which would keep it darkening long after the image has arrived. */
+.andes-image-preview-backdrop {
+  transition-duration: var(--andes-motion-duration-mid, 150ms);
+  transition-timing-function: var(
+    --andes-motion-ease-out,
+    cubic-bezier(0.2, 0, 0, 1)
+  );
+}
+
+.andes-image-preview-backdrop--blur {
+  backdrop-filter: blur(4px);
+}
+
+/* --- Stage ---------------------------------------------------------------------------- */
+
+.andes-image-preview__stage {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Clear of the counter and close button above and the toolbar below. */
+  padding-block: 3.5rem 4.5rem;
+  padding-inline: var(--andes-space-5, 1.25rem);
+  overflow: hidden;
+  outline: none;
+  /* The viewer handles pan itself; the browser must not scroll or zoom the page instead. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: andes-image-preview-settle-in
+    var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.andes-image-preview__stage--nav {
+  padding-inline: 4rem;
+}
+
+.andes-image-preview__stage--movable {
+  cursor: grab;
+}
+
+.andes-image-preview__stage--dragging {
+  cursor: grabbing;
+}
+
+.andes-image-preview__image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center center;
+  border-radius: var(--andes-radius-sm, 0.25rem);
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: transform var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* No easing while a finger or pointer is holding the image: it must track it exactly. */
+.andes-image-preview__stage--dragging .andes-image-preview__image {
+  transition: none;
+}
+
+.andes-image-preview__image--hidden {
+  visibility: hidden;
+}
+
+.andes-image-preview__loading {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  box-sizing: border-box;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: -0.75rem;
+  border: 2px solid
+    color-mix(
+      in srgb,
+      var(--andes-color-primary-foreground, #fff) 30%,
+      transparent
+    );
+  border-top-color: var(--andes-color-primary-foreground, #fff);
+  border-radius: var(--andes-radius-full, 9999px);
+  animation: andes-image-preview-spin 1s linear infinite;
+  pointer-events: none;
+}
+
+.andes-image-preview__error {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  padding: var(--andes-space-2, 0.5rem) var(--andes-space-3, 0.75rem);
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background: var(--andes-color-overlay, rgb(15 23 42 / 45%));
+  color: var(--andes-color-primary-foreground, #fff);
+}
+
+.andes-image-preview__error-icon {
+  font-size: 1.25rem;
+}
+
+/* --- Floating controls --------------------------------------------------------------- */
+
+.andes-image-preview__toolbar,
+.andes-image-preview__counter,
+.andes-image-preview__close,
+.andes-image-preview__nav {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--andes-color-border, #e2e8f0);
+  background: color-mix(
+    in srgb,
+    var(--andes-color-popover, #fff) 94%,
+    transparent
+  );
+  color: var(--andes-color-popover-foreground, #0f172a);
+  box-shadow: var(
+    --andes-shadow-md,
+    0 4px 6px -1px rgb(0 0 0 / 10%),
+    0 2px 4px -2px rgb(0 0 0 / 10%)
+  );
+}
+
+.andes-image-preview__toolbar {
+  inset-block-end: var(--andes-space-4, 1rem);
+  inset-inline-start: 50%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - var(--andes-space-4, 1rem) * 2);
+  padding: 3px;
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  transform: translateX(-50%);
+}
+
+.andes-image-preview__toolbar:dir(rtl) {
+  transform: translateX(50%);
+}
+
+.andes-image-preview__counter {
+  inset-block-start: var(--andes-space-4, 1rem);
+  inset-inline-start: 50%;
+  padding: 0 var(--andes-space-3, 0.75rem);
+  border-radius: var(--andes-radius-full, 9999px);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+}
+
+.andes-image-preview__counter:dir(rtl) {
+  transform: translateX(50%);
+}
+
+.andes-image-preview__close {
+  inset-block-start: var(--andes-space-4, 1rem);
+  inset-inline-end: var(--andes-space-4, 1rem);
+}
+
+.andes-image-preview__nav {
+  inset-block-start: 50%;
+  margin-block-start: -1.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--andes-radius-full, 9999px);
+}
+
+.andes-image-preview__nav--previous {
+  inset-inline-start: var(--andes-space-4, 1rem);
+}
+
+.andes-image-preview__nav--next {
+  inset-inline-end: var(--andes-space-4, 1rem);
+}
+
+/* The chevrons point toward the edge they sit on, which swaps sides in right-to-left. */
+.andes-image-preview__directional:dir(rtl) {
+  transform: scaleX(-1);
+}
+
+.andes-image-preview__close,
+.andes-image-preview__nav,
+.andes-image-preview__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    background-color var(--andes-motion-duration-fast, 120ms) ease,
+    opacity var(--andes-motion-duration-fast, 120ms) ease;
+}
+
+.andes-image-preview__close {
+  width: var(--andes-control-height-md, 2rem);
+  height: var(--andes-control-height-md, 2rem);
+  border-radius: var(--andes-radius-full, 9999px);
+}
+
+.andes-image-preview__button {
+  width: var(--andes-control-height-md, 2rem);
+  height: var(--andes-control-height-md, 2rem);
+  border: 0;
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background: transparent;
+  color: inherit;
+}
+
+.andes-image-preview__close:hover,
+.andes-image-preview__nav:hover,
+.andes-image-preview__button:hover {
+  background-color: var(--andes-color-accent, #f1f5f9);
+}
+
+.andes-image-preview__close:focus-visible,
+.andes-image-preview__nav:focus-visible,
+.andes-image-preview__button:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 1px;
+}
+
+.andes-image-preview__close[aria-disabled='true'],
+.andes-image-preview__nav[aria-disabled='true'],
+.andes-image-preview__button[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.andes-image-preview__close[aria-disabled='true']:hover,
+.andes-image-preview__nav[aria-disabled='true']:hover,
+.andes-image-preview__button[aria-disabled='true']:hover {
+  background-color: transparent;
+}
+
+/* Visually hidden, still announced. */
+.andes-image-preview__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Motion --------------------------------------------------------------------------- */
+
+/* Exit. The overlay primitive marks the pane's children and the scrim with
+   `data-andes-closing` and waits for these before detaching; the viewer leaves faster than
+   it arrived and accelerates away. `forwards` holds the last frame until the pane is gone. */
+.andes-image-preview[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-image-preview-fade-out
+    var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, cubic-bezier(0.4, 0, 1, 1)) forwards;
+}
+
+.andes-image-preview[data-andes-closing] .andes-image-preview__stage {
+  animation: andes-image-preview-settle-out
+    var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, cubic-bezier(0.4, 0, 1, 1)) forwards;
+}
+
+.andes-image-preview-backdrop[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-image-preview-fade-out
+    var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, cubic-bezier(0.4, 0, 1, 1)) forwards;
+}
+
+@keyframes andes-image-preview-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes andes-image-preview-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes andes-image-preview-settle-in {
+  from {
+    transform: scale(0.97);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes andes-image-preview-settle-out {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(0.97);
+  }
+}
+
+@keyframes andes-image-preview-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-image-preview,
+  .andes-image-preview__stage,
+  .andes-image-preview[data-andes-closing],
+  .andes-image-preview[data-andes-closing] .andes-image-preview__stage,
+  .andes-image-preview-backdrop[data-andes-closing] {
+    animation: none;
+  }
+
+  .andes-image-preview-backdrop,
+  .andes-image-preview__image,
+  .andes-image-preview__close,
+  .andes-image-preview__nav,
+  .andes-image-preview__button {
+    transition: none;
+  }
+
+  /* A static ring still says "loading" without anything turning. */
+  .andes-image-preview__loading {
+    animation: none;
+  }
+}
