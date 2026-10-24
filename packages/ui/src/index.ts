@@ -97,7 +97,7 @@ export * from './lib/popconfirm';
 
 export * from './lib/popover';
 
-// @slot progress
+export * from './lib/progress';
 
 // @slot qr-code
 
