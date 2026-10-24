@@ -41,7 +41,7 @@ export * from './lib/color-picker';
 
 export * from './lib/command';
 
-// @slot context-menu
+export * from './lib/context-menu';
 
 export * from './lib/date-picker';
 
