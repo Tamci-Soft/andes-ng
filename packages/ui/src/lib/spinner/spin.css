@@ -1,0 +1,79 @@
+/* The mask covers the whole host. Its indicator is a sticky box as tall as the visible
+   viewport (the nearest scroller's height, measured in spin.ts, or the window), capped at the
+   mask: short content centres the indicator inside itself, tall content keeps it in the middle
+   of the part of the list that is on screen.
+     --andes-spin-scrim             overlay colour (default: background at 55%)
+     --andes-spin-content-opacity   dimmed content opacity (default 0.5)
+     --andes-spin-content-blur      dimmed content blur (default 1px) */
+
+:host {
+  position: relative;
+  display: block;
+}
+
+.andes-spin__content {
+  transition: opacity var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, ease-out);
+}
+
+.andes-spin__content[data-dimmed] {
+  opacity: var(--andes-spin-content-opacity, 0.5);
+  filter: blur(var(--andes-spin-content-blur, 1px));
+  pointer-events: none;
+  user-select: none;
+}
+
+.andes-spin__mask {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(
+    --andes-spin-scrim,
+    color-mix(in srgb, var(--andes-color-background) 55%, transparent)
+  );
+  animation: andes-spin-in var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, ease-out) both;
+}
+
+.andes-spin__indicator {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  block-size: min(100%, var(--andes-spin-viewport, 100dvh));
+}
+
+/* Fullscreen: a fixed scrim over the page, the content is left as it is. */
+:host([data-fullscreen]) .andes-spin__mask {
+  position: fixed;
+  z-index: var(--andes-z-index-overlay, 1000);
+  background: var(
+    --andes-spin-scrim,
+    color-mix(in srgb, var(--andes-color-background) 70%, transparent)
+  );
+}
+
+:host([data-fullscreen]) .andes-spin__indicator {
+  block-size: 100%;
+}
+
+@keyframes andes-spin-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-spin__content {
+    transition: none;
+  }
+
+  .andes-spin__mask {
+    animation: none;
+  }
+}

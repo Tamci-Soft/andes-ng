@@ -1,0 +1,24 @@
+<div
+  class="andes-spin__content"
+  data-slot="spin-content"
+  [attr.data-dimmed]="dimContent() ? '' : null"
+>
+  <ng-content />
+</div>
+@if (visible()) {
+<div
+  class="andes-spin__mask"
+  data-slot="spin-mask"
+  [style.--andes-spin-viewport]="viewportSize()"
+>
+  <div class="andes-spin__indicator">
+    <andes-spinner
+      [variant]="variant()"
+      [size]="size()"
+      [tip]="tip()"
+      [percent]="percent()"
+      [label]="label()"
+    />
+  </div>
+</div>
+}

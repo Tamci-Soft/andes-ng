@@ -121,7 +121,7 @@ export * from './lib/slider';
 
 export * from './lib/space';
 
-// @slot spinner
+export * from './lib/spinner';
 
 // @slot splitter
 
