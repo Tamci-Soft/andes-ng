@@ -103,7 +103,7 @@ export * from './lib/qr-code';
 
 export * from './lib/radio-group';
 
-// @slot rate
+export * from './lib/rate';
 
 // @slot result
 
