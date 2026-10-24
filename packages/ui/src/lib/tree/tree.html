@@ -1,0 +1,309 @@
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+<!--
+  The row and the list react to the mouse and to events bubbling up from the treeitems, which
+  are the focusable elements and handle every key (the whole treeview keyboard model lives on
+  the list's keydown), so neither needs a tab stop or key handler of its own.
+
+  One template draws every node, whether the tree nests its rows (so a branch can animate
+  open and shut inside a role="group") or lists them flat inside a virtual viewport. A
+  branch's children live inside their parent's treeitem, so the treeitem itself is the
+  focusable element and the focus ring is drawn on its row.
+-->
+<ng-template #itemTemplate let-row>
+  @let key = row.key; @let leaf = isLeaf(row); @let expanded = !leaf &&
+  isExpanded(key); @let selectableRow = canSelect(row); @let checkboxRow =
+  showCheckbox(row); @let drop = dropIndicator();
+  <div
+    class="andes-tree__item"
+    role="treeitem"
+    [id]="itemId(key)"
+    [attr.tabindex]="key === tabbableKey() ? 0 : -1"
+    [attr.aria-level]="row.level"
+    [attr.aria-posinset]="row.posInSet"
+    [attr.aria-setsize]="row.setSize"
+    [attr.aria-expanded]="leaf ? null : expanded"
+    [attr.aria-selected]="selectableRow ? isSelected(key) : null"
+    [attr.aria-checked]="checkboxRow ? checkedAria(key) : null"
+    [attr.aria-disabled]="row.entry.disabled ? 'true' : null"
+    [attr.aria-busy]="isLoading(key) ? 'true' : null"
+    [attr.aria-labelledby]="titleId(key)"
+  >
+    <div
+      class="andes-tree__row"
+      [attr.data-selected]="selectableRow && isSelected(key) ? '' : null"
+      [attr.data-disabled]="row.entry.disabled ? '' : null"
+      [attr.data-last]="row.isLast ? '' : null"
+      [attr.data-leaf]="leaf ? '' : null"
+      [attr.data-state]="leaf ? null : expanded ? 'open' : 'closed'"
+      [attr.data-dragging]="isDragging(key) ? '' : null"
+      [attr.data-drop]="drop && drop.key === key ? drop.position : null"
+      (click)="onRowClick($event, row)"
+      (dblclick)="onRowDoubleClick($event, row)"
+      (contextmenu)="onRowContextMenu($event, row)"
+      (dragstart)="onDragStart($event, row)"
+      (dragover)="onDragOver($event, row)"
+      (dragleave)="onDragLeave($event, row)"
+      (drop)="onDrop($event, row)"
+      (dragend)="onDragEnd($event, row)"
+    >
+      @for (line of row.connectors; track $index) {
+      <span
+        class="andes-tree__indent"
+        aria-hidden="true"
+        [attr.data-line]="line ? '' : null"
+        [attr.data-elbow]="$last ? '' : null"
+      ></span>
+      }
+      <span
+        class="andes-tree__switcher"
+        aria-hidden="true"
+        [attr.data-leaf]="leaf ? '' : null"
+        (click)="onSwitcherClick($event, row)"
+      >
+        @if (isLoading(key)) {
+        <svg class="andes-tree__spinner" viewBox="0 0 16 16" fill="none">
+          <circle
+            cx="8"
+            cy="8"
+            r="6"
+            stroke="currentColor"
+            stroke-opacity="0.25"
+            stroke-width="2"
+          />
+          <path
+            d="M14 8a6 6 0 0 0-6-6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+        } @else if (!leaf) { @if (showLine()) {
+        <svg class="andes-tree__box" viewBox="0 0 12 12" fill="none">
+          <rect
+            x="0.5"
+            y="0.5"
+            width="11"
+            height="11"
+            rx="2"
+            stroke="currentColor"
+          />
+          <path d="M3 6h6" stroke="currentColor" stroke-linecap="round" />
+          @if (!expanded) {
+          <path d="M6 3v6" stroke="currentColor" stroke-linecap="round" />
+          }
+        </svg>
+        } @else {
+        <svg class="andes-tree__chevron" viewBox="0 0 16 16" fill="none">
+          <path
+            d="m6 3.5 4.5 4.5L6 12.5"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        } }
+      </span>
+      @if (checkboxRow) {
+      <span
+        class="andes-tree__checkbox"
+        aria-hidden="true"
+        [attr.data-state]="isChecked(key) ? 'checked' : isIndeterminate(key) ? 'indeterminate' : 'unchecked'"
+        [attr.data-disabled]="row.entry.disableCheckbox ? '' : null"
+        (click)="onCheckboxClick($event, row)"
+      >
+        @if (isChecked(key)) {
+        <svg viewBox="0 0 16 16" fill="none">
+          <path
+            d="m3.5 8.5 3 3 6-6.5"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        } @else if (isIndeterminate(key)) {
+        <svg viewBox="0 0 16 16" fill="none">
+          <path
+            d="M4 8h8"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+        }
+      </span>
+      }
+      <span
+        class="andes-tree__content"
+        [attr.draggable]="isDraggable(row) ? 'true' : null"
+      >
+        @if (iconsShown()) {
+        <span class="andes-tree__icon" aria-hidden="true">
+          @if (iconTemplateFor(row); as iconTpl) {
+          <ng-container
+            [ngTemplateOutlet]="iconTpl"
+            [ngTemplateOutletContext]="nodeContext(row)"
+          />
+          } @else if (iconGlyph(row); as glyph) { {{ glyph }} } @else if (leaf)
+          {
+          <svg viewBox="0 0 16 16" fill="none">
+            <path
+              d="M4 1.75h5l3 3v8.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10.5a1 1 0 0 1 1-1Z"
+              stroke="currentColor"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M9 1.75v3h3"
+              stroke="currentColor"
+              stroke-linejoin="round"
+            />
+          </svg>
+          } @else if (expanded) {
+          <svg viewBox="0 0 16 16" fill="none">
+            <path
+              d="M1.75 12.5V4a1 1 0 0 1 1-1h3l1.5 1.75h5a1 1 0 0 1 1 1V7"
+              stroke="currentColor"
+              stroke-linejoin="round"
+            />
+            <path
+              d="m1.75 12.5 1.7-4.6a1 1 0 0 1 .94-.65h9.35a.5.5 0 0 1 .47.67l-1.6 4.4a1 1 0 0 1-.94.65H2.75a1 1 0 0 1-1-1Z"
+              stroke="currentColor"
+              stroke-linejoin="round"
+            />
+          </svg>
+          } @else {
+          <svg viewBox="0 0 16 16" fill="none">
+            <path
+              d="M1.75 12.5V3.75a1 1 0 0 1 1-1h3l1.5 1.75h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1Z"
+              stroke="currentColor"
+              stroke-linejoin="round"
+            />
+          </svg>
+          }
+        </span>
+        }
+        <span class="andes-tree__title" [id]="titleId(key)">
+          @if (customNodeTemplate(); as nodeTpl) {
+          <ng-container
+            [ngTemplateOutlet]="nodeTpl"
+            [ngTemplateOutletContext]="nodeContext(row)"
+          />
+          } @else { @for (segment of rowSegments(row); track $index) { @if
+          (segment.match) {
+          <mark class="andes-tree__match">{{ segment.text }}</mark>
+          } @else {
+          <ng-container>{{ segment.text }}</ng-container>
+          } } }
+        </span>
+      </span>
+      @if (drop && drop.key === key && drop.position !== 'inside') {
+      <span
+        class="andes-tree__drop-indicator"
+        aria-hidden="true"
+        [attr.data-position]="drop.position"
+        [style.--_drop-level]="drop.level"
+      ></span>
+      }
+    </div>
+    @if (!virtualScroll() && row.hasChildren && everExpanded().has(key)) {
+    <div
+      class="andes-tree__collapse"
+      role="none"
+      [attr.data-expanded]="expanded ? '' : null"
+      [attr.inert]="expanded ? null : ''"
+      [attr.data-animate]="animateKeys().has(key) ? '' : null"
+      (animationend)="onCollapseAnimationEnd($event, key)"
+    >
+      <div class="andes-tree__collapse-inner" role="none">
+        <div class="andes-tree__group" role="group">
+          @for (child of childRows(key); track child.key) {
+          <ng-container
+            [ngTemplateOutlet]="itemTemplate"
+            [ngTemplateOutletContext]="{ $implicit: child }"
+          />
+          }
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</ng-template>
+
+<div
+  class="andes-tree"
+  [attr.data-density]="density()"
+  [attr.data-line]="showLine() ? '' : null"
+  [attr.data-block]="blockNode() || directory() ? '' : null"
+  [attr.data-directory]="directory() ? '' : null"
+  [attr.data-virtual]="virtualScroll() ? '' : null"
+  [attr.data-dragging]="dragKey() !== null ? '' : null"
+>
+  @if (hasRows()) {
+  <div
+    class="andes-tree__list"
+    role="tree"
+    [attr.aria-label]="ariaLabel() ?? null"
+    [attr.aria-labelledby]="ariaLabelledby() ?? null"
+    [attr.aria-multiselectable]="multiple() ? 'true' : null"
+    [attr.aria-busy]="loading() ? 'true' : null"
+    (keydown)="onKeydown($event)"
+    (focusin)="onFocusin($event)"
+  >
+    @if (virtualScroll()) {
+    <cdk-virtual-scroll-viewport
+      class="andes-tree__viewport"
+      [itemSize]="rowHeight()"
+      [style.height]="viewportHeight()"
+    >
+      <ng-container
+        *cdkVirtualFor="let row of visibleRows(); trackBy: trackRow"
+      >
+        <ng-container
+          [ngTemplateOutlet]="itemTemplate"
+          [ngTemplateOutletContext]="{ $implicit: row }"
+        />
+      </ng-container>
+    </cdk-virtual-scroll-viewport>
+    } @else { @for (row of rootRows(); track row.key) {
+    <ng-container
+      [ngTemplateOutlet]="itemTemplate"
+      [ngTemplateOutletContext]="{ $implicit: row }"
+    />
+    } }
+  </div>
+  } @else {
+  <div class="andes-tree__empty" [attr.aria-busy]="loading() ? 'true' : null">
+    @if (loading()) {
+    <svg
+      class="andes-tree__spinner"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="6"
+        stroke="currentColor"
+        stroke-opacity="0.25"
+        stroke-width="2"
+      />
+      <path
+        d="M14 8a6 6 0 0 0-6-6"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+    </svg>
+    {{ text().loading }} } @else { {{ text().empty }} }
+  </div>
+  }
+  <div
+    class="andes-tree__live"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    [textContent]="announcement()"
+  ></div>
+</div>

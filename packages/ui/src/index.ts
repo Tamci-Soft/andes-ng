@@ -151,7 +151,7 @@ export * from './lib/tour';
 
 export * from './lib/transfer';
 
-// @slot tree
+export * from './lib/tree';
 
 // @slot tree-select
 
