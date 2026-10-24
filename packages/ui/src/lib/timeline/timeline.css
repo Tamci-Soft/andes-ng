@@ -1,0 +1,75 @@
+:host {
+  display: block;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-foreground);
+}
+
+.andes-timeline {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Newest first: only the painting order flips, the document (and reading) order stays. */
+:host([data-reverse]) .andes-timeline {
+  flex-direction: column-reverse;
+}
+
+/* Pending content */
+
+.andes-timeline__ellipsis {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  block-size: 1.375rem;
+}
+
+.andes-timeline__ellipsis i {
+  inline-size: 0.25rem;
+  block-size: 0.25rem;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--andes-color-muted-foreground, #64748b);
+  animation: andes-timeline-ellipsis 1.4s ease-in-out infinite;
+}
+
+.andes-timeline__ellipsis i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.andes-timeline__ellipsis i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes andes-timeline-ellipsis {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.andes-timeline__sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-timeline__ellipsis i {
+    animation: none;
+    opacity: 0.6;
+  }
+}
