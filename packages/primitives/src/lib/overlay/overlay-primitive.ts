@@ -539,16 +539,7 @@ export class AndesOverlayPrimitive {
       clearTimeout(exit.timer);
     }
     exit.subscription.unsubscribe();
-    for (const element of exit.marked) {
-      element.removeAttribute(ANDES_OVERLAY_CLOSING_ATTRIBUTE);
-    }
-    for (const [element, value] of exit.pointerEvents) {
-      if (value) {
-        element.style.setProperty('pointer-events', value);
-      } else {
-        element.style.removeProperty('pointer-events');
-      }
-    }
+    this.clearExitMarks(exit);
 
     const config = this._config();
     const pane = ref.overlayElement;
@@ -565,6 +556,20 @@ export class AndesOverlayPrimitive {
     this.applyInertBackground(ref, config);
     this.wireDismissal(ref);
     this.installFocusManagement(ref, config, !focusInside);
+  }
+
+  /** Undoes what `startExit` did to the elements it marked. */
+  private clearExitMarks(exit: AndesOverlayPendingExit): void {
+    for (const element of exit.marked) {
+      element.removeAttribute(ANDES_OVERLAY_CLOSING_ATTRIBUTE);
+    }
+    for (const [element, value] of exit.pointerEvents) {
+      if (value) {
+        element.style.setProperty('pointer-events', value);
+      } else {
+        element.style.removeProperty('pointer-events');
+      }
+    }
   }
 
   /** Detaches the overlay and finishes a requested close. */
@@ -587,6 +592,10 @@ export class AndesOverlayPrimitive {
     this.overlayRef = null;
     this.attachedContent = null;
     this.attachedContext = undefined;
+    // After the dispose, so the panel cannot paint un-faded for a frame. Projected
+    // content belongs to the consumer's view and is moved into the next pane as is:
+    // left marked, it would replay the exit animation there and stay invisible.
+    this.clearExitMarks(exit);
 
     this._panelElement.set(null);
     this._backdropElement.set(null);
