@@ -1,0 +1,28 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--andes-space-1, 0.25rem);
+  vertical-align: baseline;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+.andes-kbd-group__separator {
+  color: var(
+    --andes-kbd-separator-color,
+    var(--andes-color-muted-foreground, #64748b)
+  );
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+/* Projected `andes-kbd` siblings get their separator from the stylesheet (the host's own gap
+   spaces it): ::ng-deep reaches the projected key caps, which belong to another view. */
+:host ::ng-deep andes-kbd + andes-kbd::before {
+  content: var(--_kbd-separator, '+');
+  color: var(
+    --andes-kbd-separator-color,
+    var(--andes-color-muted-foreground, #64748b)
+  );
+  font-size: 0.75rem;
+  font-weight: 400;
+}

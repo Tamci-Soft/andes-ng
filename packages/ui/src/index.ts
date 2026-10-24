@@ -73,7 +73,7 @@ export * from './lib/input';
 
 export * from './lib/input-number';
 
-// @slot kbd
+export * from './lib/kbd';
 
 // @slot layout
 
