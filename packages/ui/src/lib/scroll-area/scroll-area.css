@@ -1,0 +1,194 @@
+:host {
+  --_size: var(--andes-scroll-area-size, 0.625rem);
+  --_thumb: var(
+    --andes-scroll-area-thumb-color,
+    color-mix(in srgb, var(--andes-color-foreground, #0f172a) 28%, transparent)
+  );
+  --_thumb-hover: var(
+    --andes-scroll-area-thumb-hover-color,
+    color-mix(in srgb, var(--andes-color-foreground, #0f172a) 45%, transparent)
+  );
+  --_shadow: color-mix(
+    in srgb,
+    var(--andes-color-foreground, #0f172a) 14%,
+    transparent
+  );
+  position: relative;
+  display: block;
+  overflow: hidden;
+  font-family: var(--andes-font-family), sans-serif;
+}
+
+/* The native scroller does all the scrolling; only its scrollbar is hidden. Height and
+   max-height of the host are passed down so either one makes the content scroll. */
+.andes-scroll-area__viewport {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-height: inherit;
+  overflow: scroll;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.andes-scroll-area__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+:host([data-orientation='vertical']) .andes-scroll-area__viewport {
+  overflow-x: hidden;
+}
+
+:host([data-orientation='horizontal']) .andes-scroll-area__viewport {
+  overflow-y: hidden;
+}
+
+/* The focus ring sits inside the box: the host clips anything drawn outside it. */
+.andes-scroll-area__viewport:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: -2px;
+}
+
+/* Horizontal scrolling needs content that may be wider than the box. */
+:host(:not([data-orientation='vertical'])) .andes-scroll-area__content {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Bars overlay the content: absolutely placed, so they never take layout space. */
+.andes-scroll-area__scrollbar {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  box-sizing: border-box;
+  padding: 0.125rem;
+  touch-action: none;
+  user-select: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.andes-scroll-area__scrollbar[data-state='visible'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.andes-scroll-area__scrollbar[data-orientation='vertical'] {
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: var(--_size);
+  flex-direction: column;
+}
+
+.andes-scroll-area__scrollbar[data-orientation='horizontal'] {
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: var(--_size);
+  flex-direction: row;
+}
+
+/* With both bars, each stops short of the corner so they never overlap. */
+.andes-scroll-area__scrollbar[data-orientation='vertical'][data-corner] {
+  inset-block-end: var(--_size);
+}
+
+.andes-scroll-area__scrollbar[data-orientation='horizontal'][data-corner] {
+  inset-inline-end: var(--_size);
+}
+
+.andes-scroll-area__thumb {
+  flex: none;
+  border-radius: var(--andes-radius-full, 9999px);
+  background-color: var(--_thumb);
+  cursor: default;
+  touch-action: none;
+  transition: background-color 150ms ease;
+}
+
+.andes-scroll-area__scrollbar[data-orientation='vertical']
+  .andes-scroll-area__thumb {
+  width: 100%;
+}
+
+.andes-scroll-area__scrollbar[data-orientation='horizontal']
+  .andes-scroll-area__thumb {
+  height: 100%;
+}
+
+.andes-scroll-area__thumb:hover {
+  background-color: var(--_thumb-hover);
+}
+
+.andes-scroll-area__thumb[data-dragging] {
+  background-color: var(--_thumb-hover);
+}
+
+.andes-scroll-area__corner {
+  position: absolute;
+  z-index: 2;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  width: var(--_size);
+  height: var(--_size);
+  background-color: var(--andes-scroll-area-corner-bg, transparent);
+  pointer-events: none;
+}
+
+/* Soft edges that hint at more content; each fades in only while there is more that way. */
+.andes-scroll-area__shadow {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.andes-scroll-area__shadow[data-visible] {
+  opacity: 1;
+}
+
+.andes-scroll-area__shadow[data-edge='top'] {
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 0.75rem;
+  background: linear-gradient(to bottom, var(--_shadow), transparent);
+}
+
+.andes-scroll-area__shadow[data-edge='bottom'] {
+  inset-block-end: 0;
+  inset-inline: 0;
+  height: 0.75rem;
+  background: linear-gradient(to top, var(--_shadow), transparent);
+}
+
+.andes-scroll-area__shadow[data-edge='start'] {
+  inset-inline-start: 0;
+  inset-block: 0;
+  width: 0.75rem;
+  background: linear-gradient(to right, var(--_shadow), transparent);
+}
+
+.andes-scroll-area__shadow[data-edge='end'] {
+  inset-inline-end: 0;
+  inset-block: 0;
+  width: 0.75rem;
+  background: linear-gradient(to left, var(--_shadow), transparent);
+}
+
+:host([data-rtl]) .andes-scroll-area__shadow[data-edge='start'] {
+  background: linear-gradient(to left, var(--_shadow), transparent);
+}
+
+:host([data-rtl]) .andes-scroll-area__shadow[data-edge='end'] {
+  background: linear-gradient(to right, var(--_shadow), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-scroll-area__scrollbar,
+  .andes-scroll-area__shadow,
+  .andes-scroll-area__thumb {
+    transition: none;
+  }
+}
