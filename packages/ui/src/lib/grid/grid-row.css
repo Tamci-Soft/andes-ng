@@ -1,0 +1,266 @@
+/* Responsive props arrive as custom properties (--andes-row-gx, --andes-row-gx-md, ...) written by
+   the component. The media queries below pick the one for the current width, falling back to the
+   next smaller breakpoint and finally to the plain value, so no script runs for the layout. */
+
+:host {
+  /* A row nested in a column must not inherit the outer row's inputs. */
+  --andes-row-gx: initial;
+  --andes-row-gx-xs: initial;
+  --andes-row-gx-sm: initial;
+  --andes-row-gx-md: initial;
+  --andes-row-gx-lg: initial;
+  --andes-row-gx-xl: initial;
+  --andes-row-gx-xxl: initial;
+  --andes-row-gy: initial;
+  --andes-row-gy-xs: initial;
+  --andes-row-gy-sm: initial;
+  --andes-row-gy-md: initial;
+  --andes-row-gy-lg: initial;
+  --andes-row-gy-xl: initial;
+  --andes-row-gy-xxl: initial;
+  --andes-row-align: initial;
+  --andes-row-align-xs: initial;
+  --andes-row-align-sm: initial;
+  --andes-row-align-md: initial;
+  --andes-row-align-lg: initial;
+  --andes-row-align-xl: initial;
+  --andes-row-align-xxl: initial;
+  --andes-row-justify: initial;
+  --andes-row-justify-xs: initial;
+  --andes-row-justify-sm: initial;
+  --andes-row-justify-md: initial;
+  --andes-row-justify-lg: initial;
+  --andes-row-justify-xl: initial;
+  --andes-row-justify-xxl: initial;
+
+  --andes-grid-gutter-x: var(--andes-row-gx-xs, var(--andes-row-gx, 0px));
+  --andes-grid-gutter-y: var(--andes-row-gy-xs, var(--andes-row-gy, 0px));
+  --_align: var(--andes-row-align-xs, var(--andes-row-align));
+  --_justify: var(--andes-row-justify-xs, var(--andes-row-justify));
+
+  display: flex;
+  flex-flow: row wrap;
+  box-sizing: border-box;
+  min-width: 0;
+  column-gap: var(--andes-grid-gutter-x, 0px);
+  row-gap: var(--andes-grid-gutter-y, 0px);
+  align-items: var(--_align);
+  justify-content: var(--_justify);
+}
+
+:host([data-nowrap]) {
+  flex-wrap: nowrap;
+}
+
+@media (min-width: 576px) {
+  :host {
+    --andes-grid-gutter-x: var(
+      --andes-row-gx-sm,
+      var(--andes-row-gx-xs, var(--andes-row-gx, 0px))
+    );
+    --andes-grid-gutter-y: var(
+      --andes-row-gy-sm,
+      var(--andes-row-gy-xs, var(--andes-row-gy, 0px))
+    );
+    --_align: var(
+      --andes-row-align-sm,
+      var(--andes-row-align-xs, var(--andes-row-align))
+    );
+    --_justify: var(
+      --andes-row-justify-sm,
+      var(--andes-row-justify-xs, var(--andes-row-justify))
+    );
+  }
+}
+
+@media (min-width: 768px) {
+  :host {
+    --andes-grid-gutter-x: var(
+      --andes-row-gx-md,
+      var(--andes-row-gx-sm, var(--andes-row-gx-xs, var(--andes-row-gx, 0px)))
+    );
+    --andes-grid-gutter-y: var(
+      --andes-row-gy-md,
+      var(--andes-row-gy-sm, var(--andes-row-gy-xs, var(--andes-row-gy, 0px)))
+    );
+    --_align: var(
+      --andes-row-align-md,
+      var(
+        --andes-row-align-sm,
+        var(--andes-row-align-xs, var(--andes-row-align))
+      )
+    );
+    --_justify: var(
+      --andes-row-justify-md,
+      var(
+        --andes-row-justify-sm,
+        var(--andes-row-justify-xs, var(--andes-row-justify))
+      )
+    );
+  }
+}
+
+@media (min-width: 992px) {
+  :host {
+    --andes-grid-gutter-x: var(
+      --andes-row-gx-lg,
+      var(
+        --andes-row-gx-md,
+        var(--andes-row-gx-sm, var(--andes-row-gx-xs, var(--andes-row-gx, 0px)))
+      )
+    );
+    --andes-grid-gutter-y: var(
+      --andes-row-gy-lg,
+      var(
+        --andes-row-gy-md,
+        var(--andes-row-gy-sm, var(--andes-row-gy-xs, var(--andes-row-gy, 0px)))
+      )
+    );
+    --_align: var(
+      --andes-row-align-lg,
+      var(
+        --andes-row-align-md,
+        var(
+          --andes-row-align-sm,
+          var(--andes-row-align-xs, var(--andes-row-align))
+        )
+      )
+    );
+    --_justify: var(
+      --andes-row-justify-lg,
+      var(
+        --andes-row-justify-md,
+        var(
+          --andes-row-justify-sm,
+          var(--andes-row-justify-xs, var(--andes-row-justify))
+        )
+      )
+    );
+  }
+}
+
+@media (min-width: 1200px) {
+  :host {
+    --andes-grid-gutter-x: var(
+      --andes-row-gx-xl,
+      var(
+        --andes-row-gx-lg,
+        var(
+          --andes-row-gx-md,
+          var(
+            --andes-row-gx-sm,
+            var(--andes-row-gx-xs, var(--andes-row-gx, 0px))
+          )
+        )
+      )
+    );
+    --andes-grid-gutter-y: var(
+      --andes-row-gy-xl,
+      var(
+        --andes-row-gy-lg,
+        var(
+          --andes-row-gy-md,
+          var(
+            --andes-row-gy-sm,
+            var(--andes-row-gy-xs, var(--andes-row-gy, 0px))
+          )
+        )
+      )
+    );
+    --_align: var(
+      --andes-row-align-xl,
+      var(
+        --andes-row-align-lg,
+        var(
+          --andes-row-align-md,
+          var(
+            --andes-row-align-sm,
+            var(--andes-row-align-xs, var(--andes-row-align))
+          )
+        )
+      )
+    );
+    --_justify: var(
+      --andes-row-justify-xl,
+      var(
+        --andes-row-justify-lg,
+        var(
+          --andes-row-justify-md,
+          var(
+            --andes-row-justify-sm,
+            var(--andes-row-justify-xs, var(--andes-row-justify))
+          )
+        )
+      )
+    );
+  }
+}
+
+@media (min-width: 1600px) {
+  :host {
+    --andes-grid-gutter-x: var(
+      --andes-row-gx-xxl,
+      var(
+        --andes-row-gx-xl,
+        var(
+          --andes-row-gx-lg,
+          var(
+            --andes-row-gx-md,
+            var(
+              --andes-row-gx-sm,
+              var(--andes-row-gx-xs, var(--andes-row-gx, 0px))
+            )
+          )
+        )
+      )
+    );
+    --andes-grid-gutter-y: var(
+      --andes-row-gy-xxl,
+      var(
+        --andes-row-gy-xl,
+        var(
+          --andes-row-gy-lg,
+          var(
+            --andes-row-gy-md,
+            var(
+              --andes-row-gy-sm,
+              var(--andes-row-gy-xs, var(--andes-row-gy, 0px))
+            )
+          )
+        )
+      )
+    );
+    --_align: var(
+      --andes-row-align-xxl,
+      var(
+        --andes-row-align-xl,
+        var(
+          --andes-row-align-lg,
+          var(
+            --andes-row-align-md,
+            var(
+              --andes-row-align-sm,
+              var(--andes-row-align-xs, var(--andes-row-align))
+            )
+          )
+        )
+      )
+    );
+    --_justify: var(
+      --andes-row-justify-xxl,
+      var(
+        --andes-row-justify-xl,
+        var(
+          --andes-row-justify-lg,
+          var(
+            --andes-row-justify-md,
+            var(
+              --andes-row-justify-sm,
+              var(--andes-row-justify-xs, var(--andes-row-justify))
+            )
+          )
+        )
+      )
+    );
+  }
+}
