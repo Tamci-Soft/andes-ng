@@ -1,0 +1,22 @@
+<button
+  type="button"
+  role="radio"
+  class="andes-segmented-option__button"
+  data-slot="segmented-option-button"
+  [attr.aria-checked]="checked()"
+  [attr.aria-label]="ariaLabel()"
+  [attr.title]="tooltip() ?? null"
+  [attr.tabindex]="tabIndex()"
+  [disabled]="isDisabled()"
+  (click)="onClick($event)"
+>
+  @if (icon(); as iconTemplate) {
+  <span class="andes-segmented-option__icon" aria-hidden="true">
+    <ng-container *ngTemplateOutlet="iconTemplate" />
+  </span>
+  }
+  <span class="andes-segmented-option__icon" aria-hidden="true">
+    <ng-content select="[slot=icon]" />
+  </span>
+  <span class="andes-segmented-option__label"><ng-content /></span>
+</button>

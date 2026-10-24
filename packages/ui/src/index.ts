@@ -109,7 +109,7 @@ export * from './lib/result';
 
 export * from './lib/scroll-area';
 
-// @slot segmented
+export * from './lib/segmented';
 
 // @slot select
 
@@ -143,7 +143,7 @@ export * from './lib/tag';
 
 // @slot toast
 
-// @slot toggle
+export * from './lib/toggle';
 
 // @slot tooltip
 
