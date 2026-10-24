@@ -1,0 +1,417 @@
+/*
+ * The tour is rendered into the overlay container, outside any component host, so the
+ * stylesheet is unencapsulated and every class is namespaced `andes-tour*`.
+ */
+
+/* The pane fills the viewport but only the mask and the card take pointer events: with no
+   mask the page underneath stays fully usable. The CDK sets `pointer-events: auto` inline on
+   every pane, so only `!important` can switch it off; everything that must stay clickable
+   opts back in below, and the rest inherits `none`. */
+.andes-tour-pane {
+  pointer-events: none !important;
+}
+
+.andes-tour {
+  --andes-tour-card-width: 20rem;
+  --andes-tour-mask-color: var(--andes-color-overlay, rgb(15 23 42 / 45%));
+  --andes-tour-move: var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  color: var(--andes-color-popover-foreground, #0f172a);
+  animation: andes-tour-fade-in var(--andes-motion-duration-mid, 150ms)
+    var(--andes-motion-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+
+/* --- Mask ----------------------------------------------------------------------------- */
+
+.andes-tour__mask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.andes-tour__strip,
+.andes-tour__hole {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* The dimming is the spotlight's own shadow, so the hole keeps its rounded corners and
+   moves between steps like any other box. 100vmax reaches every edge from anywhere. */
+.andes-tour__spotlight,
+.andes-tour__ring {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: var(--andes-tour-radius, 6px);
+  pointer-events: none;
+}
+
+.andes-tour__spotlight {
+  box-shadow: 0 0 0 100vmax var(--andes-tour-mask-color);
+}
+
+.andes-tour__ring {
+  border: 2px solid var(--andes-color-primary, #2563eb);
+}
+
+.andes-tour[data-ready] .andes-tour__strip,
+.andes-tour[data-ready] .andes-tour__hole,
+.andes-tour[data-ready] .andes-tour__spotlight,
+.andes-tour[data-ready] .andes-tour__ring {
+  transition:
+    left var(--andes-tour-move),
+    top var(--andes-tour-move),
+    width var(--andes-tour-move),
+    height var(--andes-tour-move);
+}
+
+/* --- Card ----------------------------------------------------------------------------- */
+
+.andes-tour__popup {
+  --andes-tour-surface: var(--andes-color-popover, #fff);
+  --andes-tour-ink: var(--andes-color-popover-foreground, #0f172a);
+  --andes-tour-muted: var(--andes-color-muted-foreground, #5f6f86);
+  --andes-tour-edge: var(--andes-color-border, #e2e8f0);
+
+  /* Placed with physical viewport coordinates (see the transform), so physical offsets. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: min(var(--andes-tour-card-width), calc(100vw - 1rem));
+  /* The arrow hangs outside the card. */
+  border: 1px solid var(--andes-tour-edge);
+  border-radius: var(--andes-radius-lg, 0.5rem);
+  background: var(--andes-tour-surface);
+  color: var(--andes-tour-ink);
+  box-shadow: var(
+    --andes-shadow-lg,
+    0 10px 15px -3px rgb(0 0 0 / 10%),
+    0 4px 6px -4px rgb(0 0 0 / 10%)
+  );
+  pointer-events: auto;
+  will-change: transform;
+}
+
+.andes-tour[data-ready] .andes-tour__popup {
+  transition: transform var(--andes-tour-move);
+}
+
+.andes-tour__popup[data-type='primary'] {
+  --andes-tour-surface: var(--andes-color-primary, #2563eb);
+  --andes-tour-ink: var(--andes-color-primary-foreground, #fff);
+  --andes-tour-muted: color-mix(
+    in srgb,
+    var(--andes-color-primary-foreground, #fff) 80%,
+    transparent
+  );
+  --andes-tour-edge: transparent;
+}
+
+.andes-tour__arrow {
+  position: absolute;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
+  background: var(--andes-tour-surface);
+  border: 1px solid var(--andes-tour-edge);
+  transform: rotate(45deg);
+}
+
+/* The arrow sits on the edge that faces the target: a card below it carries the arrow on
+   its top edge, and so on. Two borders of the square show, the two pointing outward. */
+.andes-tour__popup[data-side='bottom'] > .andes-tour__arrow {
+  top: -6px;
+  left: calc(var(--andes-tour-arrow-offset, 24px) - 5px);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.andes-tour__popup[data-side='top'] > .andes-tour__arrow {
+  bottom: -6px;
+  left: calc(var(--andes-tour-arrow-offset, 24px) - 5px);
+  border-left-color: transparent;
+  border-top-color: transparent;
+}
+
+.andes-tour__popup[data-side='right'] > .andes-tour__arrow {
+  left: -6px;
+  top: calc(var(--andes-tour-arrow-offset, 24px) - 5px);
+  border-right-color: transparent;
+  border-top-color: transparent;
+}
+
+.andes-tour__popup[data-side='left'] > .andes-tour__arrow {
+  right: -6px;
+  top: calc(var(--andes-tour-arrow-offset, 24px) - 5px);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.andes-tour__cover {
+  display: block;
+  width: 100%;
+  max-height: 10rem;
+  object-fit: cover;
+  border-start-start-radius: calc(var(--andes-radius-lg, 0.5rem) - 1px);
+  border-start-end-radius: calc(var(--andes-radius-lg, 0.5rem) - 1px);
+  overflow: hidden;
+}
+
+.andes-tour__body {
+  position: relative;
+  padding: var(--andes-space-4, 1rem) var(--andes-space-4, 1rem) 0;
+  outline: none;
+}
+
+.andes-tour__title {
+  margin: 0;
+  /* Clears the close button. */
+  padding-inline-end: 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.andes-tour__description {
+  margin-block-start: var(--andes-space-2, 0.5rem);
+  color: var(--andes-tour-muted);
+}
+
+.andes-tour__close {
+  position: absolute;
+  inset-block-start: var(--andes-space-3, 0.75rem);
+  inset-inline-end: var(--andes-space-3, 0.75rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--andes-control-height-sm, 1.5rem);
+  height: var(--andes-control-height-sm, 1.5rem);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--andes-radius-md, 0.375rem);
+  background: transparent;
+  color: var(--andes-tour-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--andes-motion-duration-fast, 120ms) ease,
+    color var(--andes-motion-duration-fast, 120ms) ease;
+}
+
+.andes-tour__close > svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-tour__close:hover {
+  background: color-mix(in srgb, currentcolor 12%, transparent);
+  color: var(--andes-tour-ink);
+}
+
+.andes-tour__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--andes-space-3, 0.75rem);
+  padding: var(--andes-space-4, 1rem);
+}
+
+.andes-tour__progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.andes-tour__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--andes-radius-full, 9999px);
+  background: color-mix(in srgb, var(--andes-tour-ink) 22%, transparent);
+  transition: background-color var(--andes-motion-duration-mid, 150ms) ease;
+}
+
+.andes-tour__dot--active {
+  background: var(--andes-tour-ink);
+}
+
+.andes-tour__count {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--andes-tour-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.andes-tour__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--andes-space-2, 0.5rem);
+  margin-inline-start: auto;
+}
+
+/* --- Buttons: 24px, like the small control size ---------------------------------------- */
+
+.andes-tour__button {
+  box-sizing: border-box;
+  height: var(--andes-control-height-sm, 1.5rem);
+  margin: 0;
+  padding: 0 var(--andes-control-padding-x-sm, 0.4375rem);
+  border: 1px solid transparent;
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: var(--andes-font-weight-medium, 500);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--andes-motion-duration-fast, 120ms) ease,
+    border-color var(--andes-motion-duration-fast, 120ms) ease,
+    color var(--andes-motion-duration-fast, 120ms) ease;
+}
+
+.andes-tour__button--primary {
+  background: var(--andes-color-primary, #2563eb);
+  color: var(--andes-color-primary-foreground, #fff);
+}
+
+.andes-tour__button--primary:hover:not(:disabled) {
+  background: var(--andes-color-primary-hover, #1d4ed8);
+}
+
+.andes-tour__button--secondary {
+  border-color: var(--andes-color-input, #cbd5e1);
+  background: var(--andes-color-background, #fff);
+  color: var(--andes-color-foreground, #0f172a);
+}
+
+.andes-tour__button--secondary:hover:not(:disabled) {
+  background: var(--andes-color-accent, #f1f5f9);
+}
+
+.andes-tour__button--ghost {
+  background: transparent;
+  color: var(--andes-tour-muted);
+}
+
+.andes-tour__button--ghost:hover:not(:disabled) {
+  color: var(--andes-tour-ink);
+  background: color-mix(in srgb, currentcolor 10%, transparent);
+}
+
+/* On a primary card the filled button inverts so it still stands out. */
+.andes-tour__popup[data-type='primary'] .andes-tour__button--primary {
+  background: var(--andes-color-primary-foreground, #fff);
+  color: var(--andes-color-primary, #2563eb);
+}
+
+.andes-tour__popup[data-type='primary']
+  .andes-tour__button--primary:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--andes-color-primary-foreground, #fff) 88%,
+    transparent
+  );
+}
+
+.andes-tour__popup[data-type='primary'] .andes-tour__button--secondary {
+  border-color: color-mix(
+    in srgb,
+    var(--andes-color-primary-foreground, #fff) 45%,
+    transparent
+  );
+  background: transparent;
+  color: var(--andes-color-primary-foreground, #fff);
+}
+
+.andes-tour__popup[data-type='primary']
+  .andes-tour__button--secondary:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--andes-color-primary-foreground, #fff) 14%,
+    transparent
+  );
+}
+
+.andes-tour__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.andes-tour__button:focus-visible,
+.andes-tour__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring, #2563eb);
+  outline-offset: 2px;
+}
+
+.andes-tour__popup[data-type='primary'] .andes-tour__button:focus-visible,
+.andes-tour__popup[data-type='primary'] .andes-tour__close:focus-visible {
+  outline-color: var(--andes-color-primary-foreground, #fff);
+}
+
+/* Visually hidden, still announced. */
+.andes-tour__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Motion --------------------------------------------------------------------------- */
+
+/* Exit: the overlay primitive marks the pane's child with `data-andes-closing` and waits
+   for this before detaching. The card settles back a little as everything fades. */
+.andes-tour[data-andes-closing] {
+  pointer-events: none;
+  animation: andes-tour-fade-out var(--andes-motion-duration-fast, 120ms)
+    var(--andes-motion-ease-in, cubic-bezier(0.4, 0, 1, 1)) forwards;
+}
+
+@keyframes andes-tour-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes andes-tour-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-tour,
+  .andes-tour[data-andes-closing] {
+    animation: none;
+  }
+
+  .andes-tour[data-ready] .andes-tour__strip,
+  .andes-tour[data-ready] .andes-tour__hole,
+  .andes-tour[data-ready] .andes-tour__spotlight,
+  .andes-tour[data-ready] .andes-tour__ring,
+  .andes-tour[data-ready] .andes-tour__popup,
+  .andes-tour__close,
+  .andes-tour__button,
+  .andes-tour__dot {
+    transition: none;
+  }
+}

@@ -147,7 +147,7 @@ export * from './lib/toggle';
 
 export * from './lib/tooltip';
 
-// @slot tour
+export * from './lib/tour';
 
 // @slot transfer
 
