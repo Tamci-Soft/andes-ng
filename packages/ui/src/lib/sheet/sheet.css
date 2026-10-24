@@ -1,0 +1,398 @@
+/* Public styling hooks (set them on the panel via `panelClass`, or globally):
+   --andes-sheet-size          width (left/right) or height (top/bottom); 378px
+   --andes-sheet-padding       header/body/footer padding; --andes-space-4
+   --andes-sheet-push-distance how far a `push` panel moves for a nested one
+   --andes-sheet-gutter        viewport space always left uncovered; 40px
+                               (`0px` lets the panel fill a small screen) */
+
+/* The size is capped with viewport units, not `100%`: the CDK pane around the
+   panel is sized by its content along the slide axis, so a percentage there
+   resolves against the content and silently shrinks the panel to fit it. The cap
+   keeps a strip of the scrim visible on a small screen, so the panel still reads
+   as a layer over the page and that strip stays tappable to dismiss it. */
+
+.andes-sheet__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background-color: var(--andes-color-popover);
+  color: var(--andes-color-popover-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  /* Set on the surface itself: the panel renders in the overlay container, so
+     projected content would otherwise inherit the page's 16px from <body>. */
+  font-size: var(--andes-text-font-size, 0.875rem);
+  line-height: var(--andes-text-line-height, 1.375rem);
+  overflow-wrap: break-word;
+  /* A fixed slate ink, never one derived from the foreground (that turns into a
+     white halo in the dark theme). Larger blur than a dialog: the panel sits over
+     a scrim and spans the full viewport edge. */
+  box-shadow: 0 10px 40px rgb(15 23 42 / 20%);
+  outline: none;
+  overflow: hidden;
+  /* Slide timings kept short and plain (ease-out in, ease-in out, no overshoot), so the
+     panel arrives without a lurch; edge-panel.ts fades the scrim over the same times. */
+  transition: transform 0.22s ease-out;
+}
+
+.andes-sheet__panel[data-side='right'] {
+  width: min(
+    100vw - var(--andes-sheet-gutter, var(--andes-space-5) * 2),
+    var(--andes-sheet-size, 378px)
+  );
+  height: 100%;
+  border-left: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-right 0.22s ease-out;
+}
+
+.andes-sheet__panel[data-side='left'] {
+  width: min(
+    100vw - var(--andes-sheet-gutter, var(--andes-space-5) * 2),
+    var(--andes-sheet-size, 378px)
+  );
+  height: 100%;
+  border-right: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-left 0.22s ease-out;
+}
+
+.andes-sheet__panel[data-side='top'] {
+  width: 100%;
+  height: min(
+    100dvh - var(--andes-sheet-gutter, var(--andes-space-5) * 2),
+    var(--andes-sheet-size, 378px)
+  );
+  border-bottom: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-top 0.22s ease-out;
+}
+
+.andes-sheet__panel[data-side='bottom'] {
+  width: 100%;
+  height: min(
+    100dvh - var(--andes-sheet-gutter, var(--andes-space-5) * 2),
+    var(--andes-sheet-size, 378px)
+  );
+  border-top: 1px solid var(--andes-color-border);
+  animation: andes-sheet-slide-in-bottom 0.22s ease-out;
+}
+
+/* Slide-in is 0.22s on an ease-out curve; the slide-out is shorter and eases in, so a
+   dismissed panel gets out of the way rather than lingering. `data-closing` is set by
+   AndesSheet right before it removes the overlay, which waits for this
+   animation to end. */
+.andes-sheet__panel[data-side='right'][data-closing] {
+  animation: andes-sheet-slide-out-right 0.18s ease-in forwards;
+}
+
+.andes-sheet__panel[data-side='left'][data-closing] {
+  animation: andes-sheet-slide-out-left 0.18s ease-in forwards;
+}
+
+.andes-sheet__panel[data-side='top'][data-closing] {
+  animation: andes-sheet-slide-out-top 0.18s ease-in forwards;
+}
+
+.andes-sheet__panel[data-side='bottom'][data-closing] {
+  animation: andes-sheet-slide-out-bottom 0.18s ease-in forwards;
+}
+
+/* `push`: a nested sheet is open, so this one moves aside (away from its own
+   edge) to show the stacking. */
+.andes-sheet__panel[data-side='right'][data-pushed] {
+  transform: translateX(calc(-1 * var(--andes-sheet-push-distance, 180px)));
+}
+
+.andes-sheet__panel[data-side='left'][data-pushed] {
+  transform: translateX(var(--andes-sheet-push-distance, 180px));
+}
+
+.andes-sheet__panel[data-side='top'][data-pushed] {
+  transform: translateY(var(--andes-sheet-push-distance, 180px));
+}
+
+.andes-sheet__panel[data-side='bottom'][data-pushed] {
+  transform: translateY(calc(-1 * var(--andes-sheet-push-distance, 180px)));
+}
+
+/* Header/footer/title/description are their own small components (see
+   sheet-parts.ts) with their own inline styles - a class here would never match
+   them, since projected content carries the *consumer's* emulated-encapsulation
+   attribute, not AndesSheet's. */
+
+.andes-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--andes-sheet-padding, var(--andes-space-4));
+  overflow-y: auto;
+  /* Reaching the end of the body must not start scrolling the page behind it. */
+  overscroll-behavior: contain;
+}
+
+.andes-sheet__lazy {
+  display: contents;
+}
+
+.andes-sheet__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-3);
+}
+
+.andes-sheet__skeleton-line {
+  display: block;
+  height: 0.875rem;
+  border-radius: var(--andes-radius-sm);
+  background-color: var(--andes-color-secondary);
+  /* Slow and shallow, so the placeholder breathes rather than flashes. */
+  animation: andes-sheet-skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+.andes-sheet__skeleton-line:first-child {
+  width: 40%;
+  height: 1.25rem;
+}
+
+.andes-sheet__skeleton-line:last-child {
+  width: 60%;
+}
+
+.andes-sheet__close {
+  position: absolute;
+  /* Optically aligned rather than box-aligned: the 1rem glyph sits centred in a
+     1.75rem box, so insetting the box by its 0.375rem of glyph padding lands the
+     glyph on the content's right edge, and the 0.125rem offset centres it on the
+     title's 1.5rem first line. */
+  top: calc(var(--andes-sheet-padding, var(--andes-space-4)) - 0.125rem);
+  inset-inline-end: calc(
+    var(--andes-sheet-padding, var(--andes-space-4)) - 0.375rem
+  );
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--andes-radius-sm);
+  background: transparent;
+  color: var(--andes-color-muted-foreground);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Mixed from the foreground rather than taken from --andes-color-accent, which
+   equals the popover surface in the dark theme and left no visible hover. */
+.andes-sheet__close:hover:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 8%,
+    transparent
+  );
+  color: var(--andes-color-popover-foreground);
+}
+
+.andes-sheet__close:active:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--andes-color-foreground) 14%,
+    transparent
+  );
+}
+
+/* `closePlacement="start"`: the leading corner, before the title. */
+.andes-sheet__close[data-placement='start'] {
+  inset-inline-start: calc(
+    var(--andes-sheet-padding, var(--andes-space-4)) - 0.375rem
+  );
+  inset-inline-end: auto;
+}
+
+.andes-sheet__close:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.andes-sheet__close:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* A consumer's `closeIcon` gets the same box as the built-in glyph. */
+.andes-sheet__close > svg:not(.andes-sheet__close-icon) {
+  width: 1rem;
+  height: 1rem;
+}
+
+.andes-sheet__close-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* `resizable`: a strip along the panel's inner edge. Its line shows on hover,
+   while dragging and on keyboard focus. */
+.andes-sheet__resize-handle {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+  outline: none;
+}
+
+.andes-sheet__resize-handle::after {
+  position: absolute;
+  background-color: transparent;
+  content: '';
+  transition: background-color 0.15s ease;
+}
+
+.andes-sheet__resize-handle[aria-orientation='vertical'] {
+  top: 0;
+  bottom: 0;
+  width: 0.5rem;
+  cursor: ew-resize;
+}
+
+.andes-sheet__resize-handle[aria-orientation='horizontal'] {
+  right: 0;
+  left: 0;
+  height: 0.5rem;
+  cursor: ns-resize;
+}
+
+.andes-sheet__resize-handle[aria-orientation='vertical']::after {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+}
+
+.andes-sheet__resize-handle[aria-orientation='horizontal']::after {
+  right: 0;
+  left: 0;
+  height: 2px;
+}
+
+.andes-sheet__panel[data-side='right'] .andes-sheet__resize-handle,
+.andes-sheet__panel[data-side='right'] .andes-sheet__resize-handle::after {
+  left: 0;
+}
+
+.andes-sheet__panel[data-side='left'] .andes-sheet__resize-handle,
+.andes-sheet__panel[data-side='left'] .andes-sheet__resize-handle::after {
+  right: 0;
+}
+
+.andes-sheet__panel[data-side='bottom'] .andes-sheet__resize-handle,
+.andes-sheet__panel[data-side='bottom'] .andes-sheet__resize-handle::after {
+  top: 0;
+}
+
+.andes-sheet__panel[data-side='top'] .andes-sheet__resize-handle,
+.andes-sheet__panel[data-side='top'] .andes-sheet__resize-handle::after {
+  bottom: 0;
+}
+
+.andes-sheet__resize-handle:hover::after {
+  background-color: var(--andes-color-border);
+}
+
+.andes-sheet__resize-handle:focus-visible::after,
+.andes-sheet__panel[data-resizing] .andes-sheet__resize-handle::after {
+  background-color: var(--andes-color-focus-ring);
+}
+
+/* While dragging: no push transition lagging behind the pointer, and no text
+   selection in the body. */
+.andes-sheet__panel[data-resizing] {
+  transition: none;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-sheet__panel[data-side] {
+    animation: none;
+    transition: none;
+  }
+
+  .andes-sheet__panel[data-side][data-closing] {
+    animation: none;
+  }
+
+  .andes-sheet__skeleton-line,
+  .andes-sheet__close,
+  .andes-sheet__resize-handle::after {
+    animation: none;
+    transition: none;
+  }
+}
+
+@keyframes andes-sheet-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes andes-sheet-slide-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes andes-sheet-slide-out-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes andes-sheet-slide-out-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes andes-sheet-slide-out-top {
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes andes-sheet-slide-out-bottom {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes andes-sheet-skeleton-pulse {
+  50% {
+    opacity: 0.6;
+  }
+}

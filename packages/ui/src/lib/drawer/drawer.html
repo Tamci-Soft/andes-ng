@@ -1,0 +1,75 @@
+<ng-content select="[andesDrawerTrigger]" />
+
+<ng-template #panel>
+  <div
+    andesOverlayContent
+    class="andes-drawer__panel"
+    [class]="panelClass()"
+    [attr.data-pushed]="pushed() ? '' : null"
+    [attr.data-resizing]="resizeActive() ? '' : null"
+    [style.--andes-drawer-size]="panelSize()"
+    [style.--andes-drawer-push-distance]="pushDistance()"
+    [attr.aria-labelledby]="ariaLabelledBy()"
+    [attr.aria-describedby]="ariaDescribedBy()"
+  >
+    @if (closable()) {
+    <button
+      type="button"
+      class="andes-drawer__close"
+      [attr.data-placement]="closePlacement()"
+      [disabled]="closeDisabled()"
+      [attr.aria-label]="closeLabel()"
+      (click)="requestClose('close-button')"
+    >
+      @if (closeIcon(); as icon) {
+      <ng-container [ngTemplateOutlet]="icon" />
+      } @else {
+      <svg
+        class="andes-drawer__close-icon"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M6 6 18 18M18 6 6 18" />
+      </svg>
+      }
+    </button>
+    }
+
+    <ng-content select="andes-drawer-header" />
+
+    <div
+      class="andes-drawer__body"
+      [attr.aria-busy]="loading() ? 'true' : null"
+    >
+      @if (loading()) {
+      <div class="andes-drawer__skeleton" aria-hidden="true">
+        <span class="andes-drawer__skeleton-line"></span>
+        <span class="andes-drawer__skeleton-line"></span>
+        <span class="andes-drawer__skeleton-line"></span>
+        <span class="andes-drawer__skeleton-line"></span>
+      </div>
+      }
+      <div [hidden]="loading()">
+        <ng-content />
+        <div andesEdgePanelLazyOutlet class="andes-drawer__lazy"></div>
+      </div>
+    </div>
+
+    <ng-content select="andes-drawer-footer" />
+
+    @if (resizable()) {
+    <div
+      class="andes-drawer__resize-handle"
+      role="separator"
+      tabindex="0"
+      [attr.aria-orientation]="resizeOrientation()"
+      [attr.aria-label]="resizeLabel()"
+      [attr.aria-valuenow]="resizeValue()"
+      [attr.aria-valuemax]="maxSize()"
+      (pointerdown)="onResizePointerDown($event)"
+      (keydown)="onResizeKeydown($event)"
+    ></div>
+    }
+  </div>
+</ng-template>
