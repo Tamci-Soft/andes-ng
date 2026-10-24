@@ -1,0 +1,62 @@
+<div [class]="wrapperClasses()">
+  <textarea
+    #textareaEl
+    data-slot="textarea"
+    class="andes-textarea__control"
+    [attr.data-size]="size()"
+    [attr.id]="id()"
+    [attr.name]="name()"
+    [rows]="autoSizeEnabled() ? 1 : rows()"
+    [attr.placeholder]="placeholder()"
+    [attr.maxlength]="maxLength()"
+    [disabled]="isDisabled()"
+    [readOnly]="readonly()"
+    [required]="required()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-labelledby]="ariaLabelledby()"
+    [attr.aria-describedby]="describedBy()"
+    [attr.aria-invalid]="isInvalid() || null"
+    [value]="value()"
+    (input)="onInput($event)"
+    (focus)="onFocus($event)"
+    (blur)="onBlur($event)"
+    (keydown)="onKeydown($event)"
+    (compositionstart)="onCompositionStart()"
+    (compositionend)="onCompositionEnd($event)"
+  ></textarea>
+  @if (showClear()) {
+  <button
+    type="button"
+    class="andes-textarea__clear"
+    data-slot="textarea-clear"
+    [attr.aria-label]="clearLabel()"
+    (mousedown)="$event.preventDefault()"
+    (click)="clear($event)"
+  >
+    @if (clearIcon(); as icon) {
+    <ng-container [ngTemplateOutlet]="icon" />
+    } @else {
+    <svg
+      class="andes-textarea__clear-glyph"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="8" cy="8" r="8" />
+      <path d="M5.5 5.5l5 5m0-5-5 5" />
+    </svg>
+    }
+  </button>
+  }
+</div>
+@if (showCount()) {
+<span
+  class="andes-textarea__count"
+  [class.andes-textarea__count--exceeded]="countExceeded()"
+  [id]="countId"
+  ><ng-container
+    [ngTemplateOutlet]="countTemplate() ?? defaultCount"
+    [ngTemplateOutletContext]="{ $implicit: countInfo() }"
+/></span>
+}
+<ng-template #defaultCount>{{ countText() }}</ng-template>

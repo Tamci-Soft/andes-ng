@@ -1,0 +1,435 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--andes-space-1);
+  width: 100%;
+}
+
+/* The wrapper - not the native textarea - is what visually reads as "the field": it owns the
+   border, background, focus ring and the manual-resize grip, and encloses the clear button,
+   which sits outside the textarea's own box. `overflow: hidden` is what lets CSS `resize`
+   apply to a non-textarea element (and clips the textarea to the rounded corners); it does
+   not clip the wrapper's own box-shadow ring.
+
+   State colours go through these private properties so one `:hover` and one `:focus-within`
+   rule serve every variant, status and the disabled/read-only states: each of those only
+   re-points the properties. */
+.andes-textarea-wrapper {
+  --_andes-textarea-border: var(--andes-color-input);
+  --_andes-textarea-border-hover: color-mix(
+    in srgb,
+    var(--andes-color-primary) 65%,
+    var(--andes-color-input)
+  );
+  --_andes-textarea-border-focus: var(--andes-color-primary);
+  --_andes-textarea-bg: var(--andes-color-background);
+  --_andes-textarea-bg-hover: var(--_andes-textarea-bg);
+  --_andes-textarea-bg-focus: var(--_andes-textarea-bg);
+  --_andes-textarea-ring: color-mix(
+    in srgb,
+    var(--andes-color-primary) 20%,
+    transparent
+  );
+
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--andes-control-radius-md, 0.375rem);
+  border: 1px solid var(--_andes-textarea-border);
+  background-color: var(--_andes-textarea-bg);
+  color: var(--andes-color-foreground);
+  font-family: var(--andes-font-family), sans-serif;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .andes-textarea-wrapper {
+    transition: none;
+  }
+}
+
+.andes-textarea-wrapper:hover {
+  border-color: var(--_andes-textarea-border-hover);
+  background-color: var(--_andes-textarea-bg-hover);
+}
+
+/* One focus indicator, on the wrapper: the border takes the focus colour and a soft 2px ring
+   hugs it from outside, on any focus (mouse or keyboard). No `outline` - one drawn a few
+   pixels outside the border reads as a second, detached frame. */
+.andes-textarea-wrapper:focus-within {
+  border-color: var(--_andes-textarea-border-focus);
+  background-color: var(--_andes-textarea-bg-focus);
+  box-shadow: 0 0 0 2px var(--_andes-textarea-ring);
+  outline: none;
+}
+
+/* Forced-colors mode drops `box-shadow`; a real outline is the one indicator there. */
+@media (forced-colors: active) {
+  .andes-textarea-wrapper:focus-within {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* The native textarea is bare text inside the wrapper's box: no border, ring, shadow or fill
+   of its own (any of them would draw a second box inside the field). */
+.andes-textarea__control {
+  box-sizing: border-box;
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+  background-color: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  /* Manual resizing is handled by the wrapper (see the resize modes below), so the border,
+     ring and clear button always follow the dragged size. */
+  resize: none;
+  /* Explicit so `getComputedStyle(...).lineHeight` resolves to a real length for the
+     auto-size row math instead of `normal`; each size overrides it below. */
+  line-height: 1.375rem;
+  padding: var(--andes-space-1) var(--andes-control-padding-x-md, 0.6875rem);
+}
+
+.andes-textarea__control::placeholder {
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-textarea__control:disabled {
+  cursor: not-allowed;
+}
+
+/* With autoSize the measured inline height is authoritative - the textarea must not be
+   stretched or shrunk by the flex column around it. */
+.andes-textarea-wrapper--auto-size .andes-textarea__control {
+  flex: none;
+}
+
+/* Variants */
+
+.andes-textarea-wrapper--filled {
+  --_andes-textarea-border: transparent;
+  --_andes-textarea-border-hover: transparent;
+  --_andes-textarea-bg: var(--andes-color-muted);
+  --_andes-textarea-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-muted),
+    var(--andes-color-foreground) 6%
+  );
+  --_andes-textarea-bg-focus: var(--andes-color-background);
+}
+
+/* No border at all: focus shows only the soft ring. */
+.andes-textarea-wrapper--borderless {
+  --_andes-textarea-border: transparent;
+  --_andes-textarea-border-hover: transparent;
+  --_andes-textarea-border-focus: transparent;
+  --_andes-textarea-bg: transparent;
+}
+
+/* Only the bottom edge is drawn; that edge is the focus indicator, so no ring. */
+.andes-textarea-wrapper--underlined {
+  --_andes-textarea-bg: transparent;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.andes-textarea-wrapper--underlined:focus-within {
+  box-shadow: none;
+}
+
+/* Status - error also sets aria-invalid on the textarea (see textarea.ts). Hover and focus keep
+   the status colour; the ring takes it too. */
+
+.andes-textarea-wrapper--invalid {
+  --_andes-textarea-border: var(--andes-color-danger);
+  --_andes-textarea-border-hover: var(--andes-color-danger);
+  --_andes-textarea-border-focus: var(--andes-color-danger);
+  --_andes-textarea-ring: color-mix(
+    in srgb,
+    var(--andes-color-danger) 20%,
+    transparent
+  );
+}
+
+.andes-textarea-wrapper--warning {
+  --_andes-textarea-border: var(--andes-color-warning-hover);
+  --_andes-textarea-border-hover: var(--andes-color-warning-hover);
+  --_andes-textarea-border-focus: var(--andes-color-warning-hover);
+  --_andes-textarea-ring: color-mix(
+    in srgb,
+    var(--andes-color-warning-hover) 20%,
+    transparent
+  );
+}
+
+/* A filled field keeps no border and shows its status as a tinted fill instead. */
+.andes-textarea-wrapper--filled.andes-textarea-wrapper--invalid {
+  --_andes-textarea-border: transparent;
+  --_andes-textarea-border-hover: transparent;
+  --_andes-textarea-bg: color-mix(
+    in srgb,
+    var(--andes-color-danger) 10%,
+    transparent
+  );
+  --_andes-textarea-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-danger) 14%,
+    transparent
+  );
+}
+
+.andes-textarea-wrapper--filled.andes-textarea-wrapper--warning {
+  --_andes-textarea-border: transparent;
+  --_andes-textarea-border-hover: transparent;
+  --_andes-textarea-bg: color-mix(
+    in srgb,
+    var(--andes-color-warning) 10%,
+    transparent
+  );
+  --_andes-textarea-bg-hover: color-mix(
+    in srgb,
+    var(--andes-color-warning) 14%,
+    transparent
+  );
+}
+
+/* Borderless stays borderless whatever its status: the text and the ring carry it. The text
+   uses the status *text* tokens, not the fills (danger #dc2626 is 3.7:1 on the dark background
+   and warning #f59e0b 2.1:1 on white); until the tokens land, danger falls back to the fill and
+   warning to its already-AA `-active` shade. */
+.andes-textarea-wrapper--borderless.andes-textarea-wrapper--invalid {
+  --_andes-textarea-border: transparent;
+  --_andes-textarea-border-hover: transparent;
+  --_andes-textarea-border-focus: transparent;
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
+}
+
+.andes-textarea-wrapper--borderless.andes-textarea-wrapper--warning {
+  --_andes-textarea-border: transparent;
+  --_andes-textarea-border-hover: transparent;
+  --_andes-textarea-border-focus: transparent;
+  color: var(--andes-color-warning-text, var(--andes-color-warning-active));
+}
+
+/* Disabled / read-only. Read-only is still focusable (so it gets the ring) but nothing else
+   reacts; disabled doesn't react at all. */
+
+.andes-textarea-wrapper--readonly {
+  --_andes-textarea-border-hover: var(--_andes-textarea-border);
+  --_andes-textarea-border-focus: var(--_andes-textarea-border);
+  --_andes-textarea-bg-hover: var(--_andes-textarea-bg);
+  --_andes-textarea-bg-focus: var(--_andes-textarea-bg);
+}
+
+.andes-textarea-wrapper--disabled {
+  --_andes-textarea-bg: var(--andes-color-muted);
+  --_andes-textarea-border-hover: var(--_andes-textarea-border);
+  --_andes-textarea-bg-hover: var(--_andes-textarea-bg);
+  color: var(--andes-color-muted-foreground);
+  cursor: not-allowed;
+}
+
+.andes-textarea-wrapper--borderless.andes-textarea-wrapper--disabled {
+  --_andes-textarea-bg: transparent;
+}
+
+/* Sizes - font-size lives on the wrapper (the textarea inherits it); line-height and
+   padding on the textarea. Height is otherwise driven by `rows` (native) or the auto-size
+   measurement, never a fixed size-based height. Line-height plus block padding make a single
+   row exactly as tall as the matching AndesInput (24/32/40px including the 1px borders): 14px
+   text on a 22px line (16px on 24px for lg). The line-heights are literal lengths, not the
+   line-height token, because the auto-size row math reads the computed line-height and needs a
+   value every environment resolves. */
+
+.andes-textarea-wrapper--sm {
+  border-radius: var(--andes-control-radius-sm, 0.25rem);
+  font-size: var(--andes-control-font-size-sm, 0.875rem);
+}
+
+.andes-textarea-wrapper--sm .andes-textarea__control {
+  line-height: 1.375rem;
+  padding: 0 var(--andes-control-padding-x-sm, 0.4375rem);
+}
+
+.andes-textarea-wrapper--md {
+  font-size: var(--andes-control-font-size-md, 0.875rem);
+}
+
+.andes-textarea-wrapper--md .andes-textarea__control {
+  line-height: 1.375rem;
+}
+
+.andes-textarea-wrapper--lg {
+  border-radius: var(--andes-control-radius-lg, 0.5rem);
+  font-size: var(--andes-control-font-size-lg, 1rem);
+}
+
+/* 7px block padding (1px under 8px) so the borders don't push one row past 40px. */
+.andes-textarea-wrapper--lg .andes-textarea__control {
+  line-height: 1.5rem;
+  padding: 0.4375rem var(--andes-control-padding-x-lg, 0.6875rem);
+}
+
+/* Resize - applied to the wrapper; `none` whenever autoSize is on (see effectiveResize). */
+
+.andes-textarea-wrapper--resize-none {
+  resize: none;
+}
+
+.andes-textarea-wrapper--resize-vertical {
+  resize: vertical;
+}
+
+.andes-textarea-wrapper--resize-horizontal {
+  resize: horizontal;
+}
+
+.andes-textarea-wrapper--resize-both {
+  resize: both;
+}
+
+.andes-textarea-wrapper--disabled.andes-textarea-wrapper--resize-vertical,
+.andes-textarea-wrapper--disabled.andes-textarea-wrapper--resize-horizontal,
+.andes-textarea-wrapper--disabled.andes-textarea-wrapper--resize-both {
+  resize: none;
+}
+
+/*
+  Clear button - the same design on every field (Input, Textarea, Select, Combobox,
+  DatePicker): a small muted disc with the "x" knocked out of it in the background colour,
+  1em across (14px at sm/md, 16px at lg). It shows while the field holds a value and is
+  hovered or holds focus - so tabbing out of the text lands on it - and always on devices
+  without hover. The padding grows the hit area to 24px and the equal negative margin takes
+  it back out of the layout. Here it is pinned to the inline end of the first line, at the
+  same inset as on AndesInput, and the textarea reserves room for it so text never runs
+  underneath.
+*/
+
+.andes-textarea-wrapper {
+  /* Where the first line's text starts (the control's block-start padding) and how tall it
+     is; each size sets them to match its control padding and line-height below. */
+  --_andes-textarea-first-line-top: var(--andes-space-1);
+  --_andes-textarea-first-line-height: 1.375rem;
+  --_andes-textarea-clear-inset: var(--andes-control-padding-x-md, 0.6875rem);
+}
+
+.andes-textarea-wrapper--sm {
+  --_andes-textarea-first-line-top: 0px;
+  --_andes-textarea-clear-inset: var(--andes-control-padding-x-sm, 0.4375rem);
+}
+
+.andes-textarea-wrapper--lg {
+  --_andes-textarea-first-line-top: 0.4375rem;
+  --_andes-textarea-first-line-height: 1.5rem;
+}
+
+.andes-textarea-wrapper--clearable .andes-textarea__control {
+  padding-inline-end: calc(
+    var(--_andes-textarea-clear-inset) + 1em + var(--andes-space-2)
+  );
+}
+
+.andes-textarea__clear {
+  position: absolute;
+  inset-inline-end: var(--_andes-textarea-clear-inset);
+  /* Centred on the first line. */
+  top: calc(
+    var(--_andes-textarea-first-line-top) +
+      (var(--_andes-textarea-first-line-height) - 1em) / 2
+  );
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc((1.5rem - 1em) / 2);
+  margin: calc((1em - 1.5rem) / 2);
+  border: 0;
+  border-radius: var(--andes-radius-full);
+  background: none;
+  color: color-mix(
+    in srgb,
+    var(--andes-color-muted-foreground) 60%,
+    transparent
+  );
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1;
+  cursor: pointer;
+  visibility: hidden;
+  transition: color var(--andes-duration-base, 150ms) ease;
+}
+
+.andes-textarea-wrapper:hover .andes-textarea__clear,
+.andes-textarea-wrapper:focus-within .andes-textarea__clear {
+  visibility: visible;
+}
+
+@media (hover: none) {
+  .andes-textarea__clear {
+    visibility: visible;
+  }
+}
+
+.andes-textarea__clear:hover {
+  color: var(--andes-color-muted-foreground);
+}
+
+/* Hugs the 1em disc with a 2px gap, inside the 24px hit area. */
+.andes-textarea__clear:focus-visible {
+  outline: 2px solid var(--andes-color-focus-ring);
+  outline-offset: calc((1em - 1.5rem) / 2 + 2px);
+}
+
+.andes-textarea__clear svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+.andes-textarea__clear-glyph circle {
+  fill: currentColor;
+}
+
+.andes-textarea__clear-glyph path {
+  fill: none;
+  stroke: var(--andes-color-background);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* A custom `clearIcon` is stamped from the consumer's template, outside this component's
+   encapsulation, so ::ng-deep (scoped under the button) is what lets it get the same 1em box
+   as the default glyph. */
+.andes-textarea__clear ::ng-deep svg {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+
+/* Character count */
+
+.andes-textarea__count {
+  align-self: flex-end;
+  font-family: var(--andes-font-family), sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  /* Fixed-width digits, as on AndesInput's count, so it doesn't jitter while typing. */
+  font-variant-numeric: tabular-nums;
+  color: var(--andes-color-muted-foreground);
+}
+
+.andes-textarea__count--exceeded {
+  color: var(--andes-color-danger-text, var(--andes-color-danger));
+}

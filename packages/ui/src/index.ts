@@ -137,7 +137,7 @@ export * from './lib/tabs';
 
 export * from './lib/tag';
 
-// @slot textarea
+export * from './lib/textarea';
 
 // @slot timeline
 
